@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -171,6 +172,57 @@ func TestDeviationsOnlyDropPythonWidthMisreads(t *testing.T) {
 			got, _, _ := run(t, mode.args...)
 			diffFindings(t, mode.name, want, got)
 		})
+	}
+}
+
+// Deliberate deviation: F-DEFAULT also knows Huh v2's signature defaults, which
+// tuilint.py never listed: an agent restyled a Huh wizard, left the Charm theme and
+// default spinner in place, and the frames passed. testdata/huh holds real Huh
+// v2.0.3 renders (Charm theme form, dark and light, and the default spinner); each
+// must trip F-DEFAULT on exactly the Huh colours. No kit theme may sit within the
+// rule's ±3 of them, so the addition cannot flag a brand the kit ships.
+func TestHuhDefaults(t *testing.T) {
+	fs, _, code := run(t, "testdata/huh")
+	var got []string
+	for _, f := range fs {
+		if f.Rule == "F-DEFAULT" {
+			label, _, _ := strings.Cut(strings.TrimPrefix(f.Msg, "library-default colour "), " (")
+			got = append(got, f.File+" "+f.Where+" "+label)
+		}
+	}
+	want := []string{
+		"huh-form-dark.ansi r0c2 #7571F9", "huh-form-dark.ansi r1c2 #F780E2",
+		"huh-form-light.ansi r0c2 #5A56E0", "huh-form-light.ansi r1c2 #F780E2",
+		"huh-spinner.ansi r0c0 #F780E2",
+	}
+	if !reflect.DeepEqual(got, want) || code != 1 {
+		t.Errorf("F-DEFAULT on Huh renders (exit %d):\n got %q\nwant %q", code, got, want)
+	}
+	themes, _ := filepath.Glob("../../../kit/themes/*.json")
+	if len(themes) == 0 {
+		t.Fatal("no kit themes")
+	}
+	hexes := regexp.MustCompile(`#[0-9A-Fa-f]{6}\b`)
+	for _, th := range themes {
+		b, err := os.ReadFile(th)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, h := range hexes.FindAllString(string(b), -1) {
+			c := hexc(h)
+			for _, d := range defaultColours {
+				if !strings.Contains(d.label, "huh") {
+					continue
+				}
+				dist := 0
+				for k := 0; k < 3; k++ {
+					dist = max(dist, abs(c[k]-d.c[k]))
+				}
+				if dist <= 3 {
+					t.Errorf("%s: %s is within 3 of %s", filepath.Base(th), h, d.label)
+				}
+			}
+		}
 	}
 }
 
