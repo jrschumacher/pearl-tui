@@ -1,0 +1,16 @@
+{
+ "dark": {
+  "primary": "#6B50FF",
+  "secondary": "#FF60FF",
+  "bg": "#201F26",
+  "fg": "#DFDBDD",
+  "error": "#EB4268",
+  "white": "#FFFAF1"
+ },
+ "light": {
+  "primary": "#5B3DF5",
+  "bg": "#FBFAF7",
+  "fg": "#26252B",
+  "success": "#0B7F65"
+ }
+}

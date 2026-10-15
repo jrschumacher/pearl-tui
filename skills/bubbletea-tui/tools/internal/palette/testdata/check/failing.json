@@ -1,0 +1,40 @@
+{
+ "name": "failing",
+ "roles": {
+  "light": {
+   "primary": "#7FB3FF",
+   "secondary": "#C0C0C0",
+   "tertiary": "#2F7A68",
+   "accent": "#EEEEEE",
+   "bg": "#FAFAF9",
+   "bgSubtle": "#F7F7F5",
+   "fg": "#555555",
+   "fgMuted": "#9A9A9A",
+   "fgSubtle": "#D0D0D0",
+   "border": "#333333",
+   "success": "#8FD19E",
+   "error": "#B3363F",
+   "warning": "#EBCB8B",
+   "info": "#2E5E8C",
+   "white": "#FFFFFF"
+  },
+  "dark": {
+   "primary": "#8fb8de",
+   "secondary": "#5E81AC",
+   "accent": "#e5e9f0",
+   "bg": "#15171c",
+   "fg": "#d8dee9",
+   "fgMuted": "#8A93A3",
+   "success": "#8FD19E",
+   "warning": "#EBCB8B",
+   "onWarning": "#ffffff",
+   "white": "#FFF"
+  },
+  "note": "not a role set; skipped"
+ },
+ "contrastAccept": {
+  "light.primary": "the brand's own blue, used as a fill",
+  "light.fg": "",
+  "dark.onWarning": true
+ }
+}

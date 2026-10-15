@@ -1,0 +1,14 @@
+[
+ {"name": "one-hue", "args": ["#6B50FF"]},
+ {"name": "two-hues", "args": ["#6B50FF", "#FF60FF"]},
+ {"name": "accent", "args": ["#FF5A1F", "#3D7CC9", "--accent", "#E8FE96", "--name", "ember"]},
+ {"name": "custom-bg", "args": ["#FF5A1F", "#3D7CC9", "--bg", "#0D1724", "--light-bg", "#F4F6F8"]},
+ {"name": "tint", "args": ["#2E8B57", "--tint", "0.03", "--name", "moss"]},
+ {"name": "tint-zero", "args": ["#2E8B57", "#8FBC8F", "--tint", "0"]},
+ {"name": "near-grey", "args": ["#7A7D80"]},
+ {"name": "very-light", "args": ["#F5F0E1", "--name", "chalk"]},
+ {"name": "very-dark", "args": ["#0B1A10", "#1B0F2E"]},
+ {"name": "short-hex", "args": ["#0af", "#c33", "--bg", "#101418", "--name", "Crème ☕"]},
+ {"name": "fails", "args": ["#6B50FF", "--bg", "#808080"]},
+ {"name": "out-file", "args": ["#3CE8F0", "#FFD23F", "--accent", "#FF4F79", "--bg", "#0B0B10", "--out", "roles.json"]}
+]

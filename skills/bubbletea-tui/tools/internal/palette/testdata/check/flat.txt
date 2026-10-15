@@ -1,0 +1,17 @@
+  dark
+    ok   fg           on bg        11.91  (want ≥7.0)  #DFDBDD / #201F26
+    FAIL primary      on bg         3.28  (want ≥3.5)  #6B50FF / #201F26
+    ok   secondary    on bg         6.51  (want ≥3.0)  #FF60FF / #201F26
+    ok   error        on bg         4.29  (want ≥3.5)  #EB4268 / #201F26
+    ok   onPrimary    on primary    4.79  (want ≥4.5)  #FFFAF1 / #6B50FF
+    ok   onSecondary  on secondary  6.51  (want ≥3.5)  #201F26 / #FF60FF
+    ok   onError      on error      4.29  (want ≥3.5)  #201F26 / #EB4268
+    ok   fgSelected   on primary    4.79  (want ≥3.5)  #FFFAF1 / #6B50FF
+  light
+    ok   fg           on bg        14.56  (want ≥7.0)  #26252B / #FBFAF7
+    ok   primary      on bg         5.86  (want ≥3.5)  #5B3DF5 / #FBFAF7
+    ok   success      on bg         4.75  (want ≥3.5)  #0B7F65 / #FBFAF7
+    ok   onPrimary    on primary    5.86  (want ≥4.5)  #FBFAF7 / #5B3DF5
+    ok   onSuccess    on success    4.75  (want ≥3.5)  #FBFAF7 / #0B7F65
+    ok   fgSelected   on primary    5.86  (want ≥3.5)  #FBFAF7 / #5B3DF5
+FAIL (1 contrast problems)

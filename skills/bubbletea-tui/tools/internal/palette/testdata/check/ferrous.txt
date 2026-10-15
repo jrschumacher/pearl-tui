@@ -1,0 +1,45 @@
+  dark
+    ok   fg           on bg        12.19  (want ≥7.0)  #D7D9DC / #1A1B1D
+    ok   fgMuted      on bg         5.93  (want ≥4.5)  #9298A0 / #1A1B1D
+    ok   fgSubtle     on bg         3.44  (want ≥2.6)  #6A7076 / #1A1B1D
+    ok   fg           on bgSubtle   9.63  (want ≥4.5)  #D7D9DC / #2C2E31
+    ok   fgMuted      on bgSubtle   4.68  (want ≥3.0)  #9298A0 / #2C2E31
+    ok   primary      on bg         4.50  (want ≥3.5)  #E25317 / #1A1B1D
+    ok   secondary    on bg         3.58  (want ≥3.0)  #C8470C / #1A1B1D
+    ok   tertiary     on bg        10.45  (want ≥4.5)  #C5CAD0 / #1A1B1D
+    ok   accent       on bg         9.19  (want ≥4.5)  #B8BEC4 / #1A1B1D
+    ok   success      on bg         5.60  (want ≥3.5)  #6E9E78 / #1A1B1D
+    ok   error        on bg         4.17  (want ≥3.5)  #E0453A / #1A1B1D
+    ok   warning      on bg         7.33  (want ≥3.5)  #CFA24E / #1A1B1D
+    ok   info         on bg         5.87  (want ≥3.0)  #8C98A6 / #1A1B1D
+    ok   border       on bg         1.63  (want ≥1.14 ≤1.9)  #3C3F44 / #1A1B1D
+    ok   bgSubtle     on bg         1.27  (want ≥1.1 ≤2.2)  #2C2E31 / #1A1B1D
+    ok   onPrimary    on primary    4.50  (want ≥4.5)  #1A1B1D / #E25317
+    ok   onSecondary  on secondary  3.58  (want ≥3.5)  #1A1B1D / #C8470C
+    ok   onWarning    on warning    7.33  (want ≥4.5)  #1A1B1D / #CFA24E
+    ok   onError      on error      4.17  (want ≥3.5)  #1A1B1D / #E0453A
+    ok   onSuccess    on success    5.60  (want ≥3.5)  #1A1B1D / #6E9E78
+    ok   fgSelected   on primary    3.83  (want ≥3.5)  #FFFFFF / #E25317
+  light
+    ok   fg           on bg        17.38  (want ≥7.0)  #141516 / #FAF9F7
+    ok   fgMuted      on bg         8.35  (want ≥4.5)  #474B50 / #FAF9F7
+    ok   fgSubtle     on bg         5.11  (want ≥2.6)  #666B71 / #FAF9F7
+    ok   fg           on bgSubtle  13.99  (want ≥4.5)  #141516 / #E3E1DC
+    ok   fgMuted      on bgSubtle   6.72  (want ≥3.0)  #474B50 / #E3E1DC
+    ok   primary      on bg         5.66  (want ≥3.5)  #B33A08 / #FAF9F7
+    ok   secondary    on bg         8.17  (want ≥3.0)  #8A2C06 / #FAF9F7
+    ok   tertiary     on bg        12.12  (want ≥4.5)  #2E3338 / #FAF9F7
+    ok   accent       on bg        10.10  (want ≥4.5)  #3A3F45 / #FAF9F7
+    ok   success      on bg         5.90  (want ≥3.5)  #2A6E36 / #FAF9F7
+    ok   error        on bg         6.24  (want ≥3.5)  #B71C1C / #FAF9F7
+    ok   warning      on bg         6.58  (want ≥3.5)  #7A5200 / #FAF9F7
+    ok   info         on bg         8.63  (want ≥3.0)  #3C4A58 / #FAF9F7
+    ok   border       on bg         1.51  (want ≥1.14 ≤1.9)  #CFCDC7 / #FAF9F7
+    ok   bgSubtle     on bg         1.24  (want ≥1.1 ≤2.2)  #E3E1DC / #FAF9F7
+    ok   onPrimary    on primary    5.96  (want ≥4.5)  #FFFFFF / #B33A08
+    ok   onSecondary  on secondary  8.59  (want ≥3.5)  #FFFFFF / #8A2C06
+    ok   onWarning    on warning    6.92  (want ≥4.5)  #FFFFFF / #7A5200
+    ok   onError      on error      6.57  (want ≥3.5)  #FFFFFF / #B71C1C
+    ok   onSuccess    on success    6.21  (want ≥3.5)  #FFFFFF / #2A6E36
+    ok   fgSelected   on primary    5.96  (want ≥3.5)  #FFFFFF / #B33A08
+OK (0 contrast problems)
