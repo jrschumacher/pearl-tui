@@ -75,15 +75,21 @@ func TestContrast(t *testing.T) {
 	for _, f := range files {
 		tf, _ := theme.Load(f)
 		for _, dark := range []bool{true, false} {
-			p := theme.Resolve(tf, dark, false).P
-			checks := []struct {
+			th := theme.Resolve(tf, dark, false)
+			p := th.P
+			type check struct {
 				name string
 				a, b interface{ RGBA() (r, g, b, a uint32) }
 				min  float64
-			}{
+			}
+			checks := []check{
 				{"fg/bg", p.Fg, p.Bg, 7}, {"fgMuted/bg", p.FgMuted, p.Bg, 4.0}, {"fgSubtle/bg", p.FgSubtle, p.Bg, 2.2},
 				{"primary/bg", p.Primary, p.Bg, 3}, {"onPrimary/primary", p.OnPrimary, p.Primary, 3.5},
 				{"error/bg", p.Error, p.Bg, 3},
+			}
+			// a bar footer draws the key hints (KeyDesc, fgSubtle) on bgSubtle: tuilint's 2.3 floor
+			if th.X.Footer == "bar" {
+				checks = append(checks, check{"fgSubtle/bgSubtle (footer bar)", p.FgSubtle, p.BgSubtle, 2.3})
 			}
 			for _, c := range checks {
 				if r := theme.Contrast(c.a, c.b); r < c.min {

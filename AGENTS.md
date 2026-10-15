@@ -19,7 +19,6 @@ skills/bubbletea-tui/
   kit/            Go module `tuikit`: theme/, ui/, themes/*.json, cmd/showcase (reference app + harness)
   evals/          evals.json (skill-creator format) + fixtures
 tools/gallery.sh  regenerates docs/images from the kit
-tools/conventional.sh  checks PR titles in CI and commit subjects locally (.githooks/)
 ROADMAP.md        what's next, and the open problems
 ```
 
@@ -100,15 +99,28 @@ type(scope)!: description        e.g.  fix(kit): keep the focus bar on resize
 
 - **Types**: `feat` (the skill or kit can do something new), `fix` (a miss fixed), `docs`,
   `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `style`, `revert`.
-- **Scopes**: `skill` (SKILL.md and references), `kit`, `tools`, `scripts`, `themes`,
-  `evals`, `docs`, `ci`, `deps`.
+- **Scopes** (optional; comma-separate several):
+
+  | Scope | Covers |
+  |---|---|
+  | `skill` | SKILL.md and `references/` |
+  | `kit` | the Go kit: `theme/`, `ui/`, `cmd/showcase` |
+  | `themes` | `kit/themes/*.json` |
+  | `tools` | the Go tools in `tools/` |
+  | `scripts` | the Python brand-asset converters |
+  | `evals` | `evals/` and its fixtures |
+  | `site` | the landing page |
+
+  Work that spans the repo takes no scope: `ci: …`, `docs: …`, `chore: …`. Dependency
+  bumps are `build(<module>): …`, e.g. `build(kit): bump lipgloss to v2.0.7`.
 - **`!`** for a change that breaks something agents or users rely on: a theme contract
   key, a kit API, a tool's flags or output, a command's name.
 - Lowercase description, imperative, no full stop, header ≤ 100 chars.
 
-CI checks the PR title (`tools/conventional.sh`), since squash-merge makes it the commit
-on `main`. Branch commits should follow the format too; to check them as you commit, run
-`git config core.hooksPath .githooks` once.
+CI (`.github/workflows/conventional.yml`) checks the PR title, since squash-merge makes it
+the commit on `main`, and every non-merge commit on a PR and pushed to `main`. `fixup!`
+and `squash!` commits fail: squash them before merge. The allowed types and scopes are
+the workflow's `env`; a new one goes there and in the table above, in the same PR.
 
 ## Pull requests
 

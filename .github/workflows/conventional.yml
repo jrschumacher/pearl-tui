@@ -1,23 +1,110 @@
 name: conventional commits
 
-# Squash-merge puts the PR title on main, so the title is what's checked. Branch commits
-# are free-form; .githooks/commit-msg checks them locally for those who want it.
+# Every commit that reaches main must be conventional, however it gets there: the PR
+# title (squash-merge makes it the commit on main), every non-merge commit on a PR, and
+# every non-merge commit pushed to main. fixup!/squash!/amend! commits fail: squash them
+# before merge. Merge commits (main merged into a branch) are exempt.
+#
+# The rules are the env below. To add a type or scope, edit the list here and the table in
+# AGENTS.md § Commits in the same PR.
 
 on:
   pull_request:
     types: [opened, edited, reopened, synchronize]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
+  pull-requests: read
+
+env:
+  TYPES: feat fix docs style refactor perf test build ci chore revert
+  # skill: SKILL.md + references · kit · themes · tools: the Go tools · scripts: the Python
+  # converters · evals · site: the landing page. Repo-wide work takes no scope (ci:, docs:).
+  SCOPES: skill kit themes tools scripts evals site
+  MAX_HEADER: "100"
 
 jobs:
-  title:
-    name: PR title
+  conventional:
+    name: conventional commits
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      # The title is untrusted input: pass it through env, never interpolate it into the script.
-      - run: tools/conventional.sh "$TITLE"
-        env:
-          TITLE: ${{ github.event.pull_request.title }}
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const types = process.env.TYPES.split(/\s+/).filter(Boolean);
+            const scopes = process.env.SCOPES.split(/\s+/).filter(Boolean);
+            const max = Number(process.env.MAX_HEADER);
+            const header = /^(?<type>[a-z]+)(?:\((?<scope>[^()]*)\))?!?: \S/;
 
+            // Problems with one subject line; empty when it is conventional.
+            function problems(subject) {
+              const fix = subject.match(/^(fixup|squash|amend)! /);
+              if (fix) return [`${fix[1]}! commit: squash it before merge`];
+              const m = subject.match(header);
+              if (!m) return ['not "type(scope)!: description"'];
+              const out = [];
+              const { type, scope } = m.groups;
+              if (!types.includes(type)) out.push(`type "${type}" is not one of: ${types.join(' ')}`);
+              if (scope !== undefined) {
+                for (const s of scope.split(',').map((s) => s.trim())) {
+                  if (!scopes.includes(s)) out.push(`scope "${s}" is not one of: ${scopes.join(' ')}`);
+                }
+              }
+              const length = [...subject].length;
+              if (length > max) out.push(`header is ${length} chars; the limit is ${max}`);
+              return out;
+            }
+
+            const { owner, repo } = context.repo;
+            const subjects = []; // [what, subject]
+
+            if (context.eventName === 'pull_request') {
+              const pr = context.payload.pull_request;
+              subjects.push(['PR title', pr.title]);
+              const commits = await github.paginate(github.rest.pulls.listCommits, {
+                owner, repo, pull_number: pr.number, per_page: 100,
+              });
+              for (const c of commits) {
+                if (c.parents.length > 1) continue;
+                subjects.push([c.sha.slice(0, 7), c.commit.message.split('\n')[0]]);
+              }
+            } else {
+              // Push to main: only what this push added, so older history is never re-checked.
+              const { before, after } = context.payload;
+              let commits;
+              if (!/^0+$/.test(before)) {
+                try {
+                  const { data } = await github.rest.repos.compareCommitsWithBasehead({
+                    owner, repo, basehead: `${before}...${after}`, per_page: 100,
+                  });
+                  commits = data.commits;
+                } catch (e) {
+                  core.info(`compare ${before}...${after} failed (${e.message}); checking the head commit`);
+                }
+              }
+              if (!commits) {
+                const { data } = await github.rest.repos.getCommit({ owner, repo, ref: after });
+                commits = [data];
+              }
+              for (const c of commits) {
+                if (c.parents.length > 1) continue;
+                subjects.push([c.sha.slice(0, 7), c.commit.message.split('\n')[0]]);
+              }
+            }
+
+            const rows = [[{ data: 'what', header: true }, { data: 'subject', header: true }, { data: 'problem', header: true }]];
+            let failed = 0;
+            for (const [what, subject] of subjects) {
+              const found = problems(subject);
+              if (found.length) failed++;
+              for (const p of found) core.error(`${what}: ${p}\n  ${subject}`, { title: 'Not a conventional commit' });
+              rows.push([what, subject, found.join('; ') || 'ok']);
+            }
+            await core.summary.addHeading('Conventional commits').addTable(rows).write();
+            if (failed) {
+              core.setFailed(`${failed} of ${subjects.length} not conventional. Expected "type(scope)!: description"; see AGENTS.md § Commits.`);
+            } else {
+              core.info(`${subjects.length} checked, all conventional`);
+            }
