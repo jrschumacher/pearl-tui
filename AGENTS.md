@@ -66,7 +66,7 @@ The skill gets better from observed misses, not from adding prose.
 - **Every advertised key must be handled.** Keys live in one action table per state
   (`kit/cmd/showcase/app.go`); `TestHelpIsHandled` enforces it. Don't add a footer
   binding any other way.
-- **No literals in screens.** Colours and glyphs come from the theme. `tuilint.py code`
+- **No literals in screens.** Colours and glyphs come from the theme. `tuilint code`
   fails on hex outside `theme/`.
 - **Pinned versions.** `charm.land/bubbletea/v2 v2.1.0`, `lipgloss/v2 v2.0.6`,
   `bubbles/v2 v2.2.1`, Ultraviolet `v0.0.0-20261008173134-6b8d4baf91b4`. To bump: update
