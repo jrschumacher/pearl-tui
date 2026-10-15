@@ -87,6 +87,34 @@ The gutter bar (`ui.Gutter`) marks the focused field and spans all its rows. Rad
 description beside each option. Errors appear under the field in error colour, with
 words. The primary button is filled because Enter triggers it, and the footer says so.
 
+## Forms And Wizards — `ui.NewForm`, `ui.Confirm`, `ui.Steps`, `ui.Summary`
+
+Huh does the input; the kit does the look and the frame around it. The reference is the
+showcase's first-run setup (`go run ./cmd/showcase -first-run`, harness states `setup-*`).
+
+```
+H A L Y A R D                                         setup / 2/6 Sign-in
+◆ Cluster ── ▲ Sign-in ── △ Alerts ── △ Review ── △ Connect ── △ Finish
+Sign-in ──────────────────── staging-eu-west-1   Summary ──────── DRAFT
+▌ Sign in with                                   Cluster
+▌ ▸ Browser        SSO in your browser            staging-eu-west-1
+▌   Device code    approve on another device      Sign-in        default
+▌   Access token   paste one from the console     Browser
+```
+
+- **The frame is yours:** header bar with `Steps.Count()` ("2/6 Sign-in"), the step row
+  (`Steps.Row`, done/current/todo glyphs from the theme), the form on the left at its
+  measure, `ui.Summary` on the right (label fgMuted over value fg; untouched defaults in
+  fgSubtle marked `default`; a `DRAFT`/`SAVED` tag). Below ~100 columns the summary becomes
+  `ui.SummaryStrip`, one line.
+- **Every step counts.** Connecting and finishing are steps, so the counter never repeats
+  the review's number on three screens.
+- **Review defaults to the forward action** (`ui.NewActions(0, "Continue", "Edit",
+  "Cancel")`); `ui.Confirm(t, title, action, negative, def, &v)` for yes/no, action first.
+- **Waits say what to do if nothing happens**: the URL to open by hand, the code, elapsed
+  time, `esc cancel`; a timeout becomes a failure state with Retry.
+- **Esc goes back** from step 2 on; on step 1 it asks before dropping typed input.
+
 ## Buttons — `ui.Button`, `ui.Buttons`
 
 Per `expressions.button`: `pill` (padded filled blocks), `bracket` (`[ Save ]`, the

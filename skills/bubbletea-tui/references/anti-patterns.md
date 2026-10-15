@@ -81,7 +81,7 @@ read. The faintest level is ≥ 2.6:1 and only for hints.
 **C10 A library left on its defaults** [C-HUHTHEME]. A Huh form, field or spinner, or a
 Bubbles spinner, with no theme: it renders the library's palette in the middle of yours.
 The first dogfood run shipped Huh's pink spinner this way. *Instead:* theme it from the
-brand theme with the kit's form theme (`components.md` § Forms).
+brand theme with `ui.NewForm` (`components.md` § Forms And Wizards).
 
 ## Glyphs
 

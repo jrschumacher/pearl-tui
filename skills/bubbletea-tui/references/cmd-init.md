@@ -49,7 +49,7 @@ Round 2, architecture (only what the code didn't answer):
 
 1. **Screens and the job of each.** Default: one screen per command you found.
 2. **Forms.** Default: Huh v2 for input mechanics (select, input, confirm), themed from
-   the brand theme through the kit's form theme, because Huh's own theme is the indigo
+   the brand theme through the kit's `ui.NewForm` (`ui/form.go`), because Huh's own theme is the indigo
    every Huh demo ships.
 3. **Slow work and the floor.** What is async (network, builds, streaming), can it be
    cancelled, and the smallest terminal. Default: every call is a `tea.Cmd` with a cancel;
@@ -106,7 +106,7 @@ One *model in internal/app; regions are structs drawn into rectangles (x,y w×h 
 focus: list | detail        overlays: palette, confirm, help (front one gets keys)
 
 ### Forms
-Huh v2 for <setup, config, confirm>, themed with the kit's form theme from
+Huh v2 for <setup, config, confirm>, themed with the kit's `ui.NewForm` from
 *theme.Theme. Hand-written: <field, because Huh can't show it>.
 
 ### Components

@@ -8,7 +8,7 @@ colours of a Huh wizard and kept everything else, and the owner's verdict was "t
 richness is missing".
 
 **Keep the libraries that work.** Huh for forms, Bubbles for lists and inputs, Glamour
-for markdown: theme them from the brand theme (`components.md` § Forms) and draw them
+for markdown: theme them from the brand theme (`components.md` § Forms And Wizards) and draw them
 inside your own chrome. Rebuilding a working widget costs behaviour you'll then get wrong.
 
 0. **Read `TUI.md` first.** If it's missing, run `init` (or its short form, saying what
