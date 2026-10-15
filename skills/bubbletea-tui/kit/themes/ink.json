@@ -1,0 +1,49 @@
+{
+ "name": "ink",
+ "brand": "app",
+ "read": "The fallback: monochrome ink with one cold accent, plain rule header, nothing to remember it by. It exists so a partial theme renders. Never ship it; derive a theme from the product's own brand.",
+ "roles": {
+  "dark": {
+   "primary": "#8FB8DE",
+   "secondary": "#5E81AC",
+   "tertiary": "#A3D9C9",
+   "accent": "#E5E9F0",
+   "bg": "#15171C",
+   "fg": "#D8DEE9",
+   "fgMuted": "#8A93A3",
+   "fgSubtle": "#5D6573",
+   "success": "#8FD19E",
+   "error": "#E8828A",
+   "warning": "#EBCB8B",
+   "info": "#8FB8DE"
+  },
+  "light": {
+   "primary": "#2E5E8C",
+   "secondary": "#3B5B85",
+   "tertiary": "#2F7A68",
+   "accent": "#1D232D",
+   "bg": "#FAFAF9",
+   "fg": "#1D232D",
+   "fgMuted": "#5B6472",
+   "fgSubtle": "#8E96A3",
+   "success": "#2B7A43",
+   "error": "#B3363F",
+   "warning": "#8A6200",
+   "info": "#2E5E8C"
+  }
+ },
+ "glyphs": {},
+ "expressions": {
+  "header": "rule",
+  "wordmark": "solid",
+  "sectionTitle": "fg",
+  "selection": "bar",
+  "button": "pill",
+  "tag": "filled",
+  "dialog": "rounded",
+  "dialogTitle": "plain",
+  "tabs": "underline",
+  "footer": "keys",
+  "density": "airy"
+ }
+}
