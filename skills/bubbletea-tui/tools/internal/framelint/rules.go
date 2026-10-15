@@ -201,7 +201,14 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 		nonblankRows        int
 		edgeLeft, edgeRight int
 	)
+	// a frame downsampled to 256 colours holds only xterm indexes: judge it against what
+	// the theme's colours downsample to, not their exact hex
+	var indexed map[RGB]bool
+	if pal != nil && f.Indexed {
+		indexed = pal.Indexed()
+	}
 	for y, row := range grid {
+		rules := asciiRuleCells(row)
 		var line strings.Builder
 		for _, c := range row {
 			line.WriteString(c.Ch)
@@ -220,6 +227,16 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 				if col == nil {
 					continue
 				}
+				if indexed != nil {
+					// a role the terminal can only show as 204 is still the theme's role, not
+					// a pasted "204"; the role's own hex is judged in the truecolour render
+					if indexed[*col] {
+						continue
+					}
+					offCells = append(offCells, offCell{hexStr(*col), y, x})
+				} else if pal != nil && !pal.Near(*col) {
+					offCells = append(offCells, offCell{hexStr(*col), y, x})
+				}
 				for _, d := range defaultColours {
 					dist := 0
 					for k := 0; k < 3; k++ {
@@ -231,9 +248,6 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 							defaultOrder = append(defaultOrder, d.label)
 						}
 					}
-				}
-				if pal != nil && !pal.Near(*col) {
-					offCells = append(offCells, offCell{hexStr(*col), y, x})
 				}
 			}
 			ch := first(c.Ch)
@@ -266,7 +280,7 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 				fg, bg = bg, fg
 			}
 			decorative := (0x2500 <= o && o <= 0x25FF) || (0x2800 <= o && o <= 0x28FF) ||
-				(0x1FB00 <= o && o <= 0x1FBFF) || ch == '•' || ch == '·'
+				(0x1FB00 <= o && o <= 0x1FBFF) || ch == '•' || ch == '·' || rules[x]
 			if !decorative {
 				if cr := contrast(fg, bg); cr < 2.3 {
 					lowc = append(lowc, lowCell{y, x, cr, fg, bg})
@@ -466,10 +480,57 @@ func abs(x int) int {
 	return x
 }
 
+// asciiRule is what the ASCII fallbacks turn ─ ━ ═ ┄ ╌ ╱ ╲ into.
+const asciiRule = "-=~_/\\"
+
+// asciiRuleCells are the columns of a row that belong to an ASCII rule: a run of 3+ of
+// one rule character in one colour ("-----", "===="), or 4+ dots (a dotted rule; "..."
+// is an ellipsis). A rule drawn in the border role is decoration in ASCII mode exactly
+// as ─ is in Unicode, so it is not judged as text.
+func asciiRuleCells(row []Cell) map[int]bool {
+	out := map[int]bool{}
+	head := func(c Cell) rune {
+		for _, r := range c.Ch {
+			return r
+		}
+		return -1
+	}
+	sameFG := func(a, b *RGB) bool { return (a == nil) == (b == nil) && (a == nil || *a == *b) }
+	for x := 0; x < len(row); {
+		ch := head(row[x])
+		if ch < 0 || !(strings.ContainsRune(asciiRule, ch) || ch == '.') {
+			x++
+			continue
+		}
+		e := x
+		for e < len(row) && head(row[e]) == ch && sameFG(row[e].FG, row[x].FG) {
+			e++
+		}
+		min := 3
+		if ch == '.' {
+			min = 4
+		}
+		if e-x >= min {
+			for i := x; i < e; i++ {
+				out[i] = true
+			}
+		}
+		x = e
+	}
+	return out
+}
+
+var (
+	sgr256  = regexp.MustCompile(`[34]8[;:]5[;:]`)
+	sgrTrue = regexp.MustCompile(`[34]8[;:]2[;:]`)
+)
+
 // lintText lints one frame's text, named by the file's base name.
 func lintText(path, text string, cols, rows int, pal *Palette, bg RGB) []Finding {
 	text = strings.ReplaceAll(text, "\r\n", "\n") // Python's universal newlines
 	text = strings.ReplaceAll(text, "\r", "\n")
 	text = strings.TrimSuffix(text, "\n")
-	return LintFrame(filepath.Base(path), Parse(text), cols, rows, pal, bg)
+	f := Parse(text)
+	f.Indexed = sgr256.MatchString(text) && !sgrTrue.MatchString(text)
+	return LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
 }

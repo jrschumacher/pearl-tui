@@ -191,13 +191,24 @@ var Checks = []Check{
 	{"fgSelected", "primary", 3.5, 0, "≥3.5"},
 }
 
+// ExpressionChecks are the pairs that exist only because of an expression choice
+// (mirroring kit/ui): a "bar" footer draws the key hints in fgSubtle on bgSubtle, so
+// that pair must clear tuilint's 2.3 floor.
+func ExpressionChecks(expressions map[string]any) []Check {
+	var extra []Check
+	if footer, _ := expressions["footer"].(string); footer == "bar" {
+		extra = append(extra, Check{"fgSubtle", "bgSubtle", 2.3, 0, "≥2.3"})
+	}
+	return extra
+}
+
 // Report checks one role set and returns the number of failures and the report text.
 // accept maps "<label>.<role>" to the reason a theme gives in writing for a deviation:
 // a failing check on that role is reported as ACCEPT and not counted.
-func Report(roles map[string]string, label string, accept map[string]string) (int, string) {
+func Report(roles map[string]string, label string, accept map[string]string, extra ...Check) (int, string) {
 	bad := 0
 	lines := []string{"  " + label}
-	for _, c := range Checks {
+	for _, c := range append(append([]Check(nil), Checks...), extra...) {
 		a, okA := roles[c.A]
 		b, okB := roles[c.B]
 		if !okA || !okB {

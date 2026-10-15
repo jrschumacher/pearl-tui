@@ -1,13 +1,6 @@
 [
  {
   "rule": "F-CONTRAST",
-  "sev": "P1",
-  "file": "services-80x24.ansi",
-  "where": "r6c4",
-  "msg": "74 text cells under 2.3:1 on rows [6] (first 1.44:1, fg #3A3943 on bg #201F26)"
- },
- {
-  "rule": "F-CONTRAST",
   "sev": "P2",
   "file": "palette-80x24.ansi",
   "where": "frame",

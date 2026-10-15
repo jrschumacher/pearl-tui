@@ -30,8 +30,51 @@ const bucketN = 255/6 + 1
 // Palette is a theme's colours quantised to 6-unit buckets: every role, every
 // RGB and OKLab blend of two roles, and each of those blended toward a bg role.
 type Palette struct {
-	set  []bool // bucketN³
-	near map[RGB]bool
+	set     []bool // bucketN³
+	near    map[RGB]bool
+	cols    map[RGB]struct{} // every colour before quantising, for Indexed
+	indexed map[RGB]bool     // built on first use
+}
+
+// Indexed is the set of xterm-256 colours the palette's colours can downsample to, for
+// frames rendered with -profile ansi256.
+func (p *Palette) Indexed() map[RGB]bool {
+	if p.indexed == nil {
+		p.indexed = map[RGB]bool{}
+		for c := range p.cols {
+			cube, grey := to256(c)
+			p.indexed[cube] = true
+			p.indexed[grey] = true
+		}
+	}
+	return p.indexed
+}
+
+var cube6 = [6]int{0x00, 0x5F, 0x87, 0xAF, 0xD7, 0xFF}
+
+// to256 returns both xterm-256 colours a truecolour value can downsample to. x/ansi's
+// Convert256 (what lipgloss and colorprofile use) picks the 6×6×6 cube cell or the
+// nearest grey, whichever is closer in HSLuv; both are kept rather than re-implement it.
+func to256(c RGB) (cube, grey RGB) {
+	q := func(v int) int {
+		switch {
+		case v < 48:
+			return 0
+		case v < 115:
+			return 1
+		}
+		return (v - 35) / 40
+	}
+	for j := 0; j < 3; j++ {
+		cube[j] = cube6[q(c[j])]
+	}
+	avg := (c[0] + c[1] + c[2]) / 3
+	step := (avg - 3) / 10
+	if avg > 238 {
+		step = 23
+	}
+	g := 8 + 10*step
+	return cube, RGB{g, g, g}
 }
 
 func (p *Palette) has(r, g, b int) bool {
@@ -143,8 +186,9 @@ func buildPalette(base, bgs []RGB) *Palette {
 			blend(cols, b, a, lb, la)
 		}
 	}
-	p := &Palette{set: make([]bool, bucketN*bucketN*bucketN), near: map[RGB]bool{}}
+	p := &Palette{set: make([]bool, bucketN*bucketN*bucketN), near: map[RGB]bool{}, cols: map[RGB]struct{}{}}
 	mark := func(c RGB) {
+		p.cols[c] = struct{}{}
 		r, g, b := floorDiv(c[0], 6), floorDiv(c[1], 6), floorDiv(c[2], 6)
 		if r >= 0 && g >= 0 && b >= 0 && r < bucketN && g < bucketN && b < bucketN {
 			p.set[(r*bucketN+g)*bucketN+b] = true

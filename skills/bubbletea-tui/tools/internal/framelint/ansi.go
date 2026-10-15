@@ -31,6 +31,7 @@ type Cell struct {
 // Frame is a parsed flat render: rows of cells plus what the parser noticed.
 type Frame struct {
 	Rows     [][]Cell
+	Indexed  bool     // only 256-colour SGR (38;5 / 48;5), no truecolour: -profile ansi256
 	Emoji    bool     // an emoji codepoint was drawn
 	Warnings []string // sorted, as cellshot.py reports them
 }

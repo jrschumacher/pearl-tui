@@ -28,6 +28,8 @@
 //	border 1.14–1.9 and bgSubtle 1.1–2.2 (barely there, but there)
 //	fg ≥ 4.5 and fgMuted ≥ 3.0 on bgSubtle too
 //	onPrimary, onWarning ≥ 4.5 on their fill; onSecondary, onError, onSuccess, fgSelected ≥ 3.5
+//	plus the pairs a theme's expressions put on screen: "footer": "bar" draws the key
+//	hints (fgSubtle) on bgSubtle, so that pair must clear tuilint's 2.3 floor
 //
 // derive aims higher than these floors (fgMuted 4.6, fg 11–12, accent and status 4.5).
 //

@@ -61,6 +61,14 @@ func check(path string, stdout, stderr io.Writer) int {
 			}
 		}
 	}
+	var extra []Check
+	if raw, ok := top["expressions"]; ok {
+		if v, err := pyfmt.Decode(raw); err == nil {
+			if m, ok := v.(map[string]any); ok {
+				extra = ExpressionChecks(m)
+			}
+		}
+	}
 	rolesRaw := json.RawMessage(data)
 	if raw, ok := top["roles"]; ok {
 		rolesRaw = raw
@@ -100,7 +108,7 @@ func check(path string, stdout, stderr io.Writer) int {
 		if err := FillOnColours(r, mode != "light"); err != nil {
 			return fail(stderr, err)
 		}
-		b, txt := Report(r, mode, accept)
+		b, txt := Report(r, mode, accept, extra...)
 		bad += b
 		fmt.Fprintln(stdout, txt)
 	}

@@ -20,6 +20,7 @@
     ok   onError      on error      4.17  (want ≥3.5)  #1A1B1D / #E0453A
     ok   onSuccess    on success    5.60  (want ≥3.5)  #1A1B1D / #6E9E78
     ok   fgSelected   on primary    3.83  (want ≥3.5)  #FFFFFF / #E25317
+    ok   fgSubtle     on bgSubtle   2.72  (want ≥2.3)  #6A7076 / #2C2E31
   light
     ok   fg           on bg        17.38  (want ≥7.0)  #141516 / #FAF9F7
     ok   fgMuted      on bg         8.35  (want ≥4.5)  #474B50 / #FAF9F7
@@ -42,4 +43,5 @@
     ok   onError      on error      6.57  (want ≥3.5)  #FFFFFF / #B71C1C
     ok   onSuccess    on success    6.21  (want ≥3.5)  #FFFFFF / #2A6E36
     ok   fgSelected   on primary    5.96  (want ≥3.5)  #FFFFFF / #B33A08
+    ok   fgSubtle     on bgSubtle   4.11  (want ≥2.3)  #666B71 / #E3E1DC
 OK (0 contrast problems)

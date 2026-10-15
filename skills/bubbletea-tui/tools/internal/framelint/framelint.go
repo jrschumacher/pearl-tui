@@ -5,8 +5,12 @@
 //	F-WIDTH     [P0] a row is not exactly W cells / frame is not H rows
 //	F-EMOJI     [P1] emoji glyphs
 //	F-DEFAULT   [P1] colours from library examples and defaults (#7D56F4, 205, 62/63/170/212, ...)
-//	F-OFFPAL    [P1] (with --theme) a colour not in, or blended from, the theme's roles
-//	F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1 (P2 note on a borderless overlay)
+//	F-OFFPAL    [P1] (with --theme) a colour not in, or blended from, the theme's roles.
+//	                 A frame with only 256-colour SGR (-profile ansi256) is judged against the
+//	                 xterm colours the roles downsample to; there a role that lands on a
+//	                 default index (204) is the role, and its hex is judged in truecolour
+//	F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1 (P2 note on a borderless overlay).
+//	                 Box drawing, blocks, braille and ASCII rule runs (----, ====) are decoration
 //	F-BOXES     [P1] more than one bordered box (nested or side by side noted)
 //	F-RAINBOW   [P2] more than 7 distinct foreground hues
 //	F-LEVELS    [P2] fewer than 3 neutral text levels on a dense frame
