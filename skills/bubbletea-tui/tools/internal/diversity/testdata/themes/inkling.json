@@ -1,0 +1,22 @@
+{
+ "name": "inkling",
+ "roles": {
+  "dark": {
+   "primary": "#C86B3C"
+  }
+ },
+ "expressions": {
+  "header": "rule",
+  "wordmark": "solid",
+  "sectionTitle": "fg",
+  "selection": "bar",
+  "button": "pill",
+  "tag": "filled",
+  "dialog": "rounded",
+  "dialogTitle": "plain",
+  "tabs": "underline",
+  "footer": "keys",
+  "density": "airy"
+ },
+ "glyphs": {}
+}

@@ -1,0 +1,25 @@
+{
+ "name": "harbourmaster-deluxe",
+ "expressions": {
+  "header": "banner",
+  "wordmark": "upper",
+  "sectionTitle": "muted-upper",
+  "selection": "caret",
+  "button": "underline",
+  "tag": "bold",
+  "dialog": "double",
+  "dialogTitle": "plain",
+  "tabs": "pill",
+  "footer": "bar",
+  "density": "compact",
+  "paintBg": false,
+  "gutter": 3
+ },
+ "glyphs": {
+  "headerRule": "≈≈",
+  "rule": "═",
+  "focusBar": "▎",
+  "cursor": "❯",
+  "done": "✔"
+ }
+}

@@ -1,0 +1,25 @@
+axis         inkling     harbourmas  testdata/t  twin-a      twin-b      
+header       rule        banner      minimal     bar         stamp       
+wordmark     solid       -           bracket     inverse     -           
+sectionTitle fg          muted-uppe  accent      primary     primary     
+titleCase    sentence    sentence    sentence    upper       upper       
+selection    bar         caret       inverse     fill        fill        
+button       pill        underline   inverse     bracket     bracket     
+tag          filled      bold        bracket     bracket     bracket     
+dialog       rounded     double      heavy       square      square      
+dialogTitle  plain       plain       rule        bar         bar         
+tabs         underline   pill        slash       bracket     slash       
+footer       keys        bar         keys        rule        rule        
+keys         inline      inline      inline      boxed       boxed       
+density      airy        compact     airy        compact     compact     
+backdrop     none        none        field       field       field       
+scrim        dim         dim         None        none        none        
+paintBg      False       False       False       True        True        
+headerRule               ≈≈          -           -           -           
+rule         ─           ═           ┄           ━           ━           
+focusBar     ▌           ▎           │           ┃           ┃           
+cursor       ›           ❯           >           ▸           ▸           
+done         ✓           ✔           1           ◆           ■           
+
+FAIL tag=bracket used by 3/4 brand themes (> 50%): a house style
+1 problem(s)

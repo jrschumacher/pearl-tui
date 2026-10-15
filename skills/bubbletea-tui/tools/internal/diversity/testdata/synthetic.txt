@@ -1,0 +1,28 @@
+axis         inkling     harbourmas  testdata/t  twin-a      twin-b      ink         charm       
+header       rule        banner      minimal     bar         stamp       rule        rule        
+wordmark     solid       -           bracket     inverse     -           solid       gradient    
+sectionTitle fg          muted-uppe  accent      primary     primary     fg          accent      
+titleCase    sentence    sentence    sentence    upper       upper       sentence    sentence    
+selection    bar         caret       inverse     fill        fill        bar         bar         
+button       pill        underline   inverse     bracket     bracket     pill        pill        
+tag          filled      bold        bracket     bracket     bracket     filled      filled      
+dialog       rounded     double      heavy       square      square      rounded     rounded     
+dialogTitle  plain       plain       rule        bar         bar         plain       rule        
+tabs         underline   pill        slash       bracket     slash       underline   underline   
+footer       keys        bar         keys        rule        rule        keys        keys        
+keys         inline      inline      inline      boxed       boxed       inline      inline      
+density      airy        compact     airy        compact     compact     airy        airy        
+backdrop     none        none        field       field       field       none        field       
+scrim        dim         dim         None        none        none        dim         dim         
+paintBg      False       False       False       True        True        False       True        
+headerRule               ≈≈          -           -           -                       ╱           
+rule         ─           ═           ┄           ━           ━           ─           ─           
+focusBar     ▌           ▎           │           ┃           ┃           ▌           ▌           
+cursor       ›           ❯           >           ▸           ▸           ›           >           
+done         ✓           ✔           1           ◆           ■           ✓           ✓           
+
+FAIL twin-a and twin-b share 16 axes (> 9): sectionTitle, titleCase, selection, button, tag, dialog, dialogTitle, footer, keys, density, backdrop, scrim, paintBg, rule, focusBar, cursor
+FAIL inkling differs from baseline ink on only 0 axes (< 8): a default with a new palette
+FAIL inkling differs from baseline charm on only 7 axes (< 8): a default with a new palette
+FAIL tag=bracket used by 3/5 brand themes (> 50%): a house style
+4 problem(s)
