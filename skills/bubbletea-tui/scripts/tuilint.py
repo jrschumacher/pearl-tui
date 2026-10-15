@@ -15,7 +15,10 @@ FRAME RULES
   F-WIDTH     [P0] a row is not exactly W cells / frame is not H rows (overflow wraps, the screen tears)
   F-EMOJI     [P1] emoji glyphs (width differs across terminals and fonts; reads as AI default)
   F-DEFAULT   [P1] colours from library examples/defaults (#7D56F4, #FF5FAF/205, 62/63/170/212, #EE6FF8, #874BFD)
-  F-OFFPAL    [P1] (with --theme) a colour not in the theme's roles (hard-coded hex somewhere)
+  F-OFFPAL    [P1] (with --theme) a colour not in the theme's roles (hard-coded hex somewhere).
+                   A frame with only 256-colour SGR (-profile ansi256) is judged against the
+                   xterm colours the roles downsample to; there a role that lands on a default
+                   index (204) is the role, not a default, and its hex is judged in truecolour
   F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1 (unreadable; ≥3 needed for anything but hints).
                    Box drawing, blocks, braille and ASCII rule runs (----, ====) are decoration, not text
   F-BOXES     [P1] more than one bordered box in a frame, or boxes nested/adjacent (box soup)
@@ -113,7 +116,39 @@ def theme_colours(path):
             for k in range(1, 10):
                 t = k / 10
                 cols.add(tuple(round(c[j] + (bgc[j] - c[j]) * t) for j in range(3)))
-    return {(c[0] // 6, c[1] // 6, c[2] // 6) for c in cols}
+    return Palette(cols)
+
+
+class Palette:
+    """The theme's colours and their blends: 6-unit buckets for truecolour frames, and
+    (computed on first use) the xterm-256 colours they downsample to, for 256-colour frames."""
+
+    def __init__(self, cols):
+        self.cols = cols
+        self.buckets = {(c[0] // 6, c[1] // 6, c[2] // 6) for c in cols}
+        self._indexed = None
+
+    def indexed(self):
+        if self._indexed is None:
+            self._indexed = set()
+            for c in self.cols:
+                self._indexed.update(to256(c))
+        return self._indexed
+
+
+_CUBE = (0x00, 0x5F, 0x87, 0xAF, 0xD7, 0xFF)
+
+
+def to256(c):
+    """The xterm-256 colours a truecolour value can downsample to. Mirrors x/ansi Convert256
+    (what lipgloss and colorprofile use): the 6x6x6 cube cell or the nearest grey, whichever
+    is closer in HSLuv. Both candidates are returned rather than re-implementing HSLuv."""
+    def q(v):
+        return 0 if v < 48 else 1 if v < 115 else int((v - 35) / 40)
+    cube = tuple(_CUBE[q(v)] for v in c)
+    avg = sum(c) // 3
+    g = 8 + 10 * (23 if avg > 238 else int((avg - 3) / 10))
+    return cube, (g, g, g)
 
 
 def _flat(roles):
@@ -154,10 +189,10 @@ _near_cache = {}
 
 
 def near(c, palette):
-    """palette is a set of colours quantised to 6-unit buckets; accept the bucket or a neighbour."""
+    """accept c if its 6-unit bucket, or a neighbouring one, holds a theme colour."""
     if c not in _near_cache:
         q = (c[0] // 6, c[1] // 6, c[2] // 6)
-        _near_cache[c] = any((q[0] + a, q[1] + b, q[2] + d) in palette
+        _near_cache[c] = any((q[0] + a, q[1] + b, q[2] + d) in palette.buckets
                              for a in (-1, 0, 1) for b in (-1, 0, 1) for d in (-1, 0, 1))
     return _near_cache[c]
 
@@ -190,6 +225,11 @@ def lint_frame(path, cols, rows, palette, findings, bg_default):
         text = text[:-1]
     grid, warns = parse(text)
     name = os.path.basename(path)
+    # a frame downsampled to 256 colours (-profile ansi256) holds only xterm indexes: judge it
+    # against what the theme's colours downsample to, not against their exact hex
+    indexed = None
+    if palette and re.search(r"[34]8[;:]5[;:]", text) and not re.search(r"[34]8[;:]2[;:]", text):
+        indexed = palette.indexed()
 
     def add(rule, sev, where, msg):
         findings.append({"rule": rule, "sev": sev, "file": name, "where": where, "msg": msg})
@@ -222,11 +262,17 @@ def lint_frame(path, cols, rows, palette, findings, bg_default):
             for col in (c.fg, c.bg):
                 if col is None:
                     continue
+                if indexed is not None:
+                    # a role the terminal can only show as 204 is still the theme's role, not a
+                    # pasted "204"; the role's own hex is judged in the truecolour render
+                    if col in indexed:
+                        continue
+                    offpal_cells.append(("#%02X%02X%02X" % col, y, x))
+                elif palette and not near(col, palette):
+                    offpal_cells.append(("#%02X%02X%02X" % col, y, x))
                 for dc, label in DEFAULT_COLOURS.items():
                     if max(abs(col[k] - dc[k]) for k in range(3)) <= 3:
                         defaults.setdefault(label, (y, x))
-                if palette and not near(col, palette):
-                    offpal_cells.append(("#%02X%02X%02X" % col, y, x))
             ch = c.ch[:1] if c.ch else ""
             if ch in CORNERS:
                 corners.append((y, x, ch))
