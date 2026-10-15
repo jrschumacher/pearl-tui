@@ -67,7 +67,16 @@ func (s Steps) Row(t *theme.Theme, w int) string {
 		}
 		return strings.Join(parts, sep)
 	}
-	conn := " " + t.S.Rule.Render(strings.Repeat(t.G.Rule, 2)) + " "
+	// longer in ASCII: "--" reads as a flag and "..." as an ellipsis; "---" and "...."
+	// read as rules (and tuilint agrees)
+	n := 2
+	if t.ASCII {
+		n = 3
+		if t.G.Rule == "." {
+			n = 4
+		}
+	}
+	conn := " " + t.S.Rule.Render(strings.Repeat(t.G.Rule, n)) + " "
 	for _, try := range []string{join(true, conn), join(true, "   "), join(true, "  "), join(false, " ")} {
 		if lipgloss.Width(try) <= w {
 			return try
