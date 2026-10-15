@@ -36,7 +36,9 @@ cmd/showcase/   the reference app and its harness
 - `showcase_test.go`, `behaviour_test.go`: the footprint at 5 sizes × 7 themes × 3
   modes, contrast floors, no unstyled cells, ASCII is ASCII with distinct status glyphs,
   every advertised key is handled, actions target the selection, inputs take letters,
-  one clock, deploys finish, rollbacks don't repeat.
+  one clock, deploys finish, rollbacks don't repeat. `setup_test.go`: the wizard's review
+  defaults to Continue, button order, the step count past review, esc keeps input, no Huh
+  default colour in any frame, the accessible transcript.
 
 ```sh
 go test ./...

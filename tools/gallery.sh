@@ -22,6 +22,9 @@ render -theme themes/halyard.json -light -state confirm -w 100 -h 30 > "$tmp/hal
 render -theme themes/halyard.json -ascii -profile ascii -state confirm -w 100 -h 30 > "$tmp/halyard · ascii, no colour.ansi"
 render -theme themes/charm.json -state assistant-busy -w 120 -h 40 > "$tmp/charm · assistant working.ansi"
 render -theme themes/moss.json -light -state assistant -w 120 -h 40 > "$tmp/moss (light) · assistant.ansi"
+render -theme themes/halyard.json -state setup-auth -w 120 -h 24 > "$tmp/halyard · setup, sign-in.ansi"
+render -theme themes/lumen.json -light -state setup-review -w 120 -h 24 > "$tmp/lumen (light) · setup, review.ansi"
+render -theme themes/ferrous.json -state setup-signin -w 120 -h 24 > "$tmp/ferrous · setup, waiting.ansi"
 
 cd "$tmp"
 sheet() { local name=$1; shift; "$tmp/cellshot" "$@" --sheet "$out/$name" --cell 8x16 | tail -1; }
@@ -29,3 +32,4 @@ sheet gallery-services.png  {charm,ferrous,lumen,halyard,moss,cartridge}" · ser
 sheet gallery-palette.png   {charm,ferrous,lumen,halyard,moss,cartridge}" · palette.ansi"
 sheet gallery-modes.png     "halyard · dark.ansi" "halyard · light.ansi" "halyard · ascii, no colour.ansi"
 sheet gallery-assistant.png "charm · assistant working.ansi" "moss (light) · assistant.ansi"
+sheet gallery-setup.png     "halyard · setup, sign-in.ansi" "lumen (light) · setup, review.ansi" "ferrous · setup, waiting.ansi"

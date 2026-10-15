@@ -17,7 +17,7 @@ skills/bubbletea-tui/
   tools/          Go module `tuitools`: cellshot, tuilint, tuivet, palette, diversity (the build loop)
   scripts/        wordmark, logo2cells (Python 3 + Pillow/numpy; brand-asset conversion only)
   kit/            Go module `tuikit`: theme/, ui/, themes/*.json, cmd/showcase (reference app + harness)
-  evals/          evals.json (skill-creator format) + fixtures
+  evals/          evals.json (skill-creator format) + fixtures (each Go fixture its own module)
 tools/gallery.sh  regenerates docs/images from the kit
 ROADMAP.md        what's next, and the open problems
 ```
@@ -37,7 +37,10 @@ tools/gallery.sh                                                   # after any c
 ```
 
 CI (`.github/workflows/ci.yml`) runs all of these plus a render-and-lint pass over every
-theme. Run them locally before pushing.
+theme in four variants: dark, `-light`, `-ascii` and `-profile ansi256`. Light, ASCII and
+256 colours are where footers, rules and downsampled roles break first, so lint the
+variant you touched before pushing, not only dark. `.github/workflows/conventional.yml`
+checks the PR title and commit subjects (§ Commits).
 
 ## How the skill improves (the loop)
 
@@ -67,6 +70,10 @@ The skill gets better from observed misses, not from adding prose.
   binding any other way.
 - **No literals in screens.** Colours and glyphs come from the theme. `tuilint code`
   fails on hex outside `theme/`.
+- **Libraries go through the kit's theme.** Huh forms are built with `ui.NewForm` and
+  spinners with `ui.HuhSpinner` / `ui.BubblesSpinner`; `tuilint code` fails a bare
+  `huh.NewForm` or an unstyled spinner [C-HUHTHEME]. Huh v2.0.3's quirks and the kit's
+  workarounds are in `references/architecture.md`; each has a test, so don't undo one.
 - **Pinned versions.** `charm.land/bubbletea/v2 v2.1.0`, `lipgloss/v2 v2.0.6`,
   `bubbles/v2 v2.2.1`, `huh/v2 v2.0.3`, Ultraviolet `v0.0.0-20261008173134-6b8d4baf91b4`.
   To bump: update `kit/go.mod`, run everything above, and update
@@ -79,7 +86,7 @@ The skill gets better from observed misses, not from adding prose.
 - **References stay one level deep** and are named by domain or `cmd-<command>.md`. A new
   command needs a row in SKILL.md's command table.
 - **Tools** (`tools/`) are Go and depend only on the kit, `charmbracelet/x/ansi` and
-  `golang.org/x/{image,text}`. Each command's package doc is its `-h` text. Their tests
+  `golang.org/x/{image,text,tools}`. Each command's package doc is its `-h` text. Their tests
   hold them to goldens taken from the Python originals: change a golden only on purpose,
   and say why in the commit. Anything the agent runs on every iteration belongs here.
 - **Scripts** (`scripts/`) are Python with Pillow and numpy, kept only for converting
