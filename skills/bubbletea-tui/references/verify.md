@@ -16,8 +16,8 @@ screenshot.
             go test ./...                                                 (footprint at 4 sizes × themes)
 3. LINT     scripts/tuilint.py frames frames --cols 120 --rows 40 --theme themes/<brand>.json --bg <bg>
             scripts/tuilint.py code .
-4. LOOK     scripts/termshot.py frames/<state>-80x24.ansi … --sheet sheet-80.png
-            scripts/termshot.py frames/<state>-120x40.ansi … --sheet sheet-120.png --cell 8x16
+4. LOOK     scripts/cellshot.py frames/<state>-80x24.ansi … --sheet sheet-80.png
+            scripts/cellshot.py frames/<state>-120x40.ansi … --sheet sheet-120.png --cell 8x16
             → Read the PNGs. Run the slop test (anti-patterns.md) on each.
 5. CRITIQUE spawn a critic subagent (below) with the PNGs, goldens, brand read and code
 6. FIX      one change per defect; re-run 1–4; resume the SAME critic for round 2
@@ -27,7 +27,7 @@ Expect 2–4 rounds. Stop when the critic says ship and your own slop test passe
 
 ## Reading A Render Honestly
 
-- `termshot.py` draws box drawing, blocks, shades, braille and sextants geometrically, the
+- `cellshot.py` draws box drawing, blocks, shades, braille and sextants geometrically, the
   way Ghostty, Kitty, WezTerm and iTerm2 do. Treat what you see as what users see. It
   reports glyphs no font could draw (users may see tofu too) and emoji.
 - `--cell 16x32` to inspect detail. `--grid` for cell art. `--sheet` for contact sheets.

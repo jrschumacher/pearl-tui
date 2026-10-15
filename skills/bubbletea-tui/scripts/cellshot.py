@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""termshot.py — render ANSI terminal frames to PNG/GIF, honestly, so you can SEE a TUI.
+"""cellshot.py — render ANSI terminal frames to PNG/GIF, honestly, so you can SEE a TUI.
 
 You cannot look at a terminal. This is your eyes. It draws every cell the way a modern
 terminal (Ghostty, Kitty, WezTerm, iTerm2 with built-in box drawing) does: box drawing,
@@ -7,10 +7,10 @@ block elements, shades, quadrants, sextants, braille and powerline separators ar
 geometrically (so they join and fill like a real terminal, never as font tofu), text uses
 a real monospace font, and wide characters take two cells.
 
-  termshot.py frame.ansi out.png                    one frame
-  termshot.py a.ansi b.ansi c.ansi --sheet out.png  contact sheet, labelled by filename
-  termshot.py f*.ansi --gif out.gif --ms 80         animation from frames
-  some-cmd | termshot.py - out.png                  from stdin
+  cellshot.py frame.ansi out.png                    one frame
+  cellshot.py a.ansi b.ansi c.ansi --sheet out.png  contact sheet, labelled by filename
+  cellshot.py f*.ansi --gif out.gif --ms 80         animation from frames
+  some-cmd | cellshot.py - out.png                  from stdin
 
 Options
   --cell WxH        pixel size of one cell (default 12x24; use 16x32 to inspect detail)
@@ -69,7 +69,7 @@ class Fonts:
         size = int(px * 0.80)
         reg = find_font(REGULAR)
         if not reg:
-            sys.exit("termshot: no monospace font found (install DejaVu Sans Mono or JetBrains Mono)")
+            sys.exit("cellshot: no monospace font found (install DejaVu Sans Mono or JetBrains Mono)")
         self.reg = ImageFont.truetype(reg, size)
         self.bold = ImageFont.truetype(find_font(BOLD) or reg, size)
         self.italic = ImageFont.truetype(find_font(ITALIC) or reg, size)

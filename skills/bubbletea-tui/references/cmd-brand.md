@@ -10,7 +10,7 @@ diversity lint. Read `references/brand.md` and `references/color.md` first.
    next to each hex in the read.
 2. **Derive the roles.**
    `scripts/palette.py derive <primary> [<secondary>] [--accent …] --bg <brand bg> --light-bg <…> --swatch s.ansi --out roles.json`
-   Render `s.ansi` with `termshot.py` and look. Tune by hand where the brand demands it
+   Render `s.ansi` with `cellshot.py` and look. Tune by hand where the brand demands it
    (a calmer tertiary, a warmer bg). Re-run `palette.py check`.
 3. **Write the read** (`brand.md` §1): palette, tone, geometry, density, type, motif,
    remember, then one line per expression tying it to a trait. Use the translation
@@ -23,7 +23,7 @@ diversity lint. Read `references/brand.md` and `references/color.md` first.
 6. **Write the JSON** (contract in `brand.md` §4). Start from the kit theme closest in
    spirit, then change every axis the read says to.
 7. **Render** the kit showcase (or the app) with the theme: dark, light, ascii, at 80×24
-   and 120×40. Contact sheets via `termshot.py --sheet`.
+   and 120×40. Contact sheets via `cellshot.py --sheet`.
 8. **Lint.** `scripts/diversity.py themes/*.json kit/themes/ink.json
    kit/themes/charm.json` must pass. If it fails on distance from `ink`, identity is
    only in the palette, so go back to step 4. Also `go test` for footprint and contrast.

@@ -70,7 +70,7 @@ font into cells and prints rows, an ANSI preview, and a Go `[]string`.
 `scripts/logo2cells.py logo.png --cols 40 --mode half|shade|quad --colors 3` samples a
 raster logo (export the SVG at ≥ 800px first) onto the grid. It quantises to the brand's
 own colours (measured, k-means), applies rules 1–6, and prints rows plus an ANSI preview
-you can render with `termshot.py --grid`. Then **hand-fix** the cells the rules flag. The
+you can render with `cellshot.py --grid`. Then **hand-fix** the cells the rules flag. The
 generator is a starting point, not the answer.
 
 ## Fields (Repeating Backdrops)
@@ -165,7 +165,7 @@ while something actually loads, or for ≤ 600 ms on first run.
 1. **Sample** the geometry or source raster at 4×8 per cell, centred on cell boundaries.
 2. **Map** coverage to a glyph with one thresholds table per ink.
 3. **Emit** `name-WxH.txt` (rows exactly W cells), `.ansi`, and Go data.
-4. **Render honestly**: `termshot.py name.ansi name.png --grid --cell 16x32`, plus a
+4. **Render honestly**: `cellshot.py name.ansi name.png --grid --cell 16x32`, plus a
    contact sheet (`--sheet`) of 6–8 frames at the phase boundaries and the GIF (`--gif`).
    Look at them with the Read tool.
 5. **Lint**: unequal rows, mixed vocabulary along an edge, orphan cells, `░` under

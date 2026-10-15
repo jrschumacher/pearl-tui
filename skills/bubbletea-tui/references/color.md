@@ -23,7 +23,7 @@ literal.
 
 ```
 scripts/palette.py derive "#FF5A1F" "#3D7CC9" --bg "#0D1724" --light-bg "#F4F6F8" --swatch s.ansi
-scripts/termshot.py s.ansi s.png      # look at it
+scripts/cellshot.py s.ansi s.png      # look at it
 scripts/palette.py check theme.json   # on any existing theme
 ```
 

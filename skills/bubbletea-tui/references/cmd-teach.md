@@ -11,7 +11,7 @@ Read what exists before you ask the user anything:
 - the README, the CLI's `--help`, existing commands and screens (`grep -r "lipgloss\|bubbletea"`)
 - brand assets in the repo: logos (`*.svg *.png`), CSS variables, a style guide, fonts
 - the product's own copy: docs, site text, error messages. This is the voice.
-- the current terminal output, rendered (`termshot.py`), if a TUI already exists
+- the current terminal output, rendered (`cellshot.py`), if a TUI already exists
 
 ## 2. Ask Only What You Couldn't Infer
 

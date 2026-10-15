@@ -20,7 +20,7 @@
         "retry confirmation names the queue, focuses Cancel by default, and colours the destructive button",
         "empty state says what is missing, why in context, and the one key to fix it",
         "at 120x40 a detail pane or extra section uses the room; at 80x24 it collapses to a summary",
-        "the agent rendered PNGs with termshot.py and looked at them before replying"
+        "the agent rendered PNGs with cellshot.py and looked at them before replying"
       ]
     },
     {

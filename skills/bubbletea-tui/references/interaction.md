@@ -78,6 +78,30 @@ gets rendered and reviewed.
 - Works inside tmux/screen (no reliance on focus events or exotic keys), over SSH, and
   in a 80×24 split pane.
 
+## Screen Readers: The Canvas Is The Hard Case
+
+A full-screen TUI is hostile to screen readers in ways that a line-oriented CLI is not
+(see "The text mode lie", xogium.me, 2026). Screen readers follow the cursor and read
+linear output. A canvas app moves the cursor around to repaint spinners and timers,
+redraws large regions on every keystroke, and lays text out in two dimensions. Users
+hear fragments, or their reader crashes as the history grows. No standard (WCAG
+included) covers terminals yet, so hold yourself to these:
+
+- **Ship an accessible mode** for every task the TUI performs. Use `--accessible`, and
+  honour `ACCESSIBLE=1`, the variable Huh's accessible forms already read. In that mode:
+  no alt screen; plain line-by-line prompts (Huh's `WithAccessible(true)`); status
+  printed as new lines ("deploying 2/3 pods", then "deployed"), never repainted in
+  place; no spinners or timers; no colour-only meaning.
+- **In the canvas UI**: the real cursor (`View.Cursor`) sits where input goes and stays
+  there, and is nil when there's no input. Animate only while something is happening, and
+  keep animations small (`motion.md`). Don't re-render a long history on every keystroke:
+  cache finished items (`architecture.md`).
+- **Offer the non-interactive path** (`--json`, plain output when stdout isn't a TTY).
+  For many screen-reader users that is the accessible interface.
+- **Test it**: run the accessible mode with a screen reader once per release (Orca,
+  VoiceOver, NVDA in Windows Terminal), and keep a golden test of its plain-text
+  transcript.
+
 ## Copy
 
 Terminal copy is read at speed by people mid-task. Every word earns its cells.

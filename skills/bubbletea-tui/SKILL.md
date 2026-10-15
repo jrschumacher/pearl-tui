@@ -34,7 +34,7 @@ to all three. A half-applied idiom reads as noise.
    harness), `themes/` (seven brand themes). Copy and adapt it. A cold rebuild from
    descriptions loses half the idiom at once.
 4. **Never show the user anything you haven't rendered and looked at** with
-   `scripts/termshot.py`. Never ask them for a screenshot.
+   `scripts/cellshot.py`. Never ask them for a screenshot.
 
 ## The Laws
 
@@ -168,7 +168,7 @@ checking in with the user after `shape`.
 
 | Script | Does |
 |---|---|
-| `scripts/termshot.py` | ANSI → PNG/GIF/contact sheet, drawn like a modern terminal; reports tofu, emoji, uneven rows |
+| `scripts/cellshot.py` | ANSI → PNG/GIF/contact sheet, drawn like a modern terminal; reports tofu, emoji, uneven rows |
 | `scripts/tuilint.py` | `frames`: width, emoji, default palette, off-palette, contrast, boxes, rainbow, levels… `code`: len(), blocking, hex, emoji, v1, resize, ticks, Print, keys |
 | `scripts/palette.py` | `derive` a dark+light role set from brand hexes (OKLCH, tinted neutrals, contrast-tuned); `check` a theme |
 | `scripts/diversity.py` | how different are these themes from each other and from the default |
@@ -183,7 +183,7 @@ every hand-off.
 `kit/` (module `tuikit`): `go test ./...` renders seven themes × dark/light/ASCII × every
 state × five sizes and asserts the footprint and contrast. `go run ./cmd/showcase
 -theme themes/halyard.json` runs the reference app. Its `-out` flag writes every state
-for `termshot.py`. Copy `theme/` and `ui/` into the project and rename the import path.
+for `cellshot.py`. Copy `theme/` and `ui/` into the project and rename the import path.
 
 You can build terminal interfaces people screenshot and share. The libraries are
 capable of it, and Crush proves it. The difference is decisions: make them in the brand

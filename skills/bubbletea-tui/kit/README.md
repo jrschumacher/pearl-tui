@@ -35,7 +35,7 @@ cmd/showcase/   the reference app and its harness
 go test ./...
 go run ./cmd/showcase -theme themes/halyard.json            # interactive
 go run ./cmd/showcase -theme themes/moss.json -light -out frames -sizes 80x24,120x40
-python3 ../scripts/termshot.py frames/*-80x24.ansi --sheet sheet.png
+python3 ../scripts/cellshot.py frames/*-80x24.ansi --sheet sheet.png
 ```
 
 ## Copying it into a project

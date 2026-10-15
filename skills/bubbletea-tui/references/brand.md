@@ -101,7 +101,14 @@ read it too.
 ```
 
 Missing roles are derived, and missing glyphs and expressions default, so a theme can
-start small. Every glyph maps to an ASCII fallback (`theme.ASCII`). If you add a key:
+start small. A theme that keeps a role below the contrast floors on purpose (a brand's
+exact hex, used mostly as a fill) says so in writing, and `palette.py check` reports it
+as ACCEPT instead of FAIL:
+
+```json
+"contrastAccept": { "dark.primary": "Charple #6B50FF exactly as Crush ships it; used for fills and bars" }
+```
+ Every glyph maps to an ASCII fallback (`theme.ASCII`). If you add a key:
 add it to the Go structs, default it, document it here, probe-render it at 80×24 and
 120×40, and decide whether `diversity.py` should count it.
 
@@ -133,7 +140,7 @@ finish in its lane. Agents can't coordinate; the orchestrator must.
 ```
 go run ./cmd/<app> -theme themes/<brand>.json -out frames/<brand> -sizes 80x24,120x40
 go run ./cmd/<app> -theme themes/<brand>.json -out frames/<brand>-light -light
-scripts/termshot.py frames/<brand>/*-120x40.ansi --sheet <brand>.png --cell 8x16
+scripts/cellshot.py frames/<brand>/*-120x40.ansi --sheet <brand>.png --cell 8x16
 ```
 
 Put it beside the baseline (`ink`) and one other brand. Ask:

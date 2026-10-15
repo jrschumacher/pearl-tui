@@ -14,7 +14,7 @@ and 120×40. If it doesn't, that is finding #1. Get frames anyway:
   `View().Content` to `.ansi`, is usually 20 lines.
 - or render the model's `View()` directly from a test for each state you can reach.
 
-Then `termshot.py --sheet`, `tuilint.py frames` and `tuilint.py code`.
+Then `cellshot.py --sheet`, `tuilint.py frames` and `tuilint.py code`.
 
 ## 2. Two Independent Reviews
 

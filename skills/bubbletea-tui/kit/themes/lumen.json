@@ -24,7 +24,7 @@
    "white": "#FBF7F1"
   },
   "light": {
-   "primary": "#21867A",
+   "primary": "#1C7A6F",
    "secondary": "#C9573A",
    "tertiary": "#4A6F9E",
    "accent": "#1C5F58",
@@ -36,10 +36,10 @@
    "fgSubtle": "#9C958E",
    "fgSelected": "#FFFFFF",
    "border": "#ECE6DD",
-   "borderFocus": "#21867A",
+   "borderFocus": "#1C7A6F",
    "success": "#2F8F5B",
    "error": "#B3322C",
-   "warning": "#E9B949",
+   "warning": "#8A6200",
    "info": "#3B78B5",
    "white": "#FFFFFF"
   }

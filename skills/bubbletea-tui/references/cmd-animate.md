@@ -14,7 +14,7 @@ spinner.
 5. **Brand motion** (splash, intro, idle mark): follow `cell-art.md`. Precompute the
    frames, play intros once, and hand off on an identical frame.
 6. **Make it deterministic**: everything renders from `frame`. Dump frames 0..N through
-   the harness (`-frame`), build a GIF (`termshot.py f*.ansi --gif out.gif --ms 50`) and
+   the harness (`-frame`), build a GIF (`cellshot.py f*.ansi --gif out.gif --ms 50`) and
    a contact sheet, and look at them.
 7. **Temporal lint**: no cell flips and flips back, no empty mid-clip frame, no run of
    identical frames > 3, and the last frame equals the resting state.

@@ -10,7 +10,7 @@
 
 Prints the rows (every row exactly the same width), then with --go a Go `[]string`
 literal, with --json a JSON array (paste into theme.json "wordmark.rows"), and with --ansi
-a coloured preview you can render with termshot.py. Rules (references/cell-art.md):
+a coloured preview you can render with cellshot.py. Rules (references/cell-art.md):
 shade needs ≥5 rows (4 smears), half needs ≥4 rows for lowercase with ascenders, never
 the figlet "standard" look, keep the wordmark quieter than the mark.
 
@@ -26,7 +26,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from termshot import find_font  # noqa: E402
+from cellshot import find_font  # noqa: E402
 
 FAMILIES = {
     "bold": ["DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf", "NotoSans-Bold.ttf", "Arial Bold.ttf", "Helvetica.ttc"],

@@ -26,8 +26,8 @@
   "light": {
    "primary": "#5B3DF5",
    "secondary": "#D63AD6",
-   "tertiary": "#0E9F7E",
-   "accent": "#7A7A00",
+   "tertiary": "#0B7F65",
+   "accent": "#646400",
    "bg": "#FBFAF7",
    "bgSubtle": "#ECEAE4",
    "bgOverlay": "#D9D6CE",
@@ -37,9 +37,9 @@
    "fgSelected": "#FFFFFF",
    "border": "#E4E2DB",
    "borderFocus": "#5B3DF5",
-   "success": "#0E9F7E",
+   "success": "#0B7F65",
    "error": "#D12B55",
-   "warning": "#8A7A00",
+   "warning": "#736700",
    "info": "#0077CC",
    "white": "#FFFFFF"
   }
@@ -74,5 +74,9 @@
   "paintBg": true,
   "backdrop": "field",
   "working": "scramble"
+ },
+ "contrastAccept": {
+  "dark.primary": "Charple #6B50FF exactly as Crush ships it; it marks bars, fills and the motif more than text",
+  "dark.fgMuted": "Squid #858392 exactly as Crush ships it (4.40:1); this theme is a calibration study of Crush"
  }
 }

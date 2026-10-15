@@ -44,5 +44,6 @@ Each item becomes a harness state or a test, so it stays fixed.
 - [ ] Contrast floors (`palette.py check`), in both modes.
 - [ ] No information only in motion or only in a transient toast. Toasts also go to a log
       or history the user can open.
-- [ ] Screen readers can't parse a TUI well: offer the non-interactive `--json`/plain path
-      for every task the TUI performs.
+- [ ] An accessible mode (`--accessible`, `ACCESSIBLE=1`): no alt screen, line-by-line
+      prompts, status as new lines, no repainting spinners (`interaction.md` § Screen
+      Readers), plus the non-interactive `--json`/plain path for every task.

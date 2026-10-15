@@ -11,10 +11,12 @@ contrast against the background it will actually sit on.
   palette.py derive "#6B50FF" "#FF60FF" [--accent "#E8FE96"] [--bg "#201F26"] [--light-bg "#FBFAF7"]
                     [--tint 0.012] [--name crush] [--out theme-roles.json] [--swatch swatch.ansi]
   palette.py check theme.json        contrast report for an existing theme's roles (exit 1 on fail)
+                                     a theme may accept a deviation in writing:
+                                     "contrastAccept": {"dark.primary": "the brand's own hex, used as a fill"}
 
 `derive` prints the roles as JSON (`{"dark": {...}, "light": {...}}`, the theme contract's
 shape), a contrast table, and the nearest xterm-256 index for each role (for the
-ANSI256 fallback). `--swatch` writes an .ansi file you can render with termshot.py.
+ANSI256 fallback). `--swatch` writes an .ansi file you can render with cellshot.py.
 
 Thresholds (WCAG 2 contrast ratio against the role's background):
   fg ≥ 7      fgMuted ≥ 4.5     fgSubtle ≥ 2.6 (hints only, never the only carrier of meaning)
@@ -208,7 +210,9 @@ CHECKS = [  # (role, against, minimum, maximum)
 ]
 
 
-def report(roles, label):
+def report(roles, label, accept=None):
+    """accept: {"dark.primary": "reason"} — a deviation the theme justifies in writing."""
+    accept = accept or {}
     bad = 0
     lines = [f"  {label}"]
     for a, b, lo, hi in CHECKS:
@@ -216,10 +220,28 @@ def report(roles, label):
             continue
         c = contrast(roles[a], roles[b])
         ok = c >= lo and (hi is None or c <= hi)
-        bad += not ok
         rng = f"≥{lo}" + (f" ≤{hi}" if hi else "")
-        lines.append(f"    {'ok ' if ok else 'FAIL'} {a:<12} on {b:<9} {c:5.2f}  (want {rng})  {roles[a]} / {roles[b]}")
+        why = accept.get(f"{label}.{a}")
+        mark = "ok " if ok else ("ACCEPT" if why else "FAIL")
+        bad += not ok and not why
+        lines.append(f"    {mark:<4} {a:<12} on {b:<9} {c:5.2f}  (want {rng})  {roles[a]} / {roles[b]}" + (f"  — {why}" if why and not ok else ""))
     return bad, "\n".join(lines)
+
+
+def fill_on_colours(r):
+    """Mirror the Go engine (kit/theme/derive.go): a missing on-colour is the legacy
+    `white` if it clears 4.5:1, else whichever of bg/fg reads better on the fill."""
+    for on, fill in (("onPrimary", "primary"), ("onSecondary", "secondary"), ("onWarning", "warning"),
+                     ("onError", "error"), ("onSuccess", "success")):
+        if on in r or fill not in r:
+            continue
+        w = r.get("white")
+        if w and contrast(w, r[fill]) >= 4.5:
+            r[on] = w
+        else:
+            r[on] = max((r.get("bg", "#000000"), r.get("fg", "#ffffff")), key=lambda c: contrast(c, r[fill]))
+    r.setdefault("fgSelected", r.get("onPrimary"))
+    return r
 
 
 def swatch(roles_by_mode):
@@ -267,11 +289,8 @@ def main(argv):
         for mode, r in roles.items():
             if not isinstance(r, dict):
                 continue
-            r = dict(r)
-            r.setdefault("onPrimary", r.get("fgSelected", r.get("white", "#ffffff")))
-            r.setdefault("onSecondary", r.get("white", r.get("fgSelected", "#ffffff")))
-            r.setdefault("onWarning", r.get("bgOverlay", r.get("bg")))
-            b, txt = report(r, mode)
+            r = fill_on_colours(dict(r))
+            b, txt = report(r, mode, t.get("contrastAccept", {}))
             bad += b
             print(txt)
         print("FAIL" if bad else "OK", f"({bad} contrast problems)")
@@ -305,7 +324,7 @@ def main(argv):
         print(txt, file=sys.stderr)
     if "swatch" in opts:
         open(opts["swatch"], "w").write(swatch(roles))
-        print(f"wrote {opts['swatch']} (render: termshot.py {opts['swatch']} swatch.png)", file=sys.stderr)
+        print(f"wrote {opts['swatch']} (render: cellshot.py {opts['swatch']} swatch.png)", file=sys.stderr)
     print(("FAIL" if bad else "OK") + f" ({bad} contrast problems)", file=sys.stderr)
     return 1 if bad else 0
 

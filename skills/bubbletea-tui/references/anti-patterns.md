@@ -150,6 +150,10 @@ the default; the destructive one is coloured and needs a deliberate move.
 **I8 fmt.Print in a program** [C-PRINT]. Corrupts the frame. Use `tea.Println` (above the
 program), a log file (`tea.LogToFile`), or a status line.
 
+**I11 Canvas-only.** The only way to do the task is the full-screen UI, with spinners
+repainting in place and no accessible or plain mode. Screen-reader users are locked
+out (`interaction.md` § Screen Readers).
+
 ## Copy
 
 **W1 Robot voice.** "An error occurred." "Operation completed successfully." Say what

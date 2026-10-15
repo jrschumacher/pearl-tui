@@ -47,7 +47,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from termshot import parse  # noqa: E402
+from cellshot import parse  # noqa: E402
 
 DEFAULT_COLOURS = {  # from Bubble Tea / Lip Gloss / Bubbles examples and default delegates
     (0x7D, 0x56, 0xF4): "#7D56F4 (lipgloss README purple)", (0xFF, 0x5F, 0xAF): "#FF5FAF / 205 (bubbles default pink)",

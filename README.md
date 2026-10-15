@@ -64,7 +64,7 @@ skills/bubbletea-tui/
 ├── references/           medium · idiom · color · layout · components · interaction · motion · brand
 │                         cell-art · architecture · verify · anti-patterns, plus one file per command
 ├── scripts/
-│   ├── termshot.py       ANSI → PNG / GIF / contact sheet, drawn like Ghostty/Kitty/WezTerm draw it
+│   ├── cellshot.py       ANSI → PNG / GIF / contact sheet, drawn like Ghostty/Kitty/WezTerm draw it
 │   ├── tuilint.py        slop + correctness lint on rendered frames and on Go source (rule IDs)
 │   ├── palette.py        derive a dark+light role palette from brand hexes (OKLCH, tinted neutrals, contrast-tuned)
 │   ├── diversity.py      are these themes actually different from each other and from the default?
@@ -89,7 +89,7 @@ contrast floors on every palette.
 ```sh
 go run ./cmd/app -out frames -sizes 80x24,120x40         # every state
 scripts/tuilint.py frames frames --theme themes/brand.json
-scripts/termshot.py frames/*-80x24.ansi --sheet sheet.png # look at it
+scripts/cellshot.py frames/*-80x24.ansi --sheet sheet.png # look at it
 # → adversarial critic subagent with the sheets, the brand read and the code → fix → again
 ```
 
@@ -98,6 +98,18 @@ scripts/termshot.py frames/*-80x24.ansi --sheet sheet.png # look at it
 ![The assistant: tool calls, thinking, a turn footer, the working indicator](docs/images/gallery-assistant.png)
 
 ![The command palette in six brands](docs/images/gallery-palette.png)
+
+## Roadmap and feedback
+
+This is v0.1. It has been verified by the authors' own render, lint and critique loop,
+but not yet by cold runs on real apps. The most useful thing you can do is build
+something with it and file what it got wrong with the **Skill feedback** issue
+template. [ROADMAP.md](ROADMAP.md) has the plan. It also covers the open problems that
+are bigger than this repo: no accessibility standard for terminals, no semantic
+locators for TUI testing, models that can't see terminals, and no shared ground truth
+for what terminals render.
+
+Working on the skill itself? Start with [AGENTS.md](AGENTS.md).
 
 ## Credits
 
