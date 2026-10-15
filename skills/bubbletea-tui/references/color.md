@@ -22,9 +22,9 @@ literal.
 ## Derive The Palette From The Brand, Then Check It
 
 ```
-scripts/palette.py derive "#FF5A1F" "#3D7CC9" --bg "#0D1724" --light-bg "#F4F6F8" --swatch s.ansi
-scripts/cellshot.py s.ansi s.png      # look at it
-scripts/palette.py check theme.json   # on any existing theme
+palette derive "#FF5A1F" "#3D7CC9" --bg "#0D1724" --light-bg "#F4F6F8" --swatch s.ansi
+cellshot s.ansi s.png      # look at it
+palette check theme.json   # on any existing theme
 ```
 
 `derive` works in OKLCH so lightness steps are perceptual. It:
@@ -127,5 +127,5 @@ and look at the PNGs. What usually breaks:
 - **DO** keep hue for state and brand, and lightness for hierarchy. **DON'T** colour
   columns to tell them apart.
 - **DO** check contrast for every text role on every background it sits on (fg on
-  bgSubtle too). **DON'T** trust a palette you haven't run through `palette.py check`.
+  bgSubtle too). **DON'T** trust a palette you haven't run through `palette check`.
 - **DO** give every filled element an explicit on-colour. **DON'T** put white on yellow.

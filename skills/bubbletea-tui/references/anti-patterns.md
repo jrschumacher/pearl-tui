@@ -4,7 +4,7 @@ If you showed the screen to someone who lives in a terminal and said "a model ma
 would they believe you at a glance? If yes, that is the problem. Each item below is a
 default that models reach for because it is the easiest thing to type in Lip Gloss or the
 first thing in a README. Each has an ID. The ones a machine can see are checked by
-`scripts/tuilint.py` (rule IDs in brackets).
+`tuilint` (rule IDs in brackets).
 
 A default is not banned because it is ugly. It is banned because it is *everyone's*, so
 choosing it says nothing about this product. The brief can earn any of these back. Say
@@ -45,8 +45,8 @@ a 1–2 cell gutter, the same on every screen.
 
 **C1 Pink and purple by default** [F-DEFAULT]. `#7D56F4`, `#FF5FAF`/205, `#EE6FF8`,
 62/63/170/212: the colours of the Bubble Tea and Lip Gloss examples and Bubbles' default
-list delegate. They are the strongest "made with the tutorial" signal there is. Brand
-roles come from the brand (`palette.py`), never from an example.
+list delegate. Huh adds its own: `#7571F9`/`#5A56E0` titles and the `#F780E2` spinner. They are the strongest "made with the tutorial" signal there is. Brand
+roles come from the brand (`palette`), never from an example.
 
 **C2 Hex in the view** [C-HEX] [F-OFFPAL]. `lipgloss.Color("#ff0000")` in a screen
 function. Ten screens later there are eleven reds. *Instead:* roles (`t.S.Err`,
@@ -58,7 +58,7 @@ Lightness does hierarchy (fg / fgSoft / fgMuted / fgSubtle), and hue is for stat
 brand.
 
 **C4 Pure grey on a tinted world.** `#888888` text on a navy background reads dirty.
-Neutrals lean toward the background's hue (`palette.py` does this).
+Neutrals lean toward the background's hue (`palette` does this).
 
 **C5 One text level** [F-LEVELS]. Everything in the default foreground, everything bold
 [F-BOLD]. Without three to four text levels there is no hierarchy, only a wall.
@@ -77,6 +77,11 @@ spinner.
 
 **C9 Invisible faintness** [F-CONTRAST]. `fgSubtle` at 1.8:1 for anything a user must
 read. The faintest level is ≥ 2.6:1 and only for hints.
+
+**C10 A library left on its defaults** [C-HUHTHEME]. A Huh form, field or spinner, or a
+Bubbles spinner, with no theme: it renders the library's palette in the middle of yours.
+The first dogfood run shipped Huh's pink spinner this way. *Instead:* theme it from the
+brand theme with `ui.NewForm` (`components.md` § Forms And Wizards).
 
 ## Glyphs
 

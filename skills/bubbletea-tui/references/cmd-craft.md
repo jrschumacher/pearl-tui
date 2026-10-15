@@ -3,6 +3,12 @@
 Input: `TUI.md`, the theme, the screen spec (`shape`). Output: a running Bubble Tea v2
 program with the harness, rendered and critiqued.
 
+## 0. Read TUI.md First
+
+It holds the brand read, the screens and the architecture this build must follow. If it's
+missing, run `init` (or its short form, saying what you assumed): a build with no plan
+invents its regions and keys screen by screen.
+
 ## 1. Start From The Kit, Not From Prose
 
 ```
@@ -39,8 +45,8 @@ screen, run the loop below on that screen before starting the next.
 
 ## 4. The Loop (`verify.md`)
 
-Render all states (dark, light, ascii, 256) → golden → `tuilint.py frames` and
-`tuilint.py code` → contact sheets → read the PNGs → slop test → critic subagent → fix →
+Render all states (dark, light, ascii, 256) → golden → `tuilint frames` and
+`tuilint code` → contact sheets → read the PNGs → slop test → critic subagent → fix →
 again. Two to four rounds.
 
 ## 5. Behaviour Checks The Renders Hide

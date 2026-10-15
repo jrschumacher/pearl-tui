@@ -1,0 +1,9 @@
+[
+ {
+  "rule": "F-CONTRAST",
+  "sev": "P1",
+  "file": "services-80x24.ansi",
+  "where": "r23c7",
+  "msg": "36 text cells under 2.3:1 on rows [23] (first 2.18:1, fg #8B9A9B on bg #D4E1E1)"
+ }
+]

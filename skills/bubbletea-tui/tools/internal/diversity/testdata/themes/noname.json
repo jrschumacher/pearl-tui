@@ -1,0 +1,20 @@
+{
+ "expressions": {
+  "header": "minimal",
+  "wordmark": "bracket",
+  "selection": "inverse",
+  "button": "inverse",
+  "tag": "bracket",
+  "dialog": "heavy",
+  "tabs": "slash",
+  "footer": "keys",
+  "scrim": null,
+  "backdrop": "field"
+ },
+ "glyphs": {
+  "rule": "┄",
+  "focusBar": "│",
+  "cursor": ">",
+  "done": 1
+ }
+}

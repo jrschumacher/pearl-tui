@@ -9,9 +9,9 @@ evidence and the command that reproduces each finding.
 |---|---|---|
 | Footprint | `-golden` at 80×24, 120×40; `go test` at 4 sizes; resize to 60×18 and 250×70 | any row ≠ W or rows ≠ H |
 | Resize | is `tea.WindowSizeMsg` handled; what renders below the minimum | the layout is hard-coded |
-| Blocking | `tuilint.py code` C-SLEEP/C-VIEWIO; grep `Update`/`View` for I/O | anything slow on the UI goroutine |
+| Blocking | `tuilint code` C-SLEEP/C-VIEWIO; grep `Update`/`View` for I/O | anything slow on the UI goroutine |
 | Version | imports: `charm.land/*/v2` | v1 in new code (P1) |
-| Colour | `tuilint.py frames --theme` F-OFFPAL/F-DEFAULT; `tuilint.py code` C-HEX; `palette.py check` | text under 2.3:1 |
+| Colour | `tuilint frames --theme` F-OFFPAL/F-DEFAULT; `tuilint code` C-HEX; `palette check` | text under 2.3:1 |
 | Profiles | renders at ansi256, ansi, ascii; `NO_COLOR=1` | focus or selection invisible without colour |
 | Light | `-light` renders; `BackgroundColorMsg` handled | unreadable on a light terminal |
 | Glyphs | emoji, Nerd Font PUA, width-ambiguous symbols in columns; ASCII fallbacks exist | a column misaligns |

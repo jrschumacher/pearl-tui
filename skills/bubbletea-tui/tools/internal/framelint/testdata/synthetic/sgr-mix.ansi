@@ -1,0 +1,24 @@
+[48;2;13;23;36m[48;2;13;23;36m                                                                                [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;5;1m  c1[0m[48;2;13;23;36m[38;5;9m c9[0m[48;2;13;23;36m[38;5;67m c67[0m[48;2;13;23;36m[38;5;180m c180[0m[48;2;13;23;36m[38;5;244m g244[0m[48;2;13;23;36m[31m red[0m[48;2;13;23;36m[91m bright[0m[48;2;13;23;36m[41;97m onred[0m[48;2;13;23;36m[101;30m onbright[0m[48;2;13;23;36m                                 [0m
+[48;2;13;23;36m[48;2;13;23;36m[38:2::200:120:40m  colon-rgb[0m[48;2;13;23;36m[38:2:40:120:200m colon-rgb2[0m[48;2;13;23;36m[38:5:110m colon-256[0m[48;2;13;23;36m[48:2::30:30:30;38;2;230;230;230m colon-bg[0m[48;2;13;23;36m[4:3m[38;2;193;204;219m curly[0m[48;2;13;23;36m[21m dbl[0m[48;2;13;23;36m                             [0m
+[48;2;13;23;36m[48;2;13;23;36m[1;2;3;4;7;9m[38;2;193;204;219m[48;2;19;31;47m  all-on[0m[48;2;13;23;36m[22;23;24;27;29m all-off[0m[48;2;13;23;36m[38;2;200;80;80m[39m fg-default[0m[48;2;13;23;36m[48;2;80;80;200m[49m bg-default[0m[48;2;13;23;36m                                          [0m
+[48;2;13;23;36m[38;2;193;204;219m  tab	here	and	there                                                   [0m
+[48;2;13;23;36m[48;2;13;23;36m]8;;https://example.invalid[38;2;193;204;219m  link[0m[48;2;13;23;36m]8;;\ end[0m[48;2;13;23;36m                                                                      [0m
+[?25l[?2004h[48;2;13;23;36m[48;2;13;23;36m[38;2;193;204;219m  private modes are harmless[0m[48;2;13;23;36m                                                    [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;2;110;131;158m  café … · ° — ellipsis and friends[0m[48;2;13;23;36m                                             [0m
+P1$r0m\[48;2;13;23;36m[48;2;13;23;36m[38;2;193;204;219m  after a DCS string[0m[48;2;13;23;36m                                                            [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;5m  short 38;5[0m[48;2;13;23;36m[38m lone 38[0m[48;2;13;23;36m[58;2;1;2;3m underline colour[0m[48;2;13;23;36m[38;2;1;2m short rgb[0m[48;2;13;23;36m                                 [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;2;110;131;158m  keel reefer manifest keel reefer manifest keel reefer manife[0m[48;2;13;23;36m                  [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;2;72;94;123m  rudder gantry harbour rudder gantry harbour rudder gantry ha[0m[48;2;13;23;36m                  [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;2;193;204;219m  anchor lashing tide anchor lashing tide anchor lashing tide [0m[48;2;13;23;36m                  [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;2;110;131;158m  mooring stow pilot mooring stow pilot mooring stow pilot moo[0m[48;2;13;23;36m                  [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;2;72;94;123m  quay vessel draft quay vessel draft quay vessel draft quay v[0m[48;2;13;23;36m                  [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;2;193;204;219m  bollard berth ballast bollard berth ballast bollard berth ba[0m[48;2;13;23;36m                  [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;2;110;131;158m  cargo crane hull cargo crane hull cargo crane hull cargo cra[0m[48;2;13;23;36m                  [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;2;72;94;123m  reefer manifest keel reefer manifest keel reefer manifest ke[0m[48;2;13;23;36m                  [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;2;193;204;219m  gantry harbour rudder gantry harbour rudder gantry harbour r[0m[48;2;13;23;36m                  [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;2;110;131;158m  lashing tide anchor lashing tide anchor lashing tide anchor [0m[48;2;13;23;36m                  [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;2;72;94;123m  stow pilot mooring stow pilot mooring stow pilot mooring sto[0m[48;2;13;23;36m                  [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;2;193;204;219m  vessel draft quay vessel draft quay vessel draft quay vessel[0m[48;2;13;23;36m                  [0m
+[48;2;13;23;36m[48;2;13;23;36m[38;2;110;131;158m  berth ballast bollard berth ballast bollard berth ballast bo[0m[48;2;13;23;36m                  [0m
+[48;2;13;23;36m[48;2;13;23;36m                                                                                [0m

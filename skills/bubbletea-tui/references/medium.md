@@ -26,7 +26,7 @@ is tall in rows, and diagonals are ~63° instead of 45°.
 - **Every row of a frame must be exactly W cells and the frame exactly H rows.** One row
   at W+1 wraps, pushes everything down one line, and the top row scrolls off: the whole
   screen "tears". This is the most common bug in model-written TUIs. The verification
-  loop enforces it (`tuilint.py frames --cols W --rows H`).
+  loop enforces it (`tuilint frames --cols W --rows H`).
 - Wide glyphs (CJK, most emoji) take 2 cells, and terminals disagree about some
   (emoji with variation selectors, `⚠` vs `⚠️`, some symbols in the East-Asian
   "ambiguous" class). If a glyph's width is in doubt, don't use it in a layout column.

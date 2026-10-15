@@ -1,0 +1,28 @@
+{
+ "name": "twin-a",
+ "expressions": {
+  "header": "bar",
+  "wordmark": "inverse",
+  "sectionTitle": "primary",
+  "titleCase": "upper",
+  "selection": "fill",
+  "button": "bracket",
+  "tag": "bracket",
+  "dialog": "square",
+  "dialogTitle": "bar",
+  "tabs": "bracket",
+  "footer": "rule",
+  "keys": "boxed",
+  "density": "compact",
+  "backdrop": "field",
+  "scrim": "none",
+  "paintBg": true
+ },
+ "glyphs": {
+  "headerRule": "━",
+  "rule": "━",
+  "focusBar": "┃",
+  "cursor": "▸",
+  "done": "◆"
+ }
+}

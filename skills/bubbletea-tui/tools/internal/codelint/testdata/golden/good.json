@@ -1,0 +1,9 @@
+[
+ {
+  "rule": "C-SLEEP",
+  "sev": "P0",
+  "file": "app/app.go",
+  "where": "54",
+  "msg": "blocking call in Update: move it into a tea.Cmd and send the result back as a Msg"
+ }
+]

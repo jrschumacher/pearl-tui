@@ -1,0 +1,24 @@
+axis         cartridge   charm       ferrous     halyard     ink         lumen       moss        
+header       banner      rule        stamp       bar         rule        minimal     rule        
+wordmark     -           gradient    -           tracked     solid       solid       solid       
+sectionTitle accent      accent      muted-uppe  primary     fg          accent      fg          
+titleCase    upper       sentence    upper       sentence    sentence    sentence    lower       
+selection    inverse     bar         fill        fill        bar         caret       bar         
+button       pill        pill        inverse     bracket     pill        underline   underline   
+tag          filled      filled      bracket     filled      filled      bold        bold        
+dialog       double      rounded     heavy       square      rounded     rounded     none        
+dialogTitle  rule        rule        bar         bar         plain       plain       plain       
+tabs         pill        underline   bracket     slash       underline   pill        underline   
+footer       bar         keys        bar         rule        keys        keys        rule        
+keys         boxed       inline      inline      boxed       inline      inline      inline      
+density      compact     airy        compact     compact     airy        airy        airy        
+backdrop     field       field       none        field       none        none        none        
+scrim        dim         dim         none        dim         dim         dim         dim         
+paintBg      True        True        True        False       False       False       False       
+headerRule   ▚           ╱           -           -                       -           ·           
+rule         ─           ─           ━           ┄           ─           ╌           ·           
+focusBar     █           ▌           ┃           ▎           ▌           ▎           │           
+cursor       ▶           >           >           ▸           ›           ›           →           
+done         ■           ✓           ■           ◆           ✓           •           ✓           
+
+OK

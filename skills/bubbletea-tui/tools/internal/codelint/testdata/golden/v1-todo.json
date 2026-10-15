@@ -1,0 +1,72 @@
+[
+ {
+  "rule": "C-EMOJI",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "55",
+  "msg": "emoji '\u2728' in a string: emoji width varies by terminal; use the brand glyph set"
+ },
+ {
+  "rule": "C-EMOJI",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "56",
+  "msg": "emoji '\u2705' in a string: emoji width varies by terminal; use the brand glyph set"
+ },
+ {
+  "rule": "C-EMOJI",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "58",
+  "msg": "emoji '\ud83d\ude80' in a string: emoji width varies by terminal; use the brand glyph set"
+ },
+ {
+  "rule": "C-HEX",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "15",
+  "msg": "hex colour outside the theme: screens take roles (t.Primary, t.FgMuted), never literals"
+ },
+ {
+  "rule": "C-SIZE",
+  "sev": "P1",
+  "file": "v1-todo",
+  "where": "-",
+  "msg": "no tea.WindowSizeMsg handled anywhere: layout cannot respond to the terminal"
+ },
+ {
+  "rule": "C-V1",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "9",
+  "msg": "v1 import: new code uses charm.land/bubbletea/v2, charm.land/lipgloss/v2, charm.land/bubbles/v2"
+ },
+ {
+  "rule": "C-V1",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "10",
+  "msg": "v1 import: new code uses charm.land/bubbletea/v2, charm.land/lipgloss/v2, charm.land/bubbles/v2"
+ },
+ {
+  "rule": "C-V1",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "11",
+  "msg": "v1 import: new code uses charm.land/bubbletea/v2, charm.land/lipgloss/v2, charm.land/bubbles/v2"
+ },
+ {
+  "rule": "C-KEYS",
+  "sev": "P2",
+  "file": "main.go",
+  "where": "37",
+  "msg": "1 keys matched as raw strings and no key.Binding: the help view will drift from reality"
+ },
+ {
+  "rule": "C-NOCOLOR",
+  "sev": "P2",
+  "file": "v1-todo",
+  "where": "-",
+  "msg": "no colour-profile / dark-background handling found: check light terminals, 256 and 16 colours, NO_COLOR"
+ }
+]

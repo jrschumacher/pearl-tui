@@ -1,0 +1,114 @@
+[
+ {
+  "name": "kit-defaults",
+  "args": [
+   "../../../kit/themes/cartridge.json",
+   "../../../kit/themes/charm.json",
+   "../../../kit/themes/ferrous.json",
+   "../../../kit/themes/halyard.json",
+   "../../../kit/themes/ink.json",
+   "../../../kit/themes/lumen.json",
+   "../../../kit/themes/moss.json"
+  ],
+  "exit": 0
+ },
+ {
+  "name": "kit-baseline",
+  "args": [
+   "../../../kit/themes/cartridge.json",
+   "../../../kit/themes/charm.json",
+   "../../../kit/themes/ferrous.json",
+   "../../../kit/themes/halyard.json",
+   "../../../kit/themes/ink.json",
+   "../../../kit/themes/lumen.json",
+   "../../../kit/themes/moss.json",
+   "--baseline",
+   "ink,charm",
+   "--min-distance",
+   "8"
+  ],
+  "exit": 0
+ },
+ {
+  "name": "kit-strict",
+  "args": [
+   "--baseline=ink",
+   "--min-d",
+   "12",
+   "../../../kit/themes/cartridge.json",
+   "../../../kit/themes/charm.json",
+   "../../../kit/themes/ferrous.json",
+   "../../../kit/themes/halyard.json",
+   "../../../kit/themes/ink.json",
+   "../../../kit/themes/lumen.json",
+   "../../../kit/themes/moss.json",
+   "--max-shared",
+   "7"
+  ],
+  "exit": 1
+ },
+ {
+  "name": "synthetic",
+  "args": [
+   "testdata/themes/inkling.json",
+   "testdata/themes/longname.json",
+   "testdata/themes/noname.json",
+   "testdata/themes/twin-a.json",
+   "testdata/themes/twin-b.json",
+   "../../../kit/themes/ink.json",
+   "../../../kit/themes/charm.json"
+  ],
+  "exit": 1
+ },
+ {
+  "name": "synthetic-baseline",
+  "args": [
+   "testdata/themes/inkling.json",
+   "testdata/themes/longname.json",
+   "testdata/themes/noname.json",
+   "testdata/themes/twin-a.json",
+   "testdata/themes/twin-b.json",
+   "../../../kit/themes/ink.json",
+   "../../../kit/themes/charm.json",
+   "--baseline",
+   "ink,charm",
+   "--min-distance",
+   "8"
+  ],
+  "exit": 1
+ },
+ {
+  "name": "synthetic-loose",
+  "args": [
+   "testdata/themes/inkling.json",
+   "testdata/themes/longname.json",
+   "testdata/themes/noname.json",
+   "testdata/themes/twin-a.json",
+   "testdata/themes/twin-b.json",
+   "--max-shared",
+   "16",
+   "--baseline",
+   "inkling",
+   "--min-distance",
+   "3"
+  ],
+  "exit": 1
+ },
+ {
+  "name": "synthetic-nobaseline",
+  "args": [
+   "testdata/themes/inkling.json",
+   "testdata/themes/longname.json",
+   "testdata/themes/noname.json",
+   "testdata/themes/twin-a.json",
+   "testdata/themes/twin-b.json",
+   "../../../kit/themes/ink.json",
+   "../../../kit/themes/charm.json",
+   "--baseline",
+   "",
+   "--max-popular",
+   "0.6"
+  ],
+  "exit": 1
+ }
+]

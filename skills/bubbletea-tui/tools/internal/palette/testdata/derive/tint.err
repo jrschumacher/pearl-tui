@@ -1,0 +1,46 @@
+  dark
+    ok   fg           on bg        11.15  (want ≥7.0)  #BDD1C3 / #071B0F
+    ok   fgMuted      on bg         4.60  (want ≥4.5)  #638A70 / #071B0F
+    ok   fgSubtle     on bg         2.72  (want ≥2.6)  #3C664B / #071B0F
+    ok   fg           on bgSubtle   9.04  (want ≥4.5)  #BDD1C3 / #102F1D
+    ok   fgMuted      on bgSubtle   3.73  (want ≥3.0)  #638A70 / #102F1D
+    ok   primary      on bg         4.22  (want ≥3.5)  #2E8B57 / #071B0F
+    ok   secondary    on bg         4.16  (want ≥3.0)  #008889 / #071B0F
+    ok   tertiary     on bg         8.56  (want ≥4.5)  #D4A0EC / #071B0F
+    ok   accent       on bg        12.78  (want ≥4.5)  #B9E4C7 / #071B0F
+    ok   success      on bg         6.54  (want ≥3.5)  #56AE6C / #071B0F
+    ok   error        on bg         5.86  (want ≥3.5)  #DD7573 / #071B0F
+    ok   warning      on bg        10.91  (want ≥3.5)  #F1C45E / #071B0F
+    ok   info         on bg         6.34  (want ≥3.0)  #3CA2E0 / #071B0F
+    ok   border       on bg         1.22  (want ≥1.14 ≤1.9)  #092F1A / #071B0F
+    ok   bgSubtle     on bg         1.23  (want ≥1.1 ≤2.2)  #102F1D / #071B0F
+    FAIL onPrimary    on primary    4.39  (want ≥4.5)  #001709 / #2E8B57
+    ok   onSecondary  on secondary  4.33  (want ≥3.5)  #001709 / #008889
+    ok   onWarning    on warning   11.36  (want ≥4.5)  #001709 / #F1C45E
+    ok   onError      on error      6.10  (want ≥3.5)  #001709 / #DD7573
+    ok   onSuccess    on success    6.81  (want ≥3.5)  #001709 / #56AE6C
+    ok   fgSelected   on primary    4.39  (want ≥3.5)  #001709 / #2E8B57
+  light
+    ok   fg           on bg        12.04  (want ≥7.0)  #29372E / #F1FEF5
+    ok   fgMuted      on bg         4.65  (want ≥4.5)  #5A7964 / #F1FEF5
+    ok   fgSubtle     on bg         2.70  (want ≥2.6)  #7EA38A / #F1FEF5
+    ok   fg           on bgSubtle   9.71  (want ≥4.5)  #29372E / #CCEAD6
+    ok   fgMuted      on bgSubtle   3.75  (want ≥3.0)  #5A7964 / #CCEAD6
+    ok   primary      on bg         4.09  (want ≥3.5)  #2E8B57 / #F1FEF5
+    ok   secondary    on bg         4.14  (want ≥3.0)  #008889 / #F1FEF5
+    ok   tertiary     on bg         6.13  (want ≥4.5)  #7C4C91 / #F1FEF5
+    ok   accent       on bg         7.80  (want ≥4.5)  #195B37 / #F1FEF5
+    ok   success      on bg         5.43  (want ≥3.5)  #137738 / #F1FEF5
+    ok   error        on bg         6.17  (want ≥3.5)  #A03F40 / #F1FEF5
+    ok   warning      on bg         4.72  (want ≥3.5)  #906B00 / #F1FEF5
+    ok   info         on bg         5.70  (want ≥3.0)  #006A9D / #F1FEF5
+    ok   border       on bg         1.22  (want ≥1.14 ≤1.9)  #CAEDD6 / #F1FEF5
+    ok   bgSubtle     on bg         1.24  (want ≥1.1 ≤2.2)  #CCEAD6 / #F1FEF5
+    FAIL onPrimary    on primary    4.39  (want ≥4.5)  #001709 / #2E8B57
+    ok   onSecondary  on secondary  4.33  (want ≥3.5)  #001709 / #008889
+    ok   onWarning    on warning    4.72  (want ≥4.5)  #F4FDF7 / #906B00
+    ok   onError      on error      6.17  (want ≥3.5)  #F4FDF7 / #A03F40
+    ok   onSuccess    on success    5.44  (want ≥3.5)  #F4FDF7 / #137738
+    ok   fgSelected   on primary    4.39  (want ≥3.5)  #001709 / #2E8B57
+wrote swatch.ansi (render: cellshot.py swatch.ansi swatch.png)
+FAIL (2 contrast problems)

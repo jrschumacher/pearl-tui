@@ -40,7 +40,11 @@ func (m *app) draw(w, h int) *ui.Canvas {
 	}
 	g := t.X.Gutter
 	s := m.svcs[m.sel]
-	head := ui.Header(t, w, h, t.AppName(), ui.Details(t, "prod", "us-east-1", s.Name))
+	details := ui.Details(t, "prod", "us-east-1", s.Name)
+	if m.screen == scrSetup {
+		details = ui.Details(t, "setup", m.setup.steps().Count())
+	}
+	head := ui.Header(t, w, h, t.AppName(), details)
 	y := 0
 	c.Draw(strings.Join(head, "\n"), ui.Rect(0, y, w, len(head)))
 	y += len(head) + t.Gap()
@@ -50,7 +54,11 @@ func (m *app) draw(w, h int) *ui.Canvas {
 	fy := h - len(foot)
 	c.Draw(strings.Join(foot, "\n"), ui.Rect(0, fy, w, len(foot)))
 
-	if m.screen != scrDeploy {
+	if m.screen == scrSetup {
+		// the wizard's step row stands where the tabs stand
+		c.Draw(m.setup.steps().Row(t, w-2*g), ui.Rect(g, y, w-2*g, 1))
+		y += 2
+	} else if m.screen != scrDeploy {
 		counts := []string{t.S.Subtle.Render(itoa(len(m.svcs))), "", "", ""}
 		if m.declared {
 			counts[2] = t.S.Warn.Render("1")
@@ -71,6 +79,8 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		m.assistant(c, body)
 	case scrDeploy:
 		m.deployForm(c, body)
+	case scrSetup:
+		m.setupView(c, body)
 	}
 	switch m.ov {
 	case ovPalette:
@@ -94,12 +104,18 @@ func (m *app) footerBadge() string {
 	if m.screen == scrDeploy && m.ov == ovNone {
 		return ui.Tag(m.t, "warning", "PROD")
 	}
+	if m.screen == scrSetup && m.ov == ovNone {
+		return ui.Tag(m.t, "info", "SETUP")
+	}
 	return ""
 }
 
 func (m *app) footerRight() string {
 	if m.screen == scrServices && m.ov == ovNone {
 		return m.t.S.Subtle.Render("synced 4s ago")
+	}
+	if m.screen == scrSetup && m.ov == ovNone && !m.setup.saved {
+		return m.t.S.Subtle.Render("not saved yet")
 	}
 	return ""
 }
@@ -585,7 +601,14 @@ func (m *app) keysOverlay(c *ui.Canvas) {
 		body = append(body, t.S.Key.Render(ui.Fit(h.Key, 12))+t.S.Soft.Render(h.Desc))
 	}
 	body = append(body, t.S.Key.Render(ui.Fit("ctrl+c", 12))+t.S.Soft.Render("quit from anywhere"))
-	d := ui.Dialog(t, w, "Keys · "+tabNames[min(int(m.screen), 3)], body, "", "")
+	name := tabNames[min(int(m.screen), 3)]
+	switch m.screen {
+	case scrDeploy:
+		name = "Deploy"
+	case scrSetup:
+		name = "Setup"
+	}
+	d := ui.Dialog(t, w, "Keys · "+name, body, "", "")
 	c.Overlay(d, dialogTop(c, lipgloss.Height(d)))
 }
 

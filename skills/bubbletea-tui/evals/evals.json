@@ -1,6 +1,6 @@
 {
   "skill_name": "bubbletea-tui",
-  "notes": "Run with the skill-creator skill. Each assertion is a failure seen when models build TUIs without the skill (or with an earlier version). Deterministic ones are checked by scripts/tuilint.py and the harness; the rest by a grader reading renders. Add a case whenever the skill misses something in real use: write the miss as an assertion first, make the kit pass it, then edit the skill.",
+  "notes": "Run with the skill-creator skill. Each assertion is a failure seen when models build TUIs without the skill (or with an earlier version). Deterministic ones are checked by tuilint and the harness; the rest by a grader reading renders. Add a case whenever the skill misses something in real use: write the miss as an assertion first, make the kit pass it, then edit the skill.",
   "evals": [
     {
       "id": 0,
@@ -13,7 +13,7 @@
         "go run ./cmd/<app> with no flags starts tea.NewProgram; -golden -w 80 -h 24 and -w 120 -h 40 exit 0",
         "a themes/tidepool.json exists with dark and light roles derived from #0F5257 and #FF6F59; no hex literals outside the theme package (tuilint code C-HEX passes)",
         "a brand read (read field or .read.md) ties at least 5 expression choices to product traits",
-        "diversity.py shows the theme differs from kit ink on >= 8 axes",
+        "diversity shows the theme differs from kit ink on >= 8 axes",
         "no rendered frame has emoji, library-default pink/purple, or more than one bordered box (tuilint frames passes)",
         "tuilint frames passes on the -light, -ascii and -profile ansi256 renders too, not only dark truecolour (the footer bar, rules and 256-colour fallbacks break there first)",
         "exactly one visible focus in every state, and the focus marker does not shift text",
@@ -21,14 +21,16 @@
         "retry confirmation names the queue, focuses Cancel by default, and colours the destructive button",
         "empty state says what is missing, why in context, and the one key to fix it",
         "at 120x40 a detail pane or extra section uses the room; at 80x24 it collapses to a summary",
-        "the agent rendered PNGs with cellshot.py and looked at them before replying"
+        "the agent rendered PNGs with cellshot and looked at them before replying"
       ]
     },
     {
       "id": 1,
       "name": "restyle-a-v1-app",
       "prompt": "Here's my little Bubble Tea app (main.go). It works but it looks like every tutorial. Make it look like a real product. Our brand color is #3A86FF and we're a calm developer tool.",
-      "files": ["evals/fixtures/v1-todo/main.go"],
+      "files": [
+        "evals/fixtures/v1-todo/main.go"
+      ],
       "expected_output": "The app ported to v2 with a theme, de-boxed, with the harness, and before/after contact sheets.",
       "assertions": [
         "before and after contact sheets were produced and shown",
@@ -49,7 +51,7 @@
         "tool calls use status glyph + name + main param + k=v options, an indented panel body, and an honest collapsed affordance",
         "one shared animation clock that stops when idle (tick returns nil in idle states)",
         "the working indicator says what is happening (no 'Loading...'/'Thinking...' alone without subject or elapsed time)",
-        "diversity.py: loom differs from the charm study theme on >= 8 axes (not Crush recoloured)",
+        "diversity: loom differs from the charm study theme on >= 8 axes (not Crush recoloured)",
         "prose is capped at a measure (<= 100 cells) at 200 columns",
         "editor uses a real cursor via tea.View.Cursor",
         "the brand read explains how 'warmer and more editorial' became specific expressions"
@@ -59,7 +61,9 @@
       "id": 3,
       "name": "terminal-wordmark-and-splash",
       "prompt": "Make a splash screen for our CLI 'quarry' with our logo (logo.png, attached) and a wordmark. It should show while we connect to the server.",
-      "files": ["evals/fixtures/quarry/logo.png"],
+      "files": [
+        "evals/fixtures/quarry/logo.png"
+      ],
       "expected_output": "A splash composition with a cell-art mark, a wordmark from a real font, a spinner with a subject, verified renders and a GIF.",
       "assertions": [
         "logo sampled with logo2cells.py then hand-fixed; one vocabulary per edge; no ░ on dark",
@@ -73,7 +77,9 @@
       "id": 4,
       "name": "critique-only",
       "prompt": "/bubbletea-tui critique — review the TUI in this repo, don't change anything.",
-      "files": ["evals/fixtures/v1-todo/main.go"],
+      "files": [
+        "evals/fixtures/v1-todo/main.go"
+      ],
       "expected_output": "A scored critique with cited defects and no file changes.",
       "assertions": [
         "no source files modified",
@@ -81,6 +87,41 @@
         "verdict first with a score out of 24 and per-dimension scores",
         "defects cite state, size and rows/cells, ranked P0-P3, each with a fix in renderer terms",
         "two independent critic subagents were used"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "restyle-a-huh-wizard",
+      "prompt": "/bubbletea-tui restyle — this is our CLI's first-run setup wizard (main.go, built with Huh). It works, but it looks like every Huh demo. Our brand is calm and precise; primary #4F7BD9.",
+      "files": [
+        "evals/fixtures/huh-setup/main.go"
+      ],
+      "expected_output": "The same wizard, still on Huh, themed from a brand theme and raised to the idiom: header, stepper, summary with hierarchy, consistent buttons, a sign-in wait with a fallback, before/after contact sheets.",
+      "assertions": [
+        "still built on Huh: no hand-rolled replacement for select, input or confirm",
+        "every Huh form and spinner uses the brand theme (kit form theme); no Huh default colours render (#F780E2 spinner, #7571F9/#5A56E0 indigo) [F-DEFAULT, C-HUHTHEME]",
+        "not a recolour: at least four of header bar, stepper with done/current/todo glyphs, background step or panel, filled tag, three text levels, boxed footer keys",
+        "one button order on every screen: the action first, the negative last (Yes No, Continue Back)",
+        "the review step's default is the forward action (Continue), not Edit or Cancel",
+        "the selection cursor and an unfocused input's prompt never show the same glyph at once",
+        "the step counter advances past review: sign-in and post-save prompts are not all labelled with the last step",
+        "the sign-in wait shows the URL to open by hand, elapsed time, and how to cancel",
+        "the layout uses the width: no column ends before half the terminal at 120+ columns while the rest is empty, and no value wraps mid-word in a summary",
+        "before and after contact sheets were produced and shown"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "init-interview",
+      "prompt": "/bubbletea-tui init — we're about to build a TUI for our CLI.",
+      "files": [],
+      "expected_output": "An interview in short rounds (at most three questions each, every one with a proposed default), then TUI.md with design context and architecture, and a two-line summary of what was assumed.",
+      "assertions": [
+        "explored the repo (README, --help, existing screens, brand assets) before asking anything",
+        "asked at most three questions per round, each with a proposed default",
+        "wrote TUI.md with product, users and terminals, brand read, theme, screens and states, keys per state, architecture (root model, regions, forms library, async work, harness states), decisions, never",
+        "named the forms library and how it is themed (Huh with the kit form theme) in the architecture section",
+        "ended by naming the next command (brand or shape) and what it assumed"
       ]
     }
   ]

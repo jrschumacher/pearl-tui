@@ -1,0 +1,149 @@
+[
+ {
+  "rule": "C-SLEEP",
+  "sev": "P0",
+  "file": "main.go",
+  "where": "60",
+  "msg": "blocking call in Update: move it into a tea.Cmd and send the result back as a Msg"
+ },
+ {
+  "rule": "C-SLEEP",
+  "sev": "P0",
+  "file": "main.go",
+  "where": "70",
+  "msg": "blocking call in Update: move it into a tea.Cmd and send the result back as a Msg"
+ },
+ {
+  "rule": "C-EMOJI",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "95",
+  "msg": "emoji '\u2728' in a string: emoji width varies by terminal; use the brand glyph set"
+ },
+ {
+  "rule": "C-HEX",
+  "sev": "P1",
+  "file": "legacy/legacy.go",
+  "where": "10",
+  "msg": "hex colour outside the theme: screens take roles (t.Primary, t.FgMuted), never literals"
+ },
+ {
+  "rule": "C-HEX",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "19",
+  "msg": "hex colour outside the theme: screens take roles (t.Primary, t.FgMuted), never literals"
+ },
+ {
+  "rule": "C-HEX",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "21",
+  "msg": "hex colour outside the theme: screens take roles (t.Primary, t.FgMuted), never literals"
+ },
+ {
+  "rule": "C-LEN",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "96",
+  "msg": "len(m.name) in width maths: if m.name is text, use lipgloss.Width (cells, not bytes); ansi.Truncate to cut it"
+ },
+ {
+  "rule": "C-LEN",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "100",
+  "msg": "len(m.name) in width maths: if m.name is text, use lipgloss.Width (cells, not bytes); ansi.Truncate to cut it"
+ },
+ {
+  "rule": "C-LEN",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "101",
+  "msg": "len(m.row) in width maths: if m.row is text, use lipgloss.Width (cells, not bytes); ansi.Truncate to cut it"
+ },
+ {
+  "rule": "C-LEN",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "104",
+  "msg": "len(m.name) in width maths: if m.name is text, use lipgloss.Width (cells, not bytes); ansi.Truncate to cut it"
+ },
+ {
+  "rule": "C-SIZE",
+  "sev": "P1",
+  "file": "bad",
+  "where": "-",
+  "msg": "no tea.WindowSizeMsg handled anywhere: layout cannot respond to the terminal"
+ },
+ {
+  "rule": "C-V1",
+  "sev": "P1",
+  "file": "legacy/legacy.go",
+  "where": "4",
+  "msg": "v1 import: new code uses charm.land/bubbletea/v2, charm.land/lipgloss/v2, charm.land/bubbles/v2"
+ },
+ {
+  "rule": "C-V1",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "23",
+  "msg": "v1 import: new code uses charm.land/bubbletea/v2, charm.land/lipgloss/v2, charm.land/bubbles/v2"
+ },
+ {
+  "rule": "C-VIEWIO",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "62",
+  "msg": "blocking call in Update: move it into a tea.Cmd and send the result back as a Msg"
+ },
+ {
+  "rule": "C-VIEWIO",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "89",
+  "msg": "blocking call in View: move it into a tea.Cmd and send the result back as a Msg"
+ },
+ {
+  "rule": "C-VIEWIO",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "92",
+  "msg": "blocking call in View: move it into a tea.Cmd and send the result back as a Msg"
+ },
+ {
+  "rule": "C-FASTTICK",
+  "sev": "P2",
+  "file": "main.go",
+  "where": "46",
+  "msg": "16ms tick: 30\u201380ms is plenty for motion; idle screens should not tick at all"
+ },
+ {
+  "rule": "C-KEYS",
+  "sev": "P2",
+  "file": "main.go",
+  "where": "57",
+  "msg": "5 keys matched as raw strings and no key.Binding: the help view will drift from reality"
+ },
+ {
+  "rule": "C-NOCOLOR",
+  "sev": "P2",
+  "file": "bad",
+  "where": "-",
+  "msg": "no colour-profile / dark-background handling found: check light terminals, 256 and 16 colours, NO_COLOR"
+ },
+ {
+  "rule": "C-PRINT",
+  "sev": "P2",
+  "file": "main.go",
+  "where": "44",
+  "msg": "fmt.Print inside a running program corrupts the frame: tea.Println, a log file, or tea.LogToFile"
+ },
+ {
+  "rule": "C-PRINT",
+  "sev": "P2",
+  "file": "main.go",
+  "where": "130",
+  "msg": "fmt.Print inside a running program corrupts the frame: tea.Println, a log file, or tea.LogToFile"
+ }
+]

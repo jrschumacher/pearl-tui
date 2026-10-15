@@ -1,0 +1,36 @@
+  light
+    ok   fg           on bg         7.14  (want ≥7.0)  #555555 / #FAFAF9
+    FAIL fgMuted      on bg         2.69  (want ≥4.5)  #9A9A9A / #FAFAF9
+    FAIL fgSubtle     on bg         1.48  (want ≥2.6)  #D0D0D0 / #FAFAF9
+    ok   fg           on bgSubtle   6.95  (want ≥4.5)  #555555 / #F7F7F5
+    FAIL fgMuted      on bgSubtle   2.62  (want ≥3.0)  #9A9A9A / #F7F7F5
+    ACCEPT primary      on bg         2.05  (want ≥3.5)  #7FB3FF / #FAFAF9  — the brand's own blue, used as a fill
+    FAIL secondary    on bg         1.74  (want ≥3.0)  #C0C0C0 / #FAFAF9
+    ok   tertiary     on bg         4.90  (want ≥4.5)  #2F7A68 / #FAFAF9
+    FAIL accent       on bg         1.11  (want ≥4.5)  #EEEEEE / #FAFAF9
+    FAIL success      on bg         1.71  (want ≥3.5)  #8FD19E / #FAFAF9
+    ok   error        on bg         5.72  (want ≥3.5)  #B3363F / #FAFAF9
+    FAIL warning      on bg         1.50  (want ≥3.5)  #EBCB8B / #FAFAF9
+    ok   info         on bg         6.49  (want ≥3.0)  #2E5E8C / #FAFAF9
+    FAIL border       on bg        12.10  (want ≥1.14 ≤1.9)  #333333 / #FAFAF9
+    FAIL bgSubtle     on bg         1.03  (want ≥1.1 ≤2.2)  #F7F7F5 / #FAFAF9
+    FAIL onPrimary    on primary    3.48  (want ≥4.5)  #555555 / #7FB3FF
+    ok   onSecondary  on secondary  4.10  (want ≥3.5)  #555555 / #C0C0C0
+    ok   onWarning    on warning    4.77  (want ≥4.5)  #555555 / #EBCB8B
+    ok   onError      on error      5.97  (want ≥3.5)  #FFFFFF / #B3363F
+    ok   onSuccess    on success    4.18  (want ≥3.5)  #555555 / #8FD19E
+    FAIL fgSelected   on primary    3.48  (want ≥3.5)  #555555 / #7FB3FF
+  dark
+    ok   fg           on bg        13.27  (want ≥7.0)  #d8dee9 / #15171c
+    ok   fgMuted      on bg         5.79  (want ≥4.5)  #8A93A3 / #15171c
+    ok   primary      on bg         8.61  (want ≥3.5)  #8fb8de / #15171c
+    ok   secondary    on bg         4.45  (want ≥3.0)  #5E81AC / #15171c
+    ok   accent       on bg        14.72  (want ≥4.5)  #e5e9f0 / #15171c
+    ok   success      on bg        10.06  (want ≥3.5)  #8FD19E / #15171c
+    ok   warning      on bg        11.48  (want ≥3.5)  #EBCB8B / #15171c
+    ok   onPrimary    on primary    8.61  (want ≥4.5)  #15171c / #8fb8de
+    ok   onSecondary  on secondary  4.45  (want ≥3.5)  #15171c / #5E81AC
+    ACCEPT onWarning    on warning    1.56  (want ≥4.5)  #ffffff / #EBCB8B  — True
+    ok   onSuccess    on success   10.06  (want ≥3.5)  #15171c / #8FD19E
+    ok   fgSelected   on primary    8.61  (want ≥3.5)  #15171c / #8fb8de
+FAIL (11 contrast problems)

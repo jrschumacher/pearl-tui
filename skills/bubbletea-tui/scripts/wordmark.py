@@ -10,7 +10,7 @@
 
 Prints the rows (every row exactly the same width), then with --go a Go `[]string`
 literal, with --json a JSON array (paste into theme.json "wordmark.rows"), and with --ansi
-a coloured preview you can render with cellshot.py. Rules (references/cell-art.md):
+a coloured preview you can render with cellshot. Rules (references/cell-art.md):
 shade needs ≥5 rows (4 smears), half needs ≥4 rows for lowercase with ascenders, never
 the figlet "standard" look, keep the wordmark quieter than the mark.
 
@@ -25,8 +25,26 @@ import sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cellshot import find_font  # noqa: E402
+FONT_DIRS = ["/usr/share/fonts", "/usr/local/share/fonts", os.path.expanduser("~/.local/share/fonts"),
+             os.path.expanduser("~/Library/Fonts"), "/Library/Fonts", "/System/Library/Fonts",
+             "C:\\Windows\\Fonts"]
+_index = None
+
+
+def find_font(names):
+    """The path of the first installed font file among names, or None."""
+    global _index
+    if _index is None:
+        _index = {}
+        for d in FONT_DIRS:
+            for root, _, files in os.walk(d):
+                for f in files:
+                    _index.setdefault(f, os.path.join(root, f))
+    for n in names:
+        if n in _index:
+            return _index[n]
+    return None
+
 
 FAMILIES = {
     "bold": ["DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf", "NotoSans-Bold.ttf", "Arial Bold.ttf", "Helvetica.ttc"],

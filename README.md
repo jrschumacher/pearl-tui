@@ -34,17 +34,19 @@ npx skills add jrschumacher/skill-bubbletea-tui
 or copy `skills/bubbletea-tui` into `~/.claude/skills/` (or your agent's skills
 directory).
 
-Requirements: Go ≥ 1.26.7 (Bubble Tea v2.1, Lip Gloss v2.0.6, Bubbles v2.2), Python 3
-with Pillow (and numpy for the wordmark and logo tools).
+Requirements: Go ≥ 1.26.7 (Bubble Tea v2.1, Lip Gloss v2.0.6, Bubbles v2.2, Huh v2.0).
+The skill's tools are Go and build in one step on first use. Only the wordmark and logo
+converters need Python 3 with Pillow and numpy.
 
 ## Use
 
 Just ask for a TUI ("build a Bubble Tea dashboard for our job queues, brand colours
-#0F5257 and #FF6F59"), or name a command:
+#0F5257 and #FF6F59"), or name a command. A new TUI goes `init` → `brand` → `shape` →
+`craft`; an existing app goes `init` → `restyle`.
 
 | Command | What it does |
 |---|---|
-| `/bubbletea-tui teach` | capture product, users and brand into `TUI.md` once, so every later change stays consistent |
+| `/bubbletea-tui init` | interview you, then write the design (product, users, brand) and the architecture (model, regions, forms, states and keys) into `TUI.md`, so every later change stays consistent. `teach` is an alias |
 | `/bubbletea-tui brand` | turn brand colours, typeface and logo into a theme that's provably not the default |
 | `/bubbletea-tui shape` | plan screens: column budgets at 80×24 and 120×40, states, keys, cell sketches |
 | `/bubbletea-tui craft` | build from the kit with the render → lint → critique loop |
@@ -54,7 +56,7 @@ Just ask for a TUI ("build a Bubble Tea dashboard for our job queues, brand colo
 | `/bubbletea-tui harden` | tiny terminals, huge data, light backgrounds, NO_COLOR, tmux, SSH, failures |
 | `/bubbletea-tui animate` | motion that means something, on one clock |
 | `/bubbletea-tui art` | terminal logos, wordmarks, backdrop fields, splash screens |
-| `/bubbletea-tui restyle` | bring an existing (v1) Bubble Tea app onto the system |
+| `/bubbletea-tui restyle` | raise an existing app (v1 or v2, Huh forms included) to the idiom and your theme, not just recolour it |
 
 ## What's inside
 
@@ -63,33 +65,41 @@ skills/bubbletea-tui/
 ├── SKILL.md              the stance, the laws, per-domain DO/DON'T, the TUI slop test, the command router
 ├── references/           medium · idiom · color · layout · components · interaction · motion · brand
 │                         cell-art · architecture · verify · anti-patterns, plus one file per command
-├── scripts/
-│   ├── cellshot.py       ANSI → PNG / GIF / contact sheet, drawn like Ghostty/Kitty/WezTerm draw it
-│   ├── tuilint.py        slop + correctness lint on rendered frames and on Go source (rule IDs)
-│   ├── palette.py        derive a dark+light role palette from brand hexes (OKLCH, tinted neutrals, contrast-tuned)
-│   ├── diversity.py      are these themes actually different from each other and from the default?
+├── tools/                Go, built once: go -C tools build -o ~/.cache/tuitools/ ./cmd/...
+│   ├── cellshot          ANSI → PNG / GIF / contact sheet, drawn like Ghostty/Kitty/WezTerm draw it
+│   ├── tuilint           slop + correctness lint on rendered frames and on Go source (rule IDs)
+│   ├── tuivet            the code rules as a go vet tool, for editors and CI
+│   ├── palette           derive a dark+light role palette from brand hexes (OKLCH, tinted neutrals, contrast-tuned)
+│   └── diversity         are these themes actually different from each other and from the default?
+├── scripts/              Python + Pillow, only for converting brand assets
 │   ├── wordmark.py       a brand name in terminal cells, from a real font
 │   └── logo2cells.py     a logo raster onto the cell grid, with lint
 ├── kit/                  a compiling Bubble Tea v2 module to copy from, not re-derive
 │   ├── theme/            the theme engine: roles, glyphs, expressions → styles
 │   ├── ui/               header, tabs, section, list, table, dialog + scrim, buttons, tags,
 │   │                     alerts, toast, help/footer, tool calls, thinking, anim, progress,
-│   │                     sparkline, tree, field, empty states, canvas
+│   │                     sparkline, tree, field, empty states, canvas; Huh forms themed
+│   │                     from the brand, a stepper and a summary panel for wizards
 │   ├── themes/           seven themes (a default, a Crush study, five fictional brands)
-│   └── cmd/showcase/     the reference app + harness (-golden, -state, -out, -profile, -light, -ascii)
+│   └── cmd/showcase/     the reference app (an ops dashboard and a first-run setup wizard)
+│                         + harness (-golden, -state, -out, -profile, -light, -ascii, -first-run)
 └── evals/                cases for skill-creator, with fixtures
 ```
 
 `cd skills/bubbletea-tui/kit && go test ./...` renders every theme × dark/light/ASCII ×
 every state × five terminal sizes and asserts each frame is exactly W×H cells, plus
-contrast floors on every palette.
+contrast floors on every palette, every advertised key handled in every state, and no
+Huh default colour in the wizard's frames. CI also lints every theme's dark, light, ASCII and
+256-colour renders.
 
 ## The loop
 
 ```sh
-go run ./cmd/app -out frames -sizes 80x24,120x40         # every state
-scripts/tuilint.py frames frames --theme themes/brand.json
-scripts/cellshot.py frames/*-80x24.ansi --sheet sheet.png # look at it
+go -C <skill>/tools build -o ~/.cache/tuitools/ ./cmd/...  # once: cellshot, tuilint, palette, diversity, tuivet
+go run ./cmd/app -out frames -sizes 80x24,120x40           # every state (and -light, -ascii, -profile ansi256)
+tuilint frames frames --theme themes/brand.json            # slop and correctness, by rule ID
+tuilint code .                                             # the same for the Go source
+cellshot frames/*-80x24.ansi --sheet sheet.png             # look at it
 # → adversarial critic subagent with the sheets, the brand read and the code → fix → again
 ```
 
@@ -99,12 +109,15 @@ scripts/cellshot.py frames/*-80x24.ansi --sheet sheet.png # look at it
 
 ![The command palette in six brands](docs/images/gallery-palette.png)
 
+![A first-run setup wizard built on Huh, themed per brand: stepper, summary, a sign-in wait with a fallback](docs/images/gallery-setup.png)
+
 ## Roadmap and feedback
 
-This is v0.1. It has been verified by the authors' own render, lint and critique loop,
-but not yet by cold runs on real apps. The most useful thing you can do is build
-something with it and file what it got wrong with the **Skill feedback** issue
-template. [ROADMAP.md](ROADMAP.md) has the plan. It also covers the open problems that
+This is v0.1, verified by the authors' own render, lint and critique loop and by one
+dogfood run so far: a `restyle` of a real CLI's Huh setup wizard. That run's misses (a
+recolour instead of the idiom, Huh's default colours, flipping button order) are now eval
+cases, lint rules and kit code. The most useful thing you can do is build something with
+it and file what it got wrong with the **Skill feedback** issue template. [ROADMAP.md](ROADMAP.md) has the plan. It also covers the open problems that
 are bigger than this repo: no accessibility standard for terminals, no semantic
 locators for TUI testing, models that can't see terminals, and no shared ground truth
 for what terminals render.
@@ -115,7 +128,7 @@ Working on the skill itself? Start with [AGENTS.md](AGENTS.md).
 
 The idiom is learned from [Charm](https://charm.land)'s
 [Crush](https://github.com/charmbracelet/crush) and built on Bubble Tea, Lip Gloss,
-Bubbles and Ultraviolet. The `charm` theme uses the
+Bubbles, Huh and Ultraviolet. The `charm` theme uses the
 [Charmtone](https://github.com/charmbracelet/x/tree/main/exp/charmtone) palette as a
 calibration study; it is Charm's identity, not a theme to ship. The skill's shape (a
 design stance, named anti-patterns, a command router, deterministic detectors) is

@@ -30,8 +30,19 @@ func Button(t *theme.Theme, label string, focused, danger bool, mnemonic int) st
 	}
 	style := t.X.Button
 	if t.ASCII {
-		style = "bracket" // a filled pill is invisible without colour
-		st = st.UnsetPadding().UnsetBackground()
+		// a filled pill is invisible without colour, and its ink is the fill's on-colour
+		// (often the background itself): draw it as the bracket expression does
+		style = "bracket"
+		switch {
+		case focused && danger:
+			st = t.S.Err.Bold(true)
+		case focused:
+			st = t.S.Primary.Bold(true)
+		case danger:
+			st = t.S.Err
+		default:
+			st = t.S.Muted
+		}
 	}
 	switch style {
 	case "bracket":

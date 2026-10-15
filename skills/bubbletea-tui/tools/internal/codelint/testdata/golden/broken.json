@@ -1,0 +1,79 @@
+[
+ {
+  "rule": "C-SLEEP",
+  "sev": "P0",
+  "file": "main.go",
+  "where": "36",
+  "msg": "blocking call in Update: move it into a tea.Cmd and send the result back as a Msg"
+ },
+ {
+  "rule": "C-SLEEP",
+  "sev": "P0",
+  "file": "main.go",
+  "where": "38",
+  "msg": "blocking call in Update: move it into a tea.Cmd and send the result back as a Msg"
+ },
+ {
+  "rule": "C-EMOJI",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "52",
+  "msg": "emoji '\ud83d\ude80' in a string: emoji width varies by terminal; use the brand glyph set"
+ },
+ {
+  "rule": "C-HEX",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "52",
+  "msg": "hex colour outside the theme: screens take roles (t.Primary, t.FgMuted), never literals"
+ },
+ {
+  "rule": "C-LEN",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "47",
+  "msg": "len(m.name) in width maths: if m.name is text, use lipgloss.Width (cells, not bytes); ansi.Truncate to cut it"
+ },
+ {
+  "rule": "C-LEN",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "49",
+  "msg": "len(m.list.Items()) in width maths: if m.list.Items() is text, use lipgloss.Width (cells, not bytes); ansi.Truncate to cut it"
+ },
+ {
+  "rule": "C-LEN",
+  "sev": "P1",
+  "file": "main.go",
+  "where": "51",
+  "msg": "len(rendered) in width maths: if rendered is text, use lipgloss.Width (cells, not bytes); ansi.Truncate to cut it"
+ },
+ {
+  "rule": "C-SIZE",
+  "sev": "P1",
+  "file": "broken",
+  "where": "-",
+  "msg": "no tea.WindowSizeMsg handled anywhere: layout cannot respond to the terminal"
+ },
+ {
+  "rule": "C-KEYS",
+  "sev": "P2",
+  "file": "main.go",
+  "where": "33",
+  "msg": "2 keys matched as raw strings and no key.Binding: the help view will drift from reality"
+ },
+ {
+  "rule": "C-NOCOLOR",
+  "sev": "P2",
+  "file": "broken",
+  "where": "-",
+  "msg": "no colour-profile / dark-background handling found: check light terminals, 256 and 16 colours, NO_COLOR"
+ },
+ {
+  "rule": "C-PRINT",
+  "sev": "P2",
+  "file": "main.go",
+  "where": "53",
+  "msg": "fmt.Print inside a running program corrupts the frame: tea.Println, a log file, or tea.LogToFile"
+ }
+]

@@ -25,6 +25,22 @@ jobs:
       - run: go vet ./...
       - run: go test ./...
 
+  tools:
+    name: tools (go vet + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: skills/bubbletea-tui/tools
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: skills/bubbletea-tui/tools/go.mod
+          cache-dependency-path: skills/bubbletea-tui/tools/go.sum
+      - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - run: go vet ./...
+      - run: go test ./...
+
   render-and-lint:
     name: render every theme + lint
     runs-on: ubuntu-latest
@@ -33,22 +49,19 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: skills/bubbletea-tui/kit/go.mod
-          cache-dependency-path: skills/bubbletea-tui/kit/go.sum
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-      - run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core
-      - run: pip install pillow numpy
-      - name: scripts compile and print help
+          cache-dependency-path: |
+            skills/bubbletea-tui/kit/go.sum
+            skills/bubbletea-tui/tools/go.sum
+      - name: build the tools
         run: |
-          for s in skills/bubbletea-tui/scripts/*.py; do python3 -m py_compile "$s"; done
-          python3 skills/bubbletea-tui/scripts/cellshot.py --help > /dev/null
+          go -C skills/bubbletea-tui/tools build -o "$RUNNER_TEMP/tuitools/" ./cmd/...
+          echo "$RUNNER_TEMP/tuitools" >> "$GITHUB_PATH"
       - name: code lint
-        run: python3 skills/bubbletea-tui/scripts/tuilint.py code skills/bubbletea-tui/kit
+        run: tuilint code skills/bubbletea-tui/kit
       - name: palettes and diversity
         run: |
-          for t in skills/bubbletea-tui/kit/themes/*.json; do python3 skills/bubbletea-tui/scripts/palette.py check "$t"; done
-          python3 skills/bubbletea-tui/scripts/diversity.py skills/bubbletea-tui/kit/themes/*.json
+          for t in skills/bubbletea-tui/kit/themes/*.json; do palette check "$t"; done
+          diversity skills/bubbletea-tui/kit/themes/*.json
       # dark truecolour is what a theme is designed in; light, ASCII and 256 colours are what
       # many users get, and where the footer bar, rules and downsampled roles break first
       - name: render every state of every theme in every variant, lint the frames, build a sheet
@@ -67,16 +80,32 @@ jobs:
               esac
               echo "::group::$n $v"
               "$RUNNER_TEMP/showcase" -theme "$t" "${flags[@]}" -out "../../../frames/$out" -sizes 80x24,120x40 || fail=1
-              python3 ../scripts/tuilint.py frames "../../../frames/$out" --theme "$t" || { fail=1; echo "::error::tuilint failed: $n $v"; }
+              tuilint frames "../../../frames/$out" --theme "$t" || { fail=1; echo "::error::tuilint failed: $n $v"; }
               echo "::endgroup::"
             done
           done
-          cd ../../../frames/halyard && python3 ../../skills/bubbletea-tui/scripts/cellshot.py *-80x24.ansi --sheet ../halyard-80.png
+          cd ../../../frames/halyard && cellshot ./*-80x24.ansi --sheet ../halyard-80.png
           exit $fail
       - uses: actions/upload-artifact@v7
         with:
           name: frames
           path: frames/
+
+  scripts:
+    name: brand-asset scripts (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install pillow numpy
+      - name: scripts compile and print help
+        run: |
+          for s in skills/bubbletea-tui/scripts/*.py; do
+            python3 -m py_compile "$s"
+            python3 "$s" --help > /dev/null
+          done
 
   skill-spec:
     name: Agent Skills spec

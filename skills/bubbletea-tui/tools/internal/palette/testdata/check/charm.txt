@@ -1,0 +1,45 @@
+  dark
+    ok   fg           on bg        11.91  (want ≥7.0)  #DFDBDD / #201F26
+    ACCEPT fgMuted      on bg         4.40  (want ≥4.5)  #858392 / #201F26  — Squid #858392 exactly as Crush ships it (4.40:1); this theme is a calibration study of Crush
+    ok   fgSubtle     on bg         2.60  (want ≥2.6)  #605F6B / #201F26
+    ok   fg           on bgSubtle   8.29  (want ≥4.5)  #DFDBDD / #3A3943
+    ok   fgMuted      on bgSubtle   3.07  (want ≥3.0)  #858392 / #3A3943
+    ACCEPT primary      on bg         3.28  (want ≥3.5)  #6B50FF / #201F26  — Charple #6B50FF exactly as Crush ships it; it marks bars, fills and the motif more than text
+    ok   secondary    on bg         6.51  (want ≥3.0)  #FF60FF / #201F26
+    ok   tertiary     on bg        13.12  (want ≥4.5)  #68FFD6 / #201F26
+    ok   accent       on bg        14.82  (want ≥4.5)  #E8FE96 / #201F26
+    ok   success      on bg         7.46  (want ≥3.5)  #12C78F / #201F26
+    ok   error        on bg         4.29  (want ≥3.5)  #EB4268 / #201F26
+    ok   warning      on bg        14.82  (want ≥3.5)  #E8FE96 / #201F26
+    ok   info         on bg         6.03  (want ≥3.0)  #00A4FF / #201F26
+    ok   border       on bg         1.44  (want ≥1.14 ≤1.9)  #3A3943 / #201F26
+    ok   bgSubtle     on bg         1.44  (want ≥1.1 ≤2.2)  #3A3943 / #201F26
+    ok   onPrimary    on primary    4.79  (want ≥4.5)  #FFFAF1 / #6B50FF
+    ok   onSecondary  on secondary  6.51  (want ≥3.5)  #201F26 / #FF60FF
+    ok   onWarning    on warning   14.82  (want ≥4.5)  #201F26 / #E8FE96
+    ok   onError      on error      4.29  (want ≥3.5)  #201F26 / #EB4268
+    ok   onSuccess    on success    7.46  (want ≥3.5)  #201F26 / #12C78F
+    ok   fgSelected   on primary    4.35  (want ≥3.5)  #F1EFEF / #6B50FF
+  light
+    ok   fg           on bg        14.56  (want ≥7.0)  #26252B / #FBFAF7
+    ok   fgMuted      on bg         5.16  (want ≥4.5)  #6B6975 / #FBFAF7
+    ok   fgSubtle     on bg         2.69  (want ≥2.6)  #9B99A4 / #FBFAF7
+    ok   fg           on bgSubtle  12.63  (want ≥4.5)  #26252B / #ECEAE4
+    ok   fgMuted      on bgSubtle   4.47  (want ≥3.0)  #6B6975 / #ECEAE4
+    ok   primary      on bg         5.86  (want ≥3.5)  #5B3DF5 / #FBFAF7
+    ok   secondary    on bg         3.70  (want ≥3.0)  #D63AD6 / #FBFAF7
+    ok   tertiary     on bg         4.75  (want ≥4.5)  #0B7F65 / #FBFAF7
+    ok   accent       on bg         5.98  (want ≥4.5)  #646400 / #FBFAF7
+    ok   success      on bg         4.75  (want ≥3.5)  #0B7F65 / #FBFAF7
+    ok   error        on bg         4.80  (want ≥3.5)  #D12B55 / #FBFAF7
+    ok   warning      on bg         5.48  (want ≥3.5)  #736700 / #FBFAF7
+    ok   info         on bg         4.46  (want ≥3.0)  #0077CC / #FBFAF7
+    ok   border       on bg         1.24  (want ≥1.14 ≤1.9)  #E4E2DB / #FBFAF7
+    ok   bgSubtle     on bg         1.15  (want ≥1.1 ≤2.2)  #ECEAE4 / #FBFAF7
+    ok   onPrimary    on primary    6.12  (want ≥4.5)  #FFFFFF / #5B3DF5
+    ok   onSecondary  on secondary  3.93  (want ≥3.5)  #26252B / #D63AD6
+    ok   onWarning    on warning    5.72  (want ≥4.5)  #FFFFFF / #736700
+    ok   onError      on error      5.01  (want ≥3.5)  #FFFFFF / #D12B55
+    ok   onSuccess    on success    4.96  (want ≥3.5)  #FFFFFF / #0B7F65
+    ok   fgSelected   on primary    6.12  (want ≥3.5)  #FFFFFF / #5B3DF5
+OK (0 contrast problems)

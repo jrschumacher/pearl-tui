@@ -47,7 +47,7 @@ wordmark and copy.
 
 ## 3. Brand Assets, Converted Honestly
 
-- **Colours**: `scripts/palette.py derive <primary> [secondary] --bg <brand bg>` produces
+- **Colours**: `palette derive <primary> [secondary] --bg <brand bg>` produces
   both role sets, tinted neutrals and contrast checks (`color.md`).
 - **Typeface**: `scripts/wordmark.py "name" --font brand.ttf --style shade|half|ascii`
   rasterises the real typeface into cells. Tracked caps (`--style tracked`) when the mark
@@ -102,7 +102,7 @@ read it too.
 
 Missing roles are derived, and missing glyphs and expressions default, so a theme can
 start small. A theme that keeps a role below the contrast floors on purpose (a brand's
-exact hex, used mostly as a fill) says so in writing, and `palette.py check` reports it
+exact hex, used mostly as a fill) says so in writing, and `palette check` reports it
 as ACCEPT instead of FAIL:
 
 ```json
@@ -110,7 +110,7 @@ as ACCEPT instead of FAIL:
 ```
  Every glyph maps to an ASCII fallback (`theme.ASCII`). If you add a key:
 add it to the Go structs, default it, document it here, probe-render it at 80×24 and
-120×40, and decide whether `diversity.py` should count it.
+120×40, and decide whether `diversity` should count it.
 
 **What never changes, whatever the brand:** whitespace and rules instead of boxes, one
 box for the floating thing, three to four text levels, exactly one visible focus that
@@ -120,7 +120,7 @@ bindings, and every frame exactly W×H.
 ## 5. Prove It's Different
 
 ```
-scripts/diversity.py themes/*.json --baseline ink,charm --min-distance 8
+diversity themes/*.json --baseline ink,charm --min-distance 8
 ```
 
 It fails when a brand theme is within 8 axes of the default or the Crush study (that's
@@ -140,7 +140,7 @@ finish in its lane. Agents can't coordinate; the orchestrator must.
 ```
 go run ./cmd/<app> -theme themes/<brand>.json -out frames/<brand> -sizes 80x24,120x40
 go run ./cmd/<app> -theme themes/<brand>.json -out frames/<brand>-light -light
-scripts/cellshot.py frames/<brand>/*-120x40.ansi --sheet <brand>.png --cell 8x16
+cellshot frames/<brand>/*-120x40.ansi --sheet <brand>.png --cell 8x16
 ```
 
 Put it beside the baseline (`ink`) and one other brand. Ask:
@@ -154,9 +154,9 @@ Put it beside the baseline (`ink`) and one other brand. Ask:
 ## 7. Keep It Consistent Over Time
 
 - Record the brand read, the theme path and the decisions in the project's design context
-  file (`TUI.md`, written by `teach`). Every later change reads it first.
-- `tuilint.py code` fails on hex outside the theme package [C-HEX] and on emoji
-  [C-EMOJI]. `tuilint.py frames --theme` fails on any rendered colour that isn't a role
+  file (`TUI.md`, written by `init`). Every later change reads it first.
+- `tuilint code` fails on hex outside the theme package [C-HEX] and on emoji
+  [C-EMOJI]. `tuilint frames --theme` fails on any rendered colour that isn't a role
   or a blend of two roles [F-OFFPAL].
 - New component? It takes `*theme.Theme` and nothing else. If it needs a new colour, the
   contract gets a new role, with a reason in the read.
