@@ -49,15 +49,30 @@ jobs:
         run: |
           for t in skills/bubbletea-tui/kit/themes/*.json; do python3 skills/bubbletea-tui/scripts/palette.py check "$t"; done
           python3 skills/bubbletea-tui/scripts/diversity.py skills/bubbletea-tui/kit/themes/*.json
-      - name: render every state of every theme, lint the frames, build a sheet
+      # dark truecolour is what a theme is designed in; light, ASCII and 256 colours are what
+      # many users get, and where the footer bar, rules and downsampled roles break first
+      - name: render every state of every theme in every variant, lint the frames, build a sheet
         run: |
           cd skills/bubbletea-tui/kit
+          go build -o "$RUNNER_TEMP/showcase" ./cmd/showcase
+          fail=0
           for t in themes/*.json; do
             n=$(basename "$t" .json)
-            go run ./cmd/showcase -theme "$t" -out "../../../frames/$n" -sizes 80x24,120x40
-            python3 ../scripts/tuilint.py frames "../../../frames/$n" --theme "$t"
+            for v in dark light ascii ansi256; do
+              case $v in
+                dark)    flags=();                  out=$n ;;
+                light)   flags=(-light);            out=$n-light ;;
+                ascii)   flags=(-ascii);            out=$n-ascii ;;
+                ansi256) flags=(-profile ansi256);  out=$n-ansi256 ;;
+              esac
+              echo "::group::$n $v"
+              "$RUNNER_TEMP/showcase" -theme "$t" "${flags[@]}" -out "../../../frames/$out" -sizes 80x24,120x40 || fail=1
+              python3 ../scripts/tuilint.py frames "../../../frames/$out" --theme "$t" || { fail=1; echo "::error::tuilint failed: $n $v"; }
+              echo "::endgroup::"
+            done
           done
           cd ../../../frames/halyard && python3 ../../skills/bubbletea-tui/scripts/cellshot.py *-80x24.ansi --sheet ../halyard-80.png
+          exit $fail
       - uses: actions/upload-artifact@v7
         with:
           name: frames

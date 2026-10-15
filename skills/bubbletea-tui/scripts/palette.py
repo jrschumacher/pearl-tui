@@ -22,6 +22,8 @@ Thresholds (WCAG 2 contrast ratio against the role's background):
   fg ≥ 7      fgMuted ≥ 4.5     fgSubtle ≥ 2.6 (hints only, never the only carrier of meaning)
   primary/secondary/accent/status as text ≥ 3.5     border 1.25–1.7 (barely there, but there)
   fgSelected on primary ≥ 4.5   text on bgSubtle checked too
+  `check` adds the pairs a theme's expressions put on screen: "footer": "bar" draws the
+  key hints (fgSubtle) on bgSubtle, so that pair must clear tuilint's 2.3 floor
 """
 import json
 import math
@@ -210,12 +212,21 @@ CHECKS = [  # (role, against, minimum, maximum)
 ]
 
 
-def report(roles, label, accept=None):
-    """accept: {"dark.primary": "reason"} — a deviation the theme justifies in writing."""
+def expression_checks(expressions):
+    """Pairs that exist only because of an expression choice (mirrors kit/ui and kit/theme)."""
+    extra = []
+    if expressions.get("footer") == "bar":  # ui.Footer: key hints in fgSubtle on a bgSubtle strip
+        extra.append(("fgSubtle", "bgSubtle", 2.3, None))
+    return extra
+
+
+def report(roles, label, accept=None, extra=()):
+    """accept: {"dark.primary": "reason"} — a deviation the theme justifies in writing.
+    extra: more (role, against, min, max) checks, from expression_checks."""
     accept = accept or {}
     bad = 0
     lines = [f"  {label}"]
-    for a, b, lo, hi in CHECKS:
+    for a, b, lo, hi in CHECKS + list(extra):
         if a not in roles or b not in roles:
             continue
         c = contrast(roles[a], roles[b])
@@ -290,7 +301,7 @@ def main(argv):
             if not isinstance(r, dict):
                 continue
             r = fill_on_colours(dict(r))
-            b, txt = report(r, mode, t.get("contrastAccept", {}))
+            b, txt = report(r, mode, t.get("contrastAccept", {}), expression_checks(t.get("expressions", {})))
             bad += b
             print(txt)
         print("FAIL" if bad else "OK", f"({bad} contrast problems)")

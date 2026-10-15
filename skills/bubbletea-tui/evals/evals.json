@@ -15,6 +15,7 @@
         "a brand read (read field or .read.md) ties at least 5 expression choices to product traits",
         "diversity.py shows the theme differs from kit ink on >= 8 axes",
         "no rendered frame has emoji, library-default pink/purple, or more than one bordered box (tuilint frames passes)",
+        "tuilint frames passes on the -light, -ascii and -profile ansi256 renders too, not only dark truecolour (the footer bar, rules and 256-colour fallbacks break there first)",
         "exactly one visible focus in every state, and the focus marker does not shift text",
         "help is generated from key.Bindings; every key shown in a state's help works in that state",
         "retry confirmation names the queue, focuses Cancel by default, and colours the destructive button",
