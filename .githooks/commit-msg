@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Checks the subject line before the commit exists. Enable: git config core.hooksPath .githooks
+subject=$(head -n1 "$1")
+[[ $subject =~ ^(fixup|squash|amend)!\  ]] && exit 0
+exec "$(git rev-parse --show-toplevel)/tools/conventional.sh" "$subject"

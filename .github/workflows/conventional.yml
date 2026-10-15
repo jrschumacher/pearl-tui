@@ -1,0 +1,23 @@
+name: conventional commits
+
+# Squash-merge puts the PR title on main, so the title is what's checked. Branch commits
+# are free-form; .githooks/commit-msg checks them locally for those who want it.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  title:
+    name: PR title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # The title is untrusted input: pass it through env, never interpolate it into the script.
+      - run: tools/conventional.sh "$TITLE"
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+

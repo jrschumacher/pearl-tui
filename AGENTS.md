@@ -18,6 +18,7 @@ skills/bubbletea-tui/
   kit/            Go module `tuikit`: theme/, ui/, themes/*.json, cmd/showcase (reference app + harness)
   evals/          evals.json (skill-creator format) + fixtures
 tools/gallery.sh  regenerates docs/images from the kit
+tools/conventional.sh  checks PR titles in CI and commit subjects locally (.githooks/)
 ROADMAP.md        what's next, and the open problems
 ```
 
@@ -80,7 +81,30 @@ The skill gets better from observed misses, not from adding prose.
   reason with every rule, DO/DON'T pairs, concrete numbers and glyphs, no filler. Say
   what to do, not what to avoid feeling.
 
+## Commits
+
+[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/), because the
+history is how users of a skill learn what changed in it.
+
+```
+type(scope)!: description        e.g.  fix(kit): keep the focus bar on resize
+```
+
+- **Types**: `feat` (the skill or kit can do something new), `fix` (a miss fixed), `docs`,
+  `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `style`, `revert`.
+- **Scopes**: `skill` (SKILL.md and references), `kit`, `tools`, `scripts`, `themes`,
+  `evals`, `docs`, `ci`, `deps`.
+- **`!`** for a change that breaks something agents or users rely on: a theme contract
+  key, a kit API, a tool's flags or output, a command's name.
+- Lowercase description, imperative, no full stop, header ≤ 100 chars.
+
+CI checks the PR title (`tools/conventional.sh`), since squash-merge makes it the commit
+on `main`. Branch commits should follow the format too; to check them as you commit, run
+`git config core.hooksPath .githooks` once.
+
 ## Pull requests
+
+Squash-merge. The PR title becomes the commit on `main`, so it follows the same format.
 
 Small and single-purpose. Say which miss or roadmap item it addresses, show before/after
 contact sheets for anything visual, and include the test or lint rule that keeps it
