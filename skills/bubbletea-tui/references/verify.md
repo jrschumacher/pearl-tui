@@ -14,7 +14,9 @@ screenshot.
             go run ./cmd/<app> -out frames/ascii -profile ascii -ascii
 2. GOLDEN   go run ./cmd/<app> -golden -w 80 -h 24 && … -w 120 -h 40      (exit 0 or stop)
             go test ./...                                                 (footprint at 4 sizes × themes)
-3. LINT     scripts/tuilint.py frames frames --cols 120 --rows 40 --theme themes/<brand>.json --bg <bg>
+3. LINT     scripts/tuilint.py frames frames frames/256 frames/ascii --theme themes/<brand>.json --bg <bg>
+            scripts/tuilint.py frames frames/light --theme themes/<brand>.json --bg <light bg>
+            (lint every directory you rendered: light, 256 and ASCII break where dark truecolour passes)
             scripts/tuilint.py code .
 4. LOOK     scripts/cellshot.py frames/<state>-80x24.ansi … --sheet sheet-80.png
             scripts/cellshot.py frames/<state>-120x40.ansi … --sheet sheet-120.png --cell 8x16
