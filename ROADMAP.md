@@ -19,7 +19,7 @@ repository. Items move from here into issues when someone picks them up.
 Build real apps with it and turn every miss into a fix.
 
 1. **Build one app you actually need** in a fresh session with only the skill installed.
-   Start with `/bubbletea-tui teach`, then `brand`, `shape` and `craft`. A good first
+   Start with `/bubbletea-tui init`, then `brand`, `shape` and `craft`. A good first
    target is a CLI with a brand you already own (the tructl wizard and splash are ideal:
    a known-good reference exists to compare against). Keep that brand's theme in the
    app's repo, not in this one.

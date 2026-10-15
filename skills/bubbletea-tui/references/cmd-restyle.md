@@ -11,6 +11,8 @@ richness is missing".
 for markdown: theme them from the brand theme (`components.md` § Forms) and draw them
 inside your own chrome. Rebuilding a working widget costs behaviour you'll then get wrong.
 
+0. **Read `TUI.md` first.** If it's missing, run `init` (or its short form, saying what
+   you assumed): restyling without the brand read and the screen plan only recolours.
 1. **Get eyes on it first** (`cmd-critique.md` §1) and save the "before" sheets.
 2. **Add the harness**: `render(w, h)`, `setState`, `-golden`/`-out` flags and the
    footprint test. Fix footprint failures before anything visual.
