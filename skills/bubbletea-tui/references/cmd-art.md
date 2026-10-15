@@ -6,7 +6,7 @@ Everything is in `cell-art.md`; this is the order to do it in.
    and the measured colours. Measure the angles, stroke widths and radii before drawing.
 2. **Wordmark.** `scripts/wordmark.py "<name>" --font <brand.ttf> --style half|shade|ascii
    --rows N --ansi wm.ansi`. Try 2–3 styles and row counts, render a sheet
-   (`cellshot.py --sheet --cell 16x32`), and pick by legibility at 80×24. Tracked text is
+   (`cellshot --sheet --cell 16x32`), and pick by legibility at 80×24. Tracked text is
    often the right answer.
 3. **Mark.** `scripts/logo2cells.py logo.png --cols 40 --mode half|shade|quad --palette
    "<hexes>"`, render with `--grid`, then hand-fix by the still rules (one vocabulary per

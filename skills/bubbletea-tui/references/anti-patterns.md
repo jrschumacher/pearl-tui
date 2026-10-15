@@ -4,7 +4,7 @@ If you showed the screen to someone who lives in a terminal and said "a model ma
 would they believe you at a glance? If yes, that is the problem. Each item below is a
 default that models reach for because it is the easiest thing to type in Lip Gloss or the
 first thing in a README. Each has an ID. The ones a machine can see are checked by
-`scripts/tuilint.py` (rule IDs in brackets).
+`tuilint` (rule IDs in brackets).
 
 A default is not banned because it is ugly. It is banned because it is *everyone's*, so
 choosing it says nothing about this product. The brief can earn any of these back. Say
@@ -46,7 +46,7 @@ a 1–2 cell gutter, the same on every screen.
 **C1 Pink and purple by default** [F-DEFAULT]. `#7D56F4`, `#FF5FAF`/205, `#EE6FF8`,
 62/63/170/212: the colours of the Bubble Tea and Lip Gloss examples and Bubbles' default
 list delegate. They are the strongest "made with the tutorial" signal there is. Brand
-roles come from the brand (`palette.py`), never from an example.
+roles come from the brand (`palette`), never from an example.
 
 **C2 Hex in the view** [C-HEX] [F-OFFPAL]. `lipgloss.Color("#ff0000")` in a screen
 function. Ten screens later there are eleven reds. *Instead:* roles (`t.S.Err`,
@@ -58,7 +58,7 @@ Lightness does hierarchy (fg / fgSoft / fgMuted / fgSubtle), and hue is for stat
 brand.
 
 **C4 Pure grey on a tinted world.** `#888888` text on a navy background reads dirty.
-Neutrals lean toward the background's hue (`palette.py` does this).
+Neutrals lean toward the background's hue (`palette` does this).
 
 **C5 One text level** [F-LEVELS]. Everything in the default foreground, everything bold
 [F-BOLD]. Without three to four text levels there is no hierarchy, only a wall.

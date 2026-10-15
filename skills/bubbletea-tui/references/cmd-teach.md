@@ -11,7 +11,7 @@ Read what exists before you ask the user anything:
 - the README, the CLI's `--help`, existing commands and screens (`grep -r "lipgloss\|bubbletea"`)
 - brand assets in the repo: logos (`*.svg *.png`), CSS variables, a style guide, fonts
 - the product's own copy: docs, site text, error messages. This is the voice.
-- the current terminal output, rendered (`cellshot.py`), if a TUI already exists
+- the current terminal output, rendered (`cellshot`), if a TUI already exists
 
 ## 2. Ask Only What You Couldn't Infer
 
@@ -41,7 +41,7 @@ If the user has no brand: propose one. Write two short brand reads that differ i
 palette / tone / geometry / density / type / motif / remember   (references/brand.md §1)
 
 ## Theme
-themes/<brand>.json   (derived with palette.py from: <measured hexes, source>)
+themes/<brand>.json   (derived with palette from: <measured hexes, source>)
 
 ## Decisions
 - <date> <decision> because <reason>          ← append as the project goes

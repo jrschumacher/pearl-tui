@@ -11,7 +11,7 @@ that each keep it running.
    `tea.KeyPressMsg`, the AltScreen/mouse view fields, Lip Gloss colours, Bubbles style
    setters. Use the official upgrade guides for the mechanics. The renders must match
    before and after.
-4. **Pull every colour and glyph into a theme.** `tuilint.py code` lists the hex literals
+4. **Pull every colour and glyph into a theme.** `tuilint code` lists the hex literals
    [C-HEX] and emoji [C-EMOJI]. Map each literal to a role (most map to 6–8 roles), and
    each glyph to the glyph set. If the product has a brand, run `cmd-brand.md`; if not,
    propose one.

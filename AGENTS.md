@@ -14,7 +14,8 @@ Tea v2 TUIs at Crush quality with a per-brand identity.
 skills/bubbletea-tui/
   SKILL.md        router: stance, laws, domain DO/DON'T, slop test, command table (keep < 500 lines)
   references/     domain references + cmd-<command>.md, one level deep, loaded on demand
-  scripts/        cellshot, tuilint, palette, diversity, wordmark, logo2cells (Python 3 + Pillow/numpy only)
+  tools/          Go module `tuitools`: cellshot, tuilint, tuivet, palette, diversity (the build loop)
+  scripts/        wordmark, logo2cells (Python 3 + Pillow/numpy; brand-asset conversion only)
   kit/            Go module `tuikit`: theme/, ui/, themes/*.json, cmd/showcase (reference app + harness)
   evals/          evals.json (skill-creator format) + fixtures
 tools/gallery.sh  regenerates docs/images from the kit
@@ -27,9 +28,11 @@ ROADMAP.md        what's next, and the open problems
 ```sh
 cd skills/bubbletea-tui/kit && go vet ./... && go test ./...      # footprint, contrast, behaviour
 cd skills/bubbletea-tui/kit && go run ./cmd/showcase               # the reference app, live
-python3 skills/bubbletea-tui/scripts/tuilint.py code skills/bubbletea-tui/kit
-python3 skills/bubbletea-tui/scripts/diversity.py skills/bubbletea-tui/kit/themes/*.json
-for t in skills/bubbletea-tui/kit/themes/*.json; do python3 skills/bubbletea-tui/scripts/palette.py check "$t"; done
+cd skills/bubbletea-tui/tools && go vet ./... && go test ./...    # the tools, held to Python-era goldens
+go -C skills/bubbletea-tui/tools build -o "$HOME/.cache/tuitools/" ./cmd/... && export PATH="$HOME/.cache/tuitools:$PATH"
+tuilint code skills/bubbletea-tui/kit
+diversity skills/bubbletea-tui/kit/themes/*.json
+for t in skills/bubbletea-tui/kit/themes/*.json; do palette check "$t"; done
 skills-ref validate skills/bubbletea-tui                           # pip install "git+https://github.com/agentskills/agentskills#subdirectory=skills-ref"
 tools/gallery.sh                                                   # after any change to what the kit renders
 ```
@@ -75,8 +78,13 @@ The skill gets better from observed misses, not from adding prose.
   directory name), `description` (≤ 1024 chars), `license`, `compatibility`, `metadata`.
 - **References stay one level deep** and are named by domain or `cmd-<command>.md`. A new
   command needs a row in SKILL.md's command table.
-- **Scripts** depend only on the Python standard library, Pillow and numpy. Each has a
-  `--help` docstring that is its documentation.
+- **Tools** (`tools/`) are Go and depend only on the kit, `charmbracelet/x/ansi` and
+  `golang.org/x/{image,text}`. Each command's package doc is its `-h` text. Their tests
+  hold them to goldens taken from the Python originals: change a golden only on purpose,
+  and say why in the commit. Anything the agent runs on every iteration belongs here.
+- **Scripts** (`scripts/`) are Python with Pillow and numpy, kept only for converting
+  brand assets (wordmark, logo), which run once per brand. Each has a `--help`
+  docstring that is its documentation.
 - **Writing style** for skill text: verdict headings ("Space And Rules, Not Boxes"), a
   reason with every rule, DO/DON'T pairs, concrete numbers and glyphs, no filler. Say
   what to do, not what to avoid feeling.

@@ -41,7 +41,7 @@ Each item becomes a harness state or a test, so it stays fixed.
 ## Accessibility
 
 - [ ] Nothing by colour alone (check the ascii renders).
-- [ ] Contrast floors (`palette.py check`), in both modes.
+- [ ] Contrast floors (`palette check`), in both modes.
 - [ ] No information only in motion or only in a transient toast. Toasts also go to a log
       or history the user can open.
 - [ ] An accessible mode (`--accessible`, `ACCESSIBLE=1`): no alt screen, line-by-line

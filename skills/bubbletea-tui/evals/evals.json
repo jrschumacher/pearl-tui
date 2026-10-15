@@ -1,6 +1,6 @@
 {
   "skill_name": "bubbletea-tui",
-  "notes": "Run with the skill-creator skill. Each assertion is a failure seen when models build TUIs without the skill (or with an earlier version). Deterministic ones are checked by scripts/tuilint.py and the harness; the rest by a grader reading renders. Add a case whenever the skill misses something in real use: write the miss as an assertion first, make the kit pass it, then edit the skill.",
+  "notes": "Run with the skill-creator skill. Each assertion is a failure seen when models build TUIs without the skill (or with an earlier version). Deterministic ones are checked by tuilint and the harness; the rest by a grader reading renders. Add a case whenever the skill misses something in real use: write the miss as an assertion first, make the kit pass it, then edit the skill.",
   "evals": [
     {
       "id": 0,
@@ -13,14 +13,14 @@
         "go run ./cmd/<app> with no flags starts tea.NewProgram; -golden -w 80 -h 24 and -w 120 -h 40 exit 0",
         "a themes/tidepool.json exists with dark and light roles derived from #0F5257 and #FF6F59; no hex literals outside the theme package (tuilint code C-HEX passes)",
         "a brand read (read field or .read.md) ties at least 5 expression choices to product traits",
-        "diversity.py shows the theme differs from kit ink on >= 8 axes",
+        "diversity shows the theme differs from kit ink on >= 8 axes",
         "no rendered frame has emoji, library-default pink/purple, or more than one bordered box (tuilint frames passes)",
         "exactly one visible focus in every state, and the focus marker does not shift text",
         "help is generated from key.Bindings; every key shown in a state's help works in that state",
         "retry confirmation names the queue, focuses Cancel by default, and colours the destructive button",
         "empty state says what is missing, why in context, and the one key to fix it",
         "at 120x40 a detail pane or extra section uses the room; at 80x24 it collapses to a summary",
-        "the agent rendered PNGs with cellshot.py and looked at them before replying"
+        "the agent rendered PNGs with cellshot and looked at them before replying"
       ]
     },
     {
@@ -48,7 +48,7 @@
         "tool calls use status glyph + name + main param + k=v options, an indented panel body, and an honest collapsed affordance",
         "one shared animation clock that stops when idle (tick returns nil in idle states)",
         "the working indicator says what is happening (no 'Loading...'/'Thinking...' alone without subject or elapsed time)",
-        "diversity.py: loom differs from the charm study theme on >= 8 axes (not Crush recoloured)",
+        "diversity: loom differs from the charm study theme on >= 8 axes (not Crush recoloured)",
         "prose is capped at a measure (<= 100 cells) at 200 columns",
         "editor uses a real cursor via tea.View.Cursor",
         "the brand read explains how 'warmer and more editorial' became specific expressions"

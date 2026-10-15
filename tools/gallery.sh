@@ -4,11 +4,11 @@
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 kit="$root/skills/bubbletea-tui/kit"
-shot="$root/skills/bubbletea-tui/scripts/cellshot.py"
 out="$root/docs/images"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$out"
+go -C "$root/skills/bubbletea-tui/tools" build -o "$tmp/" ./cmd/cellshot
 cd "$kit"
 render() { go run ./cmd/showcase "$@"; }
 
@@ -24,7 +24,7 @@ render -theme themes/charm.json -state assistant-busy -w 120 -h 40 > "$tmp/charm
 render -theme themes/moss.json -light -state assistant -w 120 -h 40 > "$tmp/moss (light) · assistant.ansi"
 
 cd "$tmp"
-sheet() { local name=$1; shift; python3 "$shot" "$@" --sheet "$out/$name" --cell 8x16 | tail -1; }
+sheet() { local name=$1; shift; "$tmp/cellshot" "$@" --sheet "$out/$name" --cell 8x16 | tail -1; }
 sheet gallery-services.png  {charm,ferrous,lumen,halyard,moss,cartridge}" · services.ansi"
 sheet gallery-palette.png   {charm,ferrous,lumen,halyard,moss,cartridge}" · palette.ansi"
 sheet gallery-modes.png     "halyard · dark.ansi" "halyard · light.ansi" "halyard · ascii, no colour.ansi"

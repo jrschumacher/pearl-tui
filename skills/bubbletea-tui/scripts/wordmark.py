@@ -10,7 +10,7 @@
 
 Prints the rows (every row exactly the same width), then with --go a Go `[]string`
 literal, with --json a JSON array (paste into theme.json "wordmark.rows"), and with --ansi
-a coloured preview you can render with cellshot.py. Rules (references/cell-art.md):
+a coloured preview you can render with cellshot. Rules (references/cell-art.md):
 shade needs ≥5 rows (4 smears), half needs ≥4 rows for lowercase with ascenders, never
 the figlet "standard" look, keep the wordmark quieter than the mark.
 

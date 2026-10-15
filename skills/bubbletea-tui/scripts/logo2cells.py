@@ -12,7 +12,7 @@ are background. Ink colours are the brand's own: --palette if you pass it (measu
 the brand guide), else k-means on the logo's opaque pixels (--colors k).
 
 Writes  <out>.txt   glyph rows, every row exactly --cols cells
-        <out>.ansi  truecolor preview → cellshot.py <out>.ansi <out>.png --grid --cell 16x32
+        <out>.ansi  truecolor preview → cellshot <out>.ansi <out>.png --grid --cell 16x32
         <out>.go    (with --go) []string glyph rows + []string colour-index rows (0 = bg)
 and prints a lint: rows of unequal width, orphan cells (inked, no inked neighbour), and
 asymmetry when the logo itself is left/right symmetric.

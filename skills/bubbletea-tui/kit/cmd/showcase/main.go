@@ -5,7 +5,7 @@
 //	go run ./cmd/showcase                              interactive (alt screen)
 //	go run ./cmd/showcase -theme themes/x.json         another brand
 //	go run ./cmd/showcase -golden -w 80 -h 24          every state as plain text; fails on any row ≠ W cells
-//	go run ./cmd/showcase -state services -w 120 -h 40 one state as truecolor ANSI (for cellshot.py)
+//	go run ./cmd/showcase -state services -w 120 -h 40 one state as truecolor ANSI (for cellshot)
 //	go run ./cmd/showcase -out frames -sizes 80x24,120x40 [-profile ansi256] [-light] [-ascii]
 //	                                                   every state at every size into frames/*.ansi
 package main

@@ -14,10 +14,10 @@ screenshot.
             go run ./cmd/<app> -out frames/ascii -profile ascii -ascii
 2. GOLDEN   go run ./cmd/<app> -golden -w 80 -h 24 && … -w 120 -h 40      (exit 0 or stop)
             go test ./...                                                 (footprint at 4 sizes × themes)
-3. LINT     scripts/tuilint.py frames frames --cols 120 --rows 40 --theme themes/<brand>.json --bg <bg>
-            scripts/tuilint.py code .
-4. LOOK     scripts/cellshot.py frames/<state>-80x24.ansi … --sheet sheet-80.png
-            scripts/cellshot.py frames/<state>-120x40.ansi … --sheet sheet-120.png --cell 8x16
+3. LINT     tuilint frames frames --cols 120 --rows 40 --theme themes/<brand>.json --bg <bg>
+            tuilint code .
+4. LOOK     cellshot frames/<state>-80x24.ansi … --sheet sheet-80.png
+            cellshot frames/<state>-120x40.ansi … --sheet sheet-120.png --cell 8x16
             → Read the PNGs. Run the slop test (anti-patterns.md) on each.
 5. CRITIQUE spawn a critic subagent (below) with the PNGs, goldens, brand read and code
 6. FIX      one change per defect; re-run 1–4; resume the SAME critic for round 2
@@ -27,7 +27,7 @@ Expect 2–4 rounds. Stop when the critic says ship and your own slop test passe
 
 ## Reading A Render Honestly
 
-- `cellshot.py` draws box drawing, blocks, shades, braille and sextants geometrically, the
+- `cellshot` draws box drawing, blocks, shades, braille and sextants geometrically, the
   way Ghostty, Kitty, WezTerm and iTerm2 do. Treat what you see as what users see. It
   reports glyphs no font could draw (users may see tofu too) and emoji.
 - `--cell 16x32` to inspect detail. `--grid` for cell art. `--sheet` for contact sheets.
@@ -38,7 +38,7 @@ Expect 2–4 rounds. Stop when the critic says ship and your own slop test passe
 
 ## What The Lint Catches (And Doesn't)
 
-`tuilint.py` catches the mechanical defects: row widths, emoji, default palettes,
+`tuilint` catches the mechanical defects: row widths, emoji, default palettes,
 off-palette colours, contrast under 2.3:1, box soup, rainbows, missing text levels,
 excessive bold, edge-touching content, blocking calls, hex in views, v1 imports, fast
 ticks, fmt.Print, raw-string key matching, unhandled resize.

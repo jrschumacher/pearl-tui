@@ -2,7 +2,7 @@
 name: bubbletea-tui
 description: Design and build terminal UIs with Bubble Tea v2, Lip Gloss and Bubbles that look as considered as Charm's Crush and unmistakably like the product's own brand, not like every other Bubble Tea app. Use when the user wants to build, design, redesign, restyle, theme, brand, critique, audit, polish, harden or animate a TUI, CLI dashboard, interactive CLI, terminal wizard, chat/agent interface, splash screen, terminal logo or wordmark, or port a v1 Bubble Tea app to v2. Covers layout and column budgets, colour roles and contrast, glyph vocabulary, focus and keys, empty/loading/error states, motion, cell art, a theme contract per brand, and a render-lint-critique loop that lets you see the terminal before the user does. Ships a compile-verified Go kit (theme engine, components, reference app), an honest ANSI-to-PNG renderer, a palette deriver and a slop linter. Not for web UIs or non-Go TUI frameworks.
 license: MIT
-compatibility: Go ≥ 1.26.7 (Bubble Tea v2.1, Lip Gloss v2.0.6, Bubbles v2.2). Python 3 with Pillow (and numpy for wordmark/logo tools).
+compatibility: Go ≥ 1.26.7 (Bubble Tea v2.1, Lip Gloss v2.0.6, Bubbles v2.2). Python 3 with Pillow and numpy only for the wordmark and logo converters.
 metadata:
   version: "0.1.0"
 ---
@@ -33,8 +33,11 @@ to all three. A half-applied idiom reads as noise.
    `theme/` (engine), `ui/` (components), `cmd/showcase/` (a full reference app with the
    harness), `themes/` (seven brand themes). Copy and adapt it. A cold rebuild from
    descriptions loses half the idiom at once.
-4. **Never show the user anything you haven't rendered and looked at** with
-   `scripts/cellshot.py`. Never ask them for a screenshot.
+4. **Build the tools** once per session, from the directory holding this file:
+   `go -C tools build -o "$HOME/.cache/tuitools/" ./cmd/...`, then put that directory on
+   `PATH`. That gives `cellshot`, `tuilint`, `palette`, `diversity` and `tuivet`.
+5. **Never show the user anything you haven't rendered and looked at** with
+   `cellshot`. Never ask them for a screenshot.
 
 ## The Laws
 
@@ -77,7 +80,7 @@ line, and dialogs with shared chrome and a scrim.
 boxes.
 
 ### Colour → *Consult `references/color.md`*
-**DO** derive roles from measured brand colours (`scripts/palette.py derive`), tint the
+**DO** derive roles from measured brand colours (`palette derive`), tint the
 neutrals toward the brand, check contrast in both modes, and use gradients on five to
 forty cells.
 **DON'T** ship `#7D56F4`/`#FF5FAF`/205/62/170, pure greys on a tinted bg, colour-only
@@ -109,7 +112,7 @@ one hero animation (`ui.Anim`) with a subject.
 ### Brand → *Consult `references/brand.md`*
 **DO** write the brand read first, translate traits into expressions, convert real
 assets (`wordmark.py`, `logo2cells.py`), and prove distance from the default
-(`scripts/diversity.py`).
+(`diversity`).
 **DON'T** treat a new palette on the default layout as a brand, or move an axis just to
 pass the lint.
 
@@ -129,7 +132,7 @@ while running.
 
 Would someone who lives in a terminal look at this and say "a model made this"? Check
 `references/anti-patterns.md` (≈40 named defaults, most linted by
-`scripts/tuilint.py`), then:
+`tuilint`), then:
 
 1. Squint: which product is this? If the answer is "a Bubble Tea app", go back to the
    brand.
@@ -166,14 +169,17 @@ checking in with the user after `shape`.
 
 ## Tools
 
-| Script | Does |
+| Tool | Does |
 |---|---|
-| `scripts/cellshot.py` | ANSI → PNG/GIF/contact sheet, drawn like a modern terminal; reports tofu, emoji, uneven rows |
-| `scripts/tuilint.py` | `frames`: width, emoji, default palette, off-palette, contrast, boxes, rainbow, levels… `code`: len(), blocking, hex, emoji, v1, resize, ticks, Print, keys |
-| `scripts/palette.py` | `derive` a dark+light role set from brand hexes (OKLCH, tinted neutrals, contrast-tuned); `check` a theme |
-| `scripts/diversity.py` | how different are these themes from each other and from the default |
+| `cellshot` | ANSI → PNG/GIF/contact sheet, drawn like a modern terminal; reports tofu, emoji, uneven rows |
+| `tuilint` | `frames`: width, emoji, default palette, off-palette, contrast, boxes, rainbow, levels… `code`: len(), blocking, hex, emoji, v1, resize, ticks, Print, keys |
+| `palette` | `derive` a dark+light role set from brand hexes (OKLCH, tinted neutrals, contrast-tuned); `check` a theme |
+| `diversity` | how different are these themes from each other and from the default |
 | `scripts/wordmark.py` | the brand name in cells, from a real font: half / shade / ascii / tracked |
 | `scripts/logo2cells.py` | a logo raster onto the grid (half, shade or quadrants) with lint |
+
+All but the last two are Go (`tools/`, built in Setup). The wordmark and logo converters
+are Python 3 with Pillow and numpy, needed only when you convert brand assets.
 
 The verification loop that ties them together is `references/verify.md`. Run it before
 every hand-off.
@@ -183,7 +189,7 @@ every hand-off.
 `kit/` (module `tuikit`): `go test ./...` renders seven themes × dark/light/ASCII × every
 state × five sizes and asserts the footprint and contrast. `go run ./cmd/showcase
 -theme themes/halyard.json` runs the reference app. Its `-out` flag writes every state
-for `cellshot.py`. Copy `theme/` and `ui/` into the project and rename the import path.
+for `cellshot`. Copy `theme/` and `ui/` into the project and rename the import path.
 
 You can build terminal interfaces people screenshot and share. The libraries are
 capable of it, and Crush proves it. The difference is decisions: make them in the brand

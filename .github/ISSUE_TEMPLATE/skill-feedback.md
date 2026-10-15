@@ -6,7 +6,7 @@ labels: feedback
 
 **What you asked for** (the prompt or command, e.g. `/bubbletea-tui craft`):
 
-**What the agent produced** (attach contact sheets: `cellshot.py frames/*.ansi --sheet sheet.png`):
+**What the agent produced** (attach contact sheets: `cellshot frames/*.ansi --sheet sheet.png`):
 
 **What was wrong** (cite the state, size and cells if visual; the key and state if behavioural):
 

@@ -34,8 +34,8 @@ npx skills add jrschumacher/skill-bubbletea-tui
 or copy `skills/bubbletea-tui` into `~/.claude/skills/` (or your agent's skills
 directory).
 
-Requirements: Go ≥ 1.26.7 (Bubble Tea v2.1, Lip Gloss v2.0.6, Bubbles v2.2), Python 3
-with Pillow (and numpy for the wordmark and logo tools).
+Requirements: Go ≥ 1.26.7 (Bubble Tea v2.1, Lip Gloss v2.0.6, Bubbles v2.2). The
+wordmark and logo converters also need Python 3 with Pillow and numpy; nothing else does.
 
 ## Use
 
@@ -63,11 +63,13 @@ skills/bubbletea-tui/
 ├── SKILL.md              the stance, the laws, per-domain DO/DON'T, the TUI slop test, the command router
 ├── references/           medium · idiom · color · layout · components · interaction · motion · brand
 │                         cell-art · architecture · verify · anti-patterns, plus one file per command
-├── scripts/
-│   ├── cellshot.py       ANSI → PNG / GIF / contact sheet, drawn like Ghostty/Kitty/WezTerm draw it
-│   ├── tuilint.py        slop + correctness lint on rendered frames and on Go source (rule IDs)
-│   ├── palette.py        derive a dark+light role palette from brand hexes (OKLCH, tinted neutrals, contrast-tuned)
-│   ├── diversity.py      are these themes actually different from each other and from the default?
+├── tools/                Go, built once: go -C tools build -o ~/.cache/tuitools/ ./cmd/...
+│   ├── cellshot          ANSI → PNG / GIF / contact sheet, drawn like Ghostty/Kitty/WezTerm draw it
+│   ├── tuilint           slop + correctness lint on rendered frames and on Go source (rule IDs)
+│   ├── tuivet            the code rules as a go vet tool, for editors and CI
+│   ├── palette           derive a dark+light role palette from brand hexes (OKLCH, tinted neutrals, contrast-tuned)
+│   └── diversity         are these themes actually different from each other and from the default?
+├── scripts/              Python + Pillow, only for converting brand assets
 │   ├── wordmark.py       a brand name in terminal cells, from a real font
 │   └── logo2cells.py     a logo raster onto the cell grid, with lint
 ├── kit/                  a compiling Bubble Tea v2 module to copy from, not re-derive
@@ -88,8 +90,8 @@ contrast floors on every palette.
 
 ```sh
 go run ./cmd/app -out frames -sizes 80x24,120x40         # every state
-scripts/tuilint.py frames frames --theme themes/brand.json
-scripts/cellshot.py frames/*-80x24.ansi --sheet sheet.png # look at it
+tuilint frames frames --theme themes/brand.json
+cellshot frames/*-80x24.ansi --sheet sheet.png # look at it
 # → adversarial critic subagent with the sheets, the brand read and the code → fix → again
 ```
 

@@ -49,14 +49,14 @@ agreeing with your grades line for line.
   doesn't implement it yet.
 - **Drive the real binary, not just the model.** The harness renders model states
   in-process, which misses bugs in program options, the real renderer, terminal queries
-  and resize timing. Add `tuidrive.py`: spawn the app in a pty at W×H, send keys, settle,
-  capture the screen through a VT emulator (e.g. `pyte`), and write `.ansi` frames into
+  and resize timing. Add a Go `tuidrive` to `tools/`: spawn the app in a pty at W×H, send keys, settle,
+  capture the screen through a VT emulator (Charm's `x/vt`), and write `.ansi` frames into
   the same `cellshot`/`tuilint` pipeline. Evaluate adopting Microsoft's
   [tui-test](https://github.com/microsoft/tui-test) (Playwright-style API, xterm.js
   emulation, Node) as the heavier option, and Charm's `teatest` for Go-side golden tests.
 - **Temporal lint for animation** (`cell-art.md` rule 14) as a script over frame
   sequences.
-- **Hooks**: a PostToolUse hook that runs `tuilint.py code` on edited `.go` files, as
+- **Hooks**: a PostToolUse hook that runs `tuilint code` on edited `.go` files, as
   Impeccable does with its detectors. Agents ignore prose; they don't ignore a hook.
 - **Distribution**: a Claude plugin marketplace manifest, and builds for other agents
   (Cursor, Codex, Gemini CLI) once the formats are verified.
@@ -110,7 +110,7 @@ Every model building a TUI designs blind unless someone builds it eyes. This ski
 answer (a harness, an honest renderer and a critic) works, but it is bespoke. A small
 MCP server that starts any TUI in a pty and returns a PNG plus a plain-text grid would
 give every agent the same ability. Keystrokes in, screen out, at a fixed size. It
-pairs naturally with `tuidrive.py` above.
+pairs naturally with `tuidrive` above.
 
 ### 4. No shared ground truth for what terminals render
 
