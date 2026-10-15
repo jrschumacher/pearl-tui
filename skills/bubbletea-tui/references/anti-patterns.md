@@ -45,7 +45,7 @@ a 1–2 cell gutter, the same on every screen.
 
 **C1 Pink and purple by default** [F-DEFAULT]. `#7D56F4`, `#FF5FAF`/205, `#EE6FF8`,
 62/63/170/212: the colours of the Bubble Tea and Lip Gloss examples and Bubbles' default
-list delegate. They are the strongest "made with the tutorial" signal there is. Brand
+list delegate. Huh adds its own: `#7571F9`/`#5A56E0` titles and the `#F780E2` spinner. They are the strongest "made with the tutorial" signal there is. Brand
 roles come from the brand (`palette`), never from an example.
 
 **C2 Hex in the view** [C-HEX] [F-OFFPAL]. `lipgloss.Color("#ff0000")` in a screen
@@ -77,6 +77,11 @@ spinner.
 
 **C9 Invisible faintness** [F-CONTRAST]. `fgSubtle` at 1.8:1 for anything a user must
 read. The faintest level is ≥ 2.6:1 and only for hints.
+
+**C10 A library left on its defaults** [C-HUHTHEME]. A Huh form, field or spinner, or a
+Bubbles spinner, with no theme: it renders the library's palette in the middle of yours.
+The first dogfood run shipped Huh's pink spinner this way. *Instead:* theme it from the
+brand theme with `ui.NewForm` (`components.md` § Forms And Wizards).
 
 ## Glyphs
 

@@ -1,7 +1,8 @@
 # shape — design the screens on paper before any code
 
 Input: `TUI.md` and the user's ask. Output: a screen spec the user agrees to, written
-into `TUI.md` § Screens and a `SPEC.md` beside the code. No Go yet.
+into `TUI.md` § Screens and § States and keys, and a `SPEC.md` beside the code. No Go
+yet.
 
 ## For Each Screen
 

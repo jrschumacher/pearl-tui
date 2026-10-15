@@ -22,7 +22,12 @@ type Finding struct {
 }
 
 // defaultColours come from Bubble Tea, Lip Gloss and Bubbles examples and
-// default delegates, in tuilint.py's order (first hit order is reported).
+// default delegates, in tuilint.py's order (first hit order is reported), then
+// Huh v2's signature defaults (not in tuilint.py): the Charm theme's indigo and
+// fuchsia, which every unthemed form shows in its titles, selectors and buttons,
+// and which the default spinner shows. Huh's cream, greens and reds are left
+// out: a leaked theme already shows the three below, and those are neutrals and
+// status hues that real brands land on (moss's light bg is within 3 of cream).
 var defaultColours = []struct {
 	c     RGB
 	label string
@@ -39,6 +44,9 @@ var defaultColours = []struct {
 	{RGB{0x04, 0xB5, 0x75}, "#04B575 (example green)"},
 	{RGB{0xF2, 0x5D, 0x94}, "#F25D94 (lipgloss example pink)"},
 	{RGB{0xFF, 0x5F, 0x87}, "204 (example pink)"},
+	{RGB{0xF7, 0x80, 0xE2}, "#F780E2 (huh default fuchsia: Charm theme, spinner)"},
+	{RGB{0x75, 0x71, 0xF9}, "#7571F9 (huh Charm theme indigo)"},
+	{RGB{0x5A, 0x56, 0xE0}, "#5A56E0 (huh Charm theme indigo, light)"},
 }
 
 const (

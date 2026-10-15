@@ -44,7 +44,7 @@ Just ask for a TUI ("build a Bubble Tea dashboard for our job queues, brand colo
 
 | Command | What it does |
 |---|---|
-| `/bubbletea-tui teach` | capture product, users and brand into `TUI.md` once, so every later change stays consistent |
+| `/bubbletea-tui init` | interview you, then write the design (product, users, brand) and the architecture (model, regions, forms, states and keys) into `TUI.md`, so every later change stays consistent. `teach` is an alias |
 | `/bubbletea-tui brand` | turn brand colours, typeface and logo into a theme that's provably not the default |
 | `/bubbletea-tui shape` | plan screens: column budgets at 80×24 and 120×40, states, keys, cell sketches |
 | `/bubbletea-tui craft` | build from the kit with the render → lint → critique loop |

@@ -3,6 +3,12 @@
 Input: `TUI.md`, the theme, the screen spec (`shape`). Output: a running Bubble Tea v2
 program with the harness, rendered and critiqued.
 
+## 0. Read TUI.md First
+
+It holds the brand read, the screens and the architecture this build must follow. If it's
+missing, run `init` (or its short form, saying what you assumed): a build with no plan
+invents its regions and keys screen by screen.
+
 ## 1. Start From The Kit, Not From Prose
 
 ```

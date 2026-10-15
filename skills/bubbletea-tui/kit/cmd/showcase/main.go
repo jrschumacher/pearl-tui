@@ -4,6 +4,7 @@
 //
 //	go run ./cmd/showcase                              interactive (alt screen)
 //	go run ./cmd/showcase -theme themes/x.json         another brand
+//	go run ./cmd/showcase -first-run                   start with the setup wizard (ACCESSIBLE=1: plain prompts)
 //	go run ./cmd/showcase -golden -w 80 -h 24          every state as plain text; fails on any row ≠ W cells
 //	go run ./cmd/showcase -state services -w 120 -h 40 one state as truecolor ANSI (for cellshot)
 //	go run ./cmd/showcase -out frames -sizes 80x24,120x40 [-profile ansi256] [-light] [-ascii]
@@ -18,19 +19,23 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
+	"tuikit/ui"
 )
 
 // states are every screen the app can show. A state you can't render here is
 // a state nobody reviewed.
 var states = []string{"services", "services-toast", "deploys", "palette", "confirm", "help", "deploy",
-	"incidents", "assistant", "assistant-busy", "splash", "toosmall"}
+	"incidents", "assistant", "assistant-busy", "splash", "toosmall",
+	"setup-target", "setup-namespace", "setup-invalid", "setup-auth", "setup-alerts", "setup-review", "setup-signin", "setup-failed", "setup-done"}
 
 // setState rebuilds the model from scratch for a named state, using the same
 // actions a user would take, so fixtures can't drift from behaviour.
@@ -64,6 +69,43 @@ func (m *app) setState(s string) {
 	case "splash":
 		m.screen = scrSplash
 	}
+	if strings.HasPrefix(s, "setup-") {
+		m.setupState(s, frame)
+	}
+}
+
+// setupState walks the wizard to a named step the way a user would get
+// there: earlier steps entered, their values chosen.
+func (m *app) setupState(s string, frame int) {
+	m.openSetup()
+	f := m.setup
+	if s == "setup-target" {
+		return
+	}
+	if s == "setup-namespace" || s == "setup-invalid" { // the input focused, typed into: one cursor, one prompt
+		f.form.Update(huh.NextField())
+		typed := "payments"
+		if s == "setup-invalid" {
+			typed = "Payments EU" // Huh validates on enter and keeps focus here
+		}
+		for _, r := range typed {
+			f.form.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
+		}
+		if s == "setup-invalid" {
+			f.form.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+		}
+		return
+	}
+	f.namespace = "payments"
+	steps := map[string]setupStep{"setup-auth": stAuth, "setup-alerts": stAlerts, "setup-review": stReview,
+		"setup-signin": stSignin, "setup-failed": stSignin, "setup-done": stDone}
+	for st := stAuth; st <= steps[s]; st++ {
+		m.goStep(st)
+	}
+	f.since = frame - 240 // 12 s into the wait
+	if s == "setup-failed" {
+		f.failed, f.acts = true, ui.NewActions(0, "Retry", "Back")
+	}
 }
 
 func main() {
@@ -78,6 +120,7 @@ func main() {
 	h := flag.Int("h", 24, "height")
 	frame := flag.Int("frame", 24, "animation frame for renders")
 	profile := flag.String("profile", "truecolor", "truecolor | ansi256 | ansi | ascii")
+	firstRun := flag.Bool("first-run", false, "start with the setup wizard")
 	flag.Parse()
 
 	f := theme.Default()
@@ -88,8 +131,16 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	if *state == "" && !*golden && *out == "" && *firstRun && ui.Accessible() {
+		if err := runAccessibleSetup(theme.Resolve(f, !*light, true), os.Stdin, os.Stdout, 2*time.Second); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if *state == "" && !*golden && *out == "" {
 		m := newApp(f, !*light, *ascii || os.Getenv("TERM") == "linux")
+		m.firstRun = *firstRun
 		if _, err := tea.NewProgram(m).Run(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)

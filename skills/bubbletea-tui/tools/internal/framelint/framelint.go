@@ -4,7 +4,8 @@
 //
 //	F-WIDTH     [P0] a row is not exactly W cells / frame is not H rows
 //	F-EMOJI     [P1] emoji glyphs
-//	F-DEFAULT   [P1] colours from library examples and defaults (#7D56F4, 205, 62/63/170/212, ...)
+//	F-DEFAULT   [P1] colours from library examples and defaults (#7D56F4, 205, 62/63/170/212, ...,
+//	                 and Huh's #F780E2 fuchsia and #7571F9 / #5A56E0 indigo)
 //	F-OFFPAL    [P1] (with --theme) a colour not in, or blended from, the theme's roles.
 //	                 A frame with only 256-colour SGR (-profile ansi256) is judged against the
 //	                 xterm colours the roles downsample to; there a role that lands on a
@@ -38,6 +39,20 @@ Lints rendered truecolor ANSI frames (the output of your -state X -w W -h H flag
 A directory means its *.ansi files. A finding prints as [SEV] ID  file:where  message.
 P0/P1 findings fail the run (exit 1); P2 are warnings to fix or justify in one line.
 --bg is the terminal default background for cells that set none (default #16161a).
+
+  F-WIDTH     [P0] a row is not exactly W cells / frame is not H rows
+  F-EMOJI     [P1] emoji glyphs
+  F-DEFAULT   [P1] library example and default colours: #7D56F4, 205, 62/63/170/212, ...,
+                   and Huh's #F780E2 fuchsia (Charm theme, spinner), #7571F9 / #5A56E0 indigo
+  F-OFFPAL    [P1] (with --theme) a colour not in, or blended from, the theme's roles
+  F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1 (P2 note on a borderless overlay)
+  F-BOXES     [P1] more than one bordered box
+  F-RAINBOW   [P2] more than 7 distinct foreground hues
+  F-LEVELS    [P2] fewer than 3 neutral text levels on a dense frame
+  F-BOLD      [P2] more than 30% of text cells bold
+  F-EDGE      [P2] content touching column 0 or the last column on most rows
+  F-EMPTY     [P2] frame is more than 98.5% blank
+  F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
 `
 
 var sevOrder = map[string]int{"P0": 0, "P1": 1, "P2": 2}
