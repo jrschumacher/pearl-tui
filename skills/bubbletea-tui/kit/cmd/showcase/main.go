@@ -44,6 +44,7 @@ func (m *app) setState(s string) {
 		m.rollback()
 	case "deploys":
 		m.screen = scrDeploys
+		m.sel = m.svcIndex(m.events[m.depSel].Svc)
 	case "palette":
 		m.ov, m.query = ovPalette, "ro"
 	case "confirm":

@@ -152,6 +152,15 @@ func Rule(t *theme.Theme, w int) string {
 // it had to drop hints, so the user knows there is more (full help).
 func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 	sep := t.S.Subtle.Render("  ")
+	// the key that opens full help is pinned last: the … promises more, so the
+	// way to see it must survive truncation
+	pinned := ""
+	if n := len(bindings); n > 1 && (bindings[n-1].Help().Key == "?" || bindings[n-1].Help().Key == "ctrl+g") {
+		h := bindings[n-1].Help()
+		pinned = t.S.Key.Render(h.Key) + " " + t.S.KeyDesc.Render(h.Desc)
+		w -= lipgloss.Width(pinned) + 2
+		bindings = bindings[:n-1]
+	}
 	var parts []string
 	used := 0
 	more := t.S.Subtle.Render(t.G.Ellipsis)
@@ -177,7 +186,11 @@ func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 		parts = append(parts, part)
 		used += need
 	}
-	return Fit(strings.Join(parts, sep), w)
+	line := strings.Join(parts, sep)
+	if pinned != "" {
+		return Fit(line, w) + sep + pinned
+	}
+	return Fit(line, w)
 }
 
 // Footer is the bottom row(s) per expressions.footer: bare keys, keys on a
@@ -193,7 +206,7 @@ func Footer(t *theme.Theme, w int, left string, bindings []key.Binding, right st
 	}
 	rw := lipgloss.Width(right)
 	if rw > 0 {
-		rw++
+		rw += 2
 	}
 	help := Help(t, bindings, max(0, inner-lw-rw))
 	row := pad
@@ -202,7 +215,7 @@ func Footer(t *theme.Theme, w int, left string, bindings []key.Binding, right st
 	}
 	row += help
 	if right != "" {
-		row += " " + right
+		row += "  " + right
 	}
 	row = Fit(row+pad, w)
 	switch t.X.Footer {

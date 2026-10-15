@@ -57,7 +57,7 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		}
 		tabs := ui.Tabs(t, tabNames, int(m.screen), counts)
 		c.Draw(strings.Join(tabs, "\n"), ui.Rect(g, y, w-2*g, len(tabs)))
-		y += len(tabs) + t.Gap()
+		y += len(tabs) + 1 // tabs always get air below, even in compact brands
 	}
 	body := uv.Rect(g, y, w-2*g, max(0, fy-y-t.Gap()))
 	switch m.screen {
@@ -226,19 +226,25 @@ func stretch(vals []float64, n int) []float64 {
 
 func (m *app) deploys(c *ui.Canvas, r uv.Rectangle) {
 	t := m.t
-	rows := [][]string{}
-	for _, d := range deployLog {
-		st := ui.Dot(t, d[4])
-		if d[4] == "busy" {
+	var main, side uv.Rectangle
+	if r.Dx() >= wideW-4 {
+		layout.Horizontal(layout.Fill(1), layout.Len(3), layout.Len(40)).Split(r).Assign(&main, new(uv.Rectangle), &side)
+		m.serviceDetail(c, side) // the selected row's service: the same one every action uses
+	} else {
+		main = r
+	}
+	var rows [][]string
+	for _, e := range m.events {
+		st := ui.Dot(t, e.State)
+		if e.State == "busy" {
 			st = ui.Spinner(t, m.frame/2)
 		}
-		rows = append(rows, []string{st + " " + t.S.Base.Render(d[1]), t.S.Soft.Render(d[2]), t.S.Muted.Render(d[3]), t.S.Subtle.Render(d[0])})
+		rows = append(rows, []string{st + " " + t.S.Base.Render(e.Svc), t.S.Soft.Render(e.Version), t.S.Muted.Render(e.By), t.S.Subtle.Render(e.Ago)})
 	}
-	widths := []int{0, 16, 10, 8}
-	fixed := 2 + (16 + 2) + (10 + 2) + (8 + 2)
-	widths[0] = max(12, r.Dx()-fixed)
-	tbl := ui.Table(t, []string{"service", "version", "by", "when"}, rows, widths, "lllr", m.sel%len(deployLog), r.Dx(), m.ov == ovNone)
-	c.Draw(strings.Join(tbl, "\n"), r)
+	widths := []int{0, 9, 8, 8}
+	widths[0] = max(12, min(40, main.Dx()-(2+11+10+10)))
+	tbl := ui.Table(t, []string{"service", "version", "by", "when"}, rows, widths, "lllr", m.depSel, main.Dx(), m.ov == ovNone)
+	c.Draw(strings.Join(tbl, "\n"), main)
 }
 
 // ---------------------------------------------------------------- incidents
@@ -517,7 +523,8 @@ func (m *app) palette(c *ui.Canvas) {
 	if m.query == "" {
 		input = t.S.Tertiary.Render(t.G.Prompt) + " " + t.S.Tertiary.Render("▏") + t.S.Subtle.Render("type to filter")
 	}
-	listH := min(len(commands), max(3, c.Bounds().Dy()-14))
+	// the list fits its results (min 3); the top edge stays put while typing
+	listH := min(max(3, len(hits)), len(commands), max(3, c.Bounds().Dy()-12))
 	body := []string{input, ""}
 	if len(items) == 0 {
 		body = append(body, t.S.Muted.Render("  no command matches “"+m.query+"”"))
@@ -529,7 +536,7 @@ func (m *app) palette(c *ui.Canvas) {
 	}
 	// no help line inside: the footer above the scrim carries the dialog's keys
 	d := ui.Dialog(t, w, "Commands", body, "", "")
-	c.Overlay(d, dialogTop(c, lipgloss.Height(d)))
+	c.Overlay(d, &uv.Position{X: -1, Y: min(4, max(0, c.Bounds().Dy()-lipgloss.Height(d)-1))})
 }
 
 func (m *app) confirm(c *ui.Canvas) {

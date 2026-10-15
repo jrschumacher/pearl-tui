@@ -170,3 +170,69 @@ func TestASCIIStatusDistinct(t *testing.T) {
 		}
 	}
 }
+
+// Every list selects by identity: the highlighted row's service is the one the
+// header names and every action uses (the round-2 Deploys bug).
+func TestSelectionIsIdentity(t *testing.T) {
+	m := fixture(t, "deploys")
+	for range 3 {
+		m.key(press("j"))
+		want := m.events[m.depSel].Svc
+		if got := m.svcs[m.sel].Name; got != want {
+			t.Fatalf("deploys highlights %q but actions target %q", want, got)
+		}
+		if txt := ansi.Strip(m.render(120, 40).String()); !strings.Contains(strings.SplitN(txt, "\n", 2)[0], want) {
+			t.Fatalf("header does not name the selected service %q", want)
+		}
+	}
+}
+
+// Enter in a field moves on; it never ships to prod. Deploys finish by message.
+func TestDeployLifecycle(t *testing.T) {
+	m := fixture(t, "deploy")
+	m.key(press("enter"))
+	if m.screen != scrDeploy || m.focus != 2 {
+		t.Fatal("enter in the version field must move to the next field")
+	}
+	for m.focus != 4 {
+		m.key(press("tab"))
+	}
+	cmd := m.key(press("enter"))
+	s := m.svcs[m.sel]
+	if s.State != "deploying" || cmd == nil {
+		t.Fatalf("deploy did not start (state %q)", s.State)
+	}
+	m.Update(deployDoneMsg{s.Name})
+	if m.svcs[m.sel].State != "ok" {
+		t.Fatal("deploy never finished")
+	}
+	m.Update(deployDoneMsg{"search-indexer"})
+	m.toast = nil
+	if m.animating() {
+		t.Fatal("nothing is deploying and no toast: the clock must stop")
+	}
+}
+
+// A colon or question mark typed into the composer is text, not a command.
+func TestTypingNeverCommands(t *testing.T) {
+	m := fixture(t, "assistant")
+	m.input = ""
+	for _, k := range "a:?q" {
+		m.key(press(string(k)))
+	}
+	if m.input != "a:?q" || m.ov != ovNone {
+		t.Fatalf("input %q overlay %v", m.input, m.ov)
+	}
+}
+
+// Rolling back twice can't claim to go from a version to itself.
+func TestRollbackOnce(t *testing.T) {
+	m := fixture(t, "services")
+	m.key(press("r"))
+	m.key(press("left"))
+	m.key(press("enter"))
+	m.key(press("r"))
+	if m.ov == ovConfirm {
+		t.Fatal("second rollback opened a confirm with nothing to roll back to")
+	}
+}

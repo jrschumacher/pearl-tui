@@ -87,12 +87,15 @@ var activity = [][4]string{
 	{"12:44", "deployed auth-gateway v5.2.7", "@ci", "ok"},
 }
 
-// deployLog: when, service, version, by, state
-var deployLog = [][5]string{
+// event is one line of the deploy log. It names its service, so selecting a
+// row selects that service (by identity, never by row index).
+type event struct{ Ago, Svc, Version, By, State string }
+
+var initialEvents = []event{
 	{"now", "search-indexer", "v3.0.1", "@ci", "busy"},
-	{"14:00", "checkout-api", "v2.4.0", "@mara", "error"},
-	{"12:44", "auth-gateway", "v5.2.7", "@ci", "ok"},
-	{"yesterday", "notifications-worker-eu-west", "v0.9.14", "@devon", "warning"},
+	{"14m ago", "checkout-api", "v2.4.0", "@mara", "error"},
+	{"1h ago", "auth-gateway", "v5.2.7", "@ci", "ok"},
+	{"1d ago", "notifications-worker-eu-west", "v0.9.14", "@devon", "warning"},
 	{"3d ago", "inventory-sync", "v1.19.2", "@ci", "ok"},
 	{"5d ago", "image-resizer", "v2.0.3", "@priya", "ok"},
 	{"21d ago", "ledger", "v7.1.0", "@jun", "ok"},

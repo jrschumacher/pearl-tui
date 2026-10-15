@@ -234,7 +234,7 @@ def lint_frame(path, cols, rows, palette, findings, bg_default):
         for label, (y, x) in list(defaults.items())[:4]:
             add("F-DEFAULT", "P1", f"r{y}c{x}", f"library-default colour {label}: the 'every Bubble Tea app is pink and purple' look")
     tls_all = [(y, x) for y, x, ch in corners if ch in TL]
-    overlay_name = re.search(r"(dialog|palette|confirm|modal|overlay|popup)", name)
+    overlay_name = re.search(r"(dialog|palette|confirm|modal|overlay|popup|help|keys)", name)
     if overlay_name and len(tls_all) != 1 and (lowc or offpal_cells):
         # a borderless dialog over a scrim: we can't find its edges, so don't judge the scrim
         add("F-CONTRAST", "P2", "frame", "overlay frame without a bordered dialog: contrast and palette checked only by eye here")
