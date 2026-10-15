@@ -1,0 +1,77 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  kit:
+    name: kit (go vet + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: skills/bubbletea-tui/kit
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: skills/bubbletea-tui/kit/go.mod
+          cache-dependency-path: skills/bubbletea-tui/kit/go.sum
+      - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - run: go vet ./...
+      - run: go test ./...
+
+  render-and-lint:
+    name: render every theme + lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: skills/bubbletea-tui/kit/go.mod
+          cache-dependency-path: skills/bubbletea-tui/kit/go.sum
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core
+      - run: pip install pillow numpy
+      - name: scripts compile and print help
+        run: |
+          for s in skills/bubbletea-tui/scripts/*.py; do python3 -m py_compile "$s"; done
+          python3 skills/bubbletea-tui/scripts/cellshot.py --help > /dev/null
+      - name: code lint
+        run: python3 skills/bubbletea-tui/scripts/tuilint.py code skills/bubbletea-tui/kit
+      - name: palettes and diversity
+        run: |
+          for t in skills/bubbletea-tui/kit/themes/*.json; do python3 skills/bubbletea-tui/scripts/palette.py check "$t"; done
+          python3 skills/bubbletea-tui/scripts/diversity.py skills/bubbletea-tui/kit/themes/*.json
+      - name: render every state of every theme, lint the frames, build a sheet
+        run: |
+          cd skills/bubbletea-tui/kit
+          for t in themes/*.json; do
+            n=$(basename "$t" .json)
+            go run ./cmd/showcase -theme "$t" -out "../../../frames/$n" -sizes 80x24,120x40
+            python3 ../scripts/tuilint.py frames "../../../frames/$n" --theme "$t"
+          done
+          cd ../../../frames/halyard && python3 ../../skills/bubbletea-tui/scripts/cellshot.py *-80x24.ansi --sheet ../halyard-80.png
+      - uses: actions/upload-artifact@v7
+        with:
+          name: frames
+          path: frames/
+
+  skill-spec:
+    name: Agent Skills spec
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install "git+https://github.com/agentskills/agentskills#subdirectory=skills-ref"
+      - run: skills-ref validate skills/bubbletea-tui
+      - name: SKILL.md stays under 500 lines
+        run: test "$(wc -l < skills/bubbletea-tui/SKILL.md)" -lt 500

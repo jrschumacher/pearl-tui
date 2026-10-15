@@ -1,0 +1,111 @@
+# AGENTS.md
+
+Guidance for coding agents working **on** this repository: improving the skill, its
+kit and its tools. If you are an agent *using* the skill to build a TUI, read
+`skills/bubbletea-tui/SKILL.md` instead.
+
+## What this repo is
+
+One agent skill, `skills/bubbletea-tui/`, published through skills.sh
+(`npx skills add jrschumacher/skill-bubbletea-tui`). It teaches models to build Bubble
+Tea v2 TUIs at Crush quality with a per-brand identity.
+
+```
+skills/bubbletea-tui/
+  SKILL.md        router: stance, laws, domain DO/DON'T, slop test, command table (keep < 500 lines)
+  references/     domain references + cmd-<command>.md, one level deep, loaded on demand
+  scripts/        cellshot, tuilint, palette, diversity, wordmark, logo2cells (Python 3 + Pillow/numpy only)
+  kit/            Go module `tuikit`: theme/, ui/, themes/*.json, cmd/showcase (reference app + harness)
+  evals/          evals.json (skill-creator format) + fixtures
+tools/gallery.sh  regenerates docs/images from the kit
+tools/conventional.sh  checks PR titles in CI and commit subjects locally (.githooks/)
+ROADMAP.md        what's next, and the open problems
+```
+
+## Commands
+
+```sh
+cd skills/bubbletea-tui/kit && go vet ./... && go test ./...      # footprint, contrast, behaviour
+cd skills/bubbletea-tui/kit && go run ./cmd/showcase               # the reference app, live
+python3 skills/bubbletea-tui/scripts/tuilint.py code skills/bubbletea-tui/kit
+python3 skills/bubbletea-tui/scripts/diversity.py skills/bubbletea-tui/kit/themes/*.json
+for t in skills/bubbletea-tui/kit/themes/*.json; do python3 skills/bubbletea-tui/scripts/palette.py check "$t"; done
+skills-ref validate skills/bubbletea-tui                           # pip install "git+https://github.com/agentskills/agentskills#subdirectory=skills-ref"
+tools/gallery.sh                                                   # after any change to what the kit renders
+```
+
+CI (`.github/workflows/ci.yml`) runs all of these plus a render-and-lint pass over every
+theme. Run them locally before pushing.
+
+## How the skill improves (the loop)
+
+The skill gets better from observed misses, not from adding prose.
+
+1. **A miss** comes from dogfooding (someone built an app with the skill and something
+   was wrong) or from a cold eval run. File it with the skill-feedback issue template.
+2. **Write the miss as an assertion** in `evals/evals.json` before changing anything.
+3. **Classify it**:
+   - (a) the skill never says it → add one line to the right reference
+   - (b) the skill says it and the agent ignored it → make it a tool, a lint rule, a
+     test in the kit, or a structural pattern the kit forces; then shorten the prose
+   - (c) prose can't express it → a tool only
+   If most misses are (b), the skill is too long: cut before adding.
+4. **Make the kit pass it** (the kit is what agents copy, so the fix must live there).
+5. **Edit the skill**, one change per cause.
+6. **Verify**: tests, lint, renders, and for visual or behavioural changes the critic
+   loop (`references/verify.md`): render, look at the PNGs, run an adversarial critic
+   subagent, fix, resume the same critic. The kit went 12 → 18 → 20/24 this way.
+
+## Rules
+
+- **The kit must compile, pass its tests and lint clean at every commit.** A cold agent
+  copies it verbatim.
+- **Every advertised key must be handled.** Keys live in one action table per state
+  (`kit/cmd/showcase/app.go`); `TestHelpIsHandled` enforces it. Don't add a footer
+  binding any other way.
+- **No literals in screens.** Colours and glyphs come from the theme. `tuilint.py code`
+  fails on hex outside `theme/`.
+- **Pinned versions.** `charm.land/bubbletea/v2 v2.1.0`, `lipgloss/v2 v2.0.6`,
+  `bubbles/v2 v2.2.1`, Ultraviolet `v0.0.0-20261008173134-6b8d4baf91b4`. To bump: update
+  `kit/go.mod`, run everything above, and update `references/architecture.md`, whose API
+  claims are verified against these versions.
+- **Fictional brands only** in `kit/themes/`. No real companies' marks or palettes, apart
+  from the clearly labelled Charmtone study (`charm.json`).
+- **SKILL.md frontmatter** stays within the Agent Skills spec: `name` (must equal the
+  directory name), `description` (≤ 1024 chars), `license`, `compatibility`, `metadata`.
+- **References stay one level deep** and are named by domain or `cmd-<command>.md`. A new
+  command needs a row in SKILL.md's command table.
+- **Scripts** depend only on the Python standard library, Pillow and numpy. Each has a
+  `--help` docstring that is its documentation.
+- **Writing style** for skill text: verdict headings ("Space And Rules, Not Boxes"), a
+  reason with every rule, DO/DON'T pairs, concrete numbers and glyphs, no filler. Say
+  what to do, not what to avoid feeling.
+
+## Commits
+
+[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/), because the
+history is how users of a skill learn what changed in it.
+
+```
+type(scope)!: description        e.g.  fix(kit): keep the focus bar on resize
+```
+
+- **Types**: `feat` (the skill or kit can do something new), `fix` (a miss fixed), `docs`,
+  `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `style`, `revert`.
+- **Scopes**: `skill` (SKILL.md and references), `kit`, `tools`, `scripts`, `themes`,
+  `evals`, `docs`, `ci`, `deps`.
+- **`!`** for a change that breaks something agents or users rely on: a theme contract
+  key, a kit API, a tool's flags or output, a command's name.
+- Lowercase description, imperative, no full stop, header ≤ 100 chars.
+
+CI checks the PR title (`tools/conventional.sh`), since squash-merge makes it the commit
+on `main`. Branch commits should follow the format too; to check them as you commit, run
+`git config core.hooksPath .githooks` once.
+
+## Pull requests
+
+Squash-merge. The PR title becomes the commit on `main`, so it follows the same format.
+
+Small and single-purpose. Say which miss or roadmap item it addresses, show before/after
+contact sheets for anything visual, and include the test or lint rule that keeps it
+fixed.
