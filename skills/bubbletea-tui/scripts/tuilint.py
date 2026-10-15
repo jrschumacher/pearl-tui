@@ -16,7 +16,8 @@ FRAME RULES
   F-EMOJI     [P1] emoji glyphs (width differs across terminals and fonts; reads as AI default)
   F-DEFAULT   [P1] colours from library examples/defaults (#7D56F4, #FF5FAF/205, 62/63/170/212, #EE6FF8, #874BFD)
   F-OFFPAL    [P1] (with --theme) a colour not in the theme's roles (hard-coded hex somewhere)
-  F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1 (unreadable; ≥3 needed for anything but hints)
+  F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1 (unreadable; ≥3 needed for anything but hints).
+                   Box drawing, blocks, braille and ASCII rule runs (----, ====) are decoration, not text
   F-BOXES     [P1] more than one bordered box in a frame, or boxes nested/adjacent (box soup)
   F-RAINBOW   [P2] more than 7 distinct foreground hues in one frame (no hierarchy, just colour)
   F-LEVELS    [P2] fewer than 3 text levels (fg/muted/subtle) on a dense frame: a flat wall of text
@@ -161,6 +162,28 @@ def near(c, palette):
     return _near_cache[c]
 
 
+ASCII_RULE = "-=~_/\\"  # what ASCII fallbacks turn ─ ━ ═ ┄ ╌ ╱ ╲ into
+
+
+def ascii_rule_cells(row):
+    """Columns that belong to an ASCII rule: a run of 3+ of one rule character in one colour
+    ("-----", "====", or "...." from a dotted rule at 4+). A rule drawn in the border role is
+    decoration in ASCII mode exactly as ─ is in Unicode, so it is not judged as text."""
+    out, x = set(), 0
+    while x < len(row):
+        ch = (row[x].ch or "")[:1]
+        if not ch or ch not in ASCII_RULE + ".":
+            x += 1
+            continue
+        e = x
+        while e < len(row) and (row[e].ch or "")[:1] == ch and row[e].fg == row[x].fg:
+            e += 1
+        if e - x >= (4 if ch == "." else 3):  # "..." is an ellipsis, not a rule
+            out.update(range(x, e))
+        x = e
+    return out
+
+
 def lint_frame(path, cols, rows, palette, findings, bg_default):
     text = open(path, encoding="utf-8", errors="replace").read()
     if text.endswith("\n"):
@@ -187,6 +210,7 @@ def lint_frame(path, cols, rows, palette, findings, bg_default):
     nonblank_rows = 0
     edge_left = edge_right = 0
     for y, row in enumerate(grid):
+        rules = ascii_rule_cells(row)
         line = "".join(c.ch or "" for c in row)
         if line.strip():
             nonblank_rows += 1
@@ -220,7 +244,8 @@ def lint_frame(path, cols, rows, palette, findings, bg_default):
             bg = c.bg or bg_default
             if c.rev:
                 fg, bg = bg, fg
-            decorative = 0x2500 <= o <= 0x25FF or 0x2800 <= o <= 0x28FF or 0x1FB00 <= o <= 0x1FBFF or ch in "•·"
+            decorative = (0x2500 <= o <= 0x25FF or 0x2800 <= o <= 0x28FF or 0x1FB00 <= o <= 0x1FBFF or ch in "•·"
+                          or x in rules)
             if not decorative:
                 cr = contrast(fg, bg)
                 if cr < 2.3:
