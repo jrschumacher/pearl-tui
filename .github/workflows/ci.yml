@@ -16,8 +16,8 @@ jobs:
       run:
         working-directory: skills/bubbletea-tui/kit
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: skills/bubbletea-tui/kit/go.mod
           cache-dependency-path: skills/bubbletea-tui/kit/go.sum
@@ -29,12 +29,12 @@ jobs:
     name: render every theme + lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: skills/bubbletea-tui/kit/go.mod
           cache-dependency-path: skills/bubbletea-tui/kit/go.sum
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core
@@ -58,7 +58,7 @@ jobs:
             python3 ../scripts/tuilint.py frames "../../../frames/$n" --theme "$t"
           done
           cd ../../../frames/halyard && python3 ../../skills/bubbletea-tui/scripts/cellshot.py *-80x24.ansi --sheet ../halyard-80.png
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: frames
           path: frames/
@@ -67,8 +67,8 @@ jobs:
     name: Agent Skills spec
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install "git+https://github.com/agentskills/agentskills#subdirectory=skills-ref"
