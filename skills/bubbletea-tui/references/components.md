@@ -94,6 +94,13 @@ focused one with a cursor), `underline` (text), `inverse`. Mnemonic letters are
 underlined. Buttons sit in a row, aligned per the layout (right in dialogs, left in
 forms).
 
+**One order, everywhere: the action first, the negative last** (`Roll back  Cancel`,
+`Yes  No`, `Continue  Back`). It matches Huh's confirm and Crush, and a user who learns it
+on one screen can press it blind on the next. A two-option select is not a confirm:
+use the confirm, so the order can't flip. The focused default is the safe choice when the
+action is destructive or irreversible, and the forward choice otherwise (Continue on a
+review step, not Edit).
+
 ## Tags And Alerts — `ui.Tag`, `ui.Alert`
 
 `Tag(kind, "FAILING")` is a chip. `Alert(kind, label, msg, w)` is a chip plus a tinted bar
