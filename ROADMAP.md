@@ -5,24 +5,32 @@ repository. Items move from here into issues when someone picks them up.
 
 ## Where it is (v0.1)
 
-- The skill: a stance, laws, domain references, 11 commands, and about 40 named anti-patterns.
-- A compiling Bubble Tea v2 kit with seven themes. Its tests cover footprint, contrast,
-  unstyled text, ASCII, honest help and behaviour.
-- Tools: an ANSI renderer (`cellshot`), a slop linter (`tuilint`), a palette deriver,
-  a theme-distance lint, and wordmark and logo converters.
-- Verified by an adversarial critic over three rounds (12 → 18 → 20/24) on the kit.
-- **Not yet verified:** a cold run, where a fresh session builds a real app with only
-  the skill. Everything above is the authors' own loop. The next phase is the real test.
+- The skill: a stance, laws, domain references, 11 commands (`init` interviews the user and
+  writes design and architecture into `TUI.md`), and about 40 named anti-patterns.
+- A compiling Bubble Tea v2 kit with seven themes and a reference app with two faces: an
+  ops dashboard and a first-run setup wizard built on Huh, themed from the brand. Its tests
+  cover footprint, contrast, unstyled text, ASCII, honest help, behaviour, button order and
+  no library-default colours. CI lints every theme in dark, light, ASCII and 256 colours.
+- Tools, in Go and built in one step: an ANSI renderer (`cellshot`), a frame and code
+  linter (`tuilint`, and `tuivet` for `go vet`), a palette deriver and checker, and a
+  theme-distance lint. Python remains only for the wordmark and logo converters.
+- Verified by an adversarial critic over three rounds (12 → 18 → 20/24) on the kit, and by
+  **one dogfood run**: a `restyle` of a real CLI's Huh setup wizard. It came back a
+  recolour, with Huh's default colours, flipping button order, a stalled step counter and
+  a sign-in wait with no fallback. Each miss is now an eval case (5 and 6), a lint rule
+  (F-DEFAULT for Huh's colours, C-HUHTHEME) or kit code (`ui.NewForm`, the wizard).
+- **Not yet verified:** a re-run of that restyle with the fixes, and a cold eval baseline
+  (no case in `evals/evals.json` has been run with and without the skill).
 
 ## Phase 1: Dogfood (now)
 
 Build real apps with it and turn every miss into a fix.
 
 1. **Build one app you actually need** in a fresh session with only the skill installed.
-   Start with `/bubbletea-tui init`, then `brand`, `shape` and `craft`. A good first
-   target is a CLI with a brand you already own (the tructl wizard and splash are ideal:
-   a known-good reference exists to compare against). Keep that brand's theme in the
-   app's repo, not in this one.
+   Start with `/bubbletea-tui init`, then `brand`, `shape` and `craft` (or `restyle` for
+   an existing app). A good first target is a CLI with a brand you already own. The first
+   run restyled tructl's setup wizard; its screenshots are the "before" for the re-run.
+   Keep that brand's theme in the app's repo, not in this one.
 2. **Don't help the agent.** If it asks a question, answer only as a real user would. A
    question is itself a finding: the skill was unclear.
 3. **Record each miss** with the *Skill feedback* issue template: what you asked, the
@@ -43,21 +51,28 @@ agreeing with your grades line for line.
 
 ## Phase 2: Tooling we control
 
-- **Accessible mode in the kit.** `--accessible` / `ACCESSIBLE=1`: no alt screen,
-  line-by-line prompts (Huh's accessible forms), status as new lines, no repainting. Add
-  a golden test of its plain transcript. The guidance is in `interaction.md`; the kit
-  doesn't implement it yet.
+- **Accessible mode across the kit.** The setup wizard honours `ACCESSIBLE=1` (Huh's
+  plain prompts, with a transcript test); the dashboard doesn't yet. Extend it: no alt
+  screen, status as new lines, no repainting, a `--json`/plain path for every task, and a
+  golden test of each transcript. The guidance is in `interaction.md`.
 - **Drive the real binary, not just the model.** The harness renders model states
   in-process, which misses bugs in program options, the real renderer, terminal queries
-  and resize timing. Add a Go `tuidrive` to `tools/`: spawn the app in a pty at W×H, send keys, settle,
-  capture the screen through a VT emulator (Charm's `x/vt`), and write `.ansi` frames into
-  the same `cellshot`/`tuilint` pipeline. Evaluate adopting Microsoft's
+  and resize timing. Add a Go `tuidrive` to `tools/`: spawn the app in a pty at W×H,
+  send keys, settle, capture the screen through a VT emulator (Charm's `x/vt`), and write
+  `.ansi` frames into the same `cellshot`/`tuilint` pipeline. Evaluate adopting Microsoft's
   [tui-test](https://github.com/microsoft/tui-test) (Playwright-style API, xterm.js
   emulation, Node) as the heavier option, and Charm's `teatest` for Go-side golden tests.
 - **Temporal lint for animation** (`cell-art.md` rule 14) as a script over frame
   sequences.
 - **Hooks**: a PostToolUse hook that runs `tuilint code` on edited `.go` files, as
-  Impeccable does with its detectors. Agents ignore prose; they don't ignore a hook.
+  Impeccable does with its detectors. Agents ignore prose; they don't ignore a hook. The
+  first dogfood run is the case for it: the skill described theming Huh, and the agent
+  skipped it until a lint rule (C-HUHTHEME) made it fail.
+- **Follow-ups the Go port surfaced**: `palette derive` can fail its own check for
+  mid-luminance brands (`#2E8B57`); a hex colour without `#` passes `palette check` but
+  Lip Gloss reads it as an ANSI index; `diversity` skips the min-distance rule silently
+  when a baseline isn't among its inputs; the contrast rules should live once in
+  `tuikit/theme` (`theme.Audit`) for both the kit tests and `palette check`.
 - **Distribution**: a Claude plugin marketplace manifest, and builds for other agents
   (Cursor, Codex, Gemini CLI) once the formats are verified.
 - **Theme gallery**: a browsable page of every kit theme, with the same states side by
