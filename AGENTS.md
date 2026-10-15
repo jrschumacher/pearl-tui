@@ -18,7 +18,7 @@ skills/bubbletea-tui/
   kit/            Go module `tuikit`: theme/, ui/, themes/*.json, cmd/showcase (reference app + harness)
   evals/          evals.json (skill-creator format) + fixtures
 tools/gallery.sh  regenerates docs/images from the kit
-tools/conventional.sh  checks PR titles in CI and commit subjects locally (.githooks/)
+tools/conventional.sh  checks PR titles and commit subjects, in CI and locally (.githooks/)
 ROADMAP.md        what's next, and the open problems
 ```
 
@@ -98,8 +98,9 @@ type(scope)!: description        e.g.  fix(kit): keep the focus bar on resize
   key, a kit API, a tool's flags or output, a command's name.
 - Lowercase description, imperative, no full stop, header ≤ 100 chars.
 
-CI checks the PR title (`tools/conventional.sh`), since squash-merge makes it the commit
-on `main`. Branch commits should follow the format too; to check them as you commit, run
+CI (`tools/conventional.sh`) checks the PR title, since squash-merge makes it the commit
+on `main`, and every non-merge commit on a PR and pushed to `main`. `fixup!` and `squash!`
+commits fail CI: squash them before merge. To catch a bad subject before you push, run
 `git config core.hooksPath .githooks` once.
 
 ## Pull requests

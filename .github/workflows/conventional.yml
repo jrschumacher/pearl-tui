@@ -1,11 +1,17 @@
 name: conventional commits
 
-# Squash-merge puts the PR title on main, so the title is what's checked. Branch commits
-# are free-form; .githooks/commit-msg checks them locally for those who want it.
+# Every commit that reaches main must be conventional, however it gets there:
+#   title    the PR title, which squash-merge makes the commit on main
+#   commits  every non-merge commit on a PR, and every non-merge commit pushed to main
+#            (direct pushes, merge-commit merges). fixup!/squash!/amend! commits fail:
+#            squash them before merge. Merge commits (main merged into a branch) are exempt.
+# .githooks/commit-msg runs the same check as you commit.
 
 on:
   pull_request:
     types: [opened, edited, reopened, synchronize]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -13,6 +19,7 @@ permissions:
 jobs:
   title:
     name: PR title
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -21,3 +28,26 @@ jobs:
         env:
           TITLE: ${{ github.event.pull_request.title }}
 
+  commits:
+    name: commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # PR: base..head. Push: before..sha, so history already on main is never re-checked.
+      # Event data goes through env, never into the script. shell: bash sets -o pipefail,
+      # so a bad range fails instead of silently checking nothing.
+      - shell: bash
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          # New branch (before is all zeros) or force-push (before not in the clone): head alone.
+          if [[ $BASE =~ ^0+$ ]] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            range="$HEAD^!"
+          else
+            range="$BASE..$HEAD"
+          fi
+          echo "checking non-merge commits in $range"
+          git log --no-merges --format=%s "$range" | tools/conventional.sh
