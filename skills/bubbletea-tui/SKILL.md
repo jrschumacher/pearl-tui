@@ -23,10 +23,11 @@ to all three. A half-applied idiom reads as noise.
 
 ## Setup (Every Time, Before Any UI Code)
 
-1. **Read the design context.** If `TUI.md` exists at the project root, read it: it holds
-   the brand read, the theme path, the screens and past decisions. If it doesn't exist,
-   run `teach` first (or, for a one-off screen, ask the 2–3 questions in
-   `references/cmd-teach.md` and say what you assumed).
+1. **Read `TUI.md`.** If it exists at the project root, read it: the design half holds
+   the brand read, the theme and the screens; the architecture half holds the stack, the
+   regions, the forms library, the states and the keys per state. If it doesn't exist,
+   run `init` first (or, for a one-off screen, its short form in
+   `references/cmd-init.md`: 2–3 questions, then say what you assumed).
 2. **Load the command's reference** from the table below, plus the domain references it
    names. Load nothing else up front.
 3. **Start from the kit, never from prose.** `kit/` is a compiling Bubble Tea v2 module:
@@ -152,7 +153,7 @@ auto-run a command the user didn't ask for; suggest it.
 
 | Command | Use when | Reference |
 |---|---|---|
-| `teach` | no `TUI.md`; new project; the brand changed | `references/cmd-teach.md` |
+| `init` | no `TUI.md`; new project; the brand or stack changed | `references/cmd-init.md` |
 | `brand` | create or change a theme from brand assets | `references/cmd-brand.md` |
 | `shape` | plan screens: budgets, states, keys, sketches | `references/cmd-shape.md` |
 | `craft` | build screens from the kit, with the loop | `references/cmd-craft.md` |
@@ -164,8 +165,10 @@ auto-run a command the user didn't ask for; suggest it.
 | `art` | logo, wordmark, field, splash | `references/cmd-art.md` |
 | `restyle` | an existing app onto the theme, idiom and v2 | `references/cmd-restyle.md` |
 
-No command named and the user wants a new TUI: `teach` → `brand` → `shape` → `craft`,
-checking in with the user after `shape`.
+`teach` is an alias of `init`.
+
+No command named and the user wants a new TUI: `init` → `brand` → `shape` → `craft`,
+checking in with the user after `shape`. An existing app: `init` → `restyle`.
 
 ## Tools
 

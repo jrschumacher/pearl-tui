@@ -13,6 +13,9 @@ ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                 chat.go     Gutter, UserMessage, AssistantMessage, ToolCall, Thinking, TurnFooter, Tree
                 anim.go     FrameInterval, Anim (brand spinner or the Crush scramble), Spinner
                 field.go    Field: the two-glyph brand backdrop
+                form.go     Huh, themed: HuhTheme, NewForm, Resize, NewInput, Confirm, Options,
+                            Actions (button rows), HuhSpinner, BubblesSpinner, Settle, Accessible
+                steps.go    Steps (Count, Row, List), Summary, SummaryStrip: wizard chrome
 themes/         ink (the fallback), charm (a Crush study), ferrous, lumen, halyard, moss, cartridge
 cmd/showcase/   the reference app and its harness
 ```
@@ -24,6 +27,10 @@ cmd/showcase/   the reference app and its harness
   clock with a generation number; async work finishes by message; selection by identity.
 - `screens.go`: `render(w, h)` draws every region into rectangles; header and footer
   first; overlays last; the ASCII pass at the end.
+- `setup.go`: the first-run wizard on Huh (`-first-run`): one themed Huh form per input
+  step, kit screens for review and sign-in, a step row that counts past the review, a
+  summary that marks defaults, and keys only reaching Huh through the action table.
+  `ACCESSIBLE=1` runs the same fields as plain prompts.
 - `main.go`: the harness (`-golden`, `-state`, `-out`, `-sizes`, `-theme`, `-light`,
   `-ascii`, `-profile`, `-frame`) and `setState` for every named state.
 - `showcase_test.go`, `behaviour_test.go`: the footprint at 5 sizes × 7 themes × 3

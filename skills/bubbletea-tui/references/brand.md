@@ -154,7 +154,7 @@ Put it beside the baseline (`ink`) and one other brand. Ask:
 ## 7. Keep It Consistent Over Time
 
 - Record the brand read, the theme path and the decisions in the project's design context
-  file (`TUI.md`, written by `teach`). Every later change reads it first.
+  file (`TUI.md`, written by `init`). Every later change reads it first.
 - `tuilint code` fails on hex outside the theme package [C-HEX] and on emoji
   [C-EMOJI]. `tuilint frames --theme` fails on any rendered colour that isn't a role
   or a blend of two roles [F-OFFPAL].

@@ -29,6 +29,7 @@ const (
 	scrAssistant
 	scrDeploy // the deploy form (from services)
 	scrSplash
+	scrSetup // the first-run wizard (setup.go)
 )
 
 var tabNames = []string{"Services", "Deploys", "Incidents", "Assistant"}
@@ -83,6 +84,9 @@ type app struct {
 	events []event
 	depSel int
 	feed   [][4]string // the activity feed (time, what, who, state): live, newest first
+	// first-run setup (setup.go)
+	setup    *setupFlow
+	firstRun bool
 }
 
 type toast struct {
@@ -109,6 +113,7 @@ func newApp(f theme.File, dark, ascii bool) *app {
 	m.feed = slices.Clone(activity)
 	m.version, m.checks = "v2.4.1", [2]bool{true, false}
 	m.btn = 1
+	m.setup = newSetup()
 	return m
 }
 
@@ -126,6 +131,9 @@ func (m *app) Init() tea.Cmd {
 func (m *app) animating() bool {
 	if m.screen == scrSplash || m.busy || m.toast != nil {
 		return true
+	}
+	if m.screen == scrSetup && m.setup.step == stSignin && !m.setup.failed {
+		return true // the spinner and the elapsed time
 	}
 	if m.ov == ovNone && (m.screen == scrServices || m.screen == scrDeploys) {
 		for _, s := range m.svcs {
@@ -154,11 +162,27 @@ func (m *app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.w, m.h = msg.Width, msg.Height
 	case tea.BackgroundColorMsg:
 		m.t = theme.Resolve(m.file, msg.IsDark(), m.ascii)
+		if m.screen == scrSetup && m.setup.form != nil {
+			// Huh keeps the first theme a field is given: rebuild the step
+			return m, m.goStep(m.setup.step)
+		}
 	case connectedMsg:
+		var cmd tea.Cmd
 		if m.screen == scrSplash {
 			m.screen = scrServices
+			if m.firstRun {
+				cmd = m.openSetup()
+			}
 		}
-		return m, m.startClock()
+		return m, tea.Batch(cmd, m.startClock())
+	case signedInMsg:
+		if f := m.setup; m.screen == scrSetup && f.step == stSignin && !f.failed && msg.gen == f.gen {
+			return m, tea.Batch(m.goStep(stDone), m.startClock())
+		}
+	case signinTimeoutMsg:
+		if f := m.setup; m.screen == scrSetup && f.step == stSignin && !f.failed && msg.gen == f.gen {
+			f.failed, f.acts = true, ui.NewActions(0, "Retry", "Back")
+		}
 	case tickMsg:
 		if msg.gen != m.tick.gen {
 			return m, nil // a stale chain dies here
@@ -184,6 +208,12 @@ func (m *app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		cmd := m.key(msg)
 		return m, tea.Batch(cmd, m.startClock())
+	default:
+		// everything else a Huh form asked for (its next-field messages,
+		// the cursor blink) goes back to the form
+		if m.screen == scrSetup {
+			return m, tea.Batch(m.toForm(msg), m.startClock())
+		}
 	}
 	return m, nil
 }
@@ -205,6 +235,10 @@ func (m *app) key(msg tea.KeyPressMsg) tea.Cmd {
 	}
 	// a focused input takes every printable key first: no letter, colon or
 	// question mark can fire a command while the user is typing
+	if m.screen == scrSetup && m.ov == ovNone && m.setup.typing() && msg.Text != "" && msg.Mod&^tea.ModShift == 0 {
+		m.last, m.setup.escArmed = "type", false
+		return m.toForm(msg) // the Huh input does the editing
+	}
 	if p := m.textTarget(); p != nil && msg.Text != "" && msg.Mod == 0 {
 		*p += msg.Text
 		m.last = "type"
@@ -254,7 +288,7 @@ func (m *app) say(kind, label, msg string) {
 func (m *app) actions() []action {
 	quit := action{bind([]string{"q"}, "q", "quit"), true, func(*app, tea.KeyPressMsg) tea.Cmd { return tea.Quit }}
 	// with a text input focused, help and the palette move off printable keys
-	typing := m.textTarget() != nil
+	typing := m.textTarget() != nil || (m.screen == scrSetup && m.setup.typing())
 	helpKeys, paletteKeys := []string{"?"}, []string{"ctrl+p", ":"}
 	if typing {
 		helpKeys, paletteKeys = []string{"ctrl+g"}, []string{"ctrl+p"}
@@ -314,6 +348,8 @@ func (m *app) actions() []action {
 	}
 
 	switch m.screen {
+	case scrSetup:
+		return m.setupActions(help)
 	case scrSplash:
 		return []action{quit}
 	case scrDeploy:
@@ -567,6 +603,9 @@ func (m *app) View() tea.View {
 	v := tea.NewView(c.String())
 	v.AltScreen = true
 	v.WindowTitle = m.t.AppName() + " · " + m.svcs[m.sel].Name
+	if m.screen == scrSetup {
+		v.WindowTitle = m.t.AppName() + " · setup"
+	}
 	if m.t.X.PaintBg {
 		v.BackgroundColor = m.t.P.Bg
 		v.ForegroundColor = m.t.P.Fg

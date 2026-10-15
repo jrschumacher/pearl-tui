@@ -80,17 +80,37 @@ func (m *model) View() tea.View {                            // returns tea.View
 
 ### Huh v2
 
-- `(*huh.Form).Update` returns `(huh.Model, tea.Cmd)` and its `View()` returns a string,
-  so a form is not a `tea.Model`. Embed it with `f, cmd := m.form.Update(msg); m.form =
-  f.(*huh.Form)` and draw `m.form.View()` into a rectangle.
-- Themes: `form.WithTheme(huh.ThemeFunc(myTheme))` where `myTheme(isDark bool)
-  *huh.Styles` maps your roles onto Huh's styles. The focused field's `Base` is your focus
-  bar.
+Use Huh for input mechanics and the kit's `ui/form.go` for everything it renders. Never
+`huh.NewForm` bare: `tuilint code` fails it [C-HUHTHEME] and Huh's defaults render.
+
+- `ui.NewForm(t, w, h, groups...)` themes the form from `*theme.Theme` (`ui.HuhTheme`),
+  sets the kit's keys (`ui.FormKeys`) and honours `ACCESSIBLE=1` (`ui.Accessible`).
+- `(*huh.Form).Update` returns `(huh.Model, tea.Cmd)` and `View()` returns a string, so a
+  form is not a `tea.Model`: `f, cmd := m.form.Update(msg); m.form = f.(*huh.Form)`, and
+  draw `m.form.View()` into a rectangle. Send it every non-key message too: Huh moves
+  focus with commands (`NextField`), not in `Update`.
+- `ui.Resize(f, w, h)` after a size change; `ui.Settle(update, cmd)` in tests to run
+  Huh's follow-up commands.
+
+Huh v2.0.3 quirks the kit already works around (each is a test; don't undo it):
+
+| Quirk | Workaround |
+|---|---|
+| assumes a light terminal until a `BackgroundColorMsg` reaches the form | `HuhTheme` ignores `isDark` and uses the resolved kit theme |
+| a field keeps the first theme it's given | rebuild the step's form on a theme change |
+| a blurred `huh.Input` is unthemed and keeps its `> ` prompt (two `>` on screen) | `ui.NewInput` draws the blurred row itself |
+| `Confirm` buttons are centred | `ui.Confirm` aligns them left; order is action first |
+| the viewport fills only on `Update`, sized with the default theme | `ui.Resize` sends a no-op and sizes to content |
+| validation errors land rows below the field, or off screen | `ui.Resize` counts the error rows; the theme indents them with the fail glyph |
+| `/` on a select opens an unthemed filter; Huh binds its own `ctrl+c` | `ui.FormKeys` turns both off; the app owns quit |
+| no descriptions beside options | `ui.Options(ui.Choice{Name, Desc, Value}...)` |
+| the spinner is `#F780E2`, says "Loading...", no gap before the title | `ui.HuhSpinner(t, title)`; `ui.BubblesSpinner(t)` for Bubbles |
+| accessible prompts print theme colours as raw escapes | `NewForm` uses Huh's colourless base theme when accessible |
+| the input's cursor blink runs its own timer | accepted: the one exception to one clock |
+| `Select.Value` before `Options` selects nothing | call `Options` first |
+
 - Rebuild the form when a choice changes which fields exist. Bound values must be
-  pointers that outlive the form. Set the form height after theming, because Huh sizes
-  its viewport with the base theme.
-- For anything Huh can't show (descriptions beside options, sections that aren't pages),
-  write the field yourself. The kit's deploy form is ~60 lines and fully themed.
+  pointers that outlive the form.
 
 ## One Root Model, Regions As Plain Structs
 

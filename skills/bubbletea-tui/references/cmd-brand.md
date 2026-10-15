@@ -1,6 +1,6 @@
 # brand — turn a brand into a theme file that is provably not the default
 
-Input: `TUI.md` (run `teach` first if missing) and the brand assets. Output:
+Input: `TUI.md` (run `init` first if missing) and the brand assets. Output:
 `themes/<brand>.json`, `themes/<brand>.read.md`, contact sheets in both modes, a passing
 diversity lint. Read `references/brand.md` and `references/color.md` first.
 

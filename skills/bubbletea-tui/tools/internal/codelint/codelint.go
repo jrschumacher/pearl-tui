@@ -11,6 +11,9 @@
 //	C-V1        [P1] Bubble Tea / Lip Gloss / Bubbles / Huh v1 import paths
 //	C-SIZE      [P1] a program whose code never handles tea.WindowSizeMsg
 //	C-VIEWIO    [P1] os, net/http or os/exec I/O reachable from View
+//	C-HUHTHEME  [P1] a huh.NewForm (or a Huh field run on its own) never given WithTheme, or given a
+//	                 stock Huh theme; a Huh spinner without WithTheme; a Bubbles spinner.New without
+//	                 spinner.WithStyle or a .Style: each renders the library's colours, not the brand
 //	C-FASTTICK  [P2] tea.Tick/Every faster than 33ms
 //	C-PRINT     [P2] fmt.Print* reachable from a running model (Init, Update, View or their Cmds)
 //	C-KEYS      [P2] key strings matched inline and no key.Binding anywhere in the program
@@ -33,13 +36,13 @@ import (
 // Analyzers are the rules, in the order tuivet registers them.
 var Analyzers = []*analysis.Analyzer{
 	LenAnalyzer, BlockingAnalyzer, HexAnalyzer, EmojiAnalyzer, V1Analyzer, SizeAnalyzer,
-	TickAnalyzer, PrintAnalyzer, KeysAnalyzer, NoColorAnalyzer,
+	TickAnalyzer, PrintAnalyzer, KeysAnalyzer, NoColorAnalyzer, HuhThemeAnalyzer,
 }
 
 // Severity maps each rule ID to P0, P1 or P2.
 var Severity = map[string]string{
 	"C-SLEEP": "P0",
-	"C-LEN":   "P1", "C-HEX": "P1", "C-EMOJI": "P1", "C-V1": "P1", "C-SIZE": "P1", "C-VIEWIO": "P1",
+	"C-LEN":   "P1", "C-HEX": "P1", "C-EMOJI": "P1", "C-V1": "P1", "C-SIZE": "P1", "C-VIEWIO": "P1", "C-HUHTHEME": "P1",
 	"C-FASTTICK": "P2", "C-PRINT": "P2", "C-KEYS": "P2", "C-NOCOLOR": "P2",
 }
 
@@ -66,6 +69,8 @@ files are analysed syntax-only and stderr says so.
   C-V1        [P1] Bubble Tea / Lip Gloss / Bubbles / Huh v1 import paths
   C-SIZE      [P1] a program whose code never handles tea.WindowSizeMsg
   C-VIEWIO    [P1] os, net/http or os/exec I/O reachable from View
+  C-HUHTHEME  [P1] huh form or run field without WithTheme (or with a stock Huh theme), Huh
+                   spinner without WithTheme, Bubbles spinner without WithStyle or .Style
   C-FASTTICK  [P2] tea.Tick/Every faster than 33ms
   C-PRINT     [P2] fmt.Print* reachable from a running model
   C-KEYS      [P2] key strings matched inline and no key.Binding anywhere in the program
