@@ -95,6 +95,10 @@ scripts/termshot.py frames/*-80x24.ansi --sheet sheet.png # look at it
 
 ![Light, dark and ASCII renders of one state](docs/images/gallery-modes.png)
 
+![The assistant: tool calls, thinking, a turn footer, the working indicator](docs/images/gallery-assistant.png)
+
+![The command palette in six brands](docs/images/gallery-palette.png)
+
 ## Credits
 
 The idiom is learned from [Charm](https://charm.land)'s

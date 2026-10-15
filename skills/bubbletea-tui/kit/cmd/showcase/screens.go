@@ -161,7 +161,7 @@ func (m *app) services(c *ui.Canvas, r uv.Rectangle) {
 		// tall terminals: use the room for the activity feed, not blank rows
 		if top := main.Min.Y + len(tbl) + 2; main.Max.Y-top >= 6 {
 			act := []string{ui.Section(t, "Activity", main.Dx(), "last hour"), ""}
-			for _, e := range activity {
+			for _, e := range m.feed {
 				act = append(act, "  "+t.S.Subtle.Render(e[0])+"  "+ui.Dot(t, e[3])+" "+t.S.Soft.Render(e[1])+"  "+t.S.Muted.Render(e[2]))
 			}
 			n := min(len(act), main.Max.Y-top)
@@ -202,12 +202,18 @@ func (m *app) serviceDetail(c *ui.Canvas, r uv.Rectangle) {
 		trend += "  " + t.S.Err.Render(t.G.Arrow+" "+ftoa(last/s.P99[0])+"× since 14:00")
 	}
 	rows = append(rows, trend)
-	if s.State == "error" {
-		rows = append(rows, "", ui.Section(t, "Recent", w, ""), "")
-		ev := [][2]string{{"14:03", "circuit open · payments"}, {"14:02", "502 rate crossed 1%"}, {"14:00", "deployed " + s.Version + " by @mara"}}
-		for _, e := range ev {
-			rows = append(rows, t.S.Subtle.Render(e[0])+"  "+t.S.Soft.Render(e[1]))
+	// Recent: this service's lines from the live feed
+	var recent []string
+	for _, e := range m.feed {
+		if strings.Contains(e[1], s.Name) && len(recent) < 3 {
+			recent = append(recent, t.S.Subtle.Render(e[0])+"  "+t.S.Soft.Render(ui.Trunc(t, e[1], w-7)))
 		}
+	}
+	if len(recent) > 0 {
+		rows = append(rows, "", ui.Section(t, "Recent", w, ""), "")
+		rows = append(rows, recent...)
+	}
+	if s.State == "error" && s.Prev != "" {
 		rows = append(rows, "", t.S.Key.Render("r")+" "+t.S.KeyDesc.Render("roll back to "+s.Prev))
 	}
 	c.Draw(strings.Join(rows, "\n"), r)
@@ -239,7 +245,11 @@ func (m *app) deploys(c *ui.Canvas, r uv.Rectangle) {
 		if e.State == "busy" {
 			st = ui.Spinner(t, m.frame/2)
 		}
-		rows = append(rows, []string{st + " " + t.S.Base.Render(e.Svc), t.S.Soft.Render(e.Version), t.S.Muted.Render(e.By), t.S.Subtle.Render(e.Ago)})
+		name := t.S.Base.Render(e.Svc)
+		if e.Env != "prod" {
+			name += t.S.Muted.Render(" " + e.Env)
+		}
+		rows = append(rows, []string{st + " " + name, t.S.Soft.Render(e.Version), t.S.Muted.Render(e.By), t.S.Subtle.Render(e.Ago)})
 	}
 	widths := []int{0, 9, 8, 8}
 	widths[0] = max(12, min(40, main.Dx()-(2+11+10+10)))

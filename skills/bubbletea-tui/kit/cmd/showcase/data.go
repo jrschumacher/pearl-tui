@@ -89,15 +89,16 @@ var activity = [][4]string{
 
 // event is one line of the deploy log. It names its service, so selecting a
 // row selects that service (by identity, never by row index).
-type event struct{ Ago, Svc, Version, By, State string }
+type event struct{ Ago, Svc, Env, Version, By, State string }
 
 var initialEvents = []event{
-	{"now", "search-indexer", "v3.0.1", "@ci", "busy"},
-	{"14m ago", "checkout-api", "v2.4.0", "@mara", "error"},
-	{"1h ago", "auth-gateway", "v5.2.7", "@ci", "ok"},
-	{"1d ago", "notifications-worker-eu-west", "v0.9.14", "@devon", "warning"},
-	{"3d ago", "inventory-sync", "v1.19.2", "@ci", "ok"},
-	{"5d ago", "image-resizer", "v2.0.3", "@priya", "ok"},
-	{"21d ago", "ledger", "v7.1.0", "@jun", "ok"},
-	{"34d ago", "recommendations", "v4.4.4", "@ci", "idle"},
+	{"now", "search-indexer", "prod", "v3.0.1", "@ci", "busy"},
+	{"14m ago", "checkout-api", "prod", "v2.4.0", "@mara", "error"},
+	{"1h ago", "auth-gateway", "prod", "v5.2.7", "@ci", "ok"},
+	{"1d ago", "notifications-worker-eu-west", "prod", "v0.9.14", "@devon", "warning"},
+	{"2d ago", "ledger", "staging", "v7.1.1", "@jun", "ok"},
+	{"3d ago", "inventory-sync", "prod", "v1.19.2", "@ci", "ok"},
+	{"5d ago", "image-resizer", "prod", "v2.0.3", "@priya", "ok"},
+	{"21d ago", "ledger", "prod", "v7.1.0", "@jun", "ok"},
+	{"34d ago", "recommendations", "prod", "v4.4.4", "@ci", "idle"},
 }

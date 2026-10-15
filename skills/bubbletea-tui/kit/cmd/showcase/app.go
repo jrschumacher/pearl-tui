@@ -82,6 +82,7 @@ type app struct {
 	// deploys log: newest first; depSel is a row, resolved to a service by name
 	events []event
 	depSel int
+	feed   [][4]string // the activity feed (time, what, who, state): live, newest first
 }
 
 type toast struct {
@@ -105,6 +106,7 @@ func newApp(f theme.File, dark, ascii bool) *app {
 	m := &app{file: f, t: theme.Resolve(f, dark, ascii), ascii: ascii, w: 80, h: 24}
 	m.svcs = slices.Clone(services)
 	m.events = slices.Clone(initialEvents)
+	m.feed = slices.Clone(activity)
 	m.version, m.checks = "v2.4.1", [2]bool{true, false}
 	m.btn = 1
 	return m
@@ -452,9 +454,12 @@ func (m *app) svcIndex(name string) int {
 	return m.sel
 }
 
-func (m *app) logEvent(e event) {
+// logEvent records a deploy or rollback everywhere it is shown: the deploy
+// log, the activity feed and (via the feed) the detail pane's Recent list.
+func (m *app) logEvent(e event, what string) {
 	m.events = append([]event{e}, m.events...)
 	m.depSel = 0
+	m.feed = append([][4]string{{"now", what, e.By, e.State}}, m.feed...)
 }
 
 // deploy ships the form's version. Prod changes the fleet and finishes by a
@@ -465,12 +470,12 @@ func (m *app) deploy() tea.Cmd {
 	how := []string{"rolling", "canary 10%", "blue/green"}[m.strategy]
 	m.screen = scrServices
 	if env != "prod" {
-		m.logEvent(event{"now", s.Name + " (" + env + ")", m.version, "@you", "ok"})
+		m.logEvent(event{"now", s.Name, env, m.version, "@you", "ok"}, "deployed "+s.Name+" "+m.version+" to "+env)
 		m.say("ok", "DEPLOYED", s.Name+" "+m.version+" to "+env)
 		return nil
 	}
 	s.Prev, s.State, s.Version = s.Version, "deploying", m.version
-	m.logEvent(event{"now", s.Name, m.version, "@you", "busy"})
+	m.logEvent(event{"now", s.Name, "prod", m.version, "@you", "busy"}, "deploying "+s.Name+" "+m.version)
 	m.say("info", "DEPLOYING", s.Name+" "+m.version+" to prod · "+how)
 	name := s.Name
 	return tea.Tick(4*time.Second, func(time.Time) tea.Msg { return deployDoneMsg{name} })
@@ -488,6 +493,7 @@ func (m *app) finishDeploy(name string) {
 			m.events[k].State = "ok"
 		}
 	}
+	m.feed = append([][4]string{{"now", "deployed " + name + " " + s.Version + " · 3/3 pods healthy", "@you", "ok"}}, m.feed...)
 	m.say("ok", "DEPLOYED", name+" "+s.Version+" · 3/3 pods healthy")
 }
 
@@ -508,7 +514,7 @@ func (m *app) rollback() {
 	from := s.Version
 	s.Version, s.Prev, s.State, s.ErrRate, s.Deployed = s.Prev, "", "ok", "0.03%", "now"
 	s.P99 = []float64{140, 132, 128, 125, 124, 123, 122, 121, 122, 121, 120, 121}
-	m.logEvent(event{"now", s.Name, s.Version, "@you", "ok"})
+	m.logEvent(event{"now", s.Name, "prod", s.Version, "@you", "ok"}, "rolled back "+s.Name+" "+from+" → "+s.Version)
 	m.say("ok", "DONE", "Rolled back "+s.Name+" from "+from+" to "+s.Version)
 }
 

@@ -197,7 +197,7 @@ func Thinking(t *theme.Theme, lines []string, n int, took string, w int) []strin
 
 // TurnFooter closes a turn: "◇ model via provider in 12s ──────".
 func TurnFooter(t *theme.Theme, model, via, took string, w int) string {
-	label := t.S.Muted.Render(t.G.Todo+" "+model) + t.S.Subtle.Render(" via "+via+" in "+took)
+	label := t.S.OK.Render(t.G.Done) + t.S.Muted.Render(" "+model) + t.S.Subtle.Render(" via "+via+" in "+took)
 	n := w - 2 - lipgloss.Width(label) - 1
 	return "  " + label + " " + t.S.Rule.Render(strings.Repeat(t.G.Rule, max(0, n)))
 }

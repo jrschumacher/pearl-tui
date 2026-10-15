@@ -175,7 +175,7 @@ func TestASCIIStatusDistinct(t *testing.T) {
 // header names and every action uses (the round-2 Deploys bug).
 func TestSelectionIsIdentity(t *testing.T) {
 	m := fixture(t, "deploys")
-	for range 3 {
+	for range len(m.events) - 1 { // every row, including the non-prod one
 		m.key(press("j"))
 		want := m.events[m.depSel].Svc
 		if got := m.svcs[m.sel].Name; got != want {
