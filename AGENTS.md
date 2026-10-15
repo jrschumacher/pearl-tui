@@ -69,9 +69,10 @@ The skill gets better from observed misses, not from adding prose.
 - **No literals in screens.** Colours and glyphs come from the theme. `tuilint code`
   fails on hex outside `theme/`.
 - **Pinned versions.** `charm.land/bubbletea/v2 v2.1.0`, `lipgloss/v2 v2.0.6`,
-  `bubbles/v2 v2.2.1`, Ultraviolet `v0.0.0-20261008173134-6b8d4baf91b4`. To bump: update
-  `kit/go.mod`, run everything above, and update `references/architecture.md`, whose API
-  claims are verified against these versions.
+  `bubbles/v2 v2.2.1`, `huh/v2 v2.0.3`, Ultraviolet `v0.0.0-20261008173134-6b8d4baf91b4`.
+  To bump: update `kit/go.mod`, run everything above, and update
+  `references/architecture.md`, whose API claims are verified against these versions, and
+  the stack line in `references/cmd-init.md`'s TUI.md template.
 - **Fictional brands only** in `kit/themes/`. No real companies' marks or palettes, apart
   from the clearly labelled Charmtone study (`charm.json`).
 - **SKILL.md frontmatter** stays within the Agent Skills spec: `name` (must equal the
