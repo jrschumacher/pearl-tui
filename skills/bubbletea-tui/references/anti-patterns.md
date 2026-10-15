@@ -129,7 +129,14 @@ marked at all. Exactly one visible focus, always.
 pushes the text over. The focus marker occupies the same cells focused or not (`Gutter`).
 
 **I4 Lying help** [C-KEYS]. The help line says `e edit`; `e` does nothing on this screen.
-Help is generated from the same `key.Binding`s that `Update` matches.
+Help and dispatch read one per-state action table, and a test presses every key.
+
+**I9 The wrong target.** Select the fifth row, press `r`, and the dialog offers to roll
+back the first. Fixtures hide it because the first row is always the interesting one.
+
+**I10 The multiplying clock.** Every key press returns a new `tea.Tick`, so after ten
+keys there are ten loops and the spinner runs at 10× speed. One clock, with a generation
+number, armed only if not already running.
 
 **I5 `q` in a text field.** Quit bound to `q` while the user is typing a name. Global
 keys yield to the focused input; `ctrl+c` always quits (or confirms quitting).

@@ -9,9 +9,9 @@
    "bgOverlay": "#25374E",
    "bgPanel": "#131F2F",
    "bgSubtle": "#1A293D",
-   "border": "#16283E",
+   "border": "#2A4766",
    "borderFocus": "#FF5A1F",
-   "error": "#F85D61",
+   "error": "#F0507E",
    "fg": "#C1CCDB",
    "fgMuted": "#6E839E",
    "fgSelected": "#041225",
@@ -35,9 +35,9 @@
    "bgOverlay": "#D3DAE1",
    "bgPanel": "#EDF0F3",
    "bgSubtle": "#E2E7EC",
-   "border": "#DCE2E8",
+   "border": "#C3CFDB",
    "borderFocus": "#E64700",
-   "error": "#B7162D",
+   "error": "#C21F55",
    "fg": "#1C2733",
    "fgMuted": "#5A6A7A",
    "fgSelected": "#1D0D08",
@@ -75,7 +75,8 @@
    "◣",
    "◤",
    "◥"
-  ]
+  ],
+  "warn": "!"
  },
  "expressions": {
   "header": "bar",

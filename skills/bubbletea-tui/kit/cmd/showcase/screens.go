@@ -3,7 +3,6 @@ package main
 import (
 	"strings"
 
-	"charm.land/bubbles/v2/key"
 	"charm.land/lipgloss/v2"
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/ultraviolet/layout"
@@ -21,6 +20,14 @@ const (
 // View and the golden harness share it, so what the PNG shows is what the
 // terminal shows.
 func (m *app) render(w, h int) *ui.Canvas {
+	c := m.draw(w, h)
+	if m.t.ASCII {
+		c.ASCIIfy() // nothing outside tier 0 survives, whatever a screen typed
+	}
+	return c
+}
+
+func (m *app) draw(w, h int) *ui.Canvas {
 	t := m.t
 	c := ui.NewCanvas(t, w, h)
 	if w < minW || h < minH {
@@ -32,32 +39,32 @@ func (m *app) render(w, h int) *ui.Canvas {
 		return c
 	}
 	g := t.X.Gutter
-	// header
-	details := ui.Details(t, "prod", "us-east-1", services[m.sel].Name)
-	head := ui.Header(t, w, h, t.AppName(), details)
+	s := m.svcs[m.sel]
+	head := ui.Header(t, w, h, t.AppName(), ui.Details(t, "prod", "us-east-1", s.Name))
 	y := 0
 	c.Draw(strings.Join(head, "\n"), ui.Rect(0, y, w, len(head)))
 	y += len(head) + t.Gap()
 
-	// footer (drawn first so the body knows how much room is left)
-	foot := m.footer(w)
+	// footer first: the body gets what is left
+	foot := ui.Footer(t, w, m.footerBadge(), m.footerBindings(), m.footerRight())
 	fy := h - len(foot)
 	c.Draw(strings.Join(foot, "\n"), ui.Rect(0, fy, w, len(foot)))
-	if m.toast != nil {
-		c.Draw(ui.Toast(t, m.toast.kind, m.toast.label, m.toast.msg, w), ui.Rect(0, h-1, w, 1))
-	}
 
-	// tabs
 	if m.screen != scrDeploy {
-		counts := []string{t.S.Subtle.Render(itoa(len(services))), "", "", ""}
-		tabs := ui.Tabs(t, []string{"Services", "Deploys", "Incidents", "Assistant"}, int(m.screen), counts)
+		counts := []string{t.S.Subtle.Render(itoa(len(m.svcs))), "", "", ""}
+		if m.declared {
+			counts[2] = t.S.Warn.Render("1")
+		}
+		tabs := ui.Tabs(t, tabNames, int(m.screen), counts)
 		c.Draw(strings.Join(tabs, "\n"), ui.Rect(g, y, w-2*g, len(tabs)))
 		y += len(tabs) + t.Gap()
 	}
 	body := uv.Rect(g, y, w-2*g, max(0, fy-y-t.Gap()))
 	switch m.screen {
-	case scrServices, scrDeploys:
+	case scrServices:
 		m.services(c, body)
+	case scrDeploys:
+		m.deploys(c, body)
 	case scrIncidents:
 		m.incidents(c, body)
 	case scrAssistant:
@@ -70,36 +77,31 @@ func (m *app) render(w, h int) *ui.Canvas {
 		m.palette(c)
 	case ovConfirm:
 		m.confirm(c)
+	case ovHelp:
+		m.keysOverlay(c)
 	}
 	if m.ov != ovNone {
-		// the footer describes the dialog's keys: it sits above the scrim
+		// the footer now describes the dialog's keys: it sits above the scrim
 		c.Draw(strings.Join(foot, "\n"), ui.Rect(0, fy, w, len(foot)))
+	}
+	if m.toast != nil {
+		c.Draw(ui.Toast(t, m.toast.kind, m.toast.label, m.toast.msg, w), ui.Rect(0, h-1, w, 1))
 	}
 	return c
 }
 
-func (m *app) footer(w int) []string {
-	k := m.keys
-	var b []key.Binding
-	left := ""
-	switch {
-	case m.ov == ovPalette:
-		b = []key.Binding{k.Enter, k.Up, k.Down, k.Back}
-	case m.ov == ovConfirm:
-		b = []key.Binding{key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "confirm")), key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "switch")), k.Back}
-	case m.screen == scrDeploy:
-		b = []key.Binding{key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "deploy")), k.Next, key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "back")), k.Back}
-		left = ui.Tag(m.t, "warning", "PROD")
-	case m.screen == scrAssistant:
-		b = []key.Binding{key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "send")), k.Tab, k.Palette, key.NewBinding(key.WithKeys("ctrl+o"), key.WithHelp("ctrl+o", "expand")), k.Quit}
-	default:
-		b = []key.Binding{k.Down, k.Up, k.Deploy, k.Rollback, k.Palette, k.Tab, k.Quit}
+func (m *app) footerBadge() string {
+	if m.screen == scrDeploy && m.ov == ovNone {
+		return ui.Tag(m.t, "warning", "PROD")
 	}
-	right := ""
+	return ""
+}
+
+func (m *app) footerRight() string {
 	if m.screen == scrServices && m.ov == ovNone {
-		right = m.t.S.Subtle.Render("synced 4s ago")
+		return m.t.S.Subtle.Render("synced 4s ago")
 	}
-	return ui.Footer(m.t, w, left, b, right)
+	return ""
 }
 
 // ---------------------------------------------------------------- services
@@ -121,24 +123,20 @@ func (m *app) services(c *ui.Canvas, r uv.Rectangle) {
 		widths = []int{0, 8, 12, 6, 8}
 		align = "llllr"
 	}
-	// first column takes the rest: compute it so the table is exactly main wide
 	fixed := 2
 	for _, x := range widths[1:] {
 		fixed += x + 2
 	}
 	widths[0] = max(12, main.Dx()-fixed)
-	// the name column comes first; reorder widths/headers accordingly
 	var rows [][]string
-	for i, s := range services {
+	for i, s := range m.svcs {
 		name := ui.Dot(t, s.State) + " " + t.S.Base.Render(s.Name)
 		if s.State == "deploying" {
 			name = ui.Spinner(t, m.frame/2) + " " + t.S.Base.Render(s.Name)
 		}
+		// red lives on the dot and the number; the sparkline stays quiet
 		spark := t.S.Muted
-		switch s.State {
-		case "error":
-			spark = t.S.Err
-		case "warning":
+		if s.State == "warning" {
 			spark = t.S.Warn
 		}
 		errs := t.S.Soft.Render(s.ErrRate)
@@ -157,69 +155,60 @@ func (m *app) services(c *ui.Canvas, r uv.Rectangle) {
 	}
 	tbl := ui.Table(t, header, rows, widths, align, m.sel, main.Dx(), m.ov == ovNone)
 	c.Draw(strings.Join(tbl, "\n"), main)
+	s := m.svcs[m.sel]
 	if side.Dx() > 0 {
 		m.serviceDetail(c, side)
 		// tall terminals: use the room for the activity feed, not blank rows
 		if top := main.Min.Y + len(tbl) + 2; main.Max.Y-top >= 6 {
 			act := []string{ui.Section(t, "Activity", main.Dx(), "last hour"), ""}
 			for _, e := range activity {
-				who := t.S.Muted.Render(e[2])
-				act = append(act, "  "+t.S.Subtle.Render(e[0])+"  "+ui.Dot(t, e[3])+" "+t.S.Soft.Render(e[1])+"  "+who)
+				act = append(act, "  "+t.S.Subtle.Render(e[0])+"  "+ui.Dot(t, e[3])+" "+t.S.Soft.Render(e[1])+"  "+t.S.Muted.Render(e[2]))
 			}
 			n := min(len(act), main.Max.Y-top)
 			c.Draw(strings.Join(act[:n], "\n"), uv.Rect(main.Min.X, top, main.Dx(), n))
 		}
 	} else if y := main.Min.Y + len(tbl) + 1; y < main.Max.Y {
-		s := services[m.sel]
 		line := t.S.Muted.Render(s.Name) + t.S.Subtle.Render("  owner ") + t.S.Soft.Render(s.Owner) +
 			t.S.Subtle.Render("  deployed ") + t.S.Soft.Render(s.Deployed)
 		c.Draw(line, uv.Rect(main.Min.X+2, y, main.Dx()-2, 1))
 		if s.State == "error" && y+2 < main.Max.Y {
-			c.Draw(ui.Alert(t, "error", "502s", "4.8% of checkout requests failing since 14:02", main.Dx()-2), uv.Rect(main.Min.X+2, y+2, main.Dx()-2, 1))
+			c.Draw(ui.Alert(t, "error", "502s", "4.8% of checkout requests failing since 14:02 · r roll back", main.Dx()-2), uv.Rect(main.Min.X+2, y+2, main.Dx()-2, 1))
 		}
 	}
 }
 
+var stateTag = map[string][2]string{
+	"error": {"error", "FAILING"}, "ok": {"ok", "HEALTHY"}, "warning": {"warning", "DEGRADED"},
+	"deploying": {"primary", "DEPLOYING"}, "idle": {"muted", "IDLE"},
+}
+
 func (m *app) serviceDetail(c *ui.Canvas, r uv.Rectangle) {
 	t := m.t
-	s := services[m.sel]
+	s := m.svcs[m.sel]
 	w := r.Dx()
-	var rows []string
-	rows = append(rows, ui.Section(t, s.Name, w, s.Env))
-	state := map[string]string{"error": "error", "ok": "ok", "warning": "warning", "deploying": "primary", "idle": "muted"}[s.State]
-	label := map[string]string{"error": "FAILING", "ok": "HEALTHY", "warning": "DEGRADED", "deploying": "DEPLOYING", "idle": "IDLE"}[s.State]
-	rows = append(rows, "")
+	tag := stateTag[s.State]
+	rows := []string{ui.Section(t, s.Name, w, s.Env), ""}
 	rows = append(rows, ui.KV(t, [][2]string{
-		{"status", ui.Tag(t, state, label)},
+		{"status", ui.Tag(t, tag[0], tag[1])},
 		{"version", t.S.Base.Render(s.Version)},
 		{"owner", t.S.Base.Render(s.Owner)},
 		{"deployed", t.S.Base.Render(s.Deployed)},
 	}, 9)...)
-	rows = append(rows, "")
+	rows = append(rows, "", ui.Section(t, "p99 latency", w, "12 min"), "")
+	rows = append(rows, ui.Sparkline(t, stretch(s.P99, w), w, t.S.Muted))
 	last := s.P99[len(s.P99)-1]
-	rows = append(rows, ui.Section(t, "p99 latency", w, ""))
-	rows = append(rows, "")
-	sp := t.S.Primary
-	if s.State == "error" {
-		sp = t.S.Err
-	}
-	rows = append(rows, ui.Sparkline(t, stretch(s.P99, w), w, sp))
-	trend := t.S.Base.Render(itoa(int(last))+"ms") + "  " + t.S.Subtle.Render("12 min")
+	trend := t.S.Base.Render(itoa(int(last)) + "ms")
 	if s.P99[0] > 0 && last/s.P99[0] > 2 {
-		trend += "  " + t.S.Err.Render("▲ "+ftoa(last/s.P99[0])+"×")
+		trend += "  " + t.S.Err.Render(t.G.Arrow+" "+ftoa(last/s.P99[0])+"× since 14:00")
 	}
 	rows = append(rows, trend)
 	if s.State == "error" {
 		rows = append(rows, "", ui.Section(t, "Recent", w, ""), "")
-		ev := [][2]string{{"14:03", "circuit open · payments"}, {"14:02", "502 rate crossed 1%"}, {"14:00", "deployed v2.4.0 by @mara"}}
-		for i, e := range ev {
-			txt := t.S.Soft.Render(e[1])
-			if i == 0 {
-				txt = t.S.Err.Render(e[1])
-			}
-			rows = append(rows, t.S.Subtle.Render(e[0])+"  "+txt)
+		ev := [][2]string{{"14:03", "circuit open · payments"}, {"14:02", "502 rate crossed 1%"}, {"14:00", "deployed " + s.Version + " by @mara"}}
+		for _, e := range ev {
+			rows = append(rows, t.S.Subtle.Render(e[0])+"  "+t.S.Soft.Render(e[1]))
 		}
-		rows = append(rows, "", t.S.Muted.Render("r ")+t.S.Subtle.Render("roll back to v2.3.9"))
+		rows = append(rows, "", t.S.Key.Render("r")+" "+t.S.KeyDesc.Render("roll back to "+s.Prev))
 	}
 	c.Draw(strings.Join(rows, "\n"), r)
 }
@@ -233,12 +222,35 @@ func stretch(vals []float64, n int) []float64 {
 	return out
 }
 
+// ---------------------------------------------------------------- deploys
+
+func (m *app) deploys(c *ui.Canvas, r uv.Rectangle) {
+	t := m.t
+	rows := [][]string{}
+	for _, d := range deployLog {
+		st := ui.Dot(t, d[4])
+		if d[4] == "busy" {
+			st = ui.Spinner(t, m.frame/2)
+		}
+		rows = append(rows, []string{st + " " + t.S.Base.Render(d[1]), t.S.Soft.Render(d[2]), t.S.Muted.Render(d[3]), t.S.Subtle.Render(d[0])})
+	}
+	widths := []int{0, 16, 10, 8}
+	fixed := 2 + (16 + 2) + (10 + 2) + (8 + 2)
+	widths[0] = max(12, r.Dx()-fixed)
+	tbl := ui.Table(t, []string{"service", "version", "by", "when"}, rows, widths, "lllr", m.sel%len(deployLog), r.Dx(), m.ov == ovNone)
+	c.Draw(strings.Join(tbl, "\n"), r)
+}
+
 // ---------------------------------------------------------------- incidents
 
 func (m *app) incidents(c *ui.Canvas, r uv.Rectangle) {
 	t := m.t
 	act := t.S.Key.Render("n") + " " + t.S.KeyDesc.Render("declare incident") + "   " + t.S.Key.Render("h") + " " + t.S.KeyDesc.Render("history")
-	rows := ui.Empty(t, r.Dx(), t.G.FieldB, "No incidents declared", "checkout-api has been failing for 12 min. Declare one to page payments on-call.", act)
+	title, why := "No incidents declared", "checkout-api has been failing for 12 min. Declare one to page payments on-call."
+	if m.declared {
+		title, why, act = "INC-2041 declared", "Paging payments on-call. Updates will appear here as responders join.", ""
+	}
+	rows := ui.Empty(t, r.Dx(), t.G.FieldB, title, why, act)
 	top := r.Min.Y + max(0, (r.Dy()-len(rows))/2-1)
 	c.Draw(strings.Join(rows, "\n"), uv.Rect(r.Min.X, top, r.Dx(), len(rows)))
 }
@@ -259,12 +271,16 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 	for i, l := range diffLines {
 		switch {
 		case strings.HasPrefix(l, "+"):
-			diff[i] = lipgloss.NewStyle().Foreground(t.P.Success).Render(l)
+			diff[i] = t.S.OK.Render(l)
 		case strings.HasPrefix(l, "-"):
-			diff[i] = lipgloss.NewStyle().Foreground(t.P.Error).Render(l)
+			diff[i] = t.S.Err.Render(l)
 		default: // hunk headers sit on the panel colour: muted, not subtle
 			diff[i] = t.S.Muted.Render(l)
 		}
+	}
+	shown := 4
+	if m.expand {
+		shown = len(logLines)
 	}
 	var s []string
 	s = append(s, ui.UserMessage(t, chatUser, w, false)...)
@@ -272,37 +288,65 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 	s = append(s, ui.Thinking(t, thinkingLines, 2, "6.1s", w)...)
 	s = append(s, "")
 	s = append(s, ui.ToolCall(t, ui.Tool{Name: "Logs", Param: "checkout-api", Opts: [][2]string{{"since", "14:00"}, {"tail", "200"}},
-		State: ui.ToolDone, Body: logLines, Shown: 4}, w, false)...)
+		State: ui.ToolDone, Body: logLines, Shown: shown, Expand: m.expand}, w, false)...)
 	s = append(s, "")
 	s = append(s, ui.ToolCall(t, ui.Tool{Name: "Grep", Param: "PAYMENTS_TIMEOUT", Opts: [][2]string{{"path", "deploy/"}},
 		State: ui.ToolError, Err: "deploy/: no such directory (did you mean config/?)"}, w, false)...)
 	s = append(s, "")
-	s = append(s, ui.ToolCall(t, ui.Tool{Name: "Edit", Param: "config/timeouts.go", State: ui.ToolDone, Body: diff, Expand: true}, w, true)...)
+	s = append(s, ui.ToolCall(t, ui.Tool{Name: "Edit", Param: "config/timeouts.go", State: ui.ToolDone, Body: diff, Expand: true}, w, false)...)
 	s = append(s, "")
 	s = append(s, ui.AssistantMessage(t, chatAnswer, w, false)...)
 	s = append(s, "")
 	s = append(s, ui.TurnFooter(t, "opus", "anthropic", "41s", w))
-	// editor: 3 rows at the bottom, prompt in tertiary
+	for _, msg := range m.sent {
+		switch msg {
+		case "\x00done":
+			s = append(s, "")
+			s = append(s, ui.ToolCall(t, ui.Tool{Name: "Deploy", Param: "checkout-api v2.4.1", Opts: [][2]string{{"strategy", "rolling"}},
+				State: ui.ToolDone, Body: []string{"3/3 pods healthy · error rate 0.02% · p99 124ms"}}, w, false)...)
+		case "\x00canceled":
+			s = append(s, "", "  "+t.S.Subtle.Render("Canceled."))
+		default:
+			s = append(s, "")
+			s = append(s, ui.UserMessage(t, msg, w, false)...)
+		}
+	}
 	editorH := 3
 	streamH := main.Dy() - editorH - 1
 	if m.busy {
-		s = append(s, "", "  "+ui.NewAnim(t, 10, "Deploying v2.4.1", "deploy").Frame(m.frame, "12s"))
+		s = append(s, "", "  "+ui.NewAnim(t, 10, "Deploying checkout-api v2.4.1", "deploy").Frame(m.frame, elapsed(m.frame-m.busySince)))
 	}
-	// follow mode: show the tail of the stream
-	if len(s) > streamH {
-		hidden := len(s) - streamH + 1
-		s = append([]string{"  " + t.S.Subtle.Render("↑ "+itoa(hidden)+" more lines") + t.S.Subtle.Render("  "+t.G.Sep+" ") + t.S.Muted.Render("pgup")}, s[hidden:]...)
+	// follow mode: the tail of the stream, minus how far the user scrolled up
+	end := max(0, len(s)-m.scroll)
+	if end > streamH {
+		hidden := end - streamH + 1
+		s = append([]string{"  " + t.S.Subtle.Render("↑ "+itoa(hidden)+" more lines  ") + t.S.Key.Render("pgup")}, s[hidden:end]...)
+	} else {
+		s = s[:end]
 	}
 	c.Draw(strings.Join(s, "\n"), uv.Rect(main.Min.X, main.Min.Y, w, streamH))
 	ey := main.Max.Y - editorH
 	prompt := t.S.Tertiary.Bold(true).Render(t.G.Prompt) + " "
-	cont := t.S.Subtle.Render(":") + " "
-	ed := []string{
-		ui.Rule(t, w),
-		prompt + t.S.Base.Render("ship it as v2.4.1, and add a test for the unit parsing") + t.S.Tertiary.Render("▏"),
-		cont + t.S.Subtle.Render(""),
+	text := m.input
+	if m.busy {
+		prompt = t.S.Subtle.Render(t.G.Prompt) + " "
+		text = ""
 	}
-	c.Draw(strings.Join(ed, "\n"), uv.Rect(main.Min.X, ey, w, editorH))
+	line := prompt + t.S.Base.Render(text)
+	switch {
+	case m.busy:
+		line += t.S.Subtle.Render("working… esc to stop")
+	case text == "":
+		line += t.S.Tertiary.Render("▏") + t.S.Subtle.Render("ask, or tell it what to do")
+	default:
+		line += t.S.Tertiary.Render("▏")
+	}
+	c.Draw(strings.Join([]string{ui.Rule(t, w), line}, "\n"), uv.Rect(main.Min.X, ey, w, editorH))
+}
+
+func elapsed(frames int) string {
+	s := frames * int(ui.FrameInterval.Milliseconds()) / 1000
+	return itoa(s) + "s"
 }
 
 func (m *app) sessionSidebar(c *ui.Canvas, r uv.Rectangle) {
@@ -310,10 +354,10 @@ func (m *app) sessionSidebar(c *ui.Canvas, r uv.Rectangle) {
 	w := r.Dx()
 	rows := []string{
 		t.S.Bold.Render("checkout 502s"),
-		t.S.Subtle.Render("started 14:06 · 3 turns"),
+		t.S.Subtle.Render("started 14:06 · " + itoa(3+len(m.sent)) + " turns"),
 		"",
 		ui.Section(t, "Model", w, ""),
-		t.S.Muted.Render(t.G.FieldB+" ") + t.S.Base.Render("opus") + t.S.Subtle.Render(" via anthropic"),
+		t.S.Muted.Render(t.G.Todo+" ") + t.S.Base.Render("opus") + t.S.Subtle.Render(" via anthropic"),
 		t.S.Subtle.Render("context ") + ui.Progress(t, 0.42, 10) + t.S.Subtle.Render(" 42%"),
 		"",
 		ui.Section(t, "Changed", w, "1"),
@@ -321,7 +365,7 @@ func (m *app) sessionSidebar(c *ui.Canvas, r uv.Rectangle) {
 		"",
 		ui.Section(t, "Touched", w, ""),
 	}
-	for _, s := range services[:4] {
+	for _, s := range m.svcs[:4] {
 		rows = append(rows, ui.Dot(t, s.State)+" "+t.S.Soft.Render(ui.Trunc(t, s.Name, w-2)))
 	}
 	c.Draw(strings.Join(rows, "\n"), r)
@@ -331,6 +375,7 @@ func (m *app) sessionSidebar(c *ui.Canvas, r uv.Rectangle) {
 
 func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 	t := m.t
+	s := m.svcs[m.sel]
 	var main, side uv.Rectangle
 	if r.Dx() >= wideW-4 {
 		layout.Horizontal(layout.Len(min(64, r.Dx()-44)), layout.Len(4), layout.Fill(1)).Split(r).Assign(&main, new(uv.Rectangle), &side)
@@ -338,9 +383,8 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 		main = r
 	}
 	w := main.Dx()
-	var rows []string
-	rows = append(rows, ui.Section(t, "Deploy checkout-api", w, "prod"))
-	rows = append(rows, "")
+	rows := []string{ui.Section(t, "Deploy "+s.Name, w, s.Env), ""}
+	// a field is a group: one blank row between fields even in compact brands
 	field := func(i int, label, hint string, body ...string) {
 		focused := m.focus == i
 		bar := ui.Gutter(t, focused, t.S.FocusBar)
@@ -355,60 +399,63 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 		for _, b := range body {
 			rows = append(rows, bar+b)
 		}
-		for range t.Gap() {
-			rows = append(rows, "")
-		}
+		rows = append(rows, "")
 	}
-	radio := func(opts []string, on int) string {
+	choice := func(opts []string, on int, focused bool) string {
 		var out []string
 		for i, o := range opts {
-			if i == on {
-				out = append(out, t.S.Primary.Render(t.G.RadioOn)+" "+t.S.Base.Render(o))
-			} else {
+			switch {
+			case i == on && focused:
+				out = append(out, t.S.Primary.Render(t.G.RadioOn)+" "+t.S.Bold.Render(o))
+			case i == on:
+				out = append(out, t.S.Muted.Render(t.G.RadioOn)+" "+t.S.Base.Render(o))
+			default:
 				out = append(out, t.S.Subtle.Render(t.G.RadioOff)+" "+t.S.Muted.Render(o))
 			}
 		}
 		return strings.Join(out, "   ")
 	}
-	field(0, "Environment", "", radio([]string{"prod", "staging", "dev"}, 0))
-	input := t.S.Tertiary.Render(t.G.Prompt) + " " + t.S.Base.Render("v2.4.1")
+	field(0, "Environment", "", choice([]string{"prod", "staging", "dev"}, m.env, m.focus == 0))
+	input := t.S.Tertiary.Render(t.G.Prompt) + " " + t.S.Base.Render(m.version)
 	if m.focus == 1 {
 		input += t.S.Tertiary.Render("▏")
 	}
 	field(1, "Version", "tag or commit; latest is v2.4.1 (2 min ago)", input)
-	opt := func(name, desc string, on bool) string {
-		if on {
-			return t.S.Primary.Render(t.G.Cursor) + " " + t.S.Bold.Render(name) + "  " + t.S.Subtle.Render(desc)
+	strategies := [][2]string{{"Rolling", "one pod at a time"}, {"Canary", "10% for 15 min, then all"}, {"Blue/green", "switch traffic at once"}}
+	field(2, "Strategy", strategies[m.strategy][1], choice([]string{"Rolling", "Canary", "Blue/green"}, m.strategy, m.focus == 2))
+	check := func(i int, label string) string {
+		g, st := t.G.CheckOff, t.S.Subtle
+		if m.checks[i] {
+			g, st = t.G.CheckOn, t.S.Primary
 		}
-		return "  " + t.S.Muted.Render(name) + "  " + t.S.Subtle.Render(desc)
-	}
-	field(2, "Strategy", "", opt("Rolling", "one pod at a time", true), opt("Canary", "10% for 15 min, then all", false), opt("Blue/green", "switch traffic at once", false))
-	check := func(on bool, s string) string {
-		if on {
-			return t.S.Primary.Render(t.G.CheckOn) + " " + t.S.Base.Render(s)
+		lab := t.S.Muted.Render(label)
+		if m.focus == 3 && m.checkSel == i {
+			lab = t.S.Bold.Render(label)
 		}
-		return t.S.Subtle.Render(t.G.CheckOff) + " " + t.S.Muted.Render(s)
+		return st.Render(g) + " " + lab
 	}
-	field(3, "Checks", "", check(true, "run smoke tests")+"   "+check(false, "skip approval"))
+	field(3, "Checks", "", check(0, "run smoke tests")+"   "+check(1, "skip approval"))
 	btns := ui.Buttons(t, w-2, lipgloss.Left,
-		ui.Button(t, "Deploy", true, false, 0),
-		ui.Button(t, "Cancel", false, false, -1))
-	rows = append(rows, "  "+btns)
+		ui.Button(t, "Deploy", m.focus == 4 && m.formBtn == 0, false, -1),
+		ui.Button(t, "Cancel", m.focus == 4 && m.formBtn == 1, false, -1))
+	rows = append(rows, ui.Gutter(t, m.focus == 4, t.S.FocusBar)+btns)
 	c.Draw(strings.Join(rows, "\n"), main)
 
 	if side.Dx() > 0 {
 		sw := side.Dx()
-		steps := ui.Tree(t, []string{
-			t.S.Soft.Render("build image ") + t.S.Subtle.Render("cached"),
-			t.S.Soft.Render("run smoke tests ") + t.S.Subtle.Render("~40s"),
-			t.S.Soft.Render("roll 3 pods ") + t.S.Subtle.Render("one at a time"),
-			t.S.Soft.Render("watch error rate ") + t.S.Subtle.Render("5 min, auto-rollback >1%"),
-		})
+		steps := []string{t.S.Soft.Render("build image ") + t.S.Subtle.Render("cached")}
+		if m.checks[0] {
+			steps = append(steps, t.S.Soft.Render("run smoke tests ")+t.S.Subtle.Render("~40s"))
+		}
+		steps = append(steps, t.S.Soft.Render([]string{"roll 3 pods ", "canary 1 pod ", "start 3 new pods "}[m.strategy])+t.S.Subtle.Render(strategies[m.strategy][1]),
+			t.S.Soft.Render("watch error rate ")+t.S.Subtle.Render("5 min, auto-rollback >1%"))
 		pr := []string{ui.Section(t, "What happens", sw, ""), ""}
-		pr = append(pr, t.S.Base.Render("checkout-api ")+t.S.Muted.Render("v2.4.0 "+t.G.Arrow+" ")+t.S.Primary.Bold(true).Render("v2.4.1"))
+		pr = append(pr, t.S.Base.Render(s.Name+" ")+t.S.Muted.Render(s.Version+" "+t.G.Arrow+" ")+t.S.Primary.Bold(true).Render(m.version))
 		pr = append(pr, "")
-		pr = append(pr, steps...)
-		pr = append(pr, "", ui.Alert(t, "warning", "PROD", "customer traffic, 3 regions", sw))
+		pr = append(pr, ui.Tree(t, steps)...)
+		if m.env == 0 {
+			pr = append(pr, "", ui.Alert(t, "warning", "PROD", "customer traffic, 3 regions", sw))
+		}
 		c.Draw(strings.Join(pr, "\n"), side)
 	}
 }
@@ -449,6 +496,14 @@ func fuzzy(s, q string) ([]int, bool) {
 	return idx, true
 }
 
+// dialogTop keeps dialogs below the header and tabs.
+func dialogTop(c *ui.Canvas, dh int) *uv.Position {
+	h := c.Bounds().Dy()
+	y := max(4, (h-dh)/2-1)
+	y = min(y, max(0, h-dh-1))
+	return &uv.Position{X: -1, Y: y} // X < 0: centre horizontally
+}
+
 func (m *app) palette(c *ui.Canvas) {
 	t := m.t
 	w := min(64, c.Bounds().Dx()-6)
@@ -462,29 +517,59 @@ func (m *app) palette(c *ui.Canvas) {
 	if m.query == "" {
 		input = t.S.Tertiary.Render(t.G.Prompt) + " " + t.S.Tertiary.Render("▏") + t.S.Subtle.Render("type to filter")
 	}
-	listH := min(6, max(3, c.Bounds().Dy()-14))
-	body := append([]string{input, ""}, ui.List(t, items, m.palSel, 0, inner, listH, true)...)
-	help := ui.Help(t, []key.Binding{m.keys.Enter, m.keys.Up, m.keys.Down, m.keys.Back}, inner)
-	c.Overlay(ui.Dialog(t, w, "Commands", body, "", help), nil)
+	listH := min(len(commands), max(3, c.Bounds().Dy()-14))
+	body := []string{input, ""}
+	if len(items) == 0 {
+		body = append(body, t.S.Muted.Render("  no command matches “"+m.query+"”"))
+		for range listH - 1 {
+			body = append(body, "")
+		}
+	} else {
+		body = append(body, ui.List(t, items, min(m.palSel, len(items)-1), 0, inner, listH, true)...)
+	}
+	// no help line inside: the footer above the scrim carries the dialog's keys
+	d := ui.Dialog(t, w, "Commands", body, "", "")
+	c.Overlay(d, dialogTop(c, lipgloss.Height(d)))
 }
 
 func (m *app) confirm(c *ui.Canvas) {
 	t := m.t
+	s := m.svcs[m.sel]
 	w := min(58, c.Bounds().Dx()-6)
 	inner := w - t.S.Dialog.GetHorizontalFrameSize()
-	body := []string{
-		t.S.Soft.Render("prod returns to the last healthy version."),
-		"",
+	body := []string{t.S.Soft.Render(s.Env + " returns to the last healthy version."), ""}
+	now := t.S.Base.Render(s.Version) + t.S.Subtle.Render("  deployed "+s.Deployed)
+	if s.State == "error" {
+		now = t.S.Err.Render(s.Version) + t.S.Subtle.Render("  failing 12 min")
 	}
 	body = append(body, ui.KV(t, [][2]string{
-		{"now", t.S.Err.Render("v2.4.0") + t.S.Subtle.Render("  failing 12 min")},
-		{"after", t.S.OK.Render("v2.3.9") + t.S.Subtle.Render("  healthy for 3 days")},
+		{"now", now},
+		{"after", t.S.OK.Render(s.Prev) + t.S.Subtle.Render("  the previous release")},
 		{"impact", t.S.Base.Render("3 pods restart, one at a time (~90s)")},
 	}, 7)...)
 	btns := ui.Buttons(t, inner, lipgloss.Right,
 		ui.Button(t, "Roll back", m.btn == 0, true, 0),
-		ui.Button(t, "Cancel", m.btn == 1, false, -1))
-	c.Overlay(ui.Dialog(t, w, "Roll back checkout-api?", body, btns, ""), nil)
+		ui.Button(t, "Cancel", m.btn == 1, false, 0))
+	d := ui.Dialog(t, w, "Roll back "+s.Name+"?", body, btns, "")
+	c.Overlay(d, dialogTop(c, lipgloss.Height(d)))
+}
+
+// keysOverlay is the full help: every binding of the screen underneath.
+func (m *app) keysOverlay(c *ui.Canvas) {
+	t := m.t
+	ov := m.ov
+	m.ov = ovNone
+	acts := m.actions()
+	m.ov = ov
+	w := min(56, c.Bounds().Dx()-6)
+	var body []string
+	for _, a := range acts {
+		h := a.b.Help()
+		body = append(body, t.S.Key.Render(ui.Fit(h.Key, 12))+t.S.Soft.Render(h.Desc))
+	}
+	body = append(body, t.S.Key.Render(ui.Fit("ctrl+c", 12))+t.S.Soft.Render("quit from anywhere"))
+	d := ui.Dialog(t, w, "Keys · "+tabNames[min(int(m.screen), 3)], body, "", "")
+	c.Overlay(d, dialogTop(c, lipgloss.Height(d)))
 }
 
 // ---------------------------------------------------------------- splash
@@ -495,10 +580,17 @@ func (m *app) splash(c *ui.Canvas) {
 	f := ui.DefaultField()
 	f.ClearR, f.Dim, f.Drift = 0.42, 0.25, m.frame/3
 	f.Draw(c, b)
+	// a brand whose signature is its header (a flag strip, a stamp) shows it here too
+	top := 0
+	if t.X.Header == "bar" || t.X.Header == "stamp" {
+		head := ui.Header(t, b.Dx(), b.Dy(), t.AppName(), t.S.Muted.Render("v0.9.0"))
+		c.Draw(strings.Join(head, "\n"), uv.Rect(0, 0, b.Dx(), len(head)))
+		top = len(head)
+	}
 	var block []string
 	if rows := t.Wordmark.Rows; len(rows) > 0 && lipgloss.Width(rows[0]) < b.Dx()-4 {
 		for _, r := range rows {
-			block = append(block, ui.Fit(ui.Wordmark(t, ""), 0)+bannerTone(t, r))
+			block = append(block, bannerTone(t, r))
 		}
 	} else {
 		block = append(block, ui.Wordmark(t, t.AppName()))
@@ -511,13 +603,14 @@ func (m *app) splash(c *ui.Canvas) {
 	for i := range block {
 		block[i] = lipgloss.PlaceHorizontal(bw, lipgloss.Center, block[i])
 	}
-	top := (b.Dy()-len(block))/2 - 1
-	left := (b.Dx() - bw) / 2
-	r := uv.Rect(left, top, bw, len(block))
+	y := max(top+1, (b.Dy()-len(block))/2-1)
+	r := uv.Rect((b.Dx()-bw)/2, y, bw, len(block))
 	c.Draw(strings.Join(block, "\n"), r)
-	c.Draw(t.S.Subtle.Render(t.AppName()+" v0.9.0"), uv.Rect(2, b.Dy()-1, 30, 1))
-	q := t.S.Muted.Render("q") + t.S.Subtle.Render(" quit")
-	c.Draw(q, uv.Rect(b.Dx()-2-lipgloss.Width(q), b.Dy()-1, lipgloss.Width(q), 1))
+	if top == 0 {
+		c.Draw(t.S.Subtle.Render(t.AppName()+" v0.9.0"), uv.Rect(t.X.Gutter, b.Dy()-1, 30, 1))
+	}
+	q := t.S.Key.Render("q") + t.S.KeyDesc.Render(" quit")
+	c.Draw(q, uv.Rect(b.Dx()-t.X.Gutter-lipgloss.Width(q), b.Dy()-1, lipgloss.Width(q), 1))
 }
 
 func bannerTone(t *theme.Theme, r string) string {

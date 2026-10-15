@@ -69,6 +69,7 @@ type Glyphs struct {
 	Current    string   `json:"current"`    // ● ◆ ▶ >
 	Todo       string   `json:"todo"`       // ○ ◇ · □ -
 	Fail       string   `json:"fail"`       // × ✗ ✕ !
+	Warn       string   `json:"warn"`       // ▲ ! ◬ (status: degraded) — must differ in shape from Current and Fail
 	Pending    string   `json:"pending"`    // ● ◌ ·
 	Bullet     string   `json:"bullet"`     // • · ▪ -
 	Sep        string   `json:"sep"`        // separator in detail lines: · • │ /
@@ -105,6 +106,7 @@ type Expressions struct {
 	Keys         string `json:"keys"`         // inline | boxed
 	Density      string `json:"density"`      // airy | compact
 	Backdrop     string `json:"backdrop"`     // none | field
+	Working      string `json:"working"`      // spinner | scramble   (the hero "working" indicator; scramble is Crush's)
 	Scrim        string `json:"scrim"`        // dim | none   (dim the screen under a dialog)
 	PaintBg      bool   `json:"paintBg"`      // own the terminal background (tea.View.BackgroundColor)
 	Gutter       int    `json:"gutter"`       // side margin in cells (default 2)

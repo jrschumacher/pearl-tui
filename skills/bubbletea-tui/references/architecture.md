@@ -108,6 +108,37 @@ const ( focusList focus = iota; focusDetail; focusEditor )
 Use a nested `tea.Model` only for a self-contained Bubbles component (textarea,
 viewport), and forward to it only when it is focused.
 
+## Keys: One Action Table Per State
+
+The most common way a TUI lies is help that drifts from handling: the footer says
+`enter send` and enter does nothing, or `q` quits while the user is typing. The fix is
+structural. Each state returns **one** list, and the footer and the dispatcher both
+read it:
+
+```go
+type action struct {
+    b    key.Binding                                  // keys + help text
+    show bool                                         // in the footer (all show in the ? overlay)
+    do   func(m *model, msg tea.KeyPressMsg) tea.Cmd  // what it does here
+}
+
+func (m *model) actions() []action { /* switch on overlay, then screen; most important first */ }
+
+func (m *model) key(msg tea.KeyPressMsg) tea.Cmd {
+    if msg.String() == "ctrl+c" { return tea.Quit }
+    for _, a := range m.actions() {
+        if key.Matches(msg, a.b) { return a.do(m, msg) }
+    }
+    if p := m.textTarget(); p != nil && msg.Text != "" { *p += msg.Text }  // inputs get letters
+    return nil
+}
+```
+
+Then a test presses every key of every action in every harness state and asserts it
+reached that action (`kit/cmd/showcase/behaviour_test.go`, `TestHelpIsHandled`). Text
+inputs have no single-letter actions, so letters type. The `?` overlay lists every
+action, including the ones not in the footer.
+
 ## Rendering: Canvas, Rectangles, Caches
 
 - `View` creates a canvas the size of the terminal, computes the layout, and draws each

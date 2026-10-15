@@ -120,6 +120,68 @@ func (c *Canvas) PaintBackground() {
 	}
 }
 
+// ASCIIfy maps every cell outside ASCII onto a tier-0 stand-in: box drawing
+// to - | +, blocks to # and =, arrows to < > ^ v, anything else to ?. Call it
+// last when the theme is resolved for ASCII, so no screen can leak a glyph.
+func (c *Canvas) ASCIIfy() {
+	b := c.Bounds()
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			cell := c.CellAt(x, y)
+			if cell == nil || cell.Content == "" {
+				continue
+			}
+			r := []rune(cell.Content)[0]
+			if r < 128 {
+				continue
+			}
+			nc := *cell
+			nc.Content, nc.Width = asciiRune(r), 1
+			c.SetCell(x, y, &nc)
+			if cell.Width == 2 && x+1 < b.Max.X { // a wide glyph's second cell
+				sp := nc
+				sp.Content = " "
+				c.SetCell(x+1, y, &sp)
+			}
+		}
+	}
+}
+
+func asciiRune(r rune) string {
+	switch {
+	case strings.ContainsRune("─━═╌┄┈╍┅┉▔▁╴╶╸╺", r):
+		return "-"
+	case strings.ContainsRune("│┃║╎┆┊╏┇┋▏▎▍▌▐▕", r):
+		return "|"
+	case r >= 0x2500 && r <= 0x257F: // other box drawing: corners, tees, crosses
+		if strings.ContainsRune("╱", r) {
+			return "/"
+		}
+		if strings.ContainsRune("╲", r) {
+			return "\\"
+		}
+		return "+"
+	case strings.ContainsRune("█▓▒▆▇▅▄▀▙▛▜▟", r):
+		return "#"
+	case strings.ContainsRune("░▂▃▖▗▘▝▚▞", r):
+		return "."
+	case r >= 0x2800 && r <= 0x28FF:
+		return "."
+	}
+	if s, ok := asciiMap[r]; ok {
+		return s
+	}
+	return "?"
+}
+
+var asciiMap = map[rune]string{
+	'↑': "^", '↓': "v", '←': "<", '→': ">", '·': ".", '•': "*", '…': "~", '—': "-", '–': "-",
+	'×': "x", '✕': "x", '✗': "x", '✓': "+", '✔': "+", '●': "*", '○': "o", '◆': "*", '◇': "o",
+	'▲': "^", '△': "^", '▶': ">", '▸': ">", '›': ">", '❯': ">", '‹': "<", '“': "\"", '”': "\"",
+	'‘': "'", '’': "'", '◉': "@", '■': "#", '□': "o", '★': "*", '✦': "*", '◜': "|", '◠': "/",
+	'◝': "-", '◞': "\\", '◡': "|", '◟': "/", '◢': "/", '◣': "\\", '◤': "/", '◥': "\\", '¬': "-",
+}
+
 // String renders the canvas as rows joined by "\n" (every row exactly W cells).
 func (c *Canvas) String() string {
 	return strings.ReplaceAll(c.Render(), "\r\n", "\n")

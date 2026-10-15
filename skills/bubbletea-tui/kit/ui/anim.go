@@ -56,8 +56,13 @@ func NewAnim(t *theme.Theme, size int, label, seed string) *Anim {
 // Frame renders frame n. elapsed (optional) replaces the ellipsis.
 func (a *Anim) Frame(n int, elapsed string) string {
 	t := a.T
-	if t.ASCII {
-		return t.S.Muted.Render(t.G.Spinner[n%len(t.G.Spinner)] + " " + a.Label + "...")
+	if t.ASCII || t.X.Working != "scramble" {
+		// the brand's own spinner, then the label: scramble is Crush's signature
+		suffix := t.S.Subtle.Render(Fit([]string{"", ".", "..", "..."}[(n/8)%4], 3))
+		if elapsed != "" {
+			suffix = t.S.Subtle.Render(" " + elapsed)
+		}
+		return Spinner(t, n/2) + t.S.Soft.Render(" "+a.Label) + suffix
 	}
 	var b strings.Builder
 	h := fnv.New32a()

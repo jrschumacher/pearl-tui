@@ -28,7 +28,12 @@ func Button(t *theme.Theme, label string, focused, danger bool, mnemonic int) st
 		r := []rune(label)
 		text = string(r[:mnemonic]) + "\x00" + string(r[mnemonic:mnemonic+1]) + "\x01" + string(r[mnemonic+1:])
 	}
-	switch t.X.Button {
+	style := t.X.Button
+	if t.ASCII {
+		style = "bracket" // a filled pill is invisible without colour
+		st = st.UnsetPadding().UnsetBackground()
+	}
+	switch style {
 	case "bracket":
 		mark := " "
 		if focused {
@@ -112,9 +117,9 @@ func Dot(t *theme.Theme, state string) string {
 	case "ok", "healthy", "online", "done":
 		return t.S.OK.Render(t.G.Current)
 	case "error", "failed", "down":
-		return t.S.Err.Render(t.G.Current)
+		return t.S.Err.Render(t.G.Fail)
 	case "warning", "degraded":
-		return t.S.Warn.Render(t.G.Current)
+		return t.S.Warn.Render(t.G.Warn)
 	case "busy", "deploying", "running":
 		return t.S.Primary.Render(t.G.Current)
 	}

@@ -77,7 +77,10 @@ func (c *Canvas) Overlay(dialog string, anchor *uv.Position) uv.Rectangle {
 	x := (b.Dx() - dw) / 2
 	y := max(1, (b.Dy()-dh)/2-1)
 	if anchor != nil {
-		x, y = anchor.X, anchor.Y
+		y = anchor.Y
+		if anchor.X >= 0 {
+			x = anchor.X
+		}
 	}
 	r := uv.Rect(x, y, dw, dh)
 	c.Draw(dialog, r)

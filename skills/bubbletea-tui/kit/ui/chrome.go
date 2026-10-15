@@ -209,7 +209,7 @@ func Footer(t *theme.Theme, w int, left string, bindings []key.Binding, right st
 	case "bar":
 		return []string{OnBg(row, t.P.BgSubtle)}
 	case "rule":
-		return []string{Rule(t, w), row}
+		return []string{pad + Rule(t, inner) + pad, row}
 	}
 	return []string{row}
 }
@@ -295,7 +295,8 @@ func Tabs(t *theme.Theme, names []string, active int, counts []string) []string 
 
 // TooSmall is the whole screen when the terminal is below the minimum.
 func TooSmall(t *theme.Theme, w, h, minW, minH int) string {
-	msg := t.S.Muted.Render("terminal too small") + "  " + t.S.Subtle.Render(
-		strconv.Itoa(w)+"×"+strconv.Itoa(h)+", need "+strconv.Itoa(minW)+"×"+strconv.Itoa(minH))
-	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, msg)
+	msg := Wordmark(t, t.AppName()) + "\n\n" + t.S.Soft.Render("Terminal too small") + "\n" + t.S.Muted.Render(
+		strconv.Itoa(w)+"×"+strconv.Itoa(h)+", needs "+strconv.Itoa(minW)+"×"+strconv.Itoa(minH)) + "\n\n" +
+		t.S.Key.Render("q") + " " + t.S.KeyDesc.Render("quit")
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, lipgloss.JoinVertical(lipgloss.Center, strings.Split(msg, "\n")...))
 }

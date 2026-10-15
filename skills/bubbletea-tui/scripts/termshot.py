@@ -563,7 +563,7 @@ def main(argv):
         sc = int(opts["scale"])
         if sc > 1:
             img = img.resize((img.width * sc, img.height * sc), Image.NEAREST)
-        lab = opts.get("label") or (os.path.basename(f) if opts.get("sheet") else None)
+        lab = opts.get("label") or (os.path.splitext(os.path.basename(f))[0] if opts.get("sheet") else None)
         if lab:
             img = label_bar(img, lab, dbg)
         images.append(img)

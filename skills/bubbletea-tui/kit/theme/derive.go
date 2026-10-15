@@ -142,6 +142,7 @@ func glyphDefaults(g Glyphs) Glyphs {
 	d(&g.Todo, "○")
 	d(&g.Fail, "×")
 	d(&g.Pending, "●")
+	d(&g.Warn, "▲")
 	d(&g.Bullet, "•")
 	d(&g.Sep, "·")
 	d(&g.Arrow, "→")
@@ -172,7 +173,7 @@ func ASCII(g Glyphs) Glyphs {
 		"▌": "|", "┃": "|", "│": "|", "▎": "|", "❯": ">", "›": ">", "▸": ">", "→": "->",
 		"✓": "+", "✔": "+", "●": "*", "◆": "*", "◇": "o", "○": "o", "◉": "(*)", "×": "x", "✗": "x", "✕": "x",
 		"•": "*", "▪": "*", "…": "...", "■": "[x]", "□": "[ ]", "☑": "[x]", "☐": "[ ]",
-		"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "▲": "^", "△": "^",
+		"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "▲": "^", "△": "o", "◢": "/",
 	}
 	f := func(s string) string {
 		if v, ok := m[s]; ok {
@@ -187,11 +188,20 @@ func ASCII(g Glyphs) Glyphs {
 	}
 	g.HeaderRule, g.Rule, g.FocusBar, g.BlurBar = f(g.HeaderRule), f(g.Rule), f(g.FocusBar), f(g.BlurBar)
 	g.Cursor, g.Prompt, g.Done, g.Current, g.Todo = f(g.Cursor), f(g.Prompt), f(g.Done), f(g.Current), f(g.Todo)
+	g.Warn = f(g.Warn)
 	g.Fail, g.Pending, g.Bullet, g.Sep, g.Arrow, g.Ellipsis = f(g.Fail), f(g.Pending), f(g.Bullet), f(g.Sep), f(g.Arrow), f(g.Ellipsis)
 	g.RadioOn, g.RadioOff, g.CheckOn, g.CheckOff = f(g.RadioOn), f(g.RadioOff), f(g.CheckOn), f(g.CheckOff)
 	g.TreeMid, g.TreeEnd, g.TreeRail, g.Thumb, g.Track = f(g.TreeMid), f(g.TreeEnd), f(g.TreeRail), f(g.Thumb), f(g.Track)
 	g.FieldA, g.FieldB = f(g.FieldA), f(g.FieldB)
 	g.Spinner = []string{"|", "/", "-", "\\"}
+	// status glyphs must stay distinct in shape, or ok/warn/error become one mark
+	g.Warn, g.Fail = "!", "x"
+	if g.Todo == g.Current {
+		g.Todo = "o"
+	}
+	if g.Current == g.Warn || g.Current == g.Fail {
+		g.Current = "*"
+	}
 	return g
 }
 
@@ -216,6 +226,7 @@ func exprDefaults(x Expressions) Expressions {
 	d(&x.Density, "airy")
 	d(&x.Backdrop, "none")
 	d(&x.Scrim, "dim")
+	d(&x.Working, "spinner")
 	if x.Gutter == 0 {
 		x.Gutter = 2
 	}

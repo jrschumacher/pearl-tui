@@ -69,10 +69,12 @@ func build(t *Theme) Styles {
 	}
 
 	switch x.Selection {
+	// filled selections are drawn as reverse video of (fill, ink): the same
+	// pixels in colour, and still a visible bar when colour is stripped
 	case "fill": // a full-width primary bar, like Crush's dialogs
-		s.SelRow = lipgloss.NewStyle().Background(p.Primary).Foreground(p.FgSelected).Bold(true)
+		s.SelRow = lipgloss.NewStyle().Foreground(p.Primary).Background(p.FgSelected).Reverse(true).Bold(true)
 	case "inverse":
-		s.SelRow = lipgloss.NewStyle().Background(p.Fg).Foreground(p.Bg).Bold(true)
+		s.SelRow = lipgloss.NewStyle().Foreground(p.Fg).Background(p.Bg).Reverse(true).Bold(true)
 	case "caret":
 		s.SelRow = s.Primary.Bold(true)
 	default: // bar: bold text beside a focus bar

@@ -29,25 +29,37 @@ import (
 
 // states are every screen the app can show. A state you can't render here is
 // a state nobody reviewed.
-var states = []string{"services", "services-toast", "palette", "confirm", "deploy", "incidents", "assistant", "assistant-busy", "splash", "toosmall"}
+var states = []string{"services", "services-toast", "deploys", "palette", "confirm", "help", "deploy",
+	"incidents", "assistant", "assistant-busy", "splash", "toosmall"}
 
+// setState rebuilds the model from scratch for a named state, using the same
+// actions a user would take, so fixtures can't drift from behaviour.
 func (m *app) setState(s string) {
-	m.screen, m.ov, m.toast, m.busy, m.sel = scrServices, ovNone, nil, false, 0
+	frame := m.frame
+	*m = *newApp(m.file, m.t.Dark, m.ascii)
+	m.frame = frame
+	m.screen = scrServices
 	switch s {
 	case "services-toast":
-		m.toast = &toast{"ok", "DONE", "Rolled back checkout-api to v2.3.9 · 3/3 pods healthy", farFuture}
+		m.rollback()
+	case "deploys":
+		m.screen = scrDeploys
 	case "palette":
-		m.ov, m.query, m.palSel = ovPalette, "ro", 0
+		m.ov, m.query = ovPalette, "ro"
 	case "confirm":
 		m.ov, m.btn = ovConfirm, 1
+	case "help":
+		m.ov = ovHelp
 	case "deploy":
-		m.screen, m.focus = scrDeploy, 1
+		m.openDeploy()
 	case "incidents":
 		m.screen = scrIncidents
 	case "assistant":
-		m.screen = scrAssistant
+		m.screen, m.input = scrAssistant, "ship it as v2.4.1, and add a test for the unit parsing"
 	case "assistant-busy":
-		m.screen, m.busy = scrAssistant, true
+		m.screen = scrAssistant
+		m.sent = []string{"ship it as v2.4.1, and add a test for the unit parsing"}
+		m.busy, m.busySince = true, frame-240
 	case "splash":
 		m.screen = scrSplash
 	}

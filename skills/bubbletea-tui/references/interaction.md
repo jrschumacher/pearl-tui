@@ -2,9 +2,11 @@
 
 ## Keys Are A Contract
 
-- Define every key once as a `key.Binding` with help text. `Update` matches with
-  `key.Matches`, and the footer renders the same bindings. A key in the help that doesn't
-  work is a bug [C-KEYS].
+- Define every key once, in a per-state **action table** (binding + handler), which
+  both the dispatcher and the footer read (`architecture.md` § Keys). A key in the help
+  that doesn't work is a bug [C-KEYS], and `TestHelpIsHandled` makes it a failing test.
+- Actions act on **the selection**, not on the first item of the fixture. Test it:
+  select the fifth row, press the key, and check the dialog names the fifth item.
 - **Conventions users already have:** `↑/↓` and `j/k` move, `enter` selects/submits,
   `esc` goes back or closes, `tab`/`shift+tab` cycle focus, `/` filters, `?` toggles full
   help, `ctrl+c` quits (or confirms quitting when work would be lost), `q` quits only

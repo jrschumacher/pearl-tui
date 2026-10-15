@@ -21,7 +21,8 @@ The code already has them.
 
 Before any real screen:
 
-- the root model (one model, a focus enum, the key map, the clock)
+- the root model (one model, a focus enum, the per-state action table, the clock with
+  a generation number)
 - `render(w, h) *ui.Canvas` shared by `View` and the harness
 - `setState(name)` for every state in the spec, using fixtures
 - flags: `-golden -w -h`, `-state`, `-out -sizes`, `-theme`, `-light`, `-ascii`,
@@ -44,8 +45,10 @@ again. Two to four rounds.
 
 ## 5. Behaviour Checks The Renders Hide
 
-- every key in the help works in that state (write a test that sends `tea.KeyPressMsg`s
-  and checks the state)
+- every key in the help works in that state (`TestHelpIsHandled`: press every action's
+  keys in every state), and actions target the selection, not the first fixture row
+- the ASCII render is pure ASCII (`Canvas.ASCIIfy` + a test); every visible cell has an
+  explicit foreground (`TestNoUnstyledText`)
 - `esc` closes or backs out everywhere; `ctrl+c` quits from everywhere
 - typing `q` into an input types a q
 - resize mid-dialog keeps the dialog centred and clamped

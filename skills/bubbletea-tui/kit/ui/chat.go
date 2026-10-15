@@ -61,7 +61,7 @@ func AssistantMessage(t *theme.Theme, text string, w int, focused bool) []string
 		}
 		rows = append(rows, strings.Split(lipgloss.NewStyle().Width(m).Render(styleInline(t, para)), "\n")...)
 	}
-	return prefix(rows, Gutter(t, focused, t.S.OK), w)
+	return prefix(rows, Gutter(t, focused, t.S.FocusBar), w)
 }
 
 // styleInline styles `code` spans in prose: tertiary on the panel colour.
@@ -173,7 +173,7 @@ func ToolCall(t *theme.Theme, tc Tool, w int, focused bool) []string {
 				t.S.Soft.Render("[space to expand]"), inner)))
 		}
 	}
-	return prefix(rows, Gutter(t, focused, t.S.OK), w)
+	return prefix(rows, Gutter(t, focused, t.S.FocusBar), w)
 }
 
 // Thinking is demoted reasoning: subtle text on the panel colour, only the
@@ -197,7 +197,7 @@ func Thinking(t *theme.Theme, lines []string, n int, took string, w int) []strin
 
 // TurnFooter closes a turn: "◇ model via provider in 12s ──────".
 func TurnFooter(t *theme.Theme, model, via, took string, w int) string {
-	label := t.S.Muted.Render(t.G.FieldB+" "+model) + t.S.Subtle.Render(" via "+via+" in "+took)
+	label := t.S.Muted.Render(t.G.Todo+" "+model) + t.S.Subtle.Render(" via "+via+" in "+took)
 	n := w - 2 - lipgloss.Width(label) - 1
 	return "  " + label + " " + t.S.Rule.Render(strings.Repeat(t.G.Rule, max(0, n)))
 }

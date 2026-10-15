@@ -50,8 +50,8 @@ to all three. A half-applied idiom reads as noise.
    literals. The theme comes from the brand, measured.
 5. **Exactly one visible focus, and it never moves the layout.** The focus marker takes
    the same cells focused or not.
-6. **Help is generated from the bindings that `Update` matches.** It is never a
-   paragraph and never a lie.
+6. **One action table per state drives both the keys and the help.** A test presses
+   every advertised key in every state. Help is never a paragraph and never a lie.
 7. **Every state is designed and rendered:** empty, loading, error, partial, too small,
    and every overlay. If the harness can't render it, nobody reviewed it.
 8. **Motion means something is happening.** One clock, ticking only while something

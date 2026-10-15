@@ -72,6 +72,7 @@
   "keys": "inline",
   "density": "airy",
   "paintBg": true,
-  "backdrop": "field"
+  "backdrop": "field",
+  "working": "scramble"
  }
 }
