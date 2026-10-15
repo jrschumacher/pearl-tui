@@ -78,7 +78,10 @@ func checkWant(t *testing.T, got map[string][]string, exp map[string][]*regexp.R
 	}
 }
 
-var modules = []string{"bad", "good", "quiet", "broken"}
+var modules = []string{"bad", "good", "quiet", "broken", "huh", "huhsyntax"}
+
+// syntaxOnly are the modules whose dependencies cannot resolve.
+var syntaxOnly = map[string]bool{"broken": true, "huhsyntax": true}
 
 // TestWant runs tuilint's own driver over each testdata module.
 func TestWant(t *testing.T) {
@@ -91,8 +94,8 @@ func TestWant(t *testing.T) {
 				t.Fatal(err)
 			}
 			fellBack := strings.Contains(stderr.String(), "falling back to syntax-only")
-			if fellBack != (m == "broken") {
-				t.Errorf("fell back = %v, want %v (stderr: %s)", fellBack, m == "broken", stderr.String())
+			if fellBack != syntaxOnly[m] {
+				t.Errorf("fell back = %v, want %v (stderr: %s)", fellBack, syntaxOnly[m], stderr.String())
 			}
 			got := map[string][]string{}
 			for _, f := range fs {
@@ -110,7 +113,7 @@ func TestChecker(t *testing.T) {
 	if testing.Short() {
 		t.Skip("loads the standard library from source")
 	}
-	for _, m := range []string{"bad", "good", "quiet"} {
+	for _, m := range []string{"bad", "good", "quiet", "huh"} {
 		t.Run(m, func(t *testing.T) {
 			dir, _ := filepath.Abs(filepath.Join("testdata", m))
 			pkgs, err := packages.Load(&packages.Config{Mode: packages.LoadAllSyntax | packages.NeedModule, Dir: dir}, "./...")
