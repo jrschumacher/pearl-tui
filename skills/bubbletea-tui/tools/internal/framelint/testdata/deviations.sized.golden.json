@@ -1,0 +1,51 @@
+[
+ {
+  "rule": "F-WIDTH",
+  "sev": "P0",
+  "file": "control.ansi",
+  "where": "row 3",
+  "msg": "1 rows are not 80 cells wide (row 3 is 82)"
+ },
+ {
+  "rule": "F-WIDTH",
+  "sev": "P0",
+  "file": "unicode16.ansi",
+  "where": "row 3",
+  "msg": "2 rows are not 80 cells wide (row 3 is 83)"
+ },
+ {
+  "rule": "F-WIDTH",
+  "sev": "P0",
+  "file": "zwj-emoji.ansi",
+  "where": "row 3",
+  "msg": "1 rows are not 80 cells wide (row 3 is 85)"
+ },
+ {
+  "rule": "F-EMOJI",
+  "sev": "P1",
+  "file": "zwj-emoji.ansi",
+  "where": "frame",
+  "msg": "emoji glyphs present: use a glyph from the brand's vocabulary (\u2713 \u25cf \u25c6 \u203a \u2571) instead"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "control.ansi",
+  "where": "frame",
+  "msg": "only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "unicode16.ansi",
+  "where": "frame",
+  "msg": "only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "zwj-emoji.ansi",
+  "where": "frame",
+  "msg": "only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ }
+]

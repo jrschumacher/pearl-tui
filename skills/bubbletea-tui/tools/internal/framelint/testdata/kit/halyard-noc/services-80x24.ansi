@@ -1,0 +1,24 @@
+[m  [1mH A L Y A R D[22m                                prod / us-east-1 / checkout-api  [m
+[m  [1mServices [m8[22m / [mDeploys[m / [mIncidents[m / [mAssistant[m                                  [m
+[m                                                                                [m
+[m    [mSERVICE                         [m  [mVERSION [m  [mP99         [m  [mERRORS[m  [mDEPLOYED[m  [m
+[m    [m--------------------------------------------------------------------------[m  [m
+[m  [1;7m  x checkout-api                    v2.4.0    _____.=#*@@@  4.81%    12m ago[22;27m  [m
+[m    [m^[m [minventory-sync[m                  [mv1.19.2[m   [m.-..--..-...[m  [m0.02%[m     [m3d ago[m  [m
+[m    [m|[m [msearch-indexer[m                  [mv3.0.1[m    [m...--...-.--[m  [m0.10%[m        [mnow[m  [m
+[m    [m^[m [mauth-gateway[m                    [mv5.2.7[m    [m..-.-..-..-.[m  [m0.00%[m     [m8d ago[m  [m
+[m    [m![m [mnotifications-worker-eu-west[m    [mv0.9.14[m   [m__.-=*###@#@[m  [m0.92%[m     [m1d ago[m  [m
+[m    [m^[m [mledger[m                          [mv7.1.0[m    [m..--..-..-.-[m  [m0.01%[m    [m21d ago[m  [m
+[m    [m^[m [mimage-resizer[m                   [mv2.0.3[m    [m..--.-----.-[m  [m0.05%[m     [m5d ago[m  [m
+[m    [mo[m [mrecommendations[m                 [mv4.4.4[m    [m____________[m  [m-[m        [m34d ago[m  [m
+[m                                                                                [m
+[m    [mcheckout-api[m  owner [mpayments[m  deployed [m12m ago[m                              [m
+[m                                                                                [m
+[m    [m [1m502s[22m [m [m4.8% of checkout requests failing since 14:02 . r roll back[m        [m  [m
+[m                                                                                [m
+[m                                                                                [m
+[m                                                                                [m
+[m                                                                                [m
+[m                                                                                [m
+[m  [m----------------------------------------------------------------------------[m  [m
+[m  [m [m^v[m [m [mselect  [m [md[m [m [mdeploy  [m [mr[m [m [mroll back  ...[m        [m  [m [m?[m [m [mkeys[m  [msynced 4s ago[m  [m

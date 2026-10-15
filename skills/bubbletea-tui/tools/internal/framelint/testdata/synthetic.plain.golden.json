@@ -1,0 +1,261 @@
+[
+ {
+  "rule": "F-WIDTH",
+  "sev": "P0",
+  "file": "torn.ansi",
+  "where": "row 0",
+  "msg": "22 rows are not 81 cells wide (row 0 is 80)"
+ },
+ {
+  "rule": "F-BOXES",
+  "sev": "P1",
+  "file": "box-soup.ansi",
+  "where": "r1c2",
+  "msg": "3 bordered boxes (nested) (side by side): separate regions with whitespace, rules and background steps; keep borders for the one thing that floats (a dialog)"
+ },
+ {
+  "rule": "F-CONTRAST",
+  "sev": "P1",
+  "file": "confirm-dialog.ansi",
+  "where": "r10c22",
+  "msg": "40 text cells under 2.3:1 on rows [10, 23] (first 1.14:1, fg #1E2A3A on bg #131F2F)"
+ },
+ {
+  "rule": "F-CONTRAST",
+  "sev": "P1",
+  "file": "default-purple.ansi",
+  "where": "r4c2",
+  "msg": "11 text cells under 2.3:1 on rows [4] (first 1.72:1, fg #C1CCDB on bg #FF5FAF)"
+ },
+ {
+  "rule": "F-CONTRAST",
+  "sev": "P1",
+  "file": "low-contrast.ansi",
+  "where": "r4c2",
+  "msg": "51 text cells under 2.3:1 on rows [4, 6] (first 1.14:1, fg #333333 on bg #2A2A2A)"
+ },
+ {
+  "rule": "F-CONTRAST",
+  "sev": "P1",
+  "file": "modal-wide-title.ansi",
+  "where": "r5c23",
+  "msg": "51 text cells under 2.3:1 on rows [5, 23] (first 1.73:1, fg #2A4766 on bg #131F2F)"
+ },
+ {
+  "rule": "F-CONTRAST",
+  "sev": "P1",
+  "file": "offpal.ansi",
+  "where": "r8c2",
+  "msg": "26 text cells under 2.3:1 on rows [8] (first 2.19:1, fg #7B3F00 on bg #0D1724)"
+ },
+ {
+  "rule": "F-DEFAULT",
+  "sev": "P1",
+  "file": "default-purple.ansi",
+  "where": "r2c0",
+  "msg": "library-default colour #7D56F4 (lipgloss README purple): the 'every Bubble Tea app is pink and purple' look"
+ },
+ {
+  "rule": "F-DEFAULT",
+  "sev": "P1",
+  "file": "default-purple.ansi",
+  "where": "r2c14",
+  "msg": "library-default colour 212 (example pink): the 'every Bubble Tea app is pink and purple' look"
+ },
+ {
+  "rule": "F-DEFAULT",
+  "sev": "P1",
+  "file": "default-purple.ansi",
+  "where": "r2c19",
+  "msg": "library-default colour #04B575 (example green): the 'every Bubble Tea app is pink and purple' look"
+ },
+ {
+  "rule": "F-DEFAULT",
+  "sev": "P1",
+  "file": "default-purple.ansi",
+  "where": "r4c0",
+  "msg": "library-default colour #FF5FAF / 205 (bubbles default pink): the 'every Bubble Tea app is pink and purple' look"
+ },
+ {
+  "rule": "F-EMOJI",
+  "sev": "P1",
+  "file": "emoji.ansi",
+  "where": "frame",
+  "msg": "emoji glyphs present: use a glyph from the brand's vocabulary (\u2713 \u25cf \u25c6 \u203a \u2571) instead"
+ },
+ {
+  "rule": "F-BOLD",
+  "sev": "P2",
+  "file": "all-bold.ansi",
+  "where": "frame",
+  "msg": "100% of text is bold"
+ },
+ {
+  "rule": "F-CONTRAST",
+  "sev": "P2",
+  "file": "help-overlay.ansi",
+  "where": "frame",
+  "msg": "overlay frame without a bordered dialog: contrast and palette checked only by eye here"
+ },
+ {
+  "rule": "F-EDGE",
+  "sev": "P2",
+  "file": "edge.ansi",
+  "where": "frame",
+  "msg": "content touches the terminal edge on most rows: give it a 1\u20132 cell gutter"
+ },
+ {
+  "rule": "F-EMPTY",
+  "sev": "P2",
+  "file": "empty.ansi",
+  "where": "frame",
+  "msg": "almost nothing on screen: if this is an empty state, say what is missing and what to do"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "all-bold.ansi",
+  "where": "frame",
+  "msg": "only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "baseline.ansi",
+  "where": "frame",
+  "msg": "only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "box-soup.ansi",
+  "where": "frame",
+  "msg": "only 0 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "confirm-dialog.ansi",
+  "where": "frame",
+  "msg": "only 0 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "cursor.ansi",
+  "where": "frame",
+  "msg": "only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "default-purple.ansi",
+  "where": "frame",
+  "msg": "only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "edge.ansi",
+  "where": "frame",
+  "msg": "only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "emoji.ansi",
+  "where": "frame",
+  "msg": "only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "flat.ansi",
+  "where": "frame",
+  "msg": "only 0 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "help-overlay.ansi",
+  "where": "frame",
+  "msg": "only 0 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "modal-wide-title.ansi",
+  "where": "frame",
+  "msg": "only 0 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "offpal.ansi",
+  "where": "frame",
+  "msg": "only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "rainbow.ansi",
+  "where": "frame",
+  "msg": "only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "tofu.ansi",
+  "where": "frame",
+  "msg": "only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-LEVELS",
+  "sev": "P2",
+  "file": "torn.ansi",
+  "where": "frame",
+  "msg": "only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
+ },
+ {
+  "rule": "F-RAINBOW",
+  "sev": "P2",
+  "file": "offpal.ansi",
+  "where": "frame",
+  "msg": "8 distinct foreground hues: hierarchy should come from lightness levels, colour from roles"
+ },
+ {
+  "rule": "F-RAINBOW",
+  "sev": "P2",
+  "file": "rainbow.ansi",
+  "where": "frame",
+  "msg": "10 distinct foreground hues: hierarchy should come from lightness levels, colour from roles"
+ },
+ {
+  "rule": "F-TOFU",
+  "sev": "P2",
+  "file": "tofu.ansi",
+  "where": "r5c2",
+  "msg": "private-use glyph U+F120 (Nerd Font icon): needs a fallback for users without the font"
+ },
+ {
+  "rule": "F-TOFU",
+  "sev": "P2",
+  "file": "tofu.ansi",
+  "where": "r5c12",
+  "msg": "private-use glyph U+E0B0 (Nerd Font icon): needs a fallback for users without the font"
+ },
+ {
+  "rule": "F-TOFU",
+  "sev": "P2",
+  "file": "tofu.ansi",
+  "where": "r5c19",
+  "msg": "private-use glyph U+F0001 (Nerd Font icon): needs a fallback for users without the font"
+ },
+ {
+  "rule": "F-TOFU",
+  "sev": "P2",
+  "file": "tofu.ansi",
+  "where": "r5c27",
+  "msg": "replacement character in output (broken encoding)"
+ }
+]

@@ -1,0 +1,16 @@
+[
+ {
+  "rule": "F-CONTRAST",
+  "sev": "P1",
+  "file": "deploys-80x24.ansi",
+  "where": "r4c3",
+  "msg": "76 text cells under 2.3:1 on rows [4] (first 1.63:1, fg #3C3F44 on bg #1A1B1D)"
+ },
+ {
+  "rule": "F-BOLD",
+  "sev": "P2",
+  "file": "splash-80x24.ansi",
+  "where": "frame",
+  "msg": "31% of text is bold"
+ }
+]

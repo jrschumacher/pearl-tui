@@ -1,0 +1,44 @@
+linted 18 frame(s)
+[P0] F-WIDTH     torn.ansi:row 5  2 rows are not 80 cells wide (row 5 is 81)
+[P0] F-WIDTH     torn.ansi:frame  23 rows, expected 24
+[P1] F-BOXES     box-soup.ansi:r1c2  3 bordered boxes (nested) (side by side): separate regions with whitespace, rules and background steps; keep borders for the one thing that floats (a dialog)
+[P1] F-CONTRAST  confirm-dialog.ansi:r10c22  40 text cells under 2.3:1 on rows [10, 23] (first 1.14:1, fg #1E2A3A on bg #131F2F)
+[P1] F-CONTRAST  default-purple.ansi:r4c2  11 text cells under 2.3:1 on rows [4] (first 1.72:1, fg #C1CCDB on bg #FF5FAF)
+[P1] F-CONTRAST  low-contrast.ansi:r4c2  51 text cells under 2.3:1 on rows [4, 6] (first 1.14:1, fg #333333 on bg #2A2A2A)
+[P1] F-CONTRAST  modal-wide-title.ansi:r5c23  51 text cells under 2.3:1 on rows [5, 23] (first 1.73:1, fg #2A4766 on bg #131F2F)
+[P1] F-CONTRAST  offpal.ansi:r8c2  26 text cells under 2.3:1 on rows [8] (first 2.19:1, fg #7B3F00 on bg #0D1724)
+[P1] F-DEFAULT   default-purple.ansi:r2c0  library-default colour #7D56F4 (lipgloss README purple): the 'every Bubble Tea app is pink and purple' look
+[P1] F-DEFAULT   default-purple.ansi:r2c14  library-default colour 212 (example pink): the 'every Bubble Tea app is pink and purple' look
+[P1] F-DEFAULT   default-purple.ansi:r2c19  library-default colour #04B575 (example green): the 'every Bubble Tea app is pink and purple' look
+[P1] F-DEFAULT   default-purple.ansi:r4c0  library-default colour #FF5FAF / 205 (bubbles default pink): the 'every Bubble Tea app is pink and purple' look
+[P1] F-EMOJI     emoji.ansi:frame  emoji glyphs present: use a glyph from the brand's vocabulary (✓ ● ◆ › ╱) instead
+[P1] F-OFFPAL    default-purple.ansi:r2c0  4 colours not in the theme roles: #7D56F4, #FF87D7, #FF5FAF, #5F5FFF
+[P1] F-OFFPAL    offpal.ansi:r3c0  7 colours not in the theme roles: #12FF34, #FF00FF, #00FFFF, #808000, #7B3F00, #C0FFEE
+[P1] F-OFFPAL    rainbow.ansi:r8c0  3 colours not in the theme roles: #5050E0, #A040E0, #E040A0
+[P1] F-OFFPAL    sgr-mix.ansi:r1c38  1 colours not in the theme roles: #000000
+[P2] F-BOLD      all-bold.ansi:frame  100% of text is bold
+[P2] F-CONTRAST  help-overlay.ansi:frame  overlay frame without a bordered dialog: contrast and palette checked only by eye here
+[P2] F-EDGE      edge.ansi:frame  content touches the terminal edge on most rows: give it a 1–2 cell gutter
+[P2] F-EMPTY     empty.ansi:frame  almost nothing on screen: if this is an empty state, say what is missing and what to do
+[P2] F-LEVELS    all-bold.ansi:frame  only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-LEVELS    baseline.ansi:frame  only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-LEVELS    box-soup.ansi:frame  only 0 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-LEVELS    confirm-dialog.ansi:frame  only 0 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-LEVELS    cursor.ansi:frame  only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-LEVELS    default-purple.ansi:frame  only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-LEVELS    edge.ansi:frame  only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-LEVELS    emoji.ansi:frame  only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-LEVELS    flat.ansi:frame  only 0 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-LEVELS    help-overlay.ansi:frame  only 0 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-LEVELS    modal-wide-title.ansi:frame  only 0 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-LEVELS    offpal.ansi:frame  only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-LEVELS    rainbow.ansi:frame  only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-LEVELS    tofu.ansi:frame  only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-LEVELS    torn.ansi:frame  only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle
+[P2] F-RAINBOW   offpal.ansi:frame  8 distinct foreground hues: hierarchy should come from lightness levels, colour from roles
+[P2] F-RAINBOW   rainbow.ansi:frame  10 distinct foreground hues: hierarchy should come from lightness levels, colour from roles
+[P2] F-TOFU      tofu.ansi:r5c2  private-use glyph U+F120 (Nerd Font icon): needs a fallback for users without the font
+[P2] F-TOFU      tofu.ansi:r5c12  private-use glyph U+E0B0 (Nerd Font icon): needs a fallback for users without the font
+[P2] F-TOFU      tofu.ansi:r5c19  private-use glyph U+F0001 (Nerd Font icon): needs a fallback for users without the font
+[P2] F-TOFU      tofu.ansi:r5c27  replacement character in output (broken encoding)
+FAIL  17 blocking, 25 warnings

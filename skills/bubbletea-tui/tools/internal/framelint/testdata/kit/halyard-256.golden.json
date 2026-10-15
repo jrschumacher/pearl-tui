@@ -1,0 +1,30 @@
+[
+ {
+  "rule": "F-DEFAULT",
+  "sev": "P1",
+  "file": "confirm-80x24.ansi",
+  "where": "r10c23",
+  "msg": "library-default colour 204 (example pink): the 'every Bubble Tea app is pink and purple' look"
+ },
+ {
+  "rule": "F-DEFAULT",
+  "sev": "P1",
+  "file": "services-80x24.ansi",
+  "where": "r16c4",
+  "msg": "library-default colour 204 (example pink): the 'every Bubble Tea app is pink and purple' look"
+ },
+ {
+  "rule": "F-OFFPAL",
+  "sev": "P1",
+  "file": "confirm-80x24.ansi",
+  "where": "r4c11",
+  "msg": "3 colours not in the theme roles: #FF5F00, #FF5F87, #00005F"
+ },
+ {
+  "rule": "F-OFFPAL",
+  "sev": "P1",
+  "file": "services-80x24.ansi",
+  "where": "r0c0",
+  "msg": "4 colours not in the theme roles: #FF5F00, #FF5F87, #5F005F, #00005F"
+ }
+]
