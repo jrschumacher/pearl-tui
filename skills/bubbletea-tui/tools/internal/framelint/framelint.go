@@ -37,8 +37,9 @@ import (
 const usage = `usage: tuilint frames <dir|files...> [--cols W --rows H] [--theme theme.json] [--bg #rrggbb] [--json out.json]
 
 Lints rendered truecolor ANSI frames (the output of your -state X -w W -h H flag).
-A directory means its *.ansi files. Without --cols/--rows, a name ending -<W>x<H>.ansi
-(what -out writes) sets that frame's size; otherwise W is the widest row and H is free.
+A directory means its *.ansi files. A name ending -<W>x<H>.ansi (what -out writes) sets
+that frame's size, and --cols/--rows each override their own dimension; with neither,
+W is the widest row and H is free.
 A finding prints as [SEV] ID  file:where  message.
 P0/P1 findings fail the run (exit 1); P2 are warnings to fix or justify in one line.
 --bg is the terminal default background for cells that set none (default #16161a).

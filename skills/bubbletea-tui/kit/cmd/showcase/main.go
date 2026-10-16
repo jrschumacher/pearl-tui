@@ -203,7 +203,7 @@ func main() {
 		if bad > 0 {
 			os.Exit(1)
 		}
-		fmt.Fprintf(os.Stderr, "wrote %d states × %s to %s (bg %s)\n", len(states), *sizes, *out, hex(m.t))
+		fmt.Fprintf(os.Stderr, "wrote %d frames (%d states × %s) to %s (bg %s)\n", len(written), len(states), *sizes, *out, hex(m.t))
 	}
 }
 

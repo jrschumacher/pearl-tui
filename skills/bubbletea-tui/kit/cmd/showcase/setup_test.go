@@ -27,7 +27,6 @@ func drive(m *app, keys ...string) {
 
 func screenText(m *app, w, h int) string { return ansi.Strip(m.render(w, h).String()) }
 
-// header is the first row: the brand bar with the step counter in it.
 // header is the header's rows at 120×40: one for most themes, the wordmark rows
 // plus the details row for a "banner" header.
 func header(m *app) string {
