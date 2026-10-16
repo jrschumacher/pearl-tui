@@ -12,9 +12,12 @@
 //	| reply                | overlay          | enter send · shift+enter/ctrl+j newline · esc cancel |
 //	Global: ctrl+c quit · ctrl+p switch
 //
-// A key token may list alternatives with "/" (`shift+enter/ctrl+j`, `↑↓/jk`).
+// A key token may list alternatives with "/" (`shift+enter/ctrl+j`, `↑↓/jk`, `1-9`), and
+// an item may list more tokens before its action: `j/k, ↑/↓ move`, `h/l or ←/→ switch`,
+// `q / ctrl+c quit`, `[ ] back`. A trailing ":" ends the keys (`enter: open`).
 //
 //	S-TABLE      [P1] no States-and-keys table in the template's format: nothing else can be checked
+//	             [P2] a key token it can't read as a key: the key rules skip it
 //	S-KEYAMBIG   [P1] a key that terminals without key disambiguation (tmux by default, many
 //	                  terminals, most SSH sessions) deliver as another key, with no fallback for
 //	                  the same action in the same cell. Bubble Tea v2.1.0 asks for disambiguation;

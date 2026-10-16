@@ -79,6 +79,14 @@ func TestRules(t *testing.T) {
 		{"same action twice", table("| list | list | ? help · q quit |", "? help · ctrl+c quit"), nil},
 		{"same key in two states", table("| a | a | r refresh |\n| b | b | r reply |", ""), nil},
 		{"g and G differ", table("| list | list | g top · G bottom |", ""), nil},
+		{"a spaced slash joins two keys", table("| list | list | q / ctrl+c quit · / search · ctrl+d / ctrl+u half page · d delete · u undo |", ""), nil},
+		{"a spaced slash still finds a dup", table("| list | list | q / ctrl+c quit · ctrl+c copy |", ""), map[string]int{"S-KEYDUP": 1}},
+		{"comma and or between alternatives", table("| list | list | j/k, ↑/↓ move · h/l or ←/→ switch · enter: open |", ""), nil},
+		{"comma and or still find a dup", table("| list | list | j/k, ↑/↓ move · h/l or ←/→ switch · ← back |", ""), map[string]int{"S-KEYDUP": 1}},
+
+		// S-TABLE warns on what it can't read
+		{"an unreadable key", table("| list | list | enter open · foo bar |", ""), map[string]int{"S-TABLE": 1}},
+		{"prose and empty cells are not keys", table("| list-filter | list | type to filter · esc clear |\n| splash | splash | — |\n| about | overlay | any key close |", ""), nil},
 
 		// S-KEYSHADOW
 		{"ctrl+k over a textarea", table("| reply | overlay | enter send · shift+enter/ctrl+j newline · esc cancel |", "ctrl+k switch · ctrl+c quit"), map[string]int{"S-KEYSHADOW": 1}},
@@ -153,6 +161,39 @@ func TestLegacy(t *testing.T) {
 		if !ok && why == "" {
 			t.Errorf("legacy(%s) gives no reason", in)
 		}
+	}
+}
+
+func TestReadItem(t *testing.T) {
+	cases := map[string]string{ // item → keys | action
+		"q / ctrl+c quit":            "q ctrl+c | quit",
+		"ctrl+d / ctrl+u half page":  "ctrl+d ctrl+u | half page",
+		"j/k, ↑/↓ move":              "j k up down | move",
+		"h/l or ←/→ switch":          "h l left right | switch",
+		"enter: open":                "enter | open",
+		"[ ] back/fwd":               "[ ] | back/fwd",
+		"j k scroll":                 "j k | scroll",
+		"/ search":                   "/ | search",
+		"esc, q close":               "esc q | close",
+		"q / go back":                "q | / go back",
+		"esc, to close":              "esc | to close",
+		"1-3 jump to tab":            "1 2 3 | jump to tab",
+		"hjkl move":                  "h j k l | move",
+		"<enter> open":               "enter | open",
+		"shift+enter/ctrl+j newline": "shift+enter ctrl+j | newline",
+	}
+	for in, want := range cases {
+		b := readItem(strings.Fields(in))
+		var ks []string
+		for _, k := range b.keys {
+			ks = append(ks, k.String())
+		}
+		if got := strings.Join(ks, " ") + " | " + b.action; got != want || b.bad != "" {
+			t.Errorf("readItem(%q) = %q (bad %q), want %q", in, got, b.bad, want)
+		}
+	}
+	if b := readItem(strings.Fields("foo/x bar")); b.bad != "foo" || len(b.keys) != 1 {
+		t.Errorf("readItem(foo/x bar): bad %q, keys %v", b.bad, b.keys)
 	}
 }
 

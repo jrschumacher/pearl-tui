@@ -151,18 +151,58 @@ func expandAlt(a string) []key {
 	if len(runes) == 2 && !strings.Contains(a, "+") && !isNamed(a) && unicode.IsLetter(runes[0]) && unicode.IsLetter(runes[1]) {
 		return []key{{base: string(runes[0])}, {base: string(runes[1])}}
 	}
+	if len(runes) > 2 && len(runes) <= 4 && strings.Trim(a, "hjkl") == "" {
+		ks := make([]key, len(runes)) // "hjkl", "hjk"
+		for i, r := range runes {
+			ks[i] = key{base: string(r)}
+		}
+		return ks
+	}
+	if len(a) == 3 && a[1] == '-' && a[0] >= '0' && a[0] < a[2] && a[2] <= '9' {
+		var ks []key // "1-9"
+		for d := a[0]; d <= a[2]; d++ {
+			ks = append(ks, key{base: string(d)})
+		}
+		return ks
+	}
 	return []key{parseKey(a)}
 }
 
 // parseToken expands a whole key token ("shift+enter/ctrl+j", "↑↓/jk").
 func parseToken(tok string) []key {
-	var ks []key
+	ks, _ := readToken(tok)
+	return ks
+}
+
+// readToken expands a key token into its keys, leaving out any alternative that names
+// no key; bad is the first one left out ("" when every one is a key).
+func readToken(tok string) (ks []key, bad string) {
+	if n := len(tok); n > 2 && tok[0] == '<' && tok[n-1] == '>' {
+		tok = tok[1 : n-1] // "<enter>"
+	}
 	for _, a := range splitAlts(tok) {
-		if a != "" {
-			ks = append(ks, expandAlt(a)...)
+		if a == "" {
+			continue
+		}
+		for _, k := range expandAlt(a) {
+			if utf8.RuneCountInString(k.base) == 1 || isNamed(k.base) {
+				ks = append(ks, k)
+			} else if bad == "" {
+				bad = a
+			}
 		}
 	}
-	return ks
+	return ks, bad
+}
+
+// looksKey reports whether a field reads as a key token in full ("ctrl+c", "↑/↓,").
+func looksKey(tok string) bool {
+	tok = strings.TrimRight(tok, ",:")
+	if len(tok) > 1 && strings.Trim(tok, "abcdefghijklmnopqrstuvwxyz") == "" && strings.Trim(tok, "hjkl") != "" && !isNamed(tok) {
+		return false // a word ("to", "go"), not a pair of keys
+	}
+	ks, bad := readToken(tok)
+	return len(ks) > 0 && bad == ""
 }
 
 // legacy says what a terminal without key disambiguation delivers for k: ok is false

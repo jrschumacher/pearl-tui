@@ -108,7 +108,8 @@ func Main(args []string, stdout, stderr io.Writer) int {
 type binding struct {
 	token  string // as written: "shift+enter/ctrl+j"
 	keys   []key
-	action string // normalised
+	action string // lowercased
+	bad    string // the first alternative that names no key, as written
 }
 
 // row is one state of the table, or a Global line.
@@ -136,6 +137,15 @@ func Lint(file, src string) []Finding {
 	}
 	if len(s.rows) == 0 {
 		add("S-TABLE", 1, "no States-and-keys table: write `| state (harness name) | screen / overlay | keys |` with keys as `key action · key action`, as cmd-init.md's template does; the key rules can't run without it")
+	}
+	for _, r := range append(append([]row{}, s.globals...), s.rows...) {
+		for _, b := range r.bindings {
+			if b.bad != "" {
+				out = append(out, Finding{Rule: "S-TABLE", Sev: "P2", File: file, Line: r.line, Msg: fmt.Sprintf(
+					"%s: can't read key %q in `%s %s`, so the key rules skip it. Write keys as Bubble Tea names (ctrl+k, shift+tab, enter, pgdown, ↑↓, j/k), each item `key action`, items separated by ·",
+					r.state, b.bad, b.token, b.action)})
+			}
+		}
 	}
 	s.keyAmbig(add)
 	s.keyDup(add)
@@ -255,24 +265,82 @@ func splitRow(t string) []string {
 
 var spaceRe = regexp.MustCompile(`\s+`)
 
+var (
+	emptyCell = regexp.MustCompile(`(?i)^(?:[-–—]+|n/?a|none|\(none\))?$`)
+	// proseLead starts an item that names no key: "type to filter", "any key close".
+	proseLead = map[string]bool{"type": true, "typing": true, "any": true, "other": true, "click": true, "mouse": true, "wheel": true}
+)
+
 func parseKeys(cell string) []binding {
+	cell = clean(cell)
+	if emptyCell.MatchString(cell) {
+		return nil
+	}
 	var out []binding
-	for _, item := range strings.FieldsFunc(clean(cell), func(r rune) bool { return r == '·' || r == '•' }) {
+	for _, item := range strings.FieldsFunc(cell, func(r rune) bool { return r == '·' || r == '•' }) {
 		f := strings.Fields(item)
 		if len(f) == 0 {
 			continue
 		}
-		token, keys := f[0], parseToken(f[0])
-		// "[ ] back/fwd" and "j k scroll": a lone one-character field after the key is a
-		// second key, not the first word of the action.
-		if len(f) >= 3 && utf8.RuneCountInString(f[1]) == 1 && !strings.ContainsAny(f[1], "-–—=:") {
-			token, keys = f[0]+" "+f[1], append(keys, parseToken(f[1])...)
-			f = append([]string{token}, f[2:]...)
+		if proseLead[strings.ToLower(strings.Trim(f[0], "(),:"))] {
+			out = append(out, binding{action: actionText(f)})
+			continue
 		}
-		action := strings.ToLower(strings.TrimRight(spaceRe.ReplaceAllString(strings.Join(f[1:], " "), " "), ".,;"))
-		out = append(out, binding{token: token, keys: keys, action: action})
+		out = append(out, readItem(f))
 	}
 	return out
+}
+
+func actionText(f []string) string {
+	return strings.ToLower(strings.TrimRight(spaceRe.ReplaceAllString(strings.Join(f, " "), " "), ".,;"))
+}
+
+// readItem reads one `key action` item. Its keys are the first field and any that
+// follow it as alternatives:
+//
+//	j/k, ↑/↓ move      a trailing "," says another key follows
+//	h/l or ←/→ switch  a lone "or", "/" or "," between two keys
+//	q / ctrl+c quit
+//	[ ] back/fwd       a lone one-character field after a key, with an action after it
+//	enter: open        a trailing ":" ends the keys
+func readItem(f []string) binding {
+	var b binding
+	var written []string
+	i := 0
+	for {
+		tok, more, stop := f[i], false, false
+		if n := len(tok); n > 1 && (tok[n-1] == ',' || tok[n-1] == ':') {
+			more, stop = tok[n-1] == ',', tok[n-1] == ':'
+			tok = tok[:n-1]
+		}
+		written = append(written, tok)
+		ks, bad := readToken(tok)
+		b.keys = append(b.keys, ks...)
+		if bad != "" && b.bad == "" {
+			b.bad = bad
+		}
+		i++
+		if stop || i >= len(f) {
+			break
+		}
+		rest := len(f) - i
+		if more && looksKey(f[i]) {
+			continue
+		}
+		if (f[i] == "/" || f[i] == "," || strings.EqualFold(f[i], "or")) && rest >= 3 && looksKey(f[i+1]) {
+			i++
+			continue
+		}
+		// "[ ] back/fwd" and "j k scroll": a lone one-character field after a key is
+		// another key, not the first word of the action. A spaced "/" is never a key.
+		if rest >= 2 && utf8.RuneCountInString(f[i]) == 1 && !strings.ContainsAny(f[i], "-–—=:,/") {
+			continue
+		}
+		break
+	}
+	b.token = strings.Join(written, " ")
+	b.action = actionText(f[i:])
+	return b
 }
 
 // parseGlobalKeys reads a Global line. Older TUI.md files separate it with commas
