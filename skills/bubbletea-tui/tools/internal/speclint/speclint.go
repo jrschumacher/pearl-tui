@@ -14,6 +14,7 @@ import (
 
 	"golang.org/x/text/width"
 
+	"tuikit/theme"
 	"tuitools/internal/cmddoc"
 )
 
@@ -573,8 +574,9 @@ func (s *spec) glyphWidth(add func(string, int, string, ...any)) {
 		}
 	}
 	type seg struct {
-		line int
-		text string
+		line  int
+		text  string
+		table bool
 	}
 	var segs []seg
 	level := 0 // the heading level of the brand section we're in, 0 outside
@@ -589,7 +591,7 @@ func (s *spec) glyphWidth(add func(string, int, string, ...any)) {
 			}
 		}
 		if level > 0 {
-			segs = append(segs, seg{i + 1, l})
+			segs = append(segs, seg{i + 1, l, false})
 		}
 	}
 	for _, r := range append(append([]row{}, s.globals...), s.rows...) {
@@ -597,17 +599,24 @@ func (s *spec) glyphWidth(add func(string, int, string, ...any)) {
 		for _, b := range r.bindings {
 			text += " " + b.action // key tokens (↑↓←→) are key names, not glyphs
 		}
-		segs = append(segs, seg{r.line, text})
+		segs = append(segs, seg{r.line, text, true})
 	}
 	sort.SliceStable(segs, func(i, j int) bool { return segs[i].line < segs[j].line })
 	reported := map[rune]bool{}
 	for _, sg := range segs {
 		var found []string
 		for _, r := range sg.text {
-			if ambiguous(r) && !covered[r] && !reported[r] {
-				reported[r] = true
-				found = append(found, string(r))
+			if !ambiguous(r) || covered[r] || reported[r] {
+				continue
 			}
+			if _, ok := theme.ASCIITwin(string(r)); ok {
+				continue // the kit's ASCII map draws its twin (─ ▌ │ ● ○ ◆ ▲ ■ …)
+			}
+			if r >= 0x2190 && r <= 0x21FF && !sg.table {
+				continue // an arrow in prose ("queued → running"), not a column glyph
+			}
+			reported[r] = true
+			found = append(found, string(r))
 		}
 		if len(found) == 0 {
 			continue
@@ -619,7 +628,8 @@ func (s *spec) glyphWidth(add func(string, int, string, ...any)) {
 }
 
 func asciiHint(gs []string) string {
-	twins := map[string]string{"●": "*", "○": "o", "◐": "~", "◑": "~", "◆": "*", "◇": "o", "▲": "^", "△": "^", "■": "#", "□": "o", "★": "*", "─": "-", "│": "|", "▌": "|", "█": "#"}
+	// twins for common glyphs the kit's map (theme.ASCIITwin) leaves out
+	twins := map[string]string{"◐": "~", "◑": "~", "◒": "~", "◓": "~", "★": "*", "☆": "o", "█": "#", "▼": "v", "▽": "v", "◀": "<", "◁": "<"}
 	out := make([]string, len(gs))
 	for i, g := range gs {
 		if t, ok := twins[g]; ok {

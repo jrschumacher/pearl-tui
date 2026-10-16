@@ -104,15 +104,18 @@ func TestRules(t *testing.T) {
 		{"keys a text box leaves alone", table("| reply | editor | enter send · ctrl+j newline |", "esc back · ctrl+c quit · ctrl+o switch"), nil},
 
 		// S-GLYPHWIDTH
-		{"motif with no ascii", "### Brand read\nmotif: ● unread ○ done\n" + table("| list | list | enter open |", ""), map[string]int{"S-GLYPHWIDTH": 1}},
-		{"glyph in the key table", table("| list | list ● | enter open ◆ |", ""), map[string]int{"S-GLYPHWIDTH": 1}},
-		{"reported once per glyph", "### Brand read\nmotif: ●\nremember: the ● row\n" + table("| list | list | enter open |", ""), map[string]int{"S-GLYPHWIDTH": 1}},
-		{"ascii twin on the line", "### Brand read\nmotif: ● unread ○ done (ascii * o)\nremember: the ● row\n" + table("| list | list ● | enter open |", ""), nil},
-		{"ascii twin elsewhere", "### Brand read\nmotif: ● unread\n\n### Glyphs\nASCII: ● → *\n" + table("| list | list | enter open |", ""), nil},
+		{"motif with no ascii", "### Brand read\nmotif: ◐ seen ★ starred\n" + table("| list | list | enter open |", ""), map[string]int{"S-GLYPHWIDTH": 1}},
+		{"glyph in the key table", table("| list | list ★ | enter open ◐ |", ""), map[string]int{"S-GLYPHWIDTH": 1}},
+		{"reported once per glyph", "### Brand read\nmotif: ★\nremember: the ★ row\n" + table("| list | list | enter open |", ""), map[string]int{"S-GLYPHWIDTH": 1}},
+		{"ascii twin on the line", "### Brand read\nmotif: ★ starred ◐ seen (ascii * ~)\nremember: the ★ row\n" + table("| list | list ★ | enter open |", ""), nil},
+		{"ascii twin elsewhere", "### Brand read\nmotif: ★ starred\n\n### Glyphs\nASCII: ★ → *\n" + table("| list | list | enter open |", ""), nil},
+		{"glyphs the kit maps to ascii", "### Brand read\nfocus: the ▌ gutter, ─ rules, │ rails, ● ○ ◆ ▲ ■ state marks\n" + table("| list | list ● | enter open ◆ |", ""), nil},
+		{"arrows in prose", "### Brand read\nmotion: queued → running → done, retries ⇒ backoff ↻\n" + table("| list | list | enter open |", ""), nil},
+		{"an arrow in the key table", table("| list | list | enter open ⇒ detail |", ""), map[string]int{"S-GLYPHWIDTH": 1}},
 		{"arrow key names", table("| list | list | ↑↓/jk move · ←→ choose |", ""), nil},
-		{"outside the brand read", "### Screens\nlist — ● rows\n\n### Brand read\ntone: calm — precise…\n" + table("| list | list | enter open |", ""), nil},
+		{"outside the brand read", "### Screens\nlist — ★ rows\n\n### Brand read\ntone: calm — precise…\n" + table("| list | list | enter open |", ""), nil},
 		{"narrow symbols", "### Brand read\nmotif: ✓ done ❯ cursor ▸ open\n" + table("| list | list | enter open |", ""), nil},
-		{"brand section ends at the next heading", "## Brand\n### Brand read\ntone: calm\n## Architecture\nregions ─ ─\n" + table("| list | list | enter open |", ""), nil},
+		{"brand section ends at the next heading", "## Brand\n### Brand read\ntone: calm\n## Architecture\nregions ★ ★\n" + table("| list | list | enter open |", ""), nil},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
