@@ -65,7 +65,7 @@ func TestRules(t *testing.T) {
 		// S-KEYAMBIG silent
 		{"slash fallback", table("| reply | overlay | enter send · shift+enter/ctrl+j newline |", ""), nil},
 		{"fallback item in the same cell", table("| reply | overlay | enter send · shift+enter newline · ctrl+j newline |", ""), nil},
-		{"keys every terminal sends", table("| list | list | shift+tab back · ctrl+space mark · alt+enter run · ctrl+j down · ctrl+_ undo · ctrl+\\ split · ctrl+k up · alt+backspace kill |", ""), nil},
+		{"keys every terminal sends", table("| list | list | shift+tab back · ctrl+space mark · alt+enter run · ctrl+j down · ? help ‖ ctrl+_ undo · ctrl+\\ split · ctrl+k up · alt+backspace kill |", ""), nil},
 		{"the slash key and ctrl+", table("| list | list | / filter · ? help · ^R refresh · Ctrl+K up |", ""), nil},
 
 		// S-KEYDUP
@@ -74,7 +74,7 @@ func TestRules(t *testing.T) {
 		{"a state overrides a Global key", table("| list | list | ctrl+k kill line |", "ctrl+k switch"), nil},
 		{"overrides of esc, ? and ctrl+c", table("| confirm | overlay | enter confirm · esc cancel |\n| help | overlay | ? close · esc close |\n| creating | wizard | ctrl+c cancel |", "esc back · ? help · ctrl+c quit"), nil},
 		{"one cell, two actions", table("| status | status | c commit · c comment |", ""), map[string]int{"S-KEYDUP": 1}},
-		{"one cell, near-alike actions", table("| s | s | p preview · p previous · u unstage · u unstash · o open · o open in browser · pgdn page down · pgdn page up |", ""), map[string]int{"S-KEYDUP": 4}},
+		{"one cell, near-alike actions, across a footer cut", table("| s | s | p preview · p previous · u unstage · u unstash · ? help ‖ o open · o open in browser · pgdn page down · pgdn page up |", ""), map[string]int{"S-KEYDUP": 4}},
 		{"one cell, the same action reworded by punctuation", table("| s | s | [ ] back/fwd · [ back fwd |", ""), nil},
 		{"Global, two actions", table("| a | a | x go |", "c commit · c comment"), map[string]int{"S-KEYDUP": 1}},
 		{"a state restating a Global pair in fewer words", table("| pr | pr | t tour · [ ] back/fwd |", "ctrl+c quit, [ ] back/forward between items."), nil},
@@ -115,6 +115,19 @@ func TestRules(t *testing.T) {
 		{"arrow key names", table("| list | list | ↑↓/jk move · ←→ choose |", ""), nil},
 		{"outside the brand read", "### Screens\nlist — ★ rows\n\n### Brand read\ntone: calm — precise…\n" + table("| list | list | enter open |", ""), nil},
 		{"narrow symbols", "### Brand read\nmotif: ✓ done ❯ cursor ▸ open\n" + table("| list | list | enter open |", ""), nil},
+		// S-FOOTER: 76 columns inside the kit's gutters at 80
+		{"a footer that overflows", table("| inbox | inbox | ↑↓/jk move · enter open · e done · s snooze · x select · E done selected · / filter · ctrl+s save search · r refresh · ? help · q quit |", ""), map[string]int{"S-FOOTER": 1}},
+		{"an overlay's footer overflows too", table("| confirm | overlay | ←→ choose · enter confirm deletion of every selected item · esc cancel and keep the items · ? help |", ""), map[string]int{"S-FOOTER": 1}},
+		{"a cut that fits", table("| inbox | inbox | ↑↓/jk move · enter open · e done · s snooze · x select · ? help ‖ E done selected · / filter · ctrl+s save search · r refresh · q quit |", ""), nil},
+		{"a cut that still overflows", table("| inbox | inbox | ↑↓/jk move · enter open · e done · s snooze · x select · E done selected · / filter · ctrl+s save search · ? help ‖ r refresh · q quit |", ""), map[string]int{"S-FOOTER": 1}},
+		{"a cut with no help key in the footer", table("| inbox | inbox | ↑↓/jk move · enter open ‖ r refresh |", ""), map[string]int{"S-FOOTER": 1}},
+		{"a cut with help in Global", table("| inbox | inbox | ↑↓/jk move · enter open ‖ r refresh |", "? help · ctrl+c quit"), nil},
+		{"ctrl+g opens help while typing", table("| reply | overlay | enter send · ctrl+j newline · esc cancel · ctrl+g help ‖ ctrl+o attach |", ""), nil},
+		{"76 columns exactly fit", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 42)+" |", ""), nil},
+		{"77 columns don't", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 43)+" |", ""), map[string]int{"S-FOOTER": 1}},
+		{"Global keys are not in the footer", table("| list | list | ↑↓ move · enter open · ? help |", "ctrl+c quit · ctrl+p palette · ctrl+o switch · ctrl+s save · ctrl+r reload · ctrl+t theme · f1 manual"), nil},
+		{"an empty cell has no footer", table("| splash | splash | — |", ""), nil},
+
 		{"brand section ends at the next heading", "## Brand\n### Brand read\ntone: calm\n## Architecture\nregions ★ ★\n" + table("| list | list | enter open |", ""), nil},
 	}
 	for _, c := range cases {
@@ -255,7 +268,7 @@ func TestReviewInbox(t *testing.T) {
 	if out.String() != string(want) {
 		t.Errorf("output differs from %s (go test -update to accept):\n%s", golden, out.String())
 	}
-	for _, r := range []string{"S-KEYAMBIG", "S-KEYDUP", "S-KEYSHADOW", "S-GLYPHWIDTH"} {
+	for _, r := range []string{"S-KEYAMBIG", "S-KEYDUP", "S-KEYSHADOW", "S-GLYPHWIDTH", "S-FOOTER"} {
 		if !strings.Contains(out.String(), r) {
 			t.Errorf("review-inbox.md does not fire %s", r)
 		}
@@ -294,7 +307,8 @@ func TestTemplatePasses(t *testing.T) {
 // Ordinary TUI.md files lint clean; only real problems fire. Each of these drew false
 // findings before: a ▌ gutter and arrows in prose (dashboard), states overriding Global
 // esc, ? and ctrl+c (wizard), `q / ctrl+c quit` and `j/k, ↑/↓ move` (git), and a
-// "Global:" note under § Decisions (dashboard).
+// "Global:" note under § Decisions (dashboard). Their widest states overflowed the
+// 80-column footer (S-FOOTER), so dashboard and git now mark the cut with ‖.
 func TestOrdinaryFilesLintClean(t *testing.T) {
 	files, err := filepath.Glob(filepath.Join("testdata", "clean", "*.md"))
 	if err != nil || len(files) < 3 {
@@ -344,7 +358,7 @@ func TestMainExitCodes(t *testing.T) {
 // The -h text is the package doc comment, whole and without source.
 func TestUsageIsTheDocComment(t *testing.T) {
 	u := Usage()
-	for _, want := range []string{"usage: tuilint spec [TUI.md...]", "S-KEYAMBIG", "S-KEYDUP", "S-KEYSHADOW", "S-GLYPHWIDTH", "S-TABLE",
+	for _, want := range []string{"usage: tuilint spec [TUI.md...]", "S-KEYAMBIG", "S-KEYDUP", "S-KEYSHADOW", "S-GLYPHWIDTH", "S-FOOTER", "S-TABLE", "‖",
 		"  | state (harness name) | screen / overlay | keys"} {
 		if !strings.Contains(u, want) {
 			t.Errorf("usage lacks %q:\n%s", want, u)
@@ -357,5 +371,59 @@ func TestUsageIsTheDocComment(t *testing.T) {
 		if !strings.Contains(u, id+" ") {
 			t.Errorf("usage does not document %s", id)
 		}
+	}
+}
+
+// packFooter lays hints out as kit/ui Help does: two spaces apart, 3 columns kept for
+// "…" while hints remain, and a last ? or ctrl+g hint pinned.
+func TestPackFooter(t *testing.T) {
+	cases := []struct {
+		items   string
+		w       int
+		dropped string
+	}{
+		{"a one · b two", 12, ""},
+		{"a one · b two", 11, "b two"},
+		{"a one · b two · c three", 16, "c three"},         // a one + b two = 12, + reserve 3 = 15 ≤ 16, then c three needs 9
+		{"a one · b two · c three", 14, "b two · c three"}, // 12 + reserve 3 > 14
+		{"a one · b two · ? help", 13, "b two"},            // ? help pinned: 13 - 8 = 5 for the rest
+		{"a one · ? help · b two", 13, "? help · b two"},   // ? help not last, so not pinned
+		{"a very long first hint", 10, "a very long first hint"},
+	}
+	for _, c := range cases {
+		_, dropped := packFooter(strings.Split(c.items, " · "), c.w)
+		if got := strings.Join(dropped, " · "); got != c.dropped {
+			t.Errorf("packFooter(%q, %d) drops %q, want %q", c.items, c.w, got, c.dropped)
+		}
+	}
+}
+
+// S-FOOTER's constants are the kit's footer: if ui.Help or the default gutter changes,
+// this fails until footer.go follows it.
+func TestFooterMirrorsKit(t *testing.T) {
+	kit := filepath.Join("..", "..", "..", "kit")
+	for file, wants := range map[string][]string{
+		filepath.Join("ui", "chrome.go"): {
+			`sep := t.S.Subtle.Render("  ")`,                                          // hintSep
+			`bindings[n-1].Help().Key == "?" || bindings[n-1].Help().Key == "ctrl+g"`, // pinsLast
+			`w -= lipgloss.Width(pinned) + 2`,
+			`reserve = 3`,                                                      // moreReserve
+			`part := t.S.Key.Render(h.Key) + " " + t.S.KeyDesc.Render(h.Desc)`, // `key desc`
+			`inner := w - 2*g`,                                                 // gutters on both sides
+		},
+		filepath.Join("theme", "derive.go"): {"x.Gutter = 2"}, // kitGutter
+	} {
+		src, err := os.ReadFile(filepath.Join(kit, file))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, w := range wants {
+			if !strings.Contains(string(src), w) {
+				t.Errorf("kit/%s no longer has %q: update footer.go to match the kit's footer", file, w)
+			}
+		}
+	}
+	if hintSep != 2 || moreReserve != 3 || kitGutter != 2 {
+		t.Errorf("footer.go constants drifted from the strings above")
 	}
 }

@@ -139,10 +139,11 @@ Bubbles: <textarea, viewport, …>. Kit ui: <List, Table, Dialog, Footer, …>.
 ### States and keys
 One action table per state; footer and dispatcher both read it. Every screen that
 loads data has its empty, loading, error and partial (some sources failed) rows.
+Keys before ‖ are the footer, most used first, ending in ? help; keys after ‖ are help-only.
 
 | state (harness name) | screen / overlay | keys |
 |---|---|---|
-| services             | services         | ↑↓ move · enter open · / filter · ? help · q quit |
+| services             | services         | ↑↓ move · enter open · / filter · ? help ‖ r refresh · q quit |
 | services-empty       | services         | r refresh · ? help · q quit |
 | confirm              | overlay          | ←→ choose · enter confirm · esc cancel |
 
@@ -199,6 +200,7 @@ checks:
   frame.
 - **Keys here are the action tables.** If the table and `actions()` disagree, the code
   wins and this file is fixed in the same change; `TestHelpIsHandled` holds the code.
+  Keys after ‖ are the actions with `show: false`.
 - **A decision carries its reason.** "Square dialogs" is a default in disguise; "square
   dialogs because the brand is industrial" survives the next restyle.
 
@@ -211,7 +213,11 @@ two actions in one state's cell or in Global [S-KEYDUP]. A state that binds a Gl
 key to its own action (`esc cancel` over Global `esc back`) overrides it and passes,
 because the state's table is dispatched first. Fix its warnings or justify each in
 § Decisions: a Global key a text box eats (`ctrl+k` deletes to end of line in a Bubbles
-textarea) [S-KEYSHADOW], and an ambiguous-width glyph with no ASCII twin [S-GLYPHWIDTH].
+textarea) [S-KEYSHADOW], an ambiguous-width glyph with no ASCII twin [S-GLYPHWIDTH], and
+a state whose footer keys overflow the 76 columns an 80-column footer has inside the
+kit's gutters, where `ui.Help` drops the tail behind `…` [S-FOOTER]. Fix that one with
+a ‖ after the keys a user needs most, ending in `? help`, so the rest are help-only by
+decision rather than cut by width.
 
 ## 5. Hand Off In Three Lines
 

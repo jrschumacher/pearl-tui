@@ -27,7 +27,7 @@ func Usage() string { return cmddoc.Text(docSrc) + "\n" }
 // Severity maps each rule ID to P1 (fails the run) or P2 (warns).
 var Severity = map[string]string{
 	"S-TABLE": "P1", "S-KEYAMBIG": "P1", "S-KEYDUP": "P1",
-	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2",
+	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2", "S-FOOTER": "P2",
 }
 
 // Finding is one result, in the shape the other tuilint modes write to --json.
@@ -120,6 +120,9 @@ type row struct {
 	keys          string // the keys cell as written
 	bindings      []binding
 	global        bool
+	footer        []string // the items the footer shows: all, or those before ‖
+	helpOnly      []string // the items after ‖: in ? help, not in the footer
+	cut           bool     // the cell has a ‖
 }
 
 type spec struct {
@@ -154,6 +157,7 @@ func Lint(file, src string) []Finding {
 	s.keyDup(add)
 	s.keyShadow(add)
 	s.glyphWidth(add)
+	s.footerFit(add)
 	sort.SliceStable(out, func(i, j int) bool {
 		a, b := out[i], out[j]
 		if a.Sev != b.Sev {
@@ -235,7 +239,9 @@ func parse(file, src string) *spec {
 			}
 			return ""
 		}
-		r := row{line: i + 1, state: get(stateCol), screen: get(screenCol), keys: get(keysCol), bindings: parseKeys(get(keysCol))}
+		keys := get(keysCol)
+		r := row{line: i + 1, state: get(stateCol), screen: get(screenCol), keys: keys, bindings: parseKeys(keys)}
+		r.footer, r.helpOnly, r.cut = footerItems(keys)
 		if globalCell.MatchString(r.state) {
 			r.global = true
 			s.globals = append(s.globals, r)
@@ -299,7 +305,7 @@ func parseKeys(cell string) []binding {
 		return nil
 	}
 	var out []binding
-	for _, item := range strings.FieldsFunc(cell, func(r rune) bool { return r == '·' || r == '•' }) {
+	for _, item := range splitItems(cell) {
 		f := strings.Fields(item)
 		if len(f) == 0 {
 			continue
@@ -311,6 +317,12 @@ func parseKeys(cell string) []binding {
 		out = append(out, readItem(f))
 	}
 	return out
+}
+
+// splitItems splits a keys cell into its `key action` items. ‖ (the footer cut) ends
+// an item as · does.
+func splitItems(cell string) []string {
+	return strings.FieldsFunc(cell, func(r rune) bool { return r == '·' || r == '•' || r == footerCut })
 }
 
 func actionText(f []string) string {
@@ -368,7 +380,7 @@ func readItem(f []string) binding {
 // parseGlobalKeys reads a Global line. Older TUI.md files separate it with commas
 // ("ctrl+c quit, ? help, ctrl+k switcher"), so a line without · splits on , and ; too.
 func parseGlobalKeys(line string) []binding {
-	if strings.ContainsAny(line, "·•") {
+	if strings.ContainsAny(line, "·•‖") {
 		return parseKeys(line)
 	}
 	return parseKeys(strings.NewReplacer(",", "·", ";", "·").Replace(line))

@@ -11,8 +11,13 @@
 // section's level or above; elsewhere it is prose:
 //
 //	| state (harness name) | screen / overlay | keys                                      |
+//	| inbox                | inbox            | ↑↓/jk move · enter open · e done · ? help ‖ r refresh · q quit |
 //	| reply                | overlay          | enter send · shift+enter/ctrl+j newline · esc cancel |
 //	Global: ctrl+c quit · ctrl+p switch
+//
+// The footer shows a state's keys in order. A ‖ cuts it: keys before it are the footer,
+// keys after it are help-only (show: false in the action table, listed by ? help). A
+// cell without ‖ is all footer, so older tables read as before.
 //
 // A key token may list alternatives with "/" (`shift+enter/ctrl+j`, `↑↓/jk`, `1-9`), and
 // an item may list more tokens before its action: `j/k, ↑/↓ move`, `h/l or ←/→ switch`,
@@ -53,4 +58,13 @@
 //	                  the kit's ASCII map already draws a twin for (─ │ ▌ ● ○ ◆ ▲ ■ → …,
 //	                  theme.ASCIITwin), arrows (U+2190–U+21FF) outside the key table, which
 //	                  are prose, and arrow keys in a key token (↑↓←→), which are key names.
+//	S-FOOTER     [P2] a state's footer keys (all of them, or those before ‖) don't fit the footer
+//	                  the kit draws at 80 columns: ui.Help packs `key action` hints two spaces
+//	                  apart into the 76 columns inside the theme's default 2-cell gutters, keeps 3
+//	                  for "…" while hints remain, pins a last `?` or `ctrl+g` hint, and drops the
+//	                  rest. The message names what it drops and where a ‖ fits. Global keys are
+//	                  not in a state's footer; a mode badge or status text on the row takes more.
+//	             [P2] a state with a ‖ whose footer shows no key that opens help (`?`, ctrl+g, an
+//	                  action named help or keys), when Global doesn't bind one: nobody finds the
+//	                  keys after the ‖.
 package speclint
