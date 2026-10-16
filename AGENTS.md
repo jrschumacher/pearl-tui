@@ -30,6 +30,7 @@ cd skills/bubbletea-tui/kit && go run ./cmd/showcase               # the referen
 cd skills/bubbletea-tui/tools && go vet ./... && go test ./...    # the tools, held to Python-era goldens
 go -C skills/bubbletea-tui/tools build -o "$HOME/.cache/tuitools/" ./cmd/... && export PATH="$HOME/.cache/tuitools:$PATH"
 tuilint code skills/bubbletea-tui/kit
+tuilint spec skills/bubbletea-tui/tools/internal/speclint/testdata/template-example.md   # init's template, filled in
 diversity skills/bubbletea-tui/kit/themes/*.json
 for t in skills/bubbletea-tui/kit/themes/*.json; do palette check "$t"; done
 skills-ref validate skills/bubbletea-tui                           # pip install "git+https://github.com/agentskills/agentskills#subdirectory=skills-ref"

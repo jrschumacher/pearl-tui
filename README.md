@@ -67,7 +67,7 @@ skills/bubbletea-tui/
 │                         cell-art · architecture · verify · anti-patterns, plus one file per command
 ├── tools/                Go, built once: go -C tools build -o ~/.cache/tuitools/ ./cmd/...
 │   ├── cellshot          ANSI → PNG / GIF / contact sheet, drawn like Ghostty/Kitty/WezTerm draw it
-│   ├── tuilint           slop + correctness lint on rendered frames and on Go source (rule IDs)
+│   ├── tuilint           slop + correctness lint on rendered frames, on Go source and on TUI.md's keys (rule IDs)
 │   ├── tuivet            the code rules as a go vet tool, for editors and CI
 │   ├── palette           derive a dark+light role palette from brand hexes (OKLCH, tinted neutrals, contrast-tuned)
 │   └── diversity         are these themes actually different from each other and from the default?
