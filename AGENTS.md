@@ -26,9 +26,9 @@ tools/gallery.sh  regenerates docs/images from the kit
 ROADMAP.md        what's next, and the open problems
 ```
 
-Keep `.claude-plugin/plugin.json` `version` equal to SKILL.md `metadata.version` (CI
-checks); a set version pins users to it, so bump both with every release. Don't set a
-version in `marketplace.json`: `plugin.json` wins anyway.
+Leave `version` out of `.claude-plugin/plugin.json` and `marketplace.json`: Claude Code
+then versions the plugin by commit SHA, so every push to `main` reaches installed users.
+A set version pins them to the cached copy until someone bumps it, and nothing here does.
 
 ## Commands
 
