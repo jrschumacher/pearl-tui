@@ -17,7 +17,8 @@
 //	                 In a 16-colour frame: text in the same slot as its background
 //	F-BOXES     [P1] more than one bordered box (nested or side by side noted)
 //	F-RAINBOW   [P2] more than 7 distinct foreground hues
-//	F-LEVELS    [P2] fewer than 3 neutral text levels on a dense frame
+//	F-LEVELS    [P2] fewer than 3 neutral text levels on a dense frame (not judged on a
+//	                 frame with no colour, NO_COLOR: its levels are weight and glyphs)
 //	F-BOLD      [P2] more than 30% of text cells bold
 //	F-EDGE      [P2] content touching column 0 or the last column on most rows
 //	F-EMPTY     [P2] frame is more than 98.5% blank
@@ -60,7 +61,7 @@ every cell must be ASCII: a glyph that leaks through is tofu on a console font.
                    in a 16-colour frame, text in the same slot as its background
   F-BOXES     [P1] more than one bordered box
   F-RAINBOW   [P2] more than 7 distinct foreground hues
-  F-LEVELS    [P2] fewer than 3 neutral text levels on a dense frame
+  F-LEVELS    [P2] fewer than 3 neutral text levels on a dense frame (not on a no-colour frame)
   F-BOLD      [P2] more than 30% of text cells bold
   F-EDGE      [P2] content touching column 0 or the last column on most rows
   F-EMPTY     [P2] frame is more than 98.5% blank

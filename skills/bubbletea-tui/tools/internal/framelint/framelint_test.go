@@ -508,3 +508,35 @@ func TestBasicFrames(t *testing.T) {
 		t.Errorf("text in its background's slot: %v, want one F-CONTRAST", got)
 	}
 }
+
+// F-LEVELS isn't judged on a frame with no colour (NO_COLOR): it has one text level by
+// construction, its levels are weight and glyphs. The same frame in colour still is.
+func TestLevelsSkipsColourlessFrames(t *testing.T) {
+	dir := t.TempDir()
+	var plain, grey strings.Builder
+	for range 12 {
+		row := strings.Repeat("lorem ipsum ", 6) + "dolor si"
+		plain.WriteString(row + "\n")
+		grey.WriteString("\x1b[38;2;200;200;200m" + row + "\x1b[0m\n")
+	}
+	levels := func(name, text string) int {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		fs, _, _ := run(t, p)
+		n := 0
+		for _, f := range fs {
+			if f.Rule == "F-LEVELS" {
+				n++
+			}
+		}
+		return n
+	}
+	if n := levels("plain-80x12.ansi", plain.String()); n != 0 {
+		t.Errorf("no-colour frame: %d F-LEVELS, want 0", n)
+	}
+	if n := levels("grey-80x12.ansi", grey.String()); n != 1 {
+		t.Errorf("one-grey colour frame: %d F-LEVELS, want 1", n)
+	}
+}

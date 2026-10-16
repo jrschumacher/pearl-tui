@@ -466,7 +466,9 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 	if big > 7 {
 		add("F-RAINBOW", "P2", "frame", fmt.Sprintf("%d distinct foreground hues: hierarchy should come from lightness levels, colour from roles", big))
 	}
-	if textCells > 400 && len(levels) < 3 {
+	// a frame with no colour (NO_COLOR) has one text level by construction: its levels
+	// are weight and glyphs, and the colour renders are where F-LEVELS is judged
+	if textCells > 400 && len(levels) < 3 && !f.Plain {
 		add("F-LEVELS", "P2", "frame", fmt.Sprintf("only %d neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle", len(levels)))
 	}
 	if textCells > 0 && float64(bold)/float64(textCells) > 0.30 {
@@ -556,6 +558,7 @@ func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii boo
 	f := Parse(text)
 	f.Indexed = sgr256.MatchString(text) && !sgrTrue.MatchString(text)
 	f.Basic = !f.Indexed && !sgrTrue.MatchString(text) && sgr16.MatchString(text)
+	f.Plain = !sgr256.MatchString(text) && !sgrTrue.MatchString(text) && !sgr16.MatchString(text)
 	out := LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
 	if ascii {
 		out = append(out, LintASCII(filepath.Base(path), f)...)
