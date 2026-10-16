@@ -1,8 +1,12 @@
 package theme
 
 import (
+	"fmt"
 	"image/color"
 	"math"
+	"reflect"
+	"sort"
+	"strings"
 
 	"charm.land/lipgloss/v2"
 )
@@ -206,13 +210,15 @@ func glyphDefaults(g Glyphs) Glyphs {
 	return g
 }
 
-// asciiTwins is ASCII's map: each glyph the kit draws and its tier-0 twin.
+// asciiTwins is ASCII's map: each glyph the kit draws and its tier-0 twin. A theme
+// adds its own in glyphs.ascii.
 var asciiTwins = map[string]string{
 	"╱": "/", "╲": "\\", "─": "-", "━": "=", "═": "=", "╌": "-", "┄": "-", "·": ".", "~": "~",
 	"▌": "|", "┃": "|", "│": "|", "▎": "|", "❯": ">", "›": ">", "▸": ">", "→": "->",
-	"✓": "+", "✔": "+", "●": "*", "◆": "*", "◇": "o", "○": "o", "◉": "(*)", "×": "x", "✗": "x", "✕": "x",
+	"✓": "+", "✔": "+", "●": "*", "◆": "*", "◇": "o", "○": "o", "◉": "(*)", "×": "x", "✗": "x", "✕": "x", "✖": "x",
 	"•": "*", "▪": "*", "…": "...", "■": "[x]", "□": "[ ]", "☑": "[x]", "☐": "[ ]",
 	"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "▲": "^", "△": "o", "◢": "/",
+	"◦": "o", "–": "-", "—": "-", "█": "#", "░": ".",
 }
 
 // ASCIITwin returns the twin ASCII draws for glyph, and whether the kit's map has one.
@@ -222,27 +228,76 @@ func ASCIITwin(glyph string) (string, bool) {
 	return t, ok
 }
 
+// asciiForced are the glyphs ASCII replaces whatever the theme says: status marks
+// that must stay distinct in shape. They need no twin.
+var asciiForced = map[string]bool{"Warn": true, "Fail": true}
+
+// glyphFields calls fn with every string field of g (by Go name and JSON key) and a
+// pointer to it, so a glyph field added to Glyphs is mapped and checked like the rest.
+func glyphFields(g *Glyphs, fn func(name, key string, p *string)) {
+	v, t := reflect.ValueOf(g).Elem(), reflect.TypeOf(*g)
+	for i := range t.NumField() {
+		if t.Field(i).Type.Kind() != reflect.String {
+			continue
+		}
+		key, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ",")
+		fn(t.Field(i).Name, key, v.Field(i).Addr().Interface().(*string))
+	}
+}
+
+func isASCII(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] > 127 {
+			return false
+		}
+	}
+	return true
+}
+
+// twin is the glyph ASCII draws for s: the theme's twin, the kit's, s itself when it
+// is already ASCII, else "?". Load refuses a theme that would reach "?", so "?" only
+// shows for a File built in code, and never as another mark's twin.
+func twin(own map[string]string, s string) string {
+	if v, ok := own[s]; ok {
+		return v
+	}
+	if v, ok := asciiTwins[s]; ok {
+		return v
+	}
+	if isASCII(s) {
+		return s
+	}
+	return "?"
+}
+
+// CheckGlyphs fails a theme whose glyphs ASCII can't draw: a twin in glyphs.ascii
+// that isn't ASCII itself, or a glyph outside ASCII with no twin in the theme's map or
+// the kit's. Load and palette check call it.
+func CheckGlyphs(g Glyphs) error {
+	keys := make([]string, 0, len(g.ASCII))
+	for k := range g.ASCII {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		if v := g.ASCII[k]; v == "" || !isASCII(v) {
+			return fmt.Errorf("glyphs.ascii: %q → %q is not ASCII: a twin is what TERM=linux draws, so write it in ASCII", k, v)
+		}
+	}
+	var err error
+	glyphFields(&g, func(name, key string, p *string) {
+		if err != nil || asciiForced[name] || twin(g.ASCII, *p) != "?" {
+			return
+		}
+		err = fmt.Errorf("glyphs.%s %q has no ASCII twin: -ascii and TERM=linux can't draw it, and a guess could match another mark's twin; add \"ascii\": {%q: \"<twin>\"} to glyphs", key, *p, *p)
+	})
+	return err
+}
+
 // ASCII maps a glyph set onto tier-0 characters: TERM=linux, --ascii, or a
 // font without the glyphs. Every glyph the theme defines must survive this.
 func ASCII(g Glyphs) Glyphs {
-	f := func(s string) string {
-		if v, ok := asciiTwins[s]; ok {
-			return v
-		}
-		for _, r := range s {
-			if r > 127 {
-				return "*"
-			}
-		}
-		return s
-	}
-	g.HeaderRule, g.Rule, g.FocusBar, g.BlurBar = f(g.HeaderRule), f(g.Rule), f(g.FocusBar), f(g.BlurBar)
-	g.Cursor, g.Prompt, g.Done, g.Current, g.Todo = f(g.Cursor), f(g.Prompt), f(g.Done), f(g.Current), f(g.Todo)
-	g.Warn = f(g.Warn)
-	g.Fail, g.Pending, g.Bullet, g.Sep, g.Arrow, g.Ellipsis = f(g.Fail), f(g.Pending), f(g.Bullet), f(g.Sep), f(g.Arrow), f(g.Ellipsis)
-	g.RadioOn, g.RadioOff, g.CheckOn, g.CheckOff = f(g.RadioOn), f(g.RadioOff), f(g.CheckOn), f(g.CheckOff)
-	g.TreeMid, g.TreeEnd, g.TreeRail, g.Thumb, g.Track = f(g.TreeMid), f(g.TreeEnd), f(g.TreeRail), f(g.Thumb), f(g.Track)
-	g.FieldA, g.FieldB = f(g.FieldA), f(g.FieldB)
+	glyphFields(&g, func(_, _ string, p *string) { *p = twin(g.ASCII, *p) })
 	g.Spinner = []string{"|", "/", "-", "\\"}
 	// status glyphs must stay distinct in shape, or ok/warn/error become one mark
 	g.Warn, g.Fail = "!", "x"

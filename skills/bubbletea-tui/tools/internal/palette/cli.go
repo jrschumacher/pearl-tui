@@ -52,6 +52,17 @@ func check(path string, stdout, stderr io.Writer) int {
 	if err := json.Unmarshal(data, &top); err != nil {
 		return fail(stderr, fmt.Errorf("%s: %w", path, err))
 	}
+	// the engine's glyph rule (theme.Load): a glyph -ascii can't draw, or a twin that
+	// isn't ASCII, fails here as it fails at startup
+	if raw, ok := top["glyphs"]; ok {
+		var g theme.Glyphs
+		if err := json.Unmarshal(raw, &g); err != nil {
+			return fail(stderr, fmt.Errorf("%s: glyphs: %w", path, err))
+		}
+		if err := theme.CheckGlyphs(g); err != nil {
+			return fail(stderr, fmt.Errorf("%s: %w", path, err))
+		}
+	}
 	accept := map[string]string{}
 	if raw, ok := top["contrastAccept"]; ok {
 		if v, err := pyfmt.Decode(raw); err == nil {

@@ -59,8 +59,10 @@ type Roles struct {
 	White string `json:"white,omitempty"` // legacy themes: used as OnPrimary/OnSecondary when those are missing
 }
 
-// Glyphs is the brand's glyph vocabulary. Every glyph has an ASCII fallback
-// (see ASCII) used when the theme is resolved with ascii=true.
+// Glyphs is the brand's glyph vocabulary. Every glyph has an ASCII twin (see ASCII)
+// drawn when the theme is resolved with ascii=true: from the theme's own ascii map,
+// else the kit's. Load fails on a glyph with neither, so no two marks silently share
+// a fallback. A project that adds a glyph field here gets it mapped and checked too.
 type Glyphs struct {
 	HeaderRule string   `json:"headerRule"` // fills the header after the wordmark: ╱ ─ ═ · ━ ╌ ~ (or "")
 	Rule       string   `json:"rule"`       // section rules: ─ ━ ╌ ┄ ═ ·
@@ -90,6 +92,10 @@ type Glyphs struct {
 	Spinner    []string `json:"spinner"`    // frames
 	FieldA     string   `json:"fieldA"`     // backdrop field bright glyph ◆ ▲ ╱
 	FieldB     string   `json:"fieldB"`     // backdrop field subtle glyph ◇ △
+
+	// ASCII is the theme's own twins, glyph → ASCII, for glyphs the kit's map lacks
+	// or draws differently: {"✎": ">", "◔": "~"}. It wins over the kit's map.
+	ASCII map[string]string `json:"ascii,omitempty"`
 }
 
 // Expressions are the brand's choices for how each element is drawn. These are
@@ -154,6 +160,9 @@ func Load(path string) (File, error) {
 		if err := f.Roles[m].check(); err != nil {
 			return f, fmt.Errorf("%s: roles.%s.%w", path, m, err)
 		}
+	}
+	if err := CheckGlyphs(f.Glyphs); err != nil {
+		return f, fmt.Errorf("%s: %w", path, err)
 	}
 	return f, nil
 }

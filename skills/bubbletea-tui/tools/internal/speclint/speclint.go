@@ -660,7 +660,7 @@ func (s *spec) glyphWidth(add func(string, int, string, ...any)) {
 
 func asciiHint(gs []string) string {
 	// twins for common glyphs the kit's map (theme.ASCIITwin) leaves out
-	twins := map[string]string{"◐": "~", "◑": "~", "◒": "~", "◓": "~", "★": "*", "☆": "o", "█": "#", "▼": "v", "▽": "v", "◀": "<", "◁": "<"}
+	twins := map[string]string{"◐": "~", "◑": "~", "◒": "~", "◓": "~", "★": "*", "☆": "o", "▼": "v", "▽": "v", "◀": "<", "◁": "<"}
 	out := make([]string, len(gs))
 	for i, g := range gs {
 		if t, ok := twins[g]; ok {

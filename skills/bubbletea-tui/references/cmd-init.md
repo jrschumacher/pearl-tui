@@ -107,7 +107,7 @@ dialogs and overlays: where the background step is gone (16 colours, NO_COLOR, a
 palette / tone / geometry / density / type / motif   (references/brand.md §1)
 remember: <a move every screen draws: a title motif, a header rule, a layout move>, not a quality of the content
 accents: <hue> = <its one meaning>, one line per hue; focus = <gutter, weight>, never a state hue
-glyphs: <glyph> <meaning> (ascii <twin>), one line each; width-safe: <narrow glyph | 2-cell column>
+glyphs: <glyph> <meaning> (ascii <twin>), one line each; twins the kit lacks go in the theme's glyphs.ascii; width-safe: <narrow glyph | 2-cell column>
 
 ### Theme
 themes/<brand>.json   (palette derive from <measured hexes, source>)
@@ -198,7 +198,8 @@ wrong. Write them this way:
   § Focus); a hue is a state.
 - **Keep a meaningful glyph, with an ASCII twin and a width.** `◆ ◇ ▲ ★ ■` are East
   Asian "ambiguous": two cells in CJK locales, and the kit's ASCII map covers only its
-  own glyphs. Keep the glyph, name its twin (`◆ ◇ ▲ (ascii * o ^)`), and set it in a
+  own glyphs. Keep the glyph, name its twin (`◆ ◇ ▲ (ascii * o ^)`), write the twin into
+  the theme's `glyphs.ascii` (`theme.Load` fails on a glyph with no twin), and set it in a
   2-cell column, which the other ambiguous glyphs in that column need anyway. Swap it
   only for a narrow glyph with the same meaning (`✓ ❯ ▸`), never for a word: a set of
   marks read at a glance is part of the signature, and dropping one for width merges

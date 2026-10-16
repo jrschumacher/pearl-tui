@@ -102,3 +102,54 @@ func sameRGB(a, b color.Color) bool {
 	r2, g2, b2, a2 := b.RGBA()
 	return r1 == r2 && g1 == g2 && b1 == b2 && a1 == a2
 }
+
+// writeTheme writes a theme JSON to a temp file and returns its path.
+func writeTheme(t *testing.T, json string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "theme.json")
+	if err := os.WriteFile(path, []byte(json), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// A glyph the kit's ASCII map doesn't know used to become "*" under -ascii, which is
+// ●'s twin: a ◔ "reading" state beside a ● "new" one drew as the same mark. Now a
+// theme gives its glyphs twins in glyphs.ascii, and Load fails on one without.
+func TestLoadFailsOnAGlyphWithNoASCIITwin(t *testing.T) {
+	for _, c := range []struct{ json, want string }{
+		{`{"glyphs": {"current": "●", "pending": "◔"}}`, `glyphs.pending "◔" has no ASCII twin`},
+		{`{"glyphs": {"focusBar": "🮇"}}`, `glyphs.focusBar "🮇" has no ASCII twin`},
+		{`{"glyphs": {"pending": "◔", "ascii": {"◔": "◐"}}}`, `glyphs.ascii: "◔" → "◐" is not ASCII`},
+		{`{"glyphs": {"ascii": {"◔": ""}}}`, `glyphs.ascii: "◔" → "" is not ASCII`},
+	} {
+		path := writeTheme(t, c.json)
+		_, err := Load(path)
+		if err == nil || !strings.Contains(err.Error(), c.want) || !strings.HasPrefix(err.Error(), path+": ") {
+			t.Errorf("Load(%s) = %v, want %q", c.json, err, c.want)
+		}
+	}
+	// warn and fail are always "!" and "x" under ASCII, so they need no twin
+	if _, err := Load(writeTheme(t, `{"glyphs": {"warn": "◬", "fail": "✘"}}`)); err != nil {
+		t.Errorf("Load: %v", err)
+	}
+}
+
+func TestThemeASCIITwins(t *testing.T) {
+	f, err := Load(writeTheme(t, `{"glyphs": {"current": "●", "pending": "◔", "todo": "◐", "ascii": {"◔": "~", "●": "@", "◐": "%"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	g := Resolve(f, true, true).G
+	if g.Pending != "~" || g.Current != "@" {
+		t.Errorf("the theme's twins: pending %q current %q, want ~ and @ (the theme's map wins over the kit's)", g.Pending, g.Current)
+	}
+	if g.Todo != "%" {
+		t.Errorf("◐ draws %q under ASCII, want the theme's %%", g.Todo)
+	}
+	// a glyph with no twin anywhere (a File built in code, not loaded) is loud, not ●'s twin
+	g = ASCII(Glyphs{Pending: "◔", Current: "●"})
+	if g.Pending == g.Current || g.Pending != "?" {
+		t.Errorf("unmapped ◔ draws %q beside ● as %q, want ?", g.Pending, g.Current)
+	}
+}

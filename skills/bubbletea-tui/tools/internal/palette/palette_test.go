@@ -290,3 +290,31 @@ func TestCheckRejectsWhatTheEngineRejects(t *testing.T) {
 		}
 	}
 }
+
+// check fails a glyph -ascii can't draw, as theme.Load does, with the same message.
+func TestCheckRejectsGlyphsWithNoASCIITwin(t *testing.T) {
+	for _, c := range []struct{ glyphs, err string }{
+		{`{"pending": "◔"}`, `glyphs.pending "◔" has no ASCII twin`},
+		{`{"pending": "◔", "ascii": {"◔": "◑"}}`, `glyphs.ascii: "◔" → "◑" is not ASCII`},
+		{`{"pending": "◔", "ascii": {"◔": "~"}}`, ""},
+		{`{"todo": "◦"}`, ""}, // the kit's map has it
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		js := `{"roles": {"dark": {"bg": "#201F26", "fg": "#DFDBDD"}}, "glyphs": ` + c.glyphs + `}`
+		if err := os.WriteFile(path, []byte(js), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		_, loadErr := theme.Load(path)
+		if c.err == "" {
+			if code == 2 || loadErr != nil {
+				t.Errorf("%s: check exit %d (%q), theme.Load %v; want both to accept", c.glyphs, code, errb.String(), loadErr)
+			}
+			continue
+		}
+		if code != 2 || !strings.Contains(errb.String(), c.err) || loadErr == nil || !strings.Contains(loadErr.Error(), c.err) {
+			t.Errorf("%s: check exit %d (%q), theme.Load %v; want both to fail with %q", c.glyphs, code, errb.String(), loadErr, c.err)
+		}
+	}
+}

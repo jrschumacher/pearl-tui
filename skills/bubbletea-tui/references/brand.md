@@ -75,7 +75,8 @@ read it too.
     "bullet": "▸", "sep": "/", "arrow": "→", "ellipsis": "…",
     "radioOn": "◉", "radioOff": "○", "checkOn": "■", "checkOff": "□",
     "treeMid": "├─", "treeEnd": "╰─", "thumb": "┃", "track": "│",
-    "spinner": ["◢","◣","◤","◥"], "fieldA": "▲", "fieldB": "△"
+    "spinner": ["◢","◣","◤","◥"], "fieldA": "▲", "fieldB": "△",
+    "ascii": { "◔": "~" }         // twins for glyphs the kit's map lacks (theme.ASCIITwin)
   },
   "expressions": {
     "header": "bar",            // rule | bar | minimal | stamp | banner
@@ -109,9 +110,13 @@ as ACCEPT instead of FAIL:
 ```json
 "contrastAccept": { "dark.primary": "Charple #6B50FF exactly as Crush ships it; used for fills and bars" }
 ```
- Every glyph maps to an ASCII fallback (`theme.ASCII`). If you add a key:
+ Every glyph maps to an ASCII twin (`theme.ASCII`): the theme's own in `glyphs.ascii`,
+else the kit's map. `theme.Load` and `palette check` fail on a glyph with neither, because
+a guessed fallback can land on another mark's twin (`◔` reading and `●` new both as `*`).
+Half-filled circles take `~` by convention (`"ascii": {"◐": "~"}`). If you add a key:
 add it to the Go structs, default it, document it here, probe-render it at 80×24 and
-120×40, and decide whether `diversity` should count it.
+120×40, and decide whether `diversity` should count it. A new glyph field needs nothing
+more for ASCII: `theme.ASCII` maps, and `theme.Load` checks, every string in `Glyphs`.
 
 **What never changes, whatever the brand:** whitespace and rules instead of boxes, one
 box for the floating thing, three to four text levels, exactly one visible focus that
