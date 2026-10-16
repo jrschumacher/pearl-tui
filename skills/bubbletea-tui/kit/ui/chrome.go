@@ -164,6 +164,9 @@ func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 	var parts []string
 	used := 0
 	more := t.S.Subtle.Render(t.G.Ellipsis)
+	// room for the separator and the ellipsis as the theme draws it: "  …" is 3 cells,
+	// the ASCII "  ..." is 5
+	reserveMore := 2 + lipgloss.Width(more)
 	for i, b := range bindings {
 		if !b.Enabled() {
 			continue
@@ -177,7 +180,7 @@ func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 		}
 		reserve := 0
 		if i < len(bindings)-1 {
-			reserve = 3
+			reserve = reserveMore
 		}
 		if used+need+reserve > w && len(parts) > 0 {
 			parts = append(parts, more)
@@ -187,10 +190,12 @@ func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 		used += need
 	}
 	line := strings.Join(parts, sep)
+	// a single hint wider than w is cut with the theme's ellipsis, so ASCII stays ASCII
+	line = Fit(Trunc(t, line, max(0, w)), w)
 	if pinned != "" {
-		return Fit(line, w) + sep + pinned
+		return line + sep + pinned
 	}
-	return Fit(line, w)
+	return line
 }
 
 // Footer is the bottom row(s) per expressions.footer: bare keys, keys on a

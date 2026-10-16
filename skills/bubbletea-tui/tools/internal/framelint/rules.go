@@ -533,12 +533,57 @@ var (
 	sgrTrue = regexp.MustCompile(`[34]8[;:]2[;:]`)
 )
 
-// lintText lints one frame's text, named by the file's base name.
-func lintText(path, text string, cols, rows int, pal *Palette, bg RGB) []Finding {
+// lintText lints one frame's text, named by the file's base name. ascii adds F-ASCII.
+func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii bool) []Finding {
 	text = strings.ReplaceAll(text, "\r\n", "\n") // Python's universal newlines
 	text = strings.ReplaceAll(text, "\r", "\n")
 	text = strings.TrimSuffix(text, "\n")
 	f := Parse(text)
 	f.Indexed = sgr256.MatchString(text) && !sgrTrue.MatchString(text)
-	return LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
+	out := LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
+	if ascii {
+		out = append(out, LintASCII(filepath.Base(path), f)...)
+	}
+	return out
+}
+
+// LintASCII is F-ASCII: in a frame rendered for ASCII (TERM=linux, --ascii) every cell
+// is ASCII. A glyph outside it is one the theme's ASCII map didn't cover (a project
+// glyph with no twin) or one a screen typed as a literal; a console font draws it as
+// tofu. One finding per frame: where the first is, and up to 6 of the glyphs.
+func LintASCII(name string, f Frame) []Finding {
+	var at [2]int
+	var glyphs []string
+	seen := map[string]bool{}
+	n := 0
+	for y, row := range f.Rows {
+		for x, c := range row {
+			if c.Ch == "" || !nonASCII(c.Ch) {
+				continue
+			}
+			if n == 0 {
+				at = [2]int{y, x}
+			}
+			n++
+			if !seen[c.Ch] && len(glyphs) < 6 {
+				seen[c.Ch] = true
+				glyphs = append(glyphs, fmt.Sprintf("%s U+%04X", c.Ch, first(c.Ch)))
+			}
+		}
+	}
+	if n == 0 {
+		return nil
+	}
+	return []Finding{{"F-ASCII", "P1", name, fmt.Sprintf("r%dc%d", at[0], at[1]),
+		fmt.Sprintf("%d cells outside ASCII in an ASCII frame (%s): give each glyph an ASCII twin (theme glyphs.ascii, or theme.ASCII's map) instead of drawing it",
+			n, strings.Join(glyphs, ", "))}}
+}
+
+func nonASCII(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] > 127 {
+			return true
+		}
+	}
+	return false
 }

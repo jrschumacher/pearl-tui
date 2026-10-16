@@ -437,3 +437,42 @@ func TestLiveParity(t *testing.T) {
 		}
 	}
 }
+
+// F-ASCII: with --ascii, any cell outside ASCII fails, once per frame; without the flag
+// the rule doesn't run, so the Python-era goldens are untouched.
+func TestASCIIRule(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, text string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	clean := write("clean-20x2.ansi", "  > inbox  * new    \n  ... more           \n")
+	leaky := write("leaky-20x2.ansi", "  > inbox  ◐ read   \n  ... more  ◐ ●      \n")
+	count := func(args ...string) (int, []Finding) {
+		fs, _, _ := run(t, args...)
+		var hits []Finding
+		for _, f := range fs {
+			if f.Rule == "F-ASCII" {
+				hits = append(hits, f)
+			}
+		}
+		return len(hits), hits
+	}
+	if n, _ := count(clean, leaky); n != 0 {
+		t.Errorf("without --ascii: %d F-ASCII findings, want 0", n)
+	}
+	if n, _ := count(clean, "--ascii"); n != 0 {
+		t.Errorf("an ASCII frame: %d F-ASCII findings, want 0", n)
+	}
+	n, hits := count(leaky, "--ascii")
+	if n != 1 || hits[0].Sev != "P1" || hits[0].Where != "r0c11" || !strings.Contains(hits[0].Msg, "3 cells") ||
+		!strings.Contains(hits[0].Msg, "◐ U+25D0, ● U+25CF") {
+		t.Errorf("a leaky frame: %+v", hits)
+	}
+	if _, _, code := run(t, leaky, "--ascii"); code != 1 {
+		t.Errorf("a leaky ASCII frame exits %d, want 1", code)
+	}
+}

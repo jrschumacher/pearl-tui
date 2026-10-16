@@ -431,7 +431,8 @@ func TestPackFooter(t *testing.T) {
 }
 
 // kit/ui/testdata/footer-cases.json is what the kit's ui.Footer drops at 80 columns
-// (kit/ui TestFooterCases renders it); packFooter must drop the same hints.
+// (kit/ui TestFooterCases renders it), on the default theme or, for a case marked
+// ascii, on it resolved for ASCII; packFooter must drop the same hints.
 func TestFooterCases(t *testing.T) {
 	b, err := os.ReadFile(filepath.Join("..", "..", "..", "kit", "ui", "testdata", "footer-cases.json"))
 	if err != nil {
@@ -439,13 +440,18 @@ func TestFooterCases(t *testing.T) {
 	}
 	var cases []struct {
 		Name           string
+		ASCII          bool
 		Hints, Dropped []string
 	}
 	if err := json.Unmarshal(b, &cases); err != nil || len(cases) == 0 {
 		t.Fatalf("footer-cases.json: %v", err)
 	}
 	for _, c := range cases {
-		_, dropped := packFooter(c.Hints, footerBudget)
+		reserve := moreReserve
+		if c.ASCII {
+			reserve = asciiReserve
+		}
+		_, dropped := packFooterReserving(c.Hints, footerBudget, reserve)
 		if strings.Join(dropped, "|") != strings.Join(c.Dropped, "|") {
 			t.Errorf("%s: packFooter drops %q, the kit drops %q", c.Name, dropped, c.Dropped)
 		}

@@ -17,9 +17,10 @@ const footerCut = '‖'
 // the kit's ui.Footer to the same dropped sets (TestFooterCases in both modules).
 const (
 	footerWidth  = 80
-	kitGutter    = 2 // theme default side margin, on both sides; a theme may set 1
-	hintSep      = 2 // Help joins hints with two spaces
-	moreReserve  = 3 // room Help keeps for " …" while hints remain
+	kitGutter    = 2           // theme default side margin, on both sides; a theme may set 1
+	hintSep      = 2           // Help joins hints with two spaces
+	moreReserve  = hintSep + 1 // room Help keeps for "  …" while hints remain
+	asciiReserve = hintSep + 3 // and for "  ..." when the theme is resolved for ASCII
 	footerBudget = footerWidth - 2*kitGutter
 )
 
@@ -103,6 +104,12 @@ func opensHelp(item string) bool {
 // packFooter lays items out as ui.Help does in w columns and returns the ones it
 // drops behind "…". A first item wider than w is cut, so it counts as dropped too.
 func packFooter(items []string, w int) (shown, dropped []string) {
+	return packFooterReserving(items, w, moreReserve)
+}
+
+// packFooterReserving is packFooter keeping reserve columns for the separator and
+// ellipsis while hints remain: moreReserve, or asciiReserve for an ASCII theme.
+func packFooterReserving(items []string, w, reserveMore int) (shown, dropped []string) {
 	var pinned string
 	if n := len(items); n > 1 && pinsLast(items[n-1]) {
 		pinned = items[n-1]
@@ -117,7 +124,7 @@ func packFooter(items []string, w int) (shown, dropped []string) {
 		}
 		reserve := 0
 		if i < len(items)-1 {
-			reserve = moreReserve
+			reserve = reserveMore
 		}
 		if used+need+reserve > w && len(shown) > 0 {
 			dropped = items[i:]

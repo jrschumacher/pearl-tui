@@ -6,5 +6,7 @@
  {"name": "? pinned last", "hints": ["↑↓/jk move", "enter open", "e done", "s snooze", "x select", "E done selected", "/ filter", "ctrl+s save search", "r refresh", "? help"], "dropped": ["E done selected", "/ filter", "ctrl+s save search", "r refresh"]},
  {"name": "ctrl+g pinned last", "hints": ["enter send", "ctrl+j newline", "esc cancel", "ctrl+o attach a file", "ctrl+t pick a template", "ctrl+e open in editor", "ctrl+g help"], "dropped": ["ctrl+t pick a template", "ctrl+e open in editor"]},
  {"name": "reserve for the ellipsis", "hints": ["a xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "b yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy", "c z"], "dropped": ["b yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy", "c z"]},
- {"name": "f1 is not pinned", "hints": ["↑↓/jk move", "enter open", "e done", "s snooze", "x select", "E done selected", "/ filter", "r refresh", "f1 help"], "dropped": ["/ filter", "r refresh", "f1 help"]}
+ {"name": "f1 is not pinned", "hints": ["↑↓/jk move", "enter open", "e done", "s snooze", "x select", "E done selected", "/ filter", "r refresh", "f1 help"], "dropped": ["/ filter", "r refresh", "f1 help"]},
+ {"name": "the … needs 3 columns", "hints": ["a xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "b yyyyyyyyyyyyyyyyyyyyyyyyyyyyyy", "c z"], "dropped": ["c z"]},
+ {"name": "the ascii ... needs 5 columns", "ascii": true, "hints": ["a xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "b yyyyyyyyyyyyyyyyyyyyyyyyyyyyyy", "c z"], "dropped": ["b yyyyyyyyyyyyyyyyyyyyyyyyyyyyyy", "c z"]}
 ]
