@@ -37,6 +37,9 @@ func TestRules(t *testing.T) {
 		// S-TABLE
 		{"no table", "# x TUI\n\nkeys: enter open\n", map[string]int{"S-TABLE": 1}},
 		{"table", table("| list | list | enter open · q quit |", ""), nil},
+		{"a Global line under Decisions is prose", table("| list | list | g top |", "ctrl+c quit") + "\n## Decisions\n- Global: shift+enter is reserved for send because the list is long\n", nil},
+		{"a Global line in a subsection of the keys section counts", table("| list | list | g top |", "") + "\n#### Everywhere\nGlobal: shift+enter send\n", map[string]int{"S-KEYAMBIG": 1}},
+		{"a Global line before the table is prose", "# x TUI\n\nGlobal: shift+enter is reserved\n\n" + table("| list | list | g top |", ""), nil},
 		{"table with bold global and backticks", table("| list | list | `enter` open |", "") + "\n**Global:** `ctrl+c` quit\n", nil},
 
 		// S-KEYAMBIG fires

@@ -175,10 +175,25 @@ func parse(file, src string) *spec {
 	s := &spec{file: file, lines: strings.Split(strings.ReplaceAll(src, "\r\n", "\n"), "\n")}
 	stateCol, screenCol, keysCol := -1, -1, -1
 	inTable := false
+	// A Global line counts only after a States-and-keys table and before the next
+	// heading at its section's level or above, so "- Global: g is reserved…" under
+	// § Decisions is prose, not a binding.
+	level, globalsUntil := 0, -1
 	for i, raw := range s.lines {
 		t := strings.TrimSpace(raw)
+		if m := headingRe.FindStringSubmatch(t); m != nil {
+			n := len(m[1])
+			if globalsUntil >= 0 && n <= globalsUntil {
+				globalsUntil = -1
+			}
+			level, inTable = n, false
+			continue
+		}
 		if !strings.HasPrefix(t, "|") {
 			inTable = false
+			if globalsUntil < 0 {
+				continue
+			}
 			if m := globalRe.FindStringSubmatch(clean(listMark.ReplaceAllString(t, ""))); m != nil {
 				s.globals = append(s.globals, row{line: i + 1, state: "Global", global: true, bindings: parseGlobalKeys(m[1])})
 			}
@@ -201,6 +216,10 @@ func parse(file, src string) *spec {
 			}
 			if st >= 0 && kc >= 0 && i+1 < len(s.lines) && isSep(splitRow(strings.TrimSpace(s.lines[i+1]))) {
 				stateCol, screenCol, keysCol, inTable = st, sc, kc, true
+				globalsUntil = level
+				if level == 0 {
+					globalsUntil = 6
+				}
 			}
 			continue
 		}

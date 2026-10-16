@@ -6,7 +6,9 @@
 // (exit 1); P2 are warnings to fix or justify in one line. Exit 2 on usage errors.
 //
 // It reads the table in the template's format, keys as `key action · key action`, and
-// a `Global:` line (or a row whose state is "global") whose keys apply in every state:
+// a `Global:` line (or a row whose state is "global") whose keys apply in every state.
+// A Global line counts only after the table and before the next heading at the table
+// section's level or above; elsewhere it is prose:
 //
 //	| state (harness name) | screen / overlay | keys                                      |
 //	| reply                | overlay          | enter send · shift+enter/ctrl+j newline · esc cancel |
