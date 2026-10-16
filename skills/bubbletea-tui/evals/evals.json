@@ -124,6 +124,25 @@
         "named the forms library and how it is themed (Huh with the kit form theme) in the architecture section",
         "ended by naming the next command (brand or shape) and what it assumed"
       ]
+    },
+    {
+      "id": 7,
+      "name": "init-from-existing-spec",
+      "prompt": "/bubbletea-tui init — SPEC.md describes the TUI we're building. Interview me and write TUI.md.",
+      "files": [
+        "evals/fixtures/review-inbox-spec/SPEC.md"
+      ],
+      "expected_output": "A TUI.md that keeps what SPEC.md decided, catches what it got wrong for a terminal (indistinguishable keys, a global key a text box eats, one accent with three meanings, ambiguous-width state dots), settles which design method governs, proposes a first slice, and passes tuilint spec.",
+      "assertions": [
+        "no key that terminals without key disambiguation deliver as another key (shift+enter, ctrl+enter, ctrl+m, ctrl+i, ctrl+h, ctrl+[ …) is advertised in TUI.md's key table without a fallback in the same cell (e.g. `shift+enter/ctrl+j newline`), although SPEC.md asks for Shift+Enter; tuilint spec reports no S-KEYAMBIG",
+        "the ctrl+k quick switcher is not a global key in the reply and note states, where a Bubbles textarea deletes to end of line on ctrl+k: it is rebound, or those states bind it explicitly; tuilint spec reports no S-KEYSHADOW for it",
+        "the brand read gives each accent hue exactly one meaning, and focus is not drawn in the unread colour, so the inbox cursor row and an unread row look different, although SPEC.md asks amber to mean unread, focus and the active filter",
+        "each state dot (● ◐ ○) has an ASCII twin named in TUI.md, and the brand read says how the dots stay width-safe in the inbox's state column (they are East Asian Width ambiguous); tuilint spec reports no S-GLYPHWIDTH",
+        "TUI.md's architecture half says one fixtures file feeds both the harness (-state, -out) and the tests, and names a fake for each external service (the forge CLI and the Beacon API)",
+        "noticed that SPEC.md routes screen design to 'the tui-design method', asked which method governs the screens before writing TUI.md, and recorded the answer with its reason in TUI.md § Decisions",
+        "TUI.md proposes a first slice: the smallest milestone that renders the core screens (inbox, thread, reply) on fixtures before any integration, with the rest of the v1 list ordered after it",
+        "did not commit and then un-commit the installed skill: it followed SKILL.md Setup (commit skills-lock.json and the .claude/skills link and restore with npx skills experimental_install, or commit .agents/skills/), so a fresh clone in a cloud container gets the skill back"
+      ]
     }
   ]
 }
