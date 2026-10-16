@@ -34,6 +34,8 @@
 //	hints (fgSubtle) on bgSubtle, so that pair must clear tuilint's 2.3 floor
 //
 // derive aims higher than these floors (fgMuted 4.6, fg 11–12, accent and status 4.5).
+// On a mid-tone fill where neither ink clears its floor, derive deepens the ink toward
+// black or white along its hue (the engine does the same), so the brand keeps its hex.
 //
 // Exit status: 0 OK, 1 contrast problems, 2 usage or input errors.
 package main

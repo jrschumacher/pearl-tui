@@ -23,9 +23,13 @@ import (
 //	                     directory: .out stdout, .err stderr, .ansi the swatch, .json the --out file
 //	derive/corpus.txt    roles and xterm indices for 250 random inputs (of 8,000 matched)
 //
-// Intended differences: the swatch hint names the Go cellshot, not cellshot.py; and
+// The intended differences: the swatch hint names the Go cellshot, not cellshot.py;
 // check fails role colours Lip Gloss would misread, which palette.py let through (see
-// TestCheckRejectsWhatTheEngineRejects).
+// TestCheckRejectsWhatTheEngineRejects); and where neither ink cleared an on-colour's
+// floor (palette.py shipped the failure), the ink is now theme.OnInk's deepened one.
+// That changed derive/tint and derive/tint-zero (exit 1 → 0), 14 corpus rows'
+// onPrimary/fgSelected, and check/failing's light onPrimary (the engine now draws
+// #444444, not #555555, on #7FB3FF).
 
 const kitThemes = "../../../kit/themes"
 
