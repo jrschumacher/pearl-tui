@@ -9,16 +9,19 @@ built) both go in `TUI.md`. Every command reads that file first; a second file g
 skipped, and then the screens drift from the model that draws them. Never split it into
 an `ARCH.md`.
 
-**`TUI.md` is the only file `init` writes.** The user's SPEC, README and docs are theirs:
-an answer that changes one goes in the hand-off as a proposed edit, applied only when
-they say yes, because a silent rewrite hides who decided what. Layout, keys, colours and
-screens never leave `TUI.md`; a breakpoint written in two files drifts in one. Point at
-the other docs ("product behaviour: SPEC.md") instead of restating them.
+**`TUI.md` is the only file `init` writes.** The project's own docs (a spec, PRD, design
+doc, README), if it has any, are the user's: an answer that changes one goes in the
+hand-off as a proposed edit, applied only when they say yes, because a silent rewrite
+hides who decided what. Layout, keys, colours and screens never leave `TUI.md`; a
+breakpoint written in two files drifts in one. Point at those docs ("product behaviour:
+docs/prd.md") instead of restating them; with none, § Product holds what the TUI needs.
 
 ## 0. Read The Project's Own Docs First
 
-`SPEC.md`, the README, `CLAUDE.md`/`AGENTS.md` and `docs/` hold decisions already made:
-confirm them in a question's default, don't ask them again. If one routes screen design
+Look for whatever the project already decided, under any name: a spec or PRD
+(`SPEC.md`, `PRD.md`, `docs/`), the README, `CLAUDE.md`/`AGENTS.md`, an issue the user
+points to. Often there is none, and the interview is the only source. What you find,
+confirm in a question's default; don't ask it again. If one routes screen design
 to another method, tool or skill ("screens are designed with the X method"), ask which
 one governs this TUI and record the answer, with its reason, in § Decisions. A build
 agent follows whichever instruction it read last, so two methods give two designs.
@@ -172,7 +175,8 @@ Then: <the rest of v1, in order>
 - <default the user didn't confirm>   (confirm it, then move it to Decisions)
 ````
 
-A spec written before this skill gets four sections wrong. Write them this way:
+A brief written before this skill (a spec, a PRD, an earlier TUI.md) gets four sections
+wrong. Write them this way:
 
 - **One meaning per accent hue.** One hue for "new" *and* for focus makes the cursor
   row and a new row look the same. Focus is the gutter and the weight (`interaction.md`
@@ -211,7 +215,7 @@ Global key a text box eats (`ctrl+k` deletes to end of line in a Bubbles textare
 
 ```
 Captured: <product, users, brand read, N screens, stack>. Assumed: <the defaults nobody confirmed>.
-Proposed for <SPEC.md>: <product changes from the interview, one line each> (apply? y/n)
+Proposed for <their doc>: <product changes from the interview, one per line> (apply? y/n)   ← only if a doc changed
 Next: brand (no theme yet) | shape (theme exists) | restyle (an existing app).
 ```
 
