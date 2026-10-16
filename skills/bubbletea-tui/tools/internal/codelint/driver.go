@@ -33,13 +33,15 @@ type unit struct {
 
 // loadTyped loads every package under root with full type information. It fails if any
 // package has a load or type error, so the caller can fall back.
-func loadTyped(root string) ([]*unit, *token.FileSet, error) {
+func loadTyped(root string, load Load) ([]*unit, *token.FileSet, error) {
 	fset := token.NewFileSet()
 	cfg := &packages.Config{
 		Mode: packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedImports |
 			packages.NeedTypes | packages.NeedTypesSizes | packages.NeedSyntax | packages.NeedTypesInfo | packages.NeedModule,
-		Dir:  root,
-		Fset: fset,
+		Dir:        root,
+		Fset:       fset,
+		Env:        load.Env,
+		BuildFlags: load.BuildFlags,
 	}
 	pkgs, err := packages.Load(cfg, "./...")
 	if err != nil {
