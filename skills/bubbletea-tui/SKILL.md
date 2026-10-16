@@ -36,7 +36,10 @@ to all three. A half-applied idiom reads as noise.
    descriptions loses half the idiom at once.
 4. **Build the tools** once per session, from the directory holding this file:
    `go -C tools build -o "$HOME/.cache/tuitools/" ./cmd/...`, then put that directory on
-   `PATH`. That gives `cellshot`, `tuilint`, `palette`, `diversity` and `tuivet`.
+   `PATH` (if `$HOME/.cache` isn't writable, any writable `-o` directory works). That
+   gives `cellshot`, `tuilint`, `palette`, `diversity` and `tuivet`. The
+   modules need Go ≥ 1.26.7; if `go` says "requires go >= 1.26.7", prefix the command
+   with `GOTOOLCHAIN=auto` and Go fetches it.
 5. **Never show the user anything you haven't rendered and looked at** with
    `cellshot`. Never ask them for a screenshot.
 

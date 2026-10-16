@@ -75,12 +75,19 @@ func TestLoadAcceptsEmptyAndShortRoles(t *testing.T) {
 	}
 }
 
+// TestKitThemesLoad loads every theme beside the package: kit/themes in the kit,
+// <project>/themes once theme/ is copied to internal/theme.
 func TestKitThemesLoad(t *testing.T) {
-	kit, _ := filepath.Glob("../themes/*.json")
-	if len(kit) == 0 {
-		t.Fatal("no kit themes")
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
 	}
-	for _, f := range kit {
+	if len(files) == 0 {
+		t.Fatal("no theme JSON in ../themes or ../../themes")
+	}
+	for _, f := range files {
 		if _, err := Load(f); err != nil {
 			t.Error(err)
 		}

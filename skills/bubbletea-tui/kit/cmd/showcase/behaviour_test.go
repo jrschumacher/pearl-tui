@@ -35,11 +35,7 @@ func press(k string) tea.KeyPressMsg {
 
 func fixture(t *testing.T, state string) *app {
 	t.Helper()
-	f, err := theme.Load("../../themes/charm.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	m := newApp(f, true, false)
+	m := newApp(testTheme(t, "charm.json"), true, false)
 	m.setState(state)
 	return m
 }
@@ -72,7 +68,8 @@ func TestActionsTargetSelection(t *testing.T) {
 	}
 	want := m.svcs[m.sel].Name
 	m.key(press("r"))
-	if txt := ansi.Strip(m.render(100, 30).String()); !strings.Contains(txt, "Roll back "+want+"?") {
+	// any theme's titleCase (moss is lower) may set the dialog title's case
+	if txt := strings.ToLower(ansi.Strip(m.render(100, 30).String())); !strings.Contains(txt, strings.ToLower("Roll back "+want+"?")) {
 		t.Fatalf("confirm does not name the selected service %q", want)
 	}
 	m.key(press("enter")) // Cancel is the default
@@ -140,8 +137,7 @@ func TestOneClock(t *testing.T) {
 
 // ASCII mode emits ASCII, whatever a screen or a fixture typed.
 func TestASCIIIsASCII(t *testing.T) {
-	f, _ := theme.Load("../../themes/halyard.json")
-	m := newApp(f, true, true)
+	m := newApp(testTheme(t, "halyard.json"), true, true)
 	for _, s := range states {
 		m.setState(s)
 		txt := ansi.Strip(m.render(100, 30).String())
@@ -157,7 +153,7 @@ func TestASCIIIsASCII(t *testing.T) {
 // In ASCII the status marks stay distinct: ok, warning, error and idle must
 // not collapse onto one character.
 func TestASCIIStatusDistinct(t *testing.T) {
-	files, _ := filepath.Glob("../../themes/*.json")
+	files := testThemes(t)
 	for _, f := range files {
 		tf, _ := theme.Load(f)
 		g := theme.Resolve(tf, true, true).G
@@ -181,7 +177,7 @@ func TestSelectionIsIdentity(t *testing.T) {
 		if got := m.svcs[m.sel].Name; got != want {
 			t.Fatalf("deploys highlights %q but actions target %q", want, got)
 		}
-		if txt := ansi.Strip(m.render(120, 40).String()); !strings.Contains(strings.SplitN(txt, "\n", 2)[0], want) {
+		if !strings.Contains(header(m), want) {
 			t.Fatalf("header does not name the selected service %q", want)
 		}
 	}

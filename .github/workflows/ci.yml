@@ -41,6 +41,32 @@ jobs:
       - run: go vet ./...
       - run: go test ./...
 
+  kit-copy:
+    name: kit copy (README block in a fresh module)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: skills/bubbletea-tui/kit/go.mod
+          cache-dependency-path: skills/bubbletea-tui/kit/go.sum
+      # The copy path breaks silently when a kit test hard-codes a kit path; run the
+      # block a user runs, as written, then again with the project's own theme name.
+      - name: run kit/README.md's copy block in a fresh module
+        run: |
+          skill="$GITHUB_WORKSPACE/skills/bubbletea-tui"
+          app="$RUNNER_TEMP/brandapp"
+          mkdir -p "$app" && cd "$app"
+          go mod init example.com/brandapp
+          awk '/^## Copying it into a project/{f=1} f&&/^```sh/{b=1;next} b&&/^```/{exit} b' "$skill/kit/README.md" \
+            | sed -e "s#<skill>#$skill#g" -e 's#<app>#brandapp#g' -e 's#<closest>#lumen#g' \
+                  -e 's#<your/module>#example.com/brandapp#g' > "$RUNNER_TEMP/copy.sh"
+          cat "$RUNNER_TEMP/copy.sh"
+          sh -e "$RUNNER_TEMP/copy.sh"
+          go vet ./...
+          mv themes/lumen.json themes/brand.json
+          go test ./...
+
   render-and-lint:
     name: render every theme + lint
     runs-on: ubuntu-latest
