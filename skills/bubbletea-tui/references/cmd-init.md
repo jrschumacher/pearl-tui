@@ -146,7 +146,7 @@ fakes: <service> → <fake>, one per external CLI or API; no render or test touc
 ### Async and the clock
 <work> → <cmd> → <msg>; cancel: <context>; stale results: <id or generation>.
 One gen-stamped tick, armed only while <what> animates.
-largest: <realistic worst case, e.g. a 20k-line diff, 5k items> → <virtual list | render cache keyed by …>
+largest: <realistic worst case, e.g. 50k log lines, 5k rows> → <virtual list | render cache keyed by …>
 
 ### Size floor
 Below 60×18: ui.TooSmall. Below 110 columns: <what collapses>. Below 30 rows: <what>.
@@ -168,12 +168,13 @@ Then: <the rest of v1, in order>
 
 A spec written before this skill gets four sections wrong. Write them this way:
 
-- **One meaning per accent hue.** Amber for unread *and* focus makes the cursor row and
-  an unread row look the same. Focus is the gutter and the weight (`interaction.md`
+- **One meaning per accent hue.** One hue for "new" *and* for focus makes the cursor
+  row and a new row look the same. Focus is the gutter and the weight (`interaction.md`
   § Focus); a hue is a state.
-- **An ASCII twin and a width for every motif glyph.** `● ◐ ○ ◆ ▲ ─ ▌` are East Asian
-  "ambiguous": two cells in CJK locales, and the kit's ASCII map has no `◐`. Name the
-  twin (`● ◐ ○ (ascii * ~ o)`), and pick a narrow glyph (`✓ ❯ ▸`) or a 2-cell column.
+- **An ASCII twin and a width for every motif glyph.** `◆ ★ ▲ ■ ─ ▌` are East Asian
+  "ambiguous": two cells in CJK locales, and the kit's ASCII map covers only its own
+  glyphs. Name the twin (`◆ ◇ (ascii * o)`), and pick a narrow glyph (`✓ ❯ ▸`) or a
+  2-cell column.
 - **A fake for every external service.** The harness renders every state offline and
   the tests run in CI; a state that needs a live CLI or API is a state nobody reviews.
 - **A first slice.** The smallest milestone that renders the core screens on fixtures,
