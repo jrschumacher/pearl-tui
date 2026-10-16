@@ -100,6 +100,7 @@ Read before any UI change. Update it when a decision changes.
 ### Users and terminals
 <who; sizes (80×24 design floor); light/dark; SSH/tmux; NO_COLOR; screen readers>
 colour: truecolor → 256 → 16 → none; under -profile ascii, focus, selection and errors stay visible by <glyph, weight>
+dialogs and overlays: where the background step is gone (16 colours, NO_COLOR, ascii), the edge is <border | ─ rule above and below>
 
 ### Brand read
 palette / tone / geometry / density / type / motif   (references/brand.md §1)
@@ -200,6 +201,10 @@ wrong. Write them this way:
   2-cell column, the one `●` already needs. Swap it only for a narrow glyph with the
   same meaning (`✓ ❯ ▸`), never for a word: a state ladder read at a glance is part of
   the signature, and dropping one rung for width merges two states into one mark.
+- **A dialog edge that survives without colour.** A filled panel one background step
+  up, with no border, sits on the page in the same colour under 16 colours and
+  NO_COLOR, so the dialog's edge vanishes. The kit's `dialog: none` gets an ASCII
+  border under -ascii only; name the edge for the other profiles too.
 - **A fake for every external service.** The harness renders every state offline and
   the tests run in CI; a state that needs a live CLI or API is a state nobody reviews.
 - **A first slice.** The smallest milestone that renders the core screens on fixtures,
