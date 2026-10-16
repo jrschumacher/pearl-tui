@@ -180,10 +180,11 @@ func build(t *Theme) Styles {
 	return s
 }
 
-// RuleEdge is a border of hairline rules above and below and blank cells at the
-// sides: an edge for a filled panel that keeps the panel's footprint.
+// RuleEdge is a border of hairline rules above and below, blank cells at the sides
+// and blank corners: an edge for a filled panel that keeps the panel's footprint and
+// leaves a cell of space between its rules and the page's text beside them.
 func RuleEdge(rule string) lipgloss.Border {
-	return lipgloss.Border{Top: rule, Bottom: rule, TopLeft: rule, TopRight: rule, BottomLeft: rule, BottomRight: rule,
+	return lipgloss.Border{Top: rule, Bottom: rule, TopLeft: " ", TopRight: " ", BottomLeft: " ", BottomRight: " ",
 		Left: " ", Right: " "}
 }
 

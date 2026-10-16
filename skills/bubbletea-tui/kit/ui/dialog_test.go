@@ -55,8 +55,9 @@ func dialogStandsOut(t *testing.T, th *theme.Theme, p colorprofile.Profile) (boo
 
 	// a rules dialog keeps a cell of page around its panel: judge the panel
 	r = Inset(r, th.S.Dialog.GetMarginLeft(), th.S.Dialog.GetMarginTop())
+	// one cell in: a rule edge leaves its corners blank, a gap to the page's text
 	edge := func(y int) bool {
-		l, rt := read.CellAt(r.Min.X, y), read.CellAt(r.Max.X-1, y)
+		l, rt := read.CellAt(r.Min.X+1, y), read.CellAt(r.Max.X-2, y)
 		return l != nil && rt != nil && strings.TrimSpace(l.Content) != "" && strings.TrimSpace(rt.Content) != ""
 	}
 	if edge(r.Min.Y) && edge(r.Max.Y-1) {
