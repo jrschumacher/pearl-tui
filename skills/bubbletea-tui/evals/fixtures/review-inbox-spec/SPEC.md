@@ -32,8 +32,8 @@ build, test and run with no manual setup.
 - **Quick switcher**: Ctrl+K from anywhere, including while typing a reply, jumps to any
   item by title.
 
-Screens are designed with the tui-design method (column budget → mockup → Lipgloss port
-→ goldens) before any code is written.
+Screens are designed with the Grainline method (column budget → mockup → port →
+goldens) before any code is written.
 
 ## Brand
 
