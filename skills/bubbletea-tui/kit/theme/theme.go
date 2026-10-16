@@ -109,8 +109,8 @@ type Expressions struct {
 	Selection    string `json:"selection"`    // bar | fill | caret | inverse  (how a selected/focused row is marked)
 	Button       string `json:"button"`       // pill | bracket | underline | inverse
 	Tag          string `json:"tag"`          // filled | bracket | bold
-	Dialog       string `json:"dialog"`       // rounded | square | double | heavy | none (none = filled panel)
-	DialogTitle  string `json:"dialogTitle"`  // rule | plain | bar   (rule = title + headerRule glyph run in a gradient)
+	Dialog       string `json:"dialog"`       // rounded | square | double | heavy | none (filled panel) | rules (filled panel, rule above and below, title in the top rule)
+	DialogTitle  string `json:"dialogTitle"`  // rule | plain | bar   (rule = title + headerRule glyph run in a gradient; unused under dialog rules)
 	Tabs         string `json:"tabs"`         // underline | pill | bracket | slash
 	Footer       string `json:"footer"`       // keys | bar | rule
 	Keys         string `json:"keys"`         // inline | boxed

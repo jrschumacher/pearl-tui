@@ -39,7 +39,7 @@ everything'" is.
 | industrial, blunt, exact | `━`/`═` heavy rules, a stamp header, `fill` selection, inverse block buttons, `[BRACKET]` tags, heavy dialog, UPPERCASE labels, compact, quadrant spinner, no gradients |
 | precise, technical, nautical | a bar header, `┄` chart rules, slash tabs, `[ bracket ]` buttons, boxed keys, `▲ △` motifs, compact |
 | playful, loud, retro | a half-block banner, `inverse` selection, double dialog, pill tabs, owned background, a gradient motif rule, field backdrop |
-| editorial, bookish, quiet | lowercase titles, `·` dotted leaders, a thin `│` bar, filled-panel dialogs (no border), underline buttons, measure 72 |
+| editorial, bookish, quiet | lowercase titles, `·` dotted leaders, a thin `│` bar, filled-panel dialogs (no border, or `dialog: rules`: a rule above and below), underline buttons, measure 72 |
 | a developer tool with personality (Crush) | a `╱` motif in the header and every dialog title, a gradient wordmark, `▌` bars, pill buttons, filled tags, playful copy (`Yep!`) |
 
 These are starting points. Two brands with the same trait still differ on palette, motif,
@@ -87,7 +87,8 @@ read it too.
     "button": "bracket",        // pill | bracket | underline | inverse
     "tag": "filled",            // filled | bracket | bold
     "dialog": "square",         // rounded | square | double | heavy | none (a filled panel)
-    "dialogTitle": "bar",       // rule (motif in a gradient) | plain | bar
+                                //   | rules (a filled panel between two rules, title in the top one)
+    "dialogTitle": "bar",       // rule (motif in a gradient) | plain | bar (unused under rules)
     "tabs": "slash",            // underline | pill | bracket | slash
     "footer": "rule",           // keys | bar | rule
     "keys": "boxed",            // inline | boxed

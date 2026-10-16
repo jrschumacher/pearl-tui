@@ -16,7 +16,8 @@
 //     Crush study): it is the default with a new palette, which is exactly the slop it replaces
 //
 // Dead axes (choices nothing renders) are shown as "-" and never count: headerRule under a
-// bar/stamp/minimal header, wordmark under a banner/stamp header.
+// bar/stamp/minimal header, wordmark under a banner/stamp header, dialogTitle under a rules
+// dialog.
 //
 // It is a floor, not a target. A plain brand stays plain and spends its differences on the
 // two or three moves it owns; never move an axis just to pass. Learned over three rounds of

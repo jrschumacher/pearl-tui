@@ -132,8 +132,15 @@ func build(t *Theme) Styles {
 		b = RuleEdge(t.G.Rule)
 	}
 	s.Dialog = lipgloss.NewStyle().Border(b).BorderForeground(p.BorderFocus).Padding(1, 2)
-	if x.Dialog == "none" {
+	switch x.Dialog {
+	case "none":
 		s.Dialog = s.Dialog.Background(p.BgPanel).BorderBackground(p.BgPanel)
+	case "rules":
+		// the editorial dialog: a filled panel, one cell of padding inside and one cell
+		// of page around it, so the page's text never runs into its open sides. ui.Dialog
+		// draws its rules above and below (the title in the top one): its edge is glyphs,
+		// which need no colour and hold at every profile
+		s.Dialog = lipgloss.NewStyle().Background(p.BgPanel).Padding(1, 1).Margin(1, 1).MarginBackground(p.Bg)
 	}
 
 	tag := func(bg, fg color.Color, text lipgloss.Style) lipgloss.Style {

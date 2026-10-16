@@ -101,7 +101,7 @@ Read before any UI change. Update it when a decision changes.
 ### Users and terminals
 <who; sizes (80×24 design floor); light/dark; SSH/tmux; NO_COLOR; screen readers>
 colour: truecolor → 256 → 16 → none; under -profile ascii, focus, selection and errors stay visible by <glyph, weight>
-dialogs and overlays: where the background step is gone (16 colours, NO_COLOR, ascii), the edge is <border | ─ rule above and below>
+dialogs and overlays: where the background step is gone (16 colours, NO_COLOR, ascii), the edge is <border | ─ rule above and below (dialog: rules)>
 
 ### Brand read
 palette / tone / geometry / density / type / motif   (references/brand.md §1)
@@ -208,7 +208,8 @@ wrong. Write them this way:
   up, with no border, sits on the page in the same colour under 16 colours and
   NO_COLOR, so the dialog's edge vanishes. The kit's `dialog: none` gets a rule above
   and below wherever that happens (`theme.ResolveProfile` with the terminal's profile)
-  and an ASCII border under -ascii. Name the edge the brand wants.
+  and an ASCII border under -ascii; `dialog: rules` (a rule above and below, the title
+  in the top one) keeps its edge in every profile. Name the edge the brand wants.
 - **A fake for every external service.** The harness renders every state offline and
   the tests run in CI; a state that needs a live CLI or API is a state nobody reviews.
 - **A first slice.** The smallest milestone that renders the main loop on fixtures: the

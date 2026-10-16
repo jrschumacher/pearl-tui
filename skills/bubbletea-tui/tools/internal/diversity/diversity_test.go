@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -130,5 +131,20 @@ func TestMissingBaselineFails(t *testing.T) {
 	Main([]string{inkling, kit + "ink.json", "--baseline", "ink"}, "", &out, &errb)
 	if !strings.Contains(out.String(), "inkling differs from baseline ink on only") {
 		t.Errorf("min-distance did not catch inkling:\n%s", out.String())
+	}
+}
+
+// Under dialog "rules" the title sits in the top rule, so dialogTitle renders nothing.
+func TestRulesDialogKillsDialogTitle(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "t.json")
+	if err := os.WriteFile(p, []byte(`{"name": "t", "expressions": {"dialog": "rules", "dialogTitle": "bar"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	th, err := Load(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if th.Choices["dialogTitle"] != Dead || th.Choices["dialog"] != "rules" {
+		t.Errorf("choices %v, want dialogTitle dead under dialog rules", th.Choices)
 	}
 }

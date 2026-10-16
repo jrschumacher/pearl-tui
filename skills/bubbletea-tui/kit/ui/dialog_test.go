@@ -7,8 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
 	uv "github.com/charmbracelet/ultraviolet"
+	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
 )
@@ -51,6 +53,8 @@ func dialogStandsOut(t *testing.T, th *theme.Theme, p colorprofile.Profile) (boo
 	read := uv.NewScreenBuffer(W, H)
 	uv.NewStyledString(out).Draw(read, read.Bounds())
 
+	// a rules dialog keeps a cell of page around its panel: judge the panel
+	r = Inset(r, th.S.Dialog.GetMarginLeft(), th.S.Dialog.GetMarginTop())
 	edge := func(y int) bool {
 		l, rt := read.CellAt(r.Min.X, y), read.CellAt(r.Max.X-1, y)
 		return l != nil && rt != nil && strings.TrimSpace(l.Content) != "" && strings.TrimSpace(rt.Content) != ""
@@ -111,5 +115,67 @@ func TestEveryDialogStandsOutInEveryProfile(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// dialog: rules is a filled panel between two hairline rules, the title in the top
+// one, no side borders. Its edge is glyphs, so it holds in every profile and in ASCII.
+func TestRulesDialog(t *testing.T) {
+	f := theme.Default()
+	f.Glyphs.Rule = "╌"
+	f.Expressions.Dialog = "rules"
+	for _, mode := range []struct {
+		name        string
+		dark, ascii bool
+		p           colorprofile.Profile
+		rule        string
+	}{
+		{"dark", true, false, colorprofile.TrueColor, "╌"},
+		{"light", false, false, colorprofile.TrueColor, "╌"},
+		{"ascii", true, true, colorprofile.TrueColor, "-"},
+		{"ansi", true, false, colorprofile.ANSI, "╌"},
+		{"NO_COLOR", true, false, colorprofile.Ascii, "╌"},
+	} {
+		th := theme.ResolveProfile(f, mode.dark, mode.ascii, mode.p)
+		if ok, why := dialogStandsOut(t, th, mode.p); !ok {
+			t.Errorf("%s: the rules dialog blends into the page: %s", mode.name, why)
+		}
+		const w = 46 // a 44-cell panel and a cell of page on each side
+		d := Dialog(th, w, "Send reply", []string{"To: ops@example.com"}, "", "")
+		rows := strings.Split(ansi.Strip(d), "\n")
+		blank := strings.Repeat(" ", w)
+		if rows[0] != blank || rows[len(rows)-1] != blank {
+			t.Errorf("%s: want a row of page above and below, got %q / %q", mode.name, rows[0], rows[len(rows)-1])
+		}
+		top, bottom := rows[1], rows[len(rows)-2]
+		r := mode.rule
+		if want := " " + r + r + " Send reply " + strings.Repeat(r, 30) + " "; top != want {
+			t.Errorf("%s: top rule %q, want %q", mode.name, top, want)
+		}
+		if want := " " + strings.Repeat(r, 44) + " "; bottom != want {
+			t.Errorf("%s: bottom rule %q, want %q", mode.name, bottom, want)
+		}
+		for i, row := range rows {
+			if lipgloss.Width(row) != w {
+				t.Errorf("%s: row %d is %d cells, want %d", mode.name, i, lipgloss.Width(row), w)
+			}
+			if i > 1 && i < len(rows)-2 && (row[:2] != "  " || row[len(row)-2:] != "  ") {
+				t.Errorf("%s: row %d has a side border or no margin: %q", mode.name, i, row)
+			}
+		}
+		if rows[2] != blank || !strings.HasPrefix(rows[3], "  To: ops") {
+			t.Errorf("%s: want a cell of padding inside the rules, got %q / %q", mode.name, rows[2], rows[3])
+		}
+	}
+}
+
+// theme.Load doesn't validate expressions: an unknown dialog value ("ruled") falls back
+// to the default rounded border, as before "rules" existed.
+func TestUnknownDialogFallsBackToRounded(t *testing.T) {
+	f := theme.Default()
+	f.Expressions.Dialog = "ruled"
+	d := ansi.Strip(Dialog(theme.Resolve(f, true, false), 30, "Title", []string{"body"}, "", ""))
+	if !strings.HasPrefix(d, "╭") {
+		t.Errorf("unknown dialog value draws %q, want the rounded default", strings.Split(d, "\n")[0])
 	}
 }
