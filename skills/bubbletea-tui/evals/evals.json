@@ -145,7 +145,8 @@
         "TUI.md names one hero animation for the long-running action (the AI summary or a source refresh), drawn from the brand motif and at most 30 cells wide, and says nothing moves while idle",
         "TUI.md's architecture half names the largest realistic data (the 20,000-line diff, a thread of hundreds of comments) and how it stays fast: a virtual list or a render cache with its key",
         "TUI.md says how focus, selection and errors stay visible under -profile ascii and lists the colour profiles it supports (truecolor, 256, 16, none)",
-        "the key table has a partial state for the inbox (one of Forge, Beacon or mail failed while the others loaded), besides its empty, loading and error states"
+        "the key table has a partial state for the inbox (one of Forge, Beacon or mail failed while the others loaded), besides its empty, loading and error states",
+        "TUI.md is the only file init created or changed (apart from the skill install files): SPEC.md is untouched, its product changes from the interview are listed in the hand-off as a proposed edit, and no layout, key, colour or screen detail was written outside TUI.md"
       ]
     }
   ]
