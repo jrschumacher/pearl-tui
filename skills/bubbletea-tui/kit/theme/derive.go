@@ -65,20 +65,21 @@ func derive(r Roles, dark bool) Palette {
 	p.Warning = c(r.Warning, lipgloss.Color("#E2B93B"))
 	p.Info = c(r.Info, p.Primary)
 	white := c(r.White, nil)
-	ink := func(s string, fill color.Color) color.Color {
+	// floor is the contrast palette check asks of each on-colour on its fill.
+	ink := func(s string, fill color.Color, floor float64) color.Color {
 		if s != "" {
 			return lipgloss.Color(s)
 		}
 		if white != nil && Contrast(white, fill) >= 4.5 {
 			return white
 		}
-		return OnColor(fill, p.Bg, p.Fg)
+		return OnInk(fill, p.Bg, p.Fg, floor)
 	}
-	p.OnPrimary = ink(r.OnPrimary, p.Primary)
-	p.OnSecondary = ink(r.OnSecondary, p.Secondary)
-	p.OnError = ink(r.OnError, p.Error)
-	p.OnWarning = ink(r.OnWarning, p.Warning)
-	p.OnSuccess = ink(r.OnSuccess, p.Success)
+	p.OnPrimary = ink(r.OnPrimary, p.Primary, 4.5)
+	p.OnSecondary = ink(r.OnSecondary, p.Secondary, 3.5)
+	p.OnError = ink(r.OnError, p.Error, 3.5)
+	p.OnWarning = ink(r.OnWarning, p.Warning, 4.5)
+	p.OnSuccess = ink(r.OnSuccess, p.Success, 3.5)
 	p.FgSelected = c(r.FgSelected, p.OnPrimary)
 	return p
 }
@@ -125,6 +126,46 @@ func OnColor(fill, inkA, inkB color.Color) color.Color {
 		return inkA
 	}
 	return inkB
+}
+
+// OnInk is the ink for text on a filled role. It is OnColor's pick when that clears
+// floor. On a mid-luminance fill where neither ink does, the pick is pushed toward
+// black or white (whichever side of the fill it is on) in 1% CIELAB steps, keeping its
+// hue, until it clears; if even that end cannot, the other ink is pushed toward the
+// other end. Pure black or white reads at least 4.58:1 on any fill, so a floor up to
+// 4.5 is always met and the brand's fill never moves. palette derive picks its
+// on-colours with this same function.
+func OnInk(fill, inkA, inkB color.Color, floor float64) color.Color {
+	ink := OnColor(fill, inkA, inkB)
+	if Contrast(ink, fill) >= floor {
+		return ink
+	}
+	other := inkB
+	if ink == inkB {
+		other = inkA
+	}
+	end, otherEnd := color.Color(color.White), color.Color(color.Black)
+	if Luminance(ink) < Luminance(fill) {
+		end, otherEnd = otherEnd, end
+	}
+	start := ink
+	if Contrast(end, fill) < floor {
+		start, end = other, otherEnd
+	}
+	ramp := lipgloss.Blend1D(101, start, end) // Mix's ramp: ramp[i] is Mix(start, end, i/100)
+	for _, step := range ramp[1:100] {
+		c := rgb8(step)
+		if Contrast(c, fill) >= floor {
+			return c
+		}
+	}
+	return rgb8(end)
+}
+
+// rgb8 truncates a colour to 8 bits a channel, so the colour drawn is the one checked.
+func rgb8(c color.Color) color.RGBA {
+	r, g, b, _ := c.RGBA()
+	return color.RGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: 0xff}
 }
 
 func glyphDefaults(g Glyphs) Glyphs {

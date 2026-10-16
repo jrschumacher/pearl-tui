@@ -36,7 +36,9 @@ palette check theme.json   # on any existing theme
   one that reads "default grey".
 - pulls status colours into one lightness and chroma band, so green, red and amber sit
   together instead of shouting at different volumes
-- picks the on-colour ink (light or dark) by contrast for every fill
+- picks the on-colour ink (light or dark) by contrast for every fill, and on a mid-tone
+  fill where neither clears its floor deepens that ink toward black or white along its
+  hue (`theme.OnInk`, which the engine uses too), so the brand hex stays the fill
 - writes both a dark and a light set, plus the nearest xterm-256 index per role
 
 Then tune by hand. The tool gets you a correct palette; the brand read decides whether
