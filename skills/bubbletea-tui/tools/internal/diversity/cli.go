@@ -15,7 +15,7 @@ const usageLine = "usage: diversity [-h] [--max-shared N] [--max-popular F] [--b
 // unambiguous prefix, and "--" ends the options.
 func Main(args []string, usage string, stdout, stderr io.Writer) int {
 	o := Options{MaxShared: 9, MaxPopular: 0.5, MinDistance: 8}
-	baseline := "ink,charm"
+	baseline, baselineSet := "ink,charm", false
 	names := []string{"--max-shared", "--max-popular", "--baseline", "--min-distance", "--help"}
 	bad := func(format string, a ...any) int {
 		fmt.Fprintln(stderr, usageLine)
@@ -84,7 +84,7 @@ func Main(args []string, usage string, stdout, stderr io.Writer) int {
 			}
 			o.MaxPopular = f
 		case "--baseline":
-			baseline = val
+			baseline, baselineSet = val, true
 		}
 	}
 	if len(paths) == 0 {
@@ -103,9 +103,67 @@ func Main(args []string, usage string, stdout, stderr io.Writer) int {
 		}
 		themes = append(themes, t)
 	}
+	if missing := MissingBaselines(themes, baseline); len(missing) > 0 {
+		if baselineSet {
+			fmt.Fprintln(stderr, "diversity:", missingError(missing))
+			return 2
+		}
+		// The default baseline is advisory, so comparing brand themes among themselves
+		// still works; an explicit --baseline is a request, so a missing one fails above.
+		fmt.Fprintf(stderr, "diversity: note: %s, so the min-distance rule did not run against them (pass %s, or --baseline \"\" to silence this)\n",
+			notAmong(missing), kitPaths(missing))
+	}
 	out, code := Report(themes, o)
 	io.WriteString(stdout, out)
 	return code
+}
+
+// MissingBaselines returns the names in a --baseline list that no theme carries, in
+// list order. Empty names ("--baseline ”") ask for no baseline and are never missing.
+// A missing baseline turns the min-distance rule off without a word, which is how
+// "the default with a new palette" got through, so the CLI fails on one.
+func MissingBaselines(themes []Theme, baseline string) []string {
+	have := map[string]bool{}
+	for _, t := range themes {
+		have[t.Name] = true
+	}
+	var missing []string
+	seen := map[string]bool{}
+	for _, n := range strings.Split(baseline, ",") {
+		if n != "" && !have[n] && !seen[n] {
+			missing = append(missing, n)
+			seen[n] = true
+		}
+	}
+	return missing
+}
+
+func missingError(missing []string) string {
+	files, it := "its theme file", "it"
+	if len(missing) > 1 {
+		files, it = "their theme files", "them"
+	}
+	return fmt.Sprintf("%s, so the min-distance rule cannot run: pass %s too (e.g. %s, from the skill directory) or drop %s from --baseline",
+		notAmong(missing), files, kitPaths(missing), it)
+}
+
+func notAmong(missing []string) string {
+	q := make([]string, len(missing))
+	for i, n := range missing {
+		q[i] = strconv.Quote(n)
+	}
+	if len(missing) == 1 {
+		return "baseline " + q[0] + " is not among the themes"
+	}
+	return "baselines " + strings.Join(q, ", ") + " are not among the themes"
+}
+
+func kitPaths(names []string) string {
+	p := make([]string, len(names))
+	for i, n := range names {
+		p[i] = "kit/themes/" + n + ".json"
+	}
+	return strings.Join(p, " ")
 }
 
 func isNumber(s string) bool {

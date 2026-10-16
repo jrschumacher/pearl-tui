@@ -24,9 +24,11 @@ diversity lint. Read `references/brand.md` and `references/color.md` first.
    spirit, then change every axis the read says to.
 7. **Render** the kit showcase (or the app) with the theme: dark, light, ascii, at 80×24
    and 120×40. Contact sheets via `cellshot --sheet`.
-8. **Lint.** `diversity themes/*.json kit/themes/ink.json
-   kit/themes/charm.json` must pass. If it fails on distance from `ink`, identity is
-   only in the palette, so go back to step 4. Also `go test` for footprint and contrast.
+8. **Lint.** `diversity themes/*.json kit/themes/ink.json kit/themes/charm.json
+   --baseline ink,charm --min-distance 8` must pass (`kit/` is in the skill directory;
+   without the baseline files it exits 2). If it fails on distance from `ink`, identity
+   is only in the palette, so go back to step 4. Also `palette check` (every role is
+   `#RGB` or `#RRGGBB`) and `go test` for footprint and contrast.
 9. **Judge** with the four questions in `brand.md` §6, then run a critic (`verify.md`)
    focused on identity: "which product is this, and what will you remember?"
 10. **Record** the theme path and decisions in `TUI.md`.

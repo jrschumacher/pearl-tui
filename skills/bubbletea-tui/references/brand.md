@@ -121,10 +121,12 @@ bindings, and every frame exactly W×H.
 ## 5. Prove It's Different
 
 ```
-diversity themes/*.json --baseline ink,charm --min-distance 8
+diversity themes/*.json kit/themes/ink.json kit/themes/charm.json --baseline ink,charm --min-distance 8
 ```
 
-It fails when a brand theme is within 8 axes of the default or the Crush study (that's
+Pass the baseline files (`kit/` is in the skill directory): a baseline is matched by
+theme name, so without its file the min-distance rule has nothing to measure against,
+and `diversity` exits 2 rather than pass a recoloured default. It fails when a brand theme is within 8 axes of the default or the Crush study (that's
 the default with a new palette), when two brand themes share more than 9 axes, or when
 one value is used by more than half the brands. It is a floor, not a target. A plain
 brand stays plain and spends its differences on the two or three moves it owns; never
