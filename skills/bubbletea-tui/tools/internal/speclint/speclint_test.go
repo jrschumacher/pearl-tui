@@ -30,6 +30,19 @@ func rules(fs []Finding) map[string]int {
 	return m
 }
 
+func TestFooterProseIsNotHidden(t *testing.T) {
+	// A text-entry row whose only unbolded item is prose hides no key, so it needs no
+	// help key in its footer (and ? would type a character there anyway).
+	for _, doc := range []string{
+		table("| compose | conversation | type to write · **enter preview** · **shift+enter/ctrl+j newline** · **esc cancel** |", ""),
+		table("| palette | overlay | ↑↓ move · enter run · esc close ‖ type to filter |", ""),
+	} {
+		if fs := Lint("t.md", doc); len(fs) != 0 {
+			t.Errorf("want no findings:\n%s\n%s", doc, dump(fs))
+		}
+	}
+}
+
 func TestRules(t *testing.T) {
 	cases := []struct {
 		name, doc string

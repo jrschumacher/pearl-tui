@@ -30,7 +30,7 @@ const (
 // ‖ wins.
 func footerItems(raw string) (footer, helpOnly []string, marker string, mixed bool) {
 	if before, after, ok := strings.Cut(raw, string(footerCut)); ok {
-		return hints(before), hints(after), string(footerCut), len(boldItems(raw)) > 0
+		return hints(before), keyHints(after), string(footerCut), len(boldItems(raw)) > 0
 	}
 	bold := boldItems(raw)
 	if len(bold) == 0 {
@@ -43,7 +43,7 @@ func footerItems(raw string) (footer, helpOnly []string, marker string, mixed bo
 		if bold[i] {
 			footer = append(footer, hints(it)...)
 		} else {
-			helpOnly = append(helpOnly, hints(it)...)
+			helpOnly = append(helpOnly, keyHints(it)...)
 		}
 	}
 	return footer, helpOnly, "bold", false
@@ -70,6 +70,18 @@ func hints(part string) []string {
 	for _, it := range splitItems(part) {
 		if f := strings.Fields(it); len(f) > 0 {
 			out = append(out, strings.Join(f, " "))
+		}
+	}
+	return out
+}
+
+// keyHints is hints without prose items ("type to filter"): a line that describes the
+// text box names no key, so leaving it out of the footer hides nothing.
+func keyHints(part string) []string {
+	var out []string
+	for _, h := range hints(part) {
+		if f := strings.Fields(h); !proseLead[strings.ToLower(strings.Trim(f[0], "(),:"))] {
+			out = append(out, h)
 		}
 	}
 	return out
