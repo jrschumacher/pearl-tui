@@ -40,7 +40,7 @@ screen, run the loop below on that screen before starting the next.
 
 ## 4. The Loop (`verify.md`)
 
-Render all states (dark, light, ascii, 256) → golden → `tuilint frames` and
+Render all states (dark, light, ascii, 256, 16, NO_COLOR) → golden → `tuilint frames` and
 `tuilint code` → contact sheets → read the PNGs → slop test → critic subagent → fix →
 again. Two to four rounds.
 

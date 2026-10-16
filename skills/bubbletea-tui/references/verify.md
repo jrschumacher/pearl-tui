@@ -11,13 +11,16 @@ screenshot.
 1. RENDER   go run ./cmd/<app> -out frames -sizes 80x24,120x40          (every state)
             go run ./cmd/<app> -out frames/light -light
             go run ./cmd/<app> -out frames/256 -profile ansi256
+            go run ./cmd/<app> -out frames/16 -profile ansi
+            NO_COLOR=1 go run ./cmd/<app> -out frames/nocolor
             go run ./cmd/<app> -out frames/ascii -profile ascii -ascii
 2. GOLDEN   go run ./cmd/<app> -golden -w 80 -h 24 && … -w 120 -h 40      (exit 0 or stop)
             go test ./...                                                 (footprint at 4 sizes × themes)
-3. LINT     tuilint frames frames frames/256 --theme themes/<brand>.json --bg <bg>
+3. LINT     tuilint frames frames frames/256 frames/16 frames/nocolor --theme themes/<brand>.json --bg <bg>
             tuilint frames frames/ascii --ascii --theme themes/<brand>.json --bg <bg>
             tuilint frames frames/light --theme themes/<brand>.json --bg <light bg>
-            (lint every directory you rendered: light, 256 and ASCII break where dark truecolour passes;
+            (lint every directory you rendered: light, 256, 16, no colour and ASCII break where dark
+            truecolour passes, and LOOK at the overlays there: a dialog's edge is the first to go;
             --ascii fails any glyph that leaked into an ASCII frame [F-ASCII])
             tuilint code .
             tuilint spec TUI.md                                           (after any key-table change)
