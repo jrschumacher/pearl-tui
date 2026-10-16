@@ -354,6 +354,51 @@ func TestFlags(t *testing.T) {
 	}
 }
 
+// Deliberate deviation from tuilint.py: without --cols/--rows a "-<W>x<H>.ansi" name
+// sets the frame's size, so an -out directory of mixed sizes lints without flags and a
+// frame whose name lies about its size fails. The flags still win over the name.
+func TestSizeFromName(t *testing.T) {
+	dir := t.TempDir()
+	cp := func(src, dst string) {
+		data, err := os.ReadFile(src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, dst), data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	const kit = "testdata/kit/halyard-dark/"
+	cp(kit+"services-80x24.ansi", "services-80x24.ansi") // name and size agree
+	cp(kit+"toosmall-50x14.ansi", "toosmall-50x14.ansi") // a different size, same dir
+	cp(kit+"services-80x24.ansi", "liar-120x40.ansi")    // 80x24 named 120x40
+	cp(kit+"services-80x24.ansi", "plain.ansi")          // no suffix: widest row, any height
+	width := func(args ...string) map[string]int {
+		fs, _, _ := run(t, args...)
+		n := map[string]int{}
+		for _, f := range fs {
+			if f.Rule == "F-WIDTH" {
+				n[f.File]++
+			}
+		}
+		return n
+	}
+	if got := width(dir); !reflect.DeepEqual(got, map[string]int{"liar-120x40.ansi": 2}) {
+		t.Errorf("from names: F-WIDTH per file %v, want only liar-120x40.ansi (row and frame)", got)
+	}
+	if got := width(dir, "--cols", "80", "--rows", "24"); !reflect.DeepEqual(got, map[string]int{"toosmall-50x14.ansi": 2}) {
+		t.Errorf("flags win: F-WIDTH per file %v, want only toosmall-50x14.ansi", got)
+	}
+	if w, h, ok := sizeFromName("frames/a-b-120x40.ansi"); !ok || w != 120 || h != 40 {
+		t.Errorf("sizeFromName = %d %d %v", w, h, ok)
+	}
+	for _, p := range []string{"x.ansi", "80x24.ansi", "x-80x24.txt", "x-0x24.ansi"} {
+		if _, _, ok := sizeFromName(p); ok {
+			t.Errorf("sizeFromName(%q) matched", p)
+		}
+	}
+}
+
 // TestLiveParity renders every kit theme (dark, light, ascii; 80x24 and
 // 120x40) and holds Go to tuilint.py on all of it. It needs python3 with
 // Pillow, so it runs only with TUILINT_PARITY=1.
