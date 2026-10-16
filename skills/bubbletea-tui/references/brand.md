@@ -101,7 +101,8 @@ read it too.
 ```
 
 Missing roles are derived, and missing glyphs and expressions default, so a theme can
-start small. A theme that keeps a role below the contrast floors on purpose (a brand's
+start small. Write every role as `#RRGGBB` or `#RGB`, `#` included: Lip Gloss reads
+`6B50FF` as an ANSI index or no colour, so `theme.Load` and `palette check` reject it. A theme that keeps a role below the contrast floors on purpose (a brand's
 exact hex, used mostly as a fill) says so in writing, and `palette check` reports it
 as ACCEPT instead of FAIL:
 

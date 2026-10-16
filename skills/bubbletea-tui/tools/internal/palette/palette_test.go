@@ -23,7 +23,9 @@ import (
 //	                     directory: .out stdout, .err stderr, .ansi the swatch, .json the --out file
 //	derive/corpus.txt    roles and xterm indices for 250 random inputs (of 8,000 matched)
 //
-// The one intended difference: the swatch hint names the Go cellshot, not cellshot.py.
+// Intended differences: the swatch hint names the Go cellshot, not cellshot.py; and
+// check fails role colours Lip Gloss would misread, which palette.py let through (see
+// TestCheckRejectsWhatTheEngineRejects).
 
 const kitThemes = "../../../kit/themes"
 
@@ -234,5 +236,51 @@ func TestOptionWithEquals(t *testing.T) {
 	Main([]string{"derive", "#6B50FF", "--bg", "#201F26", "--name", "x"}, "", &b, &e)
 	if a.String() != b.String() || !strings.Contains(a.String(), `"bg": "#201F26"`) {
 		t.Errorf("--opt=value and --opt value differ")
+	}
+}
+
+// A deliberate break from palette.py, which read colours as loosely as its hex2rgb
+// does: "6B50FF", "#6B50", "#6B50F" and "#6B50FFAA" all passed. Lip Gloss reads a
+// string without "#" as an ANSI index or no colour, and any other length after "#" as
+// no colour, so the app drew something else while the check said OK. check now uses
+// the engine's rule (theme.CheckHex): it fails exactly the themes theme.Load fails,
+// with one line on stderr and exit 2.
+func TestCheckRejectsWhatTheEngineRejects(t *testing.T) {
+	for _, c := range []struct {
+		roles string
+		err   string // the stderr line after "palette: <path>: "; "" means accepted
+	}{
+		{`"primary": "6B50FF"`, `dark.primary: "6B50FF" has no #: Lip Gloss reads it as an ANSI index or no colour; write "#6B50FF"`},
+		{`"primary": "#6B50FFAA"`, `dark.primary: "#6B50FFAA" is not #RGB or #RRGGBB`},
+		{`"primary": "#6B50"`, `dark.primary: "#6B50" is not #RGB or #RRGGBB`},
+		{`"primary": "#6B50F"`, `dark.primary: "#6B50F" is not #RGB or #RRGGBB`},
+		{`"primary": "##6B50FF"`, `dark.primary: "##6B50FF" is not #RGB or #RRGGBB`},
+		{`"primary": " #6B50FF"`, `dark.primary: " #6B50FF" is not #RGB or #RRGGBB`},
+		{`"warning": "12"`, `dark.warning: "12" has no #: Lip Gloss reads it as an ANSI index or no colour; write #RGB or #RRGGBB`},
+		{`"fgSoft": "6B50FF"`, `dark.fgSoft: "6B50FF" has no #: Lip Gloss reads it as an ANSI index or no colour; write "#6B50FF"`},
+		{`"primary": "#6B50FF"`, ""},
+		{`"primary": "#6b50ff"`, ""},
+		{`"primary": "#abc"`, ""},
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		js := `{"roles": {"dark": {"bg": "#201F26", "fg": "#DFDBDD", ` + c.roles + `}}}`
+		if err := os.WriteFile(path, []byte(js), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		_, loadErr := theme.Load(path)
+		if c.err == "" {
+			if code == 2 || loadErr != nil {
+				t.Errorf("%s: check exit %d (%q), theme.Load %v; want both to accept", c.roles, code, errb.String(), loadErr)
+			}
+			continue
+		}
+		if want := "palette: " + path + ": " + c.err + "\n"; code != 2 || errb.String() != want || out.Len() != 0 {
+			t.Errorf("%s: exit %d stderr %q stdout %q; want 2 and %q", c.roles, code, errb.String(), out.String(), want)
+		}
+		if loadErr == nil {
+			t.Errorf("%s: palette check fails it but theme.Load accepts it", c.roles)
+		}
 	}
 }
