@@ -43,6 +43,12 @@ to all three. A half-applied idiom reads as noise.
 5. **Never show the user anything you haven't rendered and looked at** with
    `cellshot`. Never ask them for a screenshot.
 
+Once per project, **keep the skill in fresh clones**: a cloud container clones without
+it. Either commit `.agents/skills/` as installed, or commit `skills-lock.json` plus the
+`.claude/skills/bubbletea-tui` link and run `npx skills experimental_install` after
+cloning (it restores `.agents/skills/` only). Pick one with the user. Installed as the
+Claude Code plugin instead, the skill lives with the user, not the repo.
+
 ## The Laws
 
 1. **The cell is the pixel.** Every frame is exactly W×H cells. Measure with
@@ -178,7 +184,7 @@ checking in with the user after `shape`. An existing app: `init` → `restyle`.
 | Tool | Does |
 |---|---|
 | `cellshot` | ANSI → PNG/GIF/contact sheet, drawn like a modern terminal; reports tofu, emoji, uneven rows |
-| `tuilint` | `frames`: width, emoji, default palette, off-palette, contrast, boxes, rainbow, levels… `code`: len(), blocking, hex, emoji, v1, resize, ticks, Print, keys |
+| `tuilint` | `frames`: width, emoji, default palette, off-palette, contrast, boxes, rainbow, levels… `code`: len(), blocking, hex, emoji, v1, resize, ticks, Print, keys. `spec`: TUI.md's keys (indistinguishable, duplicated, eaten by a text box) and ambiguous-width glyphs |
 | `palette` | `derive` a dark+light role set from brand hexes (OKLCH, tinted neutrals, contrast-tuned); `check` a theme |
 | `diversity` | how different are these themes from each other and from the default |
 | `scripts/wordmark.py` | the brand name in cells, from a real font: half / shade / ascii / tracked |
@@ -190,7 +196,8 @@ are Python 3 with Pillow and numpy, needed only when you convert brand assets.
 The verification loop that ties them together is `references/verify.md`. Run it before
 every hand-off.
 
-With the plugin installed, a hook runs `tuilint code` after every Go edit: fix what it reports.
+With the plugin installed, a hook runs `tuilint code` after every Go edit in a project with
+a `TUI.md`: fix what it reports.
 
 ## The Kit
 

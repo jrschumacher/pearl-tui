@@ -1,8 +1,8 @@
 # shape — design the screens on paper before any code
 
 Input: `TUI.md` and the user's ask. Output: a screen spec the user agrees to, written
-into `TUI.md` § Screens and § States and keys, and a `SPEC.md` beside the code. No Go
-yet.
+into `TUI.md` § Screens and § States and keys, and nowhere else: a second file gets
+skipped, and the project's own docs belong to the user. No Go yet.
 
 ## For Each Screen
 
@@ -41,6 +41,9 @@ stylesheet (only `ch` and row units), then port by vocabulary. Most screens don'
 this; the kit's components are the vocabulary.
 
 ## Check With The User
+
+Run `tuilint spec TUI.md` after every change to § States and keys, and fix what it
+reports before the user sees the table.
 
 Show the 80×24 sketches and the state list, and ask the one or two questions that change
 the design (not "does this look good?"). Record decisions in `TUI.md` § Decisions. Then

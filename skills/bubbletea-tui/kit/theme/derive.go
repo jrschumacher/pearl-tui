@@ -206,18 +206,27 @@ func glyphDefaults(g Glyphs) Glyphs {
 	return g
 }
 
+// asciiTwins is ASCII's map: each glyph the kit draws and its tier-0 twin.
+var asciiTwins = map[string]string{
+	"╱": "/", "╲": "\\", "─": "-", "━": "=", "═": "=", "╌": "-", "┄": "-", "·": ".", "~": "~",
+	"▌": "|", "┃": "|", "│": "|", "▎": "|", "❯": ">", "›": ">", "▸": ">", "→": "->",
+	"✓": "+", "✔": "+", "●": "*", "◆": "*", "◇": "o", "○": "o", "◉": "(*)", "×": "x", "✗": "x", "✕": "x",
+	"•": "*", "▪": "*", "…": "...", "■": "[x]", "□": "[ ]", "☑": "[x]", "☐": "[ ]",
+	"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "▲": "^", "△": "o", "◢": "/",
+}
+
+// ASCIITwin returns the twin ASCII draws for glyph, and whether the kit's map has one.
+// tuilint spec reads it to skip glyphs the kit already covers.
+func ASCIITwin(glyph string) (string, bool) {
+	t, ok := asciiTwins[glyph]
+	return t, ok
+}
+
 // ASCII maps a glyph set onto tier-0 characters: TERM=linux, --ascii, or a
 // font without the glyphs. Every glyph the theme defines must survive this.
 func ASCII(g Glyphs) Glyphs {
-	m := map[string]string{
-		"╱": "/", "╲": "\\", "─": "-", "━": "=", "═": "=", "╌": "-", "┄": "-", "·": ".", "~": "~",
-		"▌": "|", "┃": "|", "│": "|", "▎": "|", "❯": ">", "›": ">", "▸": ">", "→": "->",
-		"✓": "+", "✔": "+", "●": "*", "◆": "*", "◇": "o", "○": "o", "◉": "(*)", "×": "x", "✗": "x", "✕": "x",
-		"•": "*", "▪": "*", "…": "...", "■": "[x]", "□": "[ ]", "☑": "[x]", "☐": "[ ]",
-		"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "▲": "^", "△": "o", "◢": "/",
-	}
 	f := func(s string) string {
-		if v, ok := m[s]; ok {
+		if v, ok := asciiTwins[s]; ok {
 			return v
 		}
 		for _, r := range s {

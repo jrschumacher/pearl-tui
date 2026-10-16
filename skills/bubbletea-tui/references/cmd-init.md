@@ -9,6 +9,23 @@ built) both go in `TUI.md`. Every command reads that file first; a second file g
 skipped, and then the screens drift from the model that draws them. Never split it into
 an `ARCH.md`.
 
+**`TUI.md` is the only file `init` writes.** The project's own docs (a spec, PRD, design
+doc, README), if it has any, are the user's: an answer that changes one goes in the
+hand-off as a proposed edit, applied only when they say yes, because a silent rewrite
+hides who decided what. Layout, keys, colours and screens never leave `TUI.md`; a
+breakpoint written in two files drifts in one. Point at those docs ("product behaviour:
+docs/prd.md") instead of restating them; with none, § Product holds what the TUI needs.
+
+## 0. Read The Project's Own Docs First
+
+Look for whatever the project already decided, under any name: a spec or PRD
+(`SPEC.md`, `PRD.md`, `docs/`), the README, `CLAUDE.md`/`AGENTS.md`, an issue the user
+points to. Often there is none, and the interview is the only source. What you find,
+confirm in a question's default; don't ask it again. If one routes screen design
+to another method, tool or skill ("screens are designed with the X method"), ask which
+one governs this TUI and record the answer, with its reason, in § Decisions. A build
+agent follows whichever instruction it read last, so two methods give two designs.
+
 ## 1. Explore Before Asking
 
 Every question the repo could have answered spends the user's patience on nothing. Read
@@ -75,15 +92,22 @@ Read before any UI change. Update it when a decision changes.
 
 ### Users and terminals
 <who; sizes (80×24 design floor); light/dark; SSH/tmux; NO_COLOR; screen readers>
+colour: truecolor → 256 → 16 → none; under -profile ascii, focus, selection and errors stay visible by <glyph, weight>
 
 ### Brand read
 palette / tone / geometry / density / type / motif / remember   (references/brand.md §1)
+accents: <hue> = <its one meaning>, one line per hue; focus = <gutter, weight>, never a state hue
+glyphs: <glyph> <meaning> (ascii <twin>), one line each; width-safe: <narrow glyph | 2-cell column>
 
 ### Theme
 themes/<brand>.json   (palette derive from <measured hexes, source>)
 
 ### Screens
 <screen> — <its job in one line>
+
+### Motion
+hero: <the one long-running action> → <its animation, ≤ 30 cells, from the brand motif>
+rows: <spinners for row-level work>; idle: nothing moves
 
 ### Never
 <anti-references: what this product must not look or sound like>
@@ -113,7 +137,8 @@ Huh v2 for <setup, config, confirm>, themed with the kit's `ui.NewForm` from
 Bubbles: <textarea, viewport, …>. Kit ui: <List, Table, Dialog, Footer, …>.
 
 ### States and keys
-One action table per state; footer and dispatcher both read it.
+One action table per state; footer and dispatcher both read it. Every screen that
+loads data has its empty, loading, error and partial (some sources failed) rows.
 
 | state (harness name) | screen / overlay | keys |
 |---|---|---|
@@ -121,9 +146,16 @@ One action table per state; footer and dispatcher both read it.
 | services-empty       | services         | r refresh · ? help · q quit |
 | confirm              | overlay          | ←→ choose · enter confirm · esc cancel |
 
+Global: ctrl+c quit
+
+### Harness and fixtures
+internal/app/fixtures.go feeds setState for the harness (-state, -out) and every test.
+fakes: <service> → <fake>, one per external CLI or API; no render or test touches the network.
+
 ### Async and the clock
 <work> → <cmd> → <msg>; cancel: <context>; stale results: <id or generation>.
 One gen-stamped tick, armed only while <what> animates.
+largest: <realistic worst case, e.g. 50k log lines, 5k rows> → <virtual list | render cache keyed by …>
 
 ### Size floor
 Below 60×18: ui.TooSmall. Below 110 columns: <what collapses>. Below 30 rows: <what>.
@@ -132,12 +164,32 @@ Below 60×18: ui.TooSmall. Below 110 columns: <what collapses>. Below 30 rows: <
 ACCESSIBLE=1 or --accessible: no alt screen, Huh WithAccessible(true), status as new
 lines. stdout not a TTY: <--json | plain output>, never escape codes.
 
+## First slice
+<the core screens, every state, rendered from fixtures through the harness; no integration>
+Then: <the rest of v1, in order>
+
 ## Decisions
 - <date> <decision> because <reason>
 
 ## Assumed
 - <default the user didn't confirm>   (confirm it, then move it to Decisions)
 ````
+
+A brief written before this skill (a spec, a PRD, an earlier TUI.md) gets four sections
+wrong. Write them this way:
+
+- **One meaning per accent hue.** One hue for "new" *and* for focus makes the cursor
+  row and a new row look the same. Focus is the gutter and the weight (`interaction.md`
+  § Focus); a hue is a state.
+- **An ASCII twin and a width for every motif glyph.** `◆ ★ ▲ ■` are East Asian
+  "ambiguous": two cells in CJK locales, and the kit's ASCII map covers only its own
+  glyphs. Name the twin (`◆ ◇ (ascii * o)`), and pick a narrow glyph (`✓ ❯ ▸`) or a
+  2-cell column.
+- **A fake for every external service.** The harness renders every state offline and
+  the tests run in CI; a state that needs a live CLI or API is a state nobody reviews.
+- **A first slice.** The smallest milestone that renders the core screens on fixtures,
+  so the design is judged on renders before the integrations eat the effort. If the
+  interview grew v1 past the brief, say so and propose the slice; don't just order it.
 
 Keep three things true as the project goes, because each one is what a later command
 checks:
@@ -150,10 +202,22 @@ checks:
 - **A decision carries its reason.** "Square dialogs" is a default in disguise; "square
   dialogs because the brand is industrial" survives the next restyle.
 
-## 4. Hand Off In Two Lines
+## 4. Lint It Before Handing Off
+
+`tuilint spec TUI.md` must exit 0. It fails a key that terminals without key
+disambiguation deliver as another, with no fallback in the cell (`shift+enter` arrives
+as `enter` in tmux: write `shift+enter/ctrl+j newline`) [S-KEYAMBIG], and one key with
+two actions in one state's cell or in Global [S-KEYDUP]. A state that binds a Global
+key to its own action (`esc cancel` over Global `esc back`) overrides it and passes,
+because the state's table is dispatched first. Fix its warnings or justify each in
+§ Decisions: a Global key a text box eats (`ctrl+k` deletes to end of line in a Bubbles
+textarea) [S-KEYSHADOW], and an ambiguous-width glyph with no ASCII twin [S-GLYPHWIDTH].
+
+## 5. Hand Off In Three Lines
 
 ```
 Captured: <product, users, brand read, N screens, stack>. Assumed: <the defaults nobody confirmed>.
+Proposed for <their doc>: <product changes from the interview, one per line> (apply? y/n)   ← only if an answer changes one of their docs
 Next: brand (no theme yet) | shape (theme exists) | restyle (an existing app).
 ```
 
