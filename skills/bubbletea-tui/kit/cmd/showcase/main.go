@@ -151,9 +151,7 @@ func main() {
 	m.frame = *frame
 	render := func(s string, w, h int) string {
 		m.setState(s)
-		if s == "toosmall" {
-			w, h = 50, 14
-		}
+		w, h = frameSize(s, w, h)
 		c := m.render(w, h)
 		c.PaintBackground()
 		return downsample(c.String(), *profile)
@@ -165,7 +163,8 @@ func main() {
 		bad := 0
 		for _, s := range states {
 			txt := ansi.Strip(render(s, *w, *h))
-			fmt.Printf("=== %s %dx%d\n%s\n", s, *w, *h, txt)
+			fw, fh := frameSize(s, *w, *h)
+			fmt.Printf("=== %s %dx%d\n%s\n", s, fw, fh, txt)
 			if err := checkSize(txt, s, *w, *h); err != nil {
 				fmt.Fprintln(os.Stderr, "FAIL", err)
 				bad++
@@ -181,15 +180,20 @@ func main() {
 			os.Exit(1)
 		}
 		bad := 0
+		written := map[string]bool{}
 		for _, sz := range strings.Split(*sizes, ",") {
 			sw, sh := parseSize(sz)
 			for _, s := range states {
+				name := filepath.Join(*out, frameName(s, sw, sh))
+				if written[name] {
+					continue
+				}
+				written[name] = true
 				txt := render(s, sw, sh)
 				if err := checkSize(ansi.Strip(txt), s, sw, sh); err != nil {
 					fmt.Fprintln(os.Stderr, "FAIL", err)
 					bad++
 				}
-				name := filepath.Join(*out, fmt.Sprintf("%s-%dx%d.ansi", s, sw, sh))
 				if err := os.WriteFile(name, []byte(txt+"\n"), 0o644); err != nil {
 					fmt.Fprintln(os.Stderr, err)
 					os.Exit(1)
@@ -203,10 +207,24 @@ func main() {
 	}
 }
 
-func checkSize(txt, s string, w, h int) error {
+// frameSize is the size a state renders at for a requested w×h: the too-small
+// screen is drawn at 50×14, below the app's minimum, whatever was asked.
+func frameSize(s string, w, h int) (int, int) {
 	if s == "toosmall" {
-		w, h = 50, 14
+		return 50, 14
 	}
+	return w, h
+}
+
+// frameName names an -out file by the size the state renders at, which tuilint
+// frames reads back as the frame's size; the too-small frame is written once.
+func frameName(s string, w, h int) string {
+	w, h = frameSize(s, w, h)
+	return fmt.Sprintf("%s-%dx%d.ansi", s, w, h)
+}
+
+func checkSize(txt, s string, w, h int) error {
+	w, h = frameSize(s, w, h)
 	rows := strings.Split(txt, "\n")
 	if len(rows) != h {
 		return fmt.Errorf("%s: %d rows, want %d", s, len(rows), h)
