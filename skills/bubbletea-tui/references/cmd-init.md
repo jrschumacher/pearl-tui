@@ -181,7 +181,7 @@ wrong. Write them this way:
 - **One meaning per accent hue.** One hue for "new" *and* for focus makes the cursor
   row and a new row look the same. Focus is the gutter and the weight (`interaction.md`
   § Focus); a hue is a state.
-- **An ASCII twin and a width for every motif glyph.** `◆ ★ ▲ ■ ─ ▌` are East Asian
+- **An ASCII twin and a width for every motif glyph.** `◆ ★ ▲ ■` are East Asian
   "ambiguous": two cells in CJK locales, and the kit's ASCII map covers only its own
   glyphs. Name the twin (`◆ ◇ (ascii * o)`), and pick a narrow glyph (`✓ ❯ ▸`) or a
   2-cell column.
@@ -207,15 +207,17 @@ checks:
 `tuilint spec TUI.md` must exit 0. It fails a key that terminals without key
 disambiguation deliver as another, with no fallback in the cell (`shift+enter` arrives
 as `enter` in tmux: write `shift+enter/ctrl+j newline`) [S-KEYAMBIG], and one key with
-two actions in a state [S-KEYDUP]. Fix its warnings or justify each in § Decisions: a
-Global key a text box eats (`ctrl+k` deletes to end of line in a Bubbles textarea)
-[S-KEYSHADOW], and an ambiguous-width glyph with no ASCII twin [S-GLYPHWIDTH].
+two actions in one state's cell or in Global [S-KEYDUP]. A state that binds a Global
+key to its own action (`esc cancel` over Global `esc back`) overrides it and passes,
+because the state's table is dispatched first. Fix its warnings or justify each in
+§ Decisions: a Global key a text box eats (`ctrl+k` deletes to end of line in a Bubbles
+textarea) [S-KEYSHADOW], and an ambiguous-width glyph with no ASCII twin [S-GLYPHWIDTH].
 
-## 5. Hand Off In Two Lines
+## 5. Hand Off In Three Lines
 
 ```
 Captured: <product, users, brand read, N screens, stack>. Assumed: <the defaults nobody confirmed>.
-Proposed for <their doc>: <product changes from the interview, one per line> (apply? y/n)   ← only if a doc changed
+Proposed for <their doc>: <product changes from the interview, one per line> (apply? y/n)   ← only if an answer changes one of their docs
 Next: brand (no theme yet) | shape (theme exists) | restyle (an existing app).
 ```
 

@@ -39,10 +39,11 @@ to all three. A half-applied idiom reads as noise.
    `PATH`. That gives `cellshot`, `tuilint`, `palette`, `diversity` and `tuivet`.
 5. **Never show the user anything you haven't rendered and looked at** with
    `cellshot`. Never ask them for a screenshot.
-6. **Keep the skill in fresh clones**: a cloud container clones without it. Either
-   commit `.agents/skills/` as installed, or commit `skills-lock.json` plus the
-   `.claude/skills/bubbletea-tui` link and run `npx skills experimental_install` after
-   cloning (it restores `.agents/skills/` only). Pick one with the user, once.
+
+Once per project, **keep the skill in fresh clones**: a cloud container clones without
+it. Either commit `.agents/skills/` as installed, or commit `skills-lock.json` plus the
+`.claude/skills/bubbletea-tui` link and run `npx skills experimental_install` after
+cloning (it restores `.agents/skills/` only). Pick one with the user.
 
 ## The Laws
 
