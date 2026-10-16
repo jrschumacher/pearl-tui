@@ -27,8 +27,10 @@
 //	                    ctrl+<digit> or other ctrl+<punctuation> → no legacy code at all
 //	                    meta+, hyper+, super+ → only the kitty protocol sends them
 //	                  Fix: `shift+enter/ctrl+j newline` (ctrl+j is LF, which every terminal sends).
-//	S-KEYDUP     [P1] one key bound to two different actions in one state, Global keys
-//	                  included: the first match wins and the other hint lies
+//	S-KEYDUP     [P1] one key bound to two different actions in one state's cell, or in Global:
+//	                  the first match wins and the other hint lies. A state that binds a
+//	                  Global key to its own action overrides it (dispatch runs overlay, then
+//	                  focused region, then globals), so that is not a finding.
 //	S-KEYSHADOW  [P2] a Global key that a Bubbles v2.2.1 textarea or textinput consumes by
 //	                  default (ctrl+a b d e f g h k m n p t u v w, ctrl+shift+c, alt+b c d f l u < >,
 //	                  enter, backspace, delete, home, end, pgup, pgdown, the arrows and their shift,

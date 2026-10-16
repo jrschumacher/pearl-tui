@@ -66,7 +66,12 @@ func TestRules(t *testing.T) {
 		// S-KEYDUP
 		{"dup in a state", table("| list | list | esc back · esc clear |", ""), map[string]int{"S-KEYDUP": 1}},
 		{"dup across alternatives", table("| list | list | ↑↓/jk move · k kill |", ""), map[string]int{"S-KEYDUP": 1}},
-		{"dup with Global", table("| list | list | ctrl+k kill line |", "ctrl+k switch"), map[string]int{"S-KEYDUP": 1}},
+		{"a state overrides a Global key", table("| list | list | ctrl+k kill line |", "ctrl+k switch"), nil},
+		{"overrides of esc, ? and ctrl+c", table("| confirm | overlay | enter confirm · esc cancel |\n| help | overlay | ? close · esc close |\n| creating | wizard | ctrl+c cancel |", "esc back · ? help · ctrl+c quit"), nil},
+		{"one cell, two actions", table("| status | status | c commit · c comment |", ""), map[string]int{"S-KEYDUP": 1}},
+		{"one cell, near-alike actions", table("| s | s | p preview · p previous · u unstage · u unstash · o open · o open in browser · pgdn page down · pgdn page up |", ""), map[string]int{"S-KEYDUP": 4}},
+		{"one cell, the same action reworded by punctuation", table("| s | s | [ ] back/fwd · [ back fwd |", ""), nil},
+		{"Global, two actions", table("| a | a | x go |", "c commit · c comment"), map[string]int{"S-KEYDUP": 1}},
 		{"a state restating a Global pair in fewer words", table("| pr | pr | t tour · [ ] back/fwd |", "ctrl+c quit, [ ] back/forward between items."), nil},
 		{"a pair written with a space", table("| list | list | j k scroll · k kill |", ""), map[string]int{"S-KEYDUP": 1}},
 		{"dup in Global, once", table("| a | a | x go |\n| b | b | y go |", "ctrl+k switch · ctrl+k palette"), map[string]int{"S-KEYDUP": 1}},

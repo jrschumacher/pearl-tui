@@ -7,9 +7,9 @@ import (
 	"io"
 	"os"
 	"regexp"
-	"slices"
 	"sort"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"golang.org/x/text/width"
@@ -317,7 +317,7 @@ func (s *spec) keyAmbig(add func(string, int, string, ...any)) {
 				arrives, then := "never arrives", ""
 				if as != "" {
 					arrives = "arrives as " + as
-					if m := s.meaning(r, parseKey(as)); m != "" && m != b.action {
+					if m := s.meaning(r, parseKey(as)); m != "" && normAction(m) != normAction(b.action) {
 						then = fmt.Sprintf(", and %s here means %q", as, m)
 					}
 				}
@@ -343,7 +343,7 @@ func fallbackFor(k key) string {
 // survives a legacy terminal.
 func hasFallback(bs []binding, at int, k key) bool {
 	for i, b := range bs {
-		if b.action != bs[at].action {
+		if normAction(b.action) != normAction(bs[at].action) {
 			continue
 		}
 		for _, o := range b.keys {
@@ -358,58 +358,23 @@ func hasFallback(bs []binding, at int, k key) bool {
 	return false
 }
 
-// sameAction reports whether two hints name one action in different words, as when a
-// state restates a Global key ("back/fwd" for "back/forward between items"). It
-// compares first words, so it errs toward silence.
-func sameAction(a, b string) bool {
-	fa, fb := strings.Fields(a), strings.Fields(b)
-	if len(fa) == 0 || len(fb) == 0 {
-		return a == b
-	}
-	x, y := []rune(fa[0]), []rune(fb[0])
-	n := 0
-	for n < len(x) && n < len(y) && x[n] == y[n] {
-		n++
-	}
-	return n == len(x) || n == len(y) || n >= 4
+// normAction is how two hints are compared: lowercase, with every run of spaces and
+// punctuation one space, so "back/fwd" and "back fwd" match and "open" and "open in
+// browser" don't.
+func normAction(a string) string {
+	return strings.Join(strings.FieldsFunc(strings.ToLower(a), func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsNumber(r)
+	}), " ")
 }
 
+// keyDup checks one cell at a time: each state's own keys, and Global's keys together.
+// A state that binds a Global key to its own action overrides it, because dispatch
+// runs overlay, then focused region, then globals (architecture.md), so the row's hint
+// is the true one and that is not a finding.
 func (s *spec) keyDup(add func(string, int, string, ...any)) {
-	type use struct {
-		action string
-		global bool
-	}
-	check := func(r row, uses map[string][]use) {
-		keys := make([]string, 0, len(uses))
-		for k := range uses {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		for _, k := range keys {
-			us := uses[k]
-			var parts []string
-			var seen []string
-			local := false
-			for _, u := range us {
-				local = local || !u.global
-				if slices.ContainsFunc(seen, func(a string) bool { return sameAction(a, u.action) }) {
-					continue
-				}
-				seen = append(seen, u.action)
-				p := fmt.Sprintf("%q", u.action)
-				if u.global && !r.global {
-					p += " (Global)"
-				}
-				parts = append(parts, p)
-			}
-			if len(parts) < 2 || (!r.global && !local) {
-				continue
-			}
-			add("S-KEYDUP", r.line, "%s: %s means %s: the first match wins and the other hint lies. Give one of them another key",
-				r.state, k, strings.Join(parts, " and "))
-		}
-	}
-	collect := func(uses map[string][]use, bs []binding, global bool) {
+	check := func(r row, bs []binding) {
+		actions := map[string][]string{}
+		seen := map[string]map[string]bool{}
 		for _, b := range bs {
 			done := map[key]bool{}
 			for _, k := range b.keys {
@@ -417,20 +382,34 @@ func (s *spec) keyDup(add func(string, int, string, ...any)) {
 					continue
 				}
 				done[k] = true
-				uses[k.String()] = append(uses[k.String()], use{b.action, global})
+				ks, n := k.String(), normAction(b.action)
+				if seen[ks] == nil {
+					seen[ks] = map[string]bool{}
+				}
+				if !seen[ks][n] {
+					seen[ks][n] = true
+					actions[ks] = append(actions[ks], fmt.Sprintf("%q", b.action))
+				}
 			}
+		}
+		keys := make([]string, 0, len(actions))
+		for k := range actions {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			if len(actions[k]) < 2 {
+				continue
+			}
+			add("S-KEYDUP", r.line, "%s: %s means %s: the first match wins and the other hint lies. Give one of them another key",
+				r.state, k, strings.Join(actions[k], " and "))
 		}
 	}
 	if len(s.globals) > 0 {
-		uses := map[string][]use{}
-		collect(uses, s.globalBindings(), true)
-		check(s.globals[0], uses)
+		check(s.globals[0], s.globalBindings())
 	}
 	for _, r := range s.rows {
-		uses := map[string][]use{}
-		collect(uses, s.globalBindings(), true)
-		collect(uses, r.bindings, false)
-		check(r, uses)
+		check(r, r.bindings)
 	}
 }
 
