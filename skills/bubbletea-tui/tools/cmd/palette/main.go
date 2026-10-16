@@ -31,7 +31,9 @@
 //	fg ≥ 4.5 and fgMuted ≥ 3.0 on bgSubtle too
 //	onPrimary, onWarning ≥ 4.5 on their fill; onSecondary, onError, onSuccess, fgSelected ≥ 3.5
 //	plus the pairs a theme's expressions put on screen: "footer": "bar" draws the key
-//	hints (fgSubtle) on bgSubtle, so that pair must clear tuilint's 2.3 floor
+//	hints (fgSubtle) on bgSubtle, so that pair must clear tuilint's 2.3 floor; and minus
+//	the ones they take off: under "focus": "fg" no selection is a primary fill, so
+//	fgSelected on primary isn't checked (primary on bg and onPrimary still are)
 //
 // derive aims higher than these floors (fgMuted 4.6, fg 11–12, accent and status 4.5).
 // On a mid-tone fill where neither ink clears its floor, derive deepens the ink toward

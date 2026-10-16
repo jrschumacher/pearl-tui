@@ -70,7 +70,7 @@ func HuhStyles(t *theme.Theme) *huh.Styles {
 	}
 
 	f := &s.Focused
-	f.Base = lipgloss.NewStyle().Border(bar, false, false, false, true).BorderForeground(p.Primary).PaddingLeft(1)
+	f.Base = lipgloss.NewStyle().Border(bar, false, false, false, true).BorderForeground(t.S.FocusBar.GetForeground()).PaddingLeft(1)
 	f.Card = f.Base
 	f.Title = t.S.Bold
 	f.NoteTitle = t.S.Title.MarginBottom(1)
@@ -79,13 +79,13 @@ func HuhStyles(t *theme.Theme) *huh.Styles {
 	// Huh prints errors under the group, at its left edge: indent them to the
 	// fields' text column and mark them with the fail glyph, not colour alone
 	f.ErrorMessage = t.S.Err.PaddingLeft(2).Transform(func(e string) string { return g.Fail + " " + e })
-	f.Directory = t.S.Primary
+	f.Directory = t.S.Mark
 	f.File = t.S.Base
 
 	// selects: the theme's cursor, then the option. Unselected options are
 	// fgSoft: readable, never the "disabled" grey of Huh's default.
 	cw := max(lipgloss.Width(g.Cursor), lipgloss.Width(g.RadioOn))
-	f.SelectSelector = t.S.Primary.Bold(true).SetString(Fit(g.Cursor, cw) + " ")
+	f.SelectSelector = t.S.Focus.Bold(true).SetString(Fit(g.Cursor, cw) + " ")
 	f.MultiSelectSelector = f.SelectSelector
 	chip := t.X.Selection == "fill" || t.X.Selection == "inverse"
 	lead := "" // a chip pads its name by one cell each side; plain rows match it
@@ -94,16 +94,16 @@ func HuhStyles(t *theme.Theme) *huh.Styles {
 	}
 	f.SelectedOption = option("", selected(t), t.S.Muted)
 	f.UnselectedOption = option(lead, t.S.Soft, t.S.Subtle)
-	f.SelectedPrefix = t.S.Primary.SetString(g.CheckOn + " ")
+	f.SelectedPrefix = t.S.Focus.SetString(g.CheckOn + " ")
 	f.UnselectedPrefix = t.S.Subtle.SetString(g.CheckOff + " ")
-	f.NextIndicator = t.S.Primary.MarginLeft(1).SetString(g.Arrow)
-	f.PrevIndicator = t.S.Primary.MarginRight(1).SetString(arrowBack(t))
+	f.NextIndicator = t.S.Focus.MarginLeft(1).SetString(g.Arrow)
+	f.PrevIndicator = t.S.Focus.MarginRight(1).SetString(arrowBack(t))
 
 	f.TextInput = huh.TextInputStyles{
-		Cursor:      t.S.Tertiary,
+		Cursor:      t.S.Prompt,
 		CursorText:  t.S.Base,
 		Placeholder: t.S.Subtle,
-		Prompt:      t.S.Tertiary.Bold(true),
+		Prompt:      t.S.Prompt.Bold(true),
 		Text:        t.S.Base,
 	}
 
@@ -473,7 +473,7 @@ const frameRate = 2 * FrameInterval
 func BubblesSpinner(t *theme.Theme) spinner.Model {
 	return spinner.New(
 		spinner.WithSpinner(spinner.Spinner{Frames: t.G.Spinner, FPS: frameRate}),
-		spinner.WithStyle(t.S.Primary),
+		spinner.WithStyle(t.S.Mark),
 	)
 }
 
@@ -483,7 +483,7 @@ func BubblesSpinner(t *theme.Theme) spinner.Model {
 // and the title with no space between), and a subject instead of Huh's
 // default "Loading...". It honours ACCESSIBLE=1 (one plain line, no frames).
 func HuhSpinner(t *theme.Theme, title string) *hspinner.Spinner {
-	st := &hspinner.Styles{Spinner: t.S.Primary, Title: t.S.Soft.PaddingLeft(1)}
+	st := &hspinner.Styles{Spinner: t.S.Mark, Title: t.S.Soft.PaddingLeft(1)}
 	return hspinner.New().
 		Type(hspinner.Type(spinner.Spinner{Frames: t.G.Spinner, FPS: frameRate})).
 		WithTheme(hspinner.ThemeFunc(func(bool) *hspinner.Styles { return st })).

@@ -45,7 +45,7 @@ func UserMessage(t *theme.Theme, text string, w int, focused bool) []string {
 			bar = "|"
 		}
 	}
-	g := t.S.Primary.Render(bar) + " "
+	g := t.S.Focus.Render(bar) + " "
 	return prefix(strings.Split(body, "\n"), g, w)
 }
 
@@ -114,7 +114,7 @@ func ToolCall(t *theme.Theme, tc Tool, w int, focused bool) []string {
 	case ToolPending:
 		icon = t.S.Subtle.Render(t.G.Pending)
 	case ToolRunning:
-		icon = t.S.Primary.Render(t.G.Pending)
+		icon = t.S.Mark.Render(t.G.Pending)
 	case ToolDone:
 		icon = t.S.OK.Render(t.G.Done)
 	case ToolError:

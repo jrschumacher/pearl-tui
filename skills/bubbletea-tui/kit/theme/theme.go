@@ -27,7 +27,7 @@ import (
 
 // Roles is the palette by role. Hex strings in the JSON.
 type Roles struct {
-	Primary   string `json:"primary"`   // the brand hue: focus, current, selected rows, header rule
+	Primary   string `json:"primary"`   // the brand hue: focus, current, selected rows, header rule (under expressions.focus "fg": only what the theme or app asks for)
 	Secondary string `json:"secondary"` // second hue: primary buttons, gradient end, subtitles
 	Tertiary  string `json:"tertiary"`  // prompts, cursors, input carets
 	Accent    string `json:"accent"`    // section titles, headings; reads as "heading", never "alert"
@@ -103,7 +103,7 @@ type Glyphs struct {
 // the axes that make two themes read as two products, not one app recoloured.
 type Expressions struct {
 	Header       string `json:"header"`       // rule | bar | minimal | stamp | banner
-	Wordmark     string `json:"wordmark"`     // gradient | solid | inverse | tracked | bracket | upper
+	Wordmark     string `json:"wordmark"`     // gradient | solid | inverse | tracked | bracket | upper | plain (fg, bold, no hue)
 	SectionTitle string `json:"sectionTitle"` // accent | primary | muted-upper | fg
 	TitleCase    string `json:"titleCase"`    // sentence | upper | lower
 	Selection    string `json:"selection"`    // bar | fill | caret | inverse  (how a selected/focused row is marked)
@@ -118,9 +118,16 @@ type Expressions struct {
 	Backdrop     string `json:"backdrop"`     // none | field
 	Working      string `json:"working"`      // spinner | scramble   (the hero "working" indicator; scramble is Crush's)
 	Scrim        string `json:"scrim"`        // dim | none   (dim the screen under a dialog)
-	PaintBg      bool   `json:"paintBg"`      // own the terminal background (tea.View.BackgroundColor)
-	Gutter       int    `json:"gutter"`       // side margin in cells (default 2)
-	Measure      int    `json:"measure"`      // max prose width (default 100)
+	// Focus is the ink of the kit's own emphasis: primary (default), or fg, where the
+	// focus bar, cursor, prompt, current step, active tab, selection and focused button
+	// are fg and bold, and the kit's marks (spinner, progress, busy dot, header and
+	// dialog-title rules, the dialog border unless borderFocus is set) are neutral.
+	// For a brand whose hue is reserved for a state. Fills the theme opts into (a bar
+	// header, a filled tag, an inverse wordmark) keep primary.
+	Focus   string `json:"focus"`   // primary | fg
+	PaintBg bool   `json:"paintBg"` // own the terminal background (tea.View.BackgroundColor)
+	Gutter  int    `json:"gutter"`  // side margin in cells (default 2)
+	Measure int    `json:"measure"` // max prose width (default 100)
 }
 
 // Wordmark is an optional multi-row wordmark (scripts/wordmark.py output).
@@ -260,6 +267,9 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 		t.G = ASCII(t.G)
 	}
 	t.X = exprDefaults(f.Expressions)
+	if t.X.Focus == "fg" && r.BorderFocus == "" {
+		t.P.BorderFocus = t.P.FgMuted // the dialog border is chrome too: not the hue
+	}
 	t.S = build(t)
 	return t
 }

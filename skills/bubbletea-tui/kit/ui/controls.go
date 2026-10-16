@@ -37,7 +37,7 @@ func Button(t *theme.Theme, label string, focused, danger bool, mnemonic int) st
 		case focused && danger:
 			st = t.S.Err.Bold(true)
 		case focused:
-			st = t.S.Primary.Bold(true)
+			st = t.S.Focus.Bold(true)
 		case danger:
 			st = t.S.Err
 		default:
@@ -132,7 +132,7 @@ func Dot(t *theme.Theme, state string) string {
 	case "warning", "degraded":
 		return t.S.Warn.Render(t.G.Warn)
 	case "busy", "deploying", "running":
-		return t.S.Primary.Render(t.G.Current)
+		return t.S.Mark.Render(t.G.Current)
 	}
 	return t.S.Subtle.Render(t.G.Todo)
 }
@@ -167,10 +167,10 @@ func Progress(t *theme.Theme, frac float64, w int) string {
 		head = "╸"
 	}
 	filled := strings.Repeat(fill, n) + head
-	if !t.ASCII && n > 1 {
+	if !t.ASCII && n > 1 && t.X.Focus != "fg" {
 		filled = theme.Grad(filled, t.P.Secondary, t.P.Primary, false)
 	} else {
-		filled = t.S.Primary.Render(filled)
+		filled = t.S.Mark.Render(filled)
 	}
 	rest := w - n - lipgloss.Width(head)
 	return filled + t.S.Rule.Render(strings.Repeat(empty, max(0, rest)))

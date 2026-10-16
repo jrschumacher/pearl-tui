@@ -106,7 +106,7 @@ dialogs and overlays: where the background step is gone (16 colours, NO_COLOR, a
 ### Brand read
 palette / tone / geometry / density / type / motif   (references/brand.md §1)
 remember: <a move every screen draws: a title motif, a header rule, a layout move>, not a quality of the content
-accents: <hue> = <its one meaning>, one line per hue; focus = <gutter, weight>, never a state hue
+accents: <hue> = <its one meaning>, one line per hue; focus = <gutter, weight>, never a state hue ("focus": "fg" in the theme when the brand's hue is a state)
 glyphs: <glyph> <meaning> (ascii <twin>), one line each; twins the kit lacks go in the theme's glyphs.ascii; width-safe: <narrow glyph | 2-cell column>
 
 ### Theme
@@ -195,7 +195,8 @@ wrong. Write them this way:
   product, and no later command can draw it, so the screens go generic.
 - **One meaning per accent hue.** One hue for "new" *and* for focus makes the cursor
   row and a new row look the same. Focus is the gutter and the weight (`interaction.md`
-  § Focus); a hue is a state.
+  § Focus); a hue is a state. The kit draws focus in primary unless the theme says
+  `"focus": "fg"` (`brand.md` §4), so a brand whose only hue is a state sets it.
 - **Keep a meaningful glyph, with an ASCII twin and a width.** `◆ ◇ ▲ ★ ■` are East
   Asian "ambiguous": two cells in CJK locales, and the kit's ASCII map covers only its
   own glyphs. Keep the glyph, name its twin (`◆ ◇ ▲ (ascii * o ^)`), write the twin into

@@ -43,7 +43,7 @@ func (s Steps) mark(t *theme.Theme, i int) (glyph, label string) {
 	case i == s.Cur && s.Failed:
 		return t.S.Err.Bold(true).Render(t.G.Fail), t.S.Err.Bold(true).Render(s.Names[i])
 	case i == s.Cur:
-		return t.S.Primary.Bold(true).Render(t.G.Current), t.S.Bold.Render(s.Names[i])
+		return t.S.Focus.Bold(true).Render(t.G.Current), t.S.Bold.Render(s.Names[i])
 	}
 	return t.S.Subtle.Render(t.G.Todo), t.S.Subtle.Render(s.Names[i])
 }

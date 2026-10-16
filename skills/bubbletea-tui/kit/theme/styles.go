@@ -22,6 +22,11 @@ type Styles struct {
 	Panel   lipgloss.Style // a recessed block: bgPanel, no border
 	Key     lipgloss.Style // help: the key
 	KeyDesc lipgloss.Style // help: what it does
+	// emphasis, per expressions.focus: primary, or fg and bold
+	Focus  lipgloss.Style // focus, current and selection marks: cursor, current step, active tab, chosen option
+	Prompt lipgloss.Style // input prompts and carets (tertiary, or fg and bold)
+	Mark   lipgloss.Style // the kit's own marks: spinner, progress fill, busy dot (primary, or fg)
+	Motif  lipgloss.Style // the header rule and dialog-title rule runs (primary, or the rule role)
 	// selection
 	SelRow   lipgloss.Style // a selected row (per expressions.selection)
 	FocusBar lipgloss.Style // ▌ beside the focused block
@@ -52,6 +57,13 @@ func build(t *Theme) Styles {
 	s.Tertiary = s.Base.Foreground(p.Tertiary)
 	s.Accent = s.Base.Foreground(p.Accent)
 	s.OK, s.Err, s.Warn, s.Info = s.Base.Foreground(p.Success), s.Base.Foreground(p.Error), s.Base.Foreground(p.Warning), s.Base.Foreground(p.Info)
+	s.Rule = lipgloss.NewStyle().Foreground(p.Border)
+	// focus "fg": the hue is the brand's state colour, so the kit's emphasis is weight
+	fgFocus := x.Focus == "fg"
+	s.Focus, s.Prompt, s.Mark, s.Motif = s.Primary, s.Tertiary, s.Primary, s.Primary
+	if fgFocus {
+		s.Focus, s.Prompt, s.Mark, s.Motif = s.Bold, s.Bold, s.Base, s.Rule
+	}
 
 	switch x.SectionTitle {
 	case "primary":
@@ -63,7 +75,6 @@ func build(t *Theme) Styles {
 	default:
 		s.Title = s.Accent.Bold(true)
 	}
-	s.Rule = lipgloss.NewStyle().Foreground(p.Border)
 	s.Panel = lipgloss.NewStyle().Background(p.BgPanel).Foreground(p.FgSoft)
 	s.Key = s.Muted
 	s.KeyDesc = s.Subtle
@@ -76,25 +87,31 @@ func build(t *Theme) Styles {
 	// pixels in colour, and still a visible bar when colour is stripped
 	case "fill": // a full-width primary bar, like Crush's dialogs
 		s.SelRow = lipgloss.NewStyle().Foreground(p.Primary).Background(ink(p.FgSelected, p.Primary)).Reverse(true).Bold(true)
+		if fgFocus { // an fg bar: inverse
+			s.SelRow = lipgloss.NewStyle().Foreground(p.Fg).Background(p.Bg).Reverse(true).Bold(true)
+		}
 	case "inverse":
 		s.SelRow = lipgloss.NewStyle().Foreground(p.Fg).Background(p.Bg).Reverse(true).Bold(true)
 	case "caret":
-		s.SelRow = s.Primary.Bold(true)
+		s.SelRow = s.Focus.Bold(true)
 	default: // bar: bold text beside a focus bar
 		s.SelRow = s.Bold
 	}
 	s.FocusBar = lipgloss.NewStyle().Foreground(p.Primary)
+	if fgFocus {
+		s.FocusBar = s.Bold
+	}
 	s.BlurBar = lipgloss.NewStyle().Foreground(p.BgSubtle)
 	s.Match = lipgloss.NewStyle().Underline(true)
 
 	switch x.Button {
 	case "bracket":
 		s.Button = s.Muted
-		s.ButtonFocus = s.Primary.Bold(true)
+		s.ButtonFocus = s.Focus.Bold(true)
 		s.ButtonDanger = s.Err.Bold(true)
 	case "underline":
 		s.Button = s.Muted
-		s.ButtonFocus = s.Primary.Bold(true).Underline(true)
+		s.ButtonFocus = s.Focus.Bold(true).Underline(true)
 		s.ButtonDanger = s.Err.Bold(true).Underline(true)
 	case "inverse":
 		s.Button = lipgloss.NewStyle().Foreground(ink(p.Fg, p.BgSubtle)).Background(p.BgSubtle).Padding(0, 2)
@@ -103,7 +120,7 @@ func build(t *Theme) Styles {
 	default: // pill
 		s.Button = lipgloss.NewStyle().Foreground(ink(p.FgMuted, p.BgSubtle)).Background(p.BgSubtle).Padding(0, 2)
 		fill, on := p.Secondary, p.OnSecondary
-		if !t.Distinct(fill, p.BgSubtle) {
+		if fgFocus || !t.Distinct(fill, p.BgSubtle) {
 			fill, on = p.Fg, p.Bg // the focused pill must not look like the rest: fg, as inverse draws it
 		}
 		s.ButtonFocus = lipgloss.NewStyle().Foreground(ink(on, fill)).Background(fill).Bold(true).Padding(0, 2)

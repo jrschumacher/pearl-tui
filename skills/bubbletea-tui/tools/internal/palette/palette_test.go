@@ -318,3 +318,26 @@ func TestCheckRejectsGlyphsWithNoASCIITwin(t *testing.T) {
 		}
 	}
 }
+
+// Under "focus": "fg" the selection is never a primary fill, so check doesn't ask
+// fgSelected to read on primary; primary on bg and onPrimary on primary still count.
+func TestFocusFgDropsTheSelectedFillCheck(t *testing.T) {
+	roles := `{"dark": {"bg": "#17181B", "fg": "#CFCDCA", "primary": "#E8A33D", "fgSelected": "#E0B060"}}`
+	for _, c := range []struct {
+		focus      string
+		code       int
+		selChecked bool
+	}{{"primary", 1, true}, {"fg", 0, false}} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		js := `{"roles": ` + roles + `, "expressions": {"focus": "` + c.focus + `"}}`
+		if err := os.WriteFile(path, []byte(js), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		if code != c.code || strings.Contains(out.String(), "fgSelected   on primary") != c.selChecked ||
+			!strings.Contains(out.String(), "primary      on bg") || !strings.Contains(out.String(), "onPrimary    on primary") {
+			t.Errorf("focus %s: exit %d, want %d\n%s%s", c.focus, code, c.code, out.String(), errb.String())
+		}
+	}
+}

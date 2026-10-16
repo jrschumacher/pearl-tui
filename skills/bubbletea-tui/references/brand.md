@@ -39,7 +39,7 @@ everything'" is.
 | industrial, blunt, exact | `━`/`═` heavy rules, a stamp header, `fill` selection, inverse block buttons, `[BRACKET]` tags, heavy dialog, UPPERCASE labels, compact, quadrant spinner, no gradients |
 | precise, technical, nautical | a bar header, `┄` chart rules, slash tabs, `[ bracket ]` buttons, boxed keys, `▲ △` motifs, compact |
 | playful, loud, retro | a half-block banner, `inverse` selection, double dialog, pill tabs, owned background, a gradient motif rule, field backdrop |
-| editorial, bookish, quiet | lowercase titles, `·` dotted leaders, a thin `│` bar, filled-panel dialogs (no border, or `dialog: rules`: a rule above and below), underline buttons, measure 72 |
+| editorial, bookish, quiet | lowercase titles, `·` dotted leaders, a thin `│` bar, filled-panel dialogs (no border, or `dialog: rules`: a rule above and below), underline buttons, measure 72; when the one hue is a state, `focus: fg` and `wordmark: plain` |
 | a developer tool with personality (Crush) | a `╱` motif in the header and every dialog title, a gradient wordmark, `▌` bars, pill buttons, filled tags, playful copy (`Yep!`) |
 
 These are starting points. Two brands with the same trait still differ on palette, motif,
@@ -80,7 +80,7 @@ read it too.
   },
   "expressions": {
     "header": "bar",            // rule | bar | minimal | stamp | banner
-    "wordmark": "tracked",      // gradient | solid | inverse | tracked | bracket | upper
+    "wordmark": "tracked",      // gradient | solid | inverse | tracked | bracket | upper | plain (fg, bold)
     "sectionTitle": "primary",  // accent | primary | muted-upper | fg
     "titleCase": "sentence",    // sentence | upper | lower
     "selection": "fill",        // bar | fill | caret | inverse
@@ -95,12 +95,25 @@ read it too.
     "density": "compact",       // airy | compact
     "backdrop": "field",        // none | field
     "scrim": "dim",             // dim | none
+    "focus": "primary",         // primary | fg (focus, cursor, prompt, selection in fg + bold)
     "paintBg": false,           // own the terminal background
     "gutter": 2, "measure": 100
   },
   "wordmark": { "rows": ["…"], "style": "half" }    // optional, from wordmark.py
 }
 ```
+
+**`focus: fg` is for a brand whose hue means a state** (amber = new, and nothing else).
+One meaning per hue means focus can't be that hue, so the kit's own emphasis moves to
+fg and weight: the focus bar, cursor, prompt and caret, current step, active tab, chosen
+option and focused button (every button style) in fg + bold, the fill selection inverse,
+and the kit's marks neutral (spinner, progress fill and busy dot in fg; the header rule
+and dialog-title rule in the rule role, a hairline like the section rules; the dialog
+border fgMuted unless `borderFocus` says otherwise). What the theme opts into keeps
+primary, because the brand chose it: a bar or stamp header, a banner, a gradient,
+solid, inverse or tracked wordmark (`plain` is the name in fg), `sectionTitle: primary`,
+filled tags, the field backdrop, the scramble. So does what the app asks for
+(`t.S.Primary`, `ui.Tag(t, "primary", …)`): that is the state.
 
 Missing roles are derived, and missing glyphs and expressions default, so a theme can
 start small. Write every role as `#RRGGBB` or `#RGB`, `#` included: Lip Gloss reads

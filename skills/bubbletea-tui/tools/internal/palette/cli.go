@@ -76,10 +76,11 @@ func check(path string, stdout, stderr io.Writer) int {
 		}
 	}
 	var extra []Check
+	var skip map[[2]string]bool
 	if raw, ok := top["expressions"]; ok {
 		if v, err := pyfmt.Decode(raw); err == nil {
 			if m, ok := v.(map[string]any); ok {
-				extra = ExpressionChecks(m)
+				extra, skip = ExpressionChecks(m), ExpressionSkips(m)
 			}
 		}
 	}
@@ -131,7 +132,7 @@ func check(path string, stdout, stderr io.Writer) int {
 		if err := FillOnColours(r, mode != "light"); err != nil {
 			return fail(stderr, err)
 		}
-		b, txt := Report(r, mode, accept, extra...)
+		b, txt := ReportSkipping(r, mode, accept, skip, extra...)
 		bad += b
 		fmt.Fprintln(stdout, txt)
 	}

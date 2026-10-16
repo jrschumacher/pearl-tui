@@ -226,13 +226,34 @@ func ExpressionChecks(expressions map[string]any) []Check {
 	return extra
 }
 
+// ExpressionSkips are the Checks an expression choice takes off screen: under
+// "focus": "fg" no selected row is a primary fill (the fill selection is drawn in fg),
+// so fgSelected on primary is never drawn. primary on bg stays (primary is still the
+// state colour the theme reserved it for) and so do the on-primary fills (a bar header,
+// a filled tag).
+func ExpressionSkips(expressions map[string]any) map[[2]string]bool {
+	skip := map[[2]string]bool{}
+	if focus, _ := expressions["focus"].(string); focus == "fg" {
+		skip[[2]string{"fgSelected", "primary"}] = true
+	}
+	return skip
+}
+
 // Report checks one role set and returns the number of failures and the report text.
 // accept maps "<label>.<role>" to the reason a theme gives in writing for a deviation:
 // a failing check on that role is reported as ACCEPT and not counted.
 func Report(roles map[string]string, label string, accept map[string]string, extra ...Check) (int, string) {
+	return ReportSkipping(roles, label, accept, nil, extra...)
+}
+
+// ReportSkipping is Report without the Checks in skip (see ExpressionSkips).
+func ReportSkipping(roles map[string]string, label string, accept map[string]string, skip map[[2]string]bool, extra ...Check) (int, string) {
 	bad := 0
 	lines := []string{"  " + label}
 	for _, c := range append(append([]Check(nil), Checks...), extra...) {
+		if skip[[2]string{c.A, c.B}] {
+			continue
+		}
 		a, okA := roles[c.A]
 		b, okB := roles[c.B]
 		if !okA || !okB {

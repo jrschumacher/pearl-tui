@@ -332,6 +332,7 @@ func exprDefaults(x Expressions) Expressions {
 	d(&x.Backdrop, "none")
 	d(&x.Scrim, "dim")
 	d(&x.Working, "spinner")
+	d(&x.Focus, "primary")
 	if x.Gutter == 0 {
 		x.Gutter = 2
 	}
