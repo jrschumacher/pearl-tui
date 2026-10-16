@@ -42,6 +42,9 @@ this; the kit's components are the vocabulary.
 
 ## Check With The User
 
+Run `tuilint spec TUI.md` after every change to § States and keys, and fix what it
+reports before the user sees the table.
+
 Show the 80×24 sketches and the state list, and ask the one or two questions that change
 the design (not "does this look good?"). Record decisions in `TUI.md` § Decisions. Then
 hand off to `craft`.

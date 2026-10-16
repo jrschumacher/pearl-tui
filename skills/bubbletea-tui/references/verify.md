@@ -18,6 +18,7 @@ screenshot.
             tuilint frames frames/light --theme themes/<brand>.json --bg <light bg>
             (lint every directory you rendered: light, 256 and ASCII break where dark truecolour passes)
             tuilint code .
+            tuilint spec TUI.md                                           (after any key-table change)
 4. LOOK     cellshot frames/<state>-80x24.ansi … --sheet sheet-80.png
             cellshot frames/<state>-120x40.ansi … --sheet sheet-120.png --cell 8x16
             → Read the PNGs. Run the slop test (anti-patterns.md) on each.
@@ -43,7 +44,9 @@ Expect 2–4 rounds. Stop when the critic says ship and your own slop test passe
 `tuilint` catches the mechanical defects: row widths, emoji, default palettes,
 off-palette colours, contrast under 2.3:1, box soup, rainbows, missing text levels,
 excessive bold, edge-touching content, blocking calls, hex in views, v1 imports, fast
-ticks, fmt.Print, raw-string key matching, unhandled resize.
+ticks, fmt.Print, raw-string key matching, unhandled resize, and in `TUI.md` keys a
+terminal can't tell apart, duplicated keys, globals a text box eats and ambiguous-width
+glyphs with no ASCII twin.
 
 It cannot see a weak hierarchy, a screen with no identity, help that lies about what a
 key does in this state, copy in the wrong voice, or a layout that wastes the 120×40

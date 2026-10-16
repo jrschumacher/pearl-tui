@@ -9,6 +9,14 @@ built) both go in `TUI.md`. Every command reads that file first; a second file g
 skipped, and then the screens drift from the model that draws them. Never split it into
 an `ARCH.md`.
 
+## 0. Read The Project's Own Docs First
+
+`SPEC.md`, the README, `CLAUDE.md`/`AGENTS.md` and `docs/` hold decisions already made:
+confirm them in a question's default, don't ask them again. If one routes screen design
+to another method, tool or skill ("screens are designed with the X method"), ask which
+one governs this TUI and record the answer, with its reason, in § Decisions. A build
+agent follows whichever instruction it read last, so two methods give two designs.
+
 ## 1. Explore Before Asking
 
 Every question the repo could have answered spends the user's patience on nothing. Read
@@ -78,6 +86,8 @@ Read before any UI change. Update it when a decision changes.
 
 ### Brand read
 palette / tone / geometry / density / type / motif / remember   (references/brand.md §1)
+accents: <hue> = <its one meaning>, one line per hue; focus = <gutter, weight>, never a state hue
+glyphs: <glyph> <meaning> (ascii <twin>), one line each; width-safe: <narrow glyph | 2-cell column>
 
 ### Theme
 themes/<brand>.json   (palette derive from <measured hexes, source>)
@@ -121,6 +131,12 @@ One action table per state; footer and dispatcher both read it.
 | services-empty       | services         | r refresh · ? help · q quit |
 | confirm              | overlay          | ←→ choose · enter confirm · esc cancel |
 
+Global: ctrl+c quit
+
+### Harness and fixtures
+internal/app/fixtures.go feeds setState for the harness (-state, -out) and every test.
+fakes: <service> → <fake>, one per external CLI or API; no render or test touches the network.
+
 ### Async and the clock
 <work> → <cmd> → <msg>; cancel: <context>; stale results: <id or generation>.
 One gen-stamped tick, armed only while <what> animates.
@@ -132,12 +148,30 @@ Below 60×18: ui.TooSmall. Below 110 columns: <what collapses>. Below 30 rows: <
 ACCESSIBLE=1 or --accessible: no alt screen, Huh WithAccessible(true), status as new
 lines. stdout not a TTY: <--json | plain output>, never escape codes.
 
+## First slice
+<the core screens, every state, rendered from fixtures through the harness; no integration>
+Then: <the rest of v1, in order>
+
 ## Decisions
 - <date> <decision> because <reason>
 
 ## Assumed
 - <default the user didn't confirm>   (confirm it, then move it to Decisions)
 ````
+
+A spec written before this skill gets four sections wrong. Write them this way:
+
+- **One meaning per accent hue.** Amber for unread *and* focus makes the cursor row and
+  an unread row look the same. Focus is the gutter and the weight (`interaction.md`
+  § Focus); a hue is a state.
+- **An ASCII twin and a width for every motif glyph.** `● ◐ ○ ◆ ▲ ─ ▌` are East Asian
+  "ambiguous": two cells in CJK locales, and the kit's ASCII map has no `◐`. Name the
+  twin (`● ◐ ○ (ascii * ~ o)`), and pick a narrow glyph (`✓ ❯ ▸`) or a 2-cell column.
+- **A fake for every external service.** The harness renders every state offline and
+  the tests run in CI; a state that needs a live CLI or API is a state nobody reviews.
+- **A first slice.** The smallest milestone that renders the core screens on fixtures,
+  so the design is judged on renders before the integrations eat the effort. If the
+  interview grew v1 past the brief, say so and propose the slice; don't just order it.
 
 Keep three things true as the project goes, because each one is what a later command
 checks:
@@ -150,7 +184,16 @@ checks:
 - **A decision carries its reason.** "Square dialogs" is a default in disguise; "square
   dialogs because the brand is industrial" survives the next restyle.
 
-## 4. Hand Off In Two Lines
+## 4. Lint It Before Handing Off
+
+`tuilint spec TUI.md` must exit 0. It fails a key that terminals without key
+disambiguation deliver as another, with no fallback in the cell (`shift+enter` arrives
+as `enter` in tmux: write `shift+enter/ctrl+j newline`) [S-KEYAMBIG], and one key with
+two actions in a state [S-KEYDUP]. Fix its warnings or justify each in § Decisions: a
+Global key a text box eats (`ctrl+k` deletes to end of line in a Bubbles textarea)
+[S-KEYSHADOW], and an ambiguous-width glyph with no ASCII twin [S-GLYPHWIDTH].
+
+## 5. Hand Off In Two Lines
 
 ```
 Captured: <product, users, brand read, N screens, stack>. Assumed: <the defaults nobody confirmed>.

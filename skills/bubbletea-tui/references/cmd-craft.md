@@ -53,6 +53,7 @@ again. Two to four rounds.
 
 - every key in the help works in that state (`TestHelpIsHandled`: press every action's
   keys in every state), and actions target the selection, not the first fixture row
+- `tuilint spec TUI.md` passes again whenever a key changes: the table is the contract
 - the ASCII render is pure ASCII (`Canvas.ASCIIfy` + a test); every visible cell has an
   explicit foreground (`TestNoUnstyledText`)
 - `esc` closes or backs out everywhere; `ctrl+c` quits from everywhere
