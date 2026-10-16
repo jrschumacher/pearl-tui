@@ -19,14 +19,15 @@ Never `github.com/charmbracelet/bubbletea` (v1) in new code [C-V1].
 ## v2 In One Screen
 
 ```go
-type model struct{ w, h int; t *theme.Theme; file theme.File }
+type model struct{ w, h int; t *theme.Theme; file theme.File; prof colorprofile.Profile }
 
 func (m *model) Init() tea.Cmd { return tea.RequestBackgroundColor }   // still only a Cmd
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     switch msg := msg.(type) {
     case tea.WindowSizeMsg:     m.w, m.h = msg.Width, msg.Height
-    case tea.BackgroundColorMsg: m.t = theme.Resolve(m.file, msg.IsDark(), false)
+    case tea.ColorProfileMsg:   m.prof = msg.Profile; m.t = theme.ResolveProfile(m.file, m.t.Dark, false, m.prof)
+    case tea.BackgroundColorMsg: m.t = theme.ResolveProfile(m.file, msg.IsDark(), false, m.prof)
     case tea.KeyPressMsg:        // msg.String(): "ctrl+c", "shift+enter", "space" (not " ")
         if key.Matches(msg, m.keys.Quit) { return m, tea.Quit }
     case tea.PasteMsg:           _ = msg.Content            // paste is no longer a key

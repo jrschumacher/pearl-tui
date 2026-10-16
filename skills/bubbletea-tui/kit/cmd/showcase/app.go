@@ -7,6 +7,7 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/colorprofile"
 
 	"tuikit/theme"
 	"tuikit/ui"
@@ -44,10 +45,11 @@ const (
 )
 
 type app struct {
-	file  theme.File
-	t     *theme.Theme
-	ascii bool
-	w, h  int
+	file    theme.File
+	t       *theme.Theme
+	ascii   bool
+	profile colorprofile.Profile // the terminal's colour profile (tea.ColorProfileMsg)
+	w, h    int
 
 	screen screen
 	ov     overlay
@@ -107,7 +109,7 @@ type workDoneMsg struct{ gen int }
 type deployDoneMsg struct{ svc string }
 
 func newApp(f theme.File, dark, ascii bool) *app {
-	m := &app{file: f, t: theme.Resolve(f, dark, ascii), ascii: ascii, w: 80, h: 24}
+	m := &app{file: f, t: theme.Resolve(f, dark, ascii), ascii: ascii, profile: colorprofile.TrueColor, w: 80, h: 24}
 	m.svcs = slices.Clone(services)
 	m.events = slices.Clone(initialEvents)
 	m.feed = slices.Clone(activity)
@@ -160,8 +162,16 @@ func (m *app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.w, m.h = msg.Width, msg.Height
+	case tea.ColorProfileMsg:
+		// 16 colours or NO_COLOR can merge a background step into the page: the
+		// theme adds edges where that happens, so it must know the profile
+		m.profile = msg.Profile
+		m.resolve(m.t.Dark)
+		if m.screen == scrSetup && m.setup.form != nil {
+			return m, m.goStep(m.setup.step)
+		}
 	case tea.BackgroundColorMsg:
-		m.t = theme.Resolve(m.file, msg.IsDark(), m.ascii)
+		m.resolve(msg.IsDark())
 		if m.screen == scrSetup && m.setup.form != nil {
 			// Huh keeps the first theme a field is given: rebuild the step
 			return m, m.goStep(m.setup.step)
@@ -583,9 +593,14 @@ func (m *app) command(title string) tea.Cmd {
 		m.say("ok", "COPIED", "https://"+s.Name+".prod.internal")
 		return tea.SetClipboard("https://" + s.Name + ".prod.internal")
 	case "Toggle theme":
-		m.t = theme.Resolve(m.file, !m.t.Dark, m.ascii)
+		m.resolve(!m.t.Dark)
 	}
 	return nil
+}
+
+// resolve rebuilds the theme for a mode, keeping the ASCII choice and the profile.
+func (m *app) resolve(dark bool) {
+	m.t = theme.ResolveProfile(m.file, dark, m.ascii, m.profile)
 }
 
 func (m *app) footerBindings() []key.Binding {

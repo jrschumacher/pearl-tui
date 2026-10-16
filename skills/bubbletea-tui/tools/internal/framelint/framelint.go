@@ -9,9 +9,12 @@
 //	F-OFFPAL    [P1] (with --theme) a colour not in, or blended from, the theme's roles.
 //	                 A frame with only 256-colour SGR (-profile ansi256) is judged against the
 //	                 xterm colours the roles downsample to; there a role that lands on a
-//	                 default index (204) is the role, and its hex is judged in truecolour
+//	                 default index (204) is the role, and its hex is judged in truecolour.
+//	                 A frame with only 16-colour SGR (-profile ansi) is not judged: its 16
+//	                 slots are the terminal's palette, and every role lands on one
 //	F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1 (P2 note on a borderless overlay).
-//	                 Box drawing, blocks, braille and ASCII rule runs (----, ====) are decoration
+//	                 Box drawing, blocks, braille and ASCII rule runs (----, ====) are decoration.
+//	                 In a 16-colour frame: text in the same slot as its background
 //	F-BOXES     [P1] more than one bordered box (nested or side by side noted)
 //	F-RAINBOW   [P2] more than 7 distinct foreground hues
 //	F-LEVELS    [P2] fewer than 3 neutral text levels on a dense frame
@@ -52,7 +55,9 @@ every cell must be ASCII: a glyph that leaks through is tofu on a console font.
   F-DEFAULT   [P1] library example and default colours: #7D56F4, 205, 62/63/170/212, ...,
                    and Huh's #F780E2 fuchsia (Charm theme, spinner), #7571F9 / #5A56E0 indigo
   F-OFFPAL    [P1] (with --theme) a colour not in, or blended from, the theme's roles
-  F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1 (P2 note on a borderless overlay)
+                   (a 16-colour frame, -profile ansi, is not judged: the terminal owns those slots)
+  F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1 (P2 note on a borderless overlay);
+                   in a 16-colour frame, text in the same slot as its background
   F-BOXES     [P1] more than one bordered box
   F-RAINBOW   [P2] more than 7 distinct foreground hues
   F-LEVELS    [P2] fewer than 3 neutral text levels on a dense frame

@@ -9,6 +9,7 @@
 //	go run ./cmd/showcase -state services -w 120 -h 40 one state as truecolor ANSI (for cellshot)
 //	go run ./cmd/showcase -out frames -sizes 80x24,120x40 [-profile ansi256] [-light] [-ascii]
 //	                                                   every state at every size into frames/*.ansi
+//	NO_COLOR=1 go run ./cmd/showcase -out frames       as -profile ascii: no colour, as the terminal would
 package main
 
 import (
@@ -40,9 +41,10 @@ var states = []string{"services", "services-toast", "deploys", "palette", "confi
 // setState rebuilds the model from scratch for a named state, using the same
 // actions a user would take, so fixtures can't drift from behaviour.
 func (m *app) setState(s string) {
-	frame := m.frame
+	frame, profile := m.frame, m.profile
 	*m = *newApp(m.file, m.t.Dark, m.ascii)
-	m.frame = frame
+	m.frame, m.profile = frame, profile
+	m.resolve(m.t.Dark)
 	m.screen = scrServices
 	switch s {
 	case "services-toast":
@@ -119,7 +121,7 @@ func main() {
 	w := flag.Int("w", 80, "width")
 	h := flag.Int("h", 24, "height")
 	frame := flag.Int("frame", 24, "animation frame for renders")
-	profile := flag.String("profile", "truecolor", "truecolor | ansi256 | ansi | ascii")
+	profile := flag.String("profile", "truecolor", "truecolor | ansi256 | ansi | ascii (NO_COLOR set: ascii)")
 	firstRun := flag.Bool("first-run", false, "start with the setup wizard")
 	flag.Parse()
 
@@ -147,14 +149,21 @@ func main() {
 		}
 		return
 	}
+	explicit := false
+	flag.Visit(func(fl *flag.Flag) { explicit = explicit || fl.Name == "profile" })
+	prof, err := renderProfile(*profile, explicit, os.Getenv("NO_COLOR"))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
 	m := newApp(f, !*light, *ascii)
-	m.frame = *frame
+	m.frame, m.profile = *frame, prof
 	render := func(s string, w, h int) string {
 		m.setState(s)
 		w, h = frameSize(s, w, h)
 		c := m.render(w, h)
 		c.PaintBackground()
-		return downsample(c.String(), *profile)
+		return downsample(c.String(), prof)
 	}
 	switch {
 	case *state != "":
@@ -237,9 +246,26 @@ func checkSize(txt, s string, w, h int) error {
 	return nil
 }
 
-func downsample(s, p string) string {
-	prof := map[string]colorprofile.Profile{"truecolor": colorprofile.TrueColor, "ansi256": colorprofile.ANSI256,
-		"ansi": colorprofile.ANSI, "ascii": colorprofile.Ascii}[p]
+var profileNames = map[string]colorprofile.Profile{"truecolor": colorprofile.TrueColor, "ansi256": colorprofile.ANSI256,
+	"ansi": colorprofile.ANSI, "ascii": colorprofile.Ascii}
+
+// renderProfile is the profile renders are drawn for: -profile when given, else no
+// colour when NO_COLOR is set (https://no-color.org: any non-empty value), as
+// Bubble Tea's own detection does for the live program.
+func renderProfile(name string, explicit bool, noColor string) (colorprofile.Profile, error) {
+	if !explicit && noColor != "" {
+		return colorprofile.Ascii, nil
+	}
+	p, ok := profileNames[name]
+	if !ok {
+		return 0, fmt.Errorf("-profile %q: want truecolor, ansi256, ansi or ascii", name)
+	}
+	return p, nil
+}
+
+// downsample writes a truecolour frame through colorprofile, as Bubble Tea's renderer
+// does for a terminal at prof.
+func downsample(s string, prof colorprofile.Profile) string {
 	if prof == colorprofile.TrueColor {
 		return s
 	}

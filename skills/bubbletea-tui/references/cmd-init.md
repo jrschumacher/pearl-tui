@@ -206,8 +206,9 @@ wrong. Write them this way:
   two meanings into one mark.
 - **A dialog edge that survives without colour.** A filled panel one background step
   up, with no border, sits on the page in the same colour under 16 colours and
-  NO_COLOR, so the dialog's edge vanishes. The kit's `dialog: none` gets an ASCII
-  border under -ascii only; name the edge for the other profiles too.
+  NO_COLOR, so the dialog's edge vanishes. The kit's `dialog: none` gets a rule above
+  and below wherever that happens (`theme.ResolveProfile` with the terminal's profile)
+  and an ASCII border under -ascii. Name the edge the brand wants.
 - **A fake for every external service.** The harness renders every state offline and
   the tests run in CI; a state that needs a live CLI or API is a state nobody reviews.
 - **A first slice.** The smallest milestone that renders the main loop on fixtures: the

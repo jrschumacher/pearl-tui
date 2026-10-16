@@ -73,8 +73,13 @@ Rules:
 
 - **Nothing by colour alone.** A selected row also gets a marker glyph (`▌`, `›`, `●`).
   An error also says "error". A focused panel also changes its title weight or glyph.
-- **Render your key states at ANSI256 and NO_COLOR** before you ship
-  (`-profile ansi256`, `-profile ascii` in the kit's harness). Look at them.
+- **Render your key states at ANSI256, 16 colours and NO_COLOR** before you ship
+  (`-profile ansi256`, `-profile ansi`, `NO_COLOR=1` in the kit's harness). Look at them.
+- **Give the theme the profile.** Keep `tea.ColorProfileMsg` and resolve with
+  `theme.ResolveProfile`: where a background step lands on the page's colour
+  (`t.Distinct`), the kit draws an edge instead (a borderless dialog gets a rule above
+  and below, a bar footer's keys lose the strip that hid them, text on a fill takes fg or
+  bg via `t.Ink`). `theme.Resolve` assumes truecolour.
 - **Provide a 16-colour mapping** for brand roles that matter (primary → the closest of
   the 8 hues, success → green, error → red). `lipgloss.Complete(profile)` picks one per
   profile.

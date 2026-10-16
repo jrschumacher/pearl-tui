@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 )
 
 // Roles is the palette by role. Hex strings in the JSON.
@@ -221,15 +222,28 @@ type Theme struct {
 	File
 	Dark  bool
 	ASCII bool
-	P     Palette
-	G     Glyphs
-	X     Expressions
-	S     Styles
+	// Profile is the terminal's colour profile the styles were built for (see
+	// ResolveProfile); Unknown means truecolour, the colours as written.
+	Profile colorprofile.Profile
+	P       Palette
+	G       Glyphs
+	X       Expressions
+	S       Styles
 }
 
-// Resolve picks the dark or light roles, fills gaps, and builds every style.
-// Call it on startup and again when tea.BackgroundColorMsg arrives.
+// Resolve picks the dark or light roles, fills gaps, and builds every style, for a
+// truecolour terminal. Call it on startup and again when tea.BackgroundColorMsg
+// arrives; an app that renders to other terminals calls ResolveProfile.
 func Resolve(f File, dark, ascii bool) *Theme {
+	return ResolveProfile(f, dark, ascii, colorprofile.TrueColor)
+}
+
+// ResolveProfile is Resolve for the colour profile the terminal reports
+// (tea.ColorProfileMsg: 16 colours, 256, or none under NO_COLOR). Where a
+// background step the styles separate things with can't be told from the page at
+// that profile (Distinct), they add an edge instead: a borderless dialog gets a rule
+// above and below. Keep the profile and pass it again on every re-resolve.
+func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *Theme {
 	r, ok := f.Roles["dark"]
 	if !dark {
 		if l, ok2 := f.Roles["light"]; ok2 {
@@ -239,7 +253,7 @@ func Resolve(f File, dark, ascii bool) *Theme {
 	if !ok {
 		r = Default().Roles["dark"]
 	}
-	t := &Theme{File: f, Dark: dark, ASCII: ascii}
+	t := &Theme{File: f, Dark: dark, ASCII: ascii, Profile: profile}
 	t.P = derive(r, dark)
 	t.G = glyphDefaults(f.Glyphs)
 	if ascii {
@@ -248,6 +262,38 @@ func Resolve(f File, dark, ascii bool) *Theme {
 	t.X = exprDefaults(f.Expressions)
 	t.S = build(t)
 	return t
+}
+
+// Distinct reports whether a and b draw as different colours at the theme's profile:
+// under 16 or 256 colours two hexes can land on one index, and under NO_COLOR (or
+// no TTY) nothing has a colour at all.
+func (t *Theme) Distinct(a, b color.Color) bool {
+	p := t.Profile
+	if p == colorprofile.Unknown {
+		p = colorprofile.TrueColor
+	}
+	ca, cb := p.Convert(a), p.Convert(b)
+	if ca == nil || cb == nil {
+		return ca != cb
+	}
+	r1, g1, b1, _ := ca.RGBA()
+	r2, g2, b2, _ := cb.RGBA()
+	return r1 != r2 || g1 != g2 || b1 != b2
+}
+
+// Ink is the colour to draw text on fill with: c, or when c and fill land on one
+// colour at the theme's profile, fg or bg, whichever stays apart from the fill. At
+// truecolour, and wherever the two stay apart, it is c.
+func (t *Theme) Ink(c, fill color.Color) color.Color {
+	if t.Distinct(c, fill) {
+		return c
+	}
+	for _, alt := range []color.Color{t.P.Fg, t.P.Bg} {
+		if t.Distinct(alt, fill) {
+			return alt
+		}
+	}
+	return c
 }
 
 // AppName is the brand name the theme declares.

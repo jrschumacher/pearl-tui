@@ -235,7 +235,11 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 				if col == nil {
 					continue
 				}
-				if indexed != nil {
+				if f.Basic {
+					// 16 slots whose colours the user's terminal palette decides: every role
+					// lands on one, so a slot says nothing about the palette. The roles' own
+					// hexes are judged in the truecolour render
+				} else if indexed != nil {
 					// a role the terminal can only show as 204 is still the theme's role, not
 					// a pasted "204"; the role's own hex is judged in the truecolour render
 					if indexed[*col] {
@@ -289,7 +293,17 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 			}
 			decorative := (0x2500 <= o && o <= 0x25FF) || (0x2800 <= o && o <= 0x28FF) ||
 				(0x1FB00 <= o && o <= 0x1FBFF) || ch == '•' || ch == '·' || rules[x]
-			if !decorative {
+			if f.Basic {
+				// the palette is the terminal's, so only one thing is certain: text in the
+				// same slot as its background is invisible on every palette
+				fs, bs := c.FG, c.BG
+				if c.Reverse {
+					fs, bs = bs, fs
+				}
+				if !decorative && fs != nil && bs != nil && *fs == *bs {
+					lowc = append(lowc, lowCell{y, x, 1, fg, bg})
+				}
+			} else if !decorative {
 				if cr := contrast(fg, bg); cr < 2.3 {
 					lowc = append(lowc, lowCell{y, x, cr, fg, bg})
 				}
@@ -531,6 +545,7 @@ func asciiRuleCells(row []Cell) map[int]bool {
 var (
 	sgr256  = regexp.MustCompile(`[34]8[;:]5[;:]`)
 	sgrTrue = regexp.MustCompile(`[34]8[;:]2[;:]`)
+	sgr16   = regexp.MustCompile(`\x1b\[(?:[0-9:]*;)*(?:3[0-7]|4[0-7]|9[0-7]|10[0-7])(?:;[0-9:]*)*m`)
 )
 
 // lintText lints one frame's text, named by the file's base name. ascii adds F-ASCII.
@@ -540,6 +555,7 @@ func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii boo
 	text = strings.TrimSuffix(text, "\n")
 	f := Parse(text)
 	f.Indexed = sgr256.MatchString(text) && !sgrTrue.MatchString(text)
+	f.Basic = !f.Indexed && !sgrTrue.MatchString(text) && sgr16.MatchString(text)
 	out := LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
 	if ascii {
 		out = append(out, LintASCII(filepath.Base(path), f)...)

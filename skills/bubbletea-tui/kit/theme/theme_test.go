@@ -4,10 +4,12 @@ import (
 	"image/color"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 )
 
 // CheckHex accepts exactly the strings Lip Gloss draws as the colour written: for
@@ -151,5 +153,42 @@ func TestThemeASCIITwins(t *testing.T) {
 	g = ASCII(Glyphs{Pending: "◔", Current: "●"})
 	if g.Pending == g.Current || g.Pending != "?" {
 		t.Errorf("unmapped ◔ draws %q beside ● as %q, want ?", g.Pending, g.Current)
+	}
+}
+
+// Text on a fill must stay apart from it at every colour profile: under 16 colours
+// ferrous's muted keys and ink's pill labels landed in their fill's slot and vanished.
+// Every ready-made style that sets both an ink and a fill is held to t.Distinct.
+func TestStylesKeepInkOffTheirFill(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	for _, f := range files {
+		tf, err := Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dark := range []bool{true, false} {
+			for _, p := range []colorprofile.Profile{colorprofile.TrueColor, colorprofile.ANSI256, colorprofile.ANSI} {
+				th := ResolveProfile(tf, dark, false, p)
+				v, ty := reflect.ValueOf(th.S), reflect.TypeOf(th.S)
+				for i := range ty.NumField() {
+					st := v.Field(i).Interface().(lipgloss.Style)
+					fg, bg := st.GetForeground(), st.GetBackground()
+					if _, none := fg.(lipgloss.NoColor); none || fg == nil {
+						continue
+					}
+					if _, none := bg.(lipgloss.NoColor); none || bg == nil {
+						continue
+					}
+					if !th.Distinct(fg, bg) {
+						t.Errorf("%s dark=%v %v: S.%s draws its text in its fill's colour", filepath.Base(f), dark, p, ty.Field(i).Name)
+					}
+				}
+			}
+		}
 	}
 }

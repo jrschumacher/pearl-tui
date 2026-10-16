@@ -225,6 +225,11 @@ func Footer(t *theme.Theme, w int, left string, bindings []key.Binding, right st
 	row = Fit(row+pad, w)
 	switch t.X.Footer {
 	case "bar":
+		// the keys are fgMuted and fgSubtle on the strip; where either lands on the
+		// strip's colour (16 colours), the strip would hide them: draw the keys bare
+		if !t.Distinct(t.P.FgMuted, t.P.BgSubtle) || !t.Distinct(t.P.FgSubtle, t.P.BgSubtle) {
+			return []string{row}
+		}
 		return []string{OnBg(row, t.P.BgSubtle)}
 	case "rule":
 		return []string{pad + Rule(t, inner) + pad, row}

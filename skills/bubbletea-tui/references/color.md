@@ -65,8 +65,8 @@ white is invisible). Borders become *darker* than bg. Test the light set as care
 the dark one; most themes ship with an unreviewed light set.
 
 Detect the terminal: `tea.RequestBackgroundColor` in `Init`, then on
-`tea.BackgroundColorMsg` call `theme.Resolve(file, msg.IsDark(), ascii)`. Never assume
-dark.
+`tea.BackgroundColorMsg` call `theme.ResolveProfile(file, msg.IsDark(), ascii, profile)`,
+with the profile kept from `tea.ColorProfileMsg`. Never assume dark.
 
 ## Painting The Background Is A Brand Decision
 
