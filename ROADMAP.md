@@ -10,7 +10,8 @@ repository. Items move from here into issues when someone picks them up.
 - A compiling Bubble Tea v2 kit with seven themes and a reference app with two faces: an
   ops dashboard and a first-run setup wizard built on Huh, themed from the brand. Its tests
   cover footprint, contrast, unstyled text, ASCII, honest help, behaviour, button order and
-  no library-default colours. CI lints every theme in dark, light, ASCII and 256 colours.
+  no library-default colours. CI lints every theme in dark, light, ASCII, 256 and 16 colours
+  and NO_COLOR.
 - Tools, in Go and built in one step: an ANSI renderer (`cellshot`), a frame and code
   linter (`tuilint`, and `tuivet` for `go vet`), a palette deriver and checker, and a
   theme-distance lint. Python remains only for the wordmark and logo converters.

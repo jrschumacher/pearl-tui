@@ -127,7 +127,7 @@ Huh default colour in the wizard's frames. CI also lints every theme's dark, lig
 
 ```sh
 go -C <skill>/tools build -o ~/.cache/tuitools/ ./cmd/...  # once: cellshot, tuilint, palette, diversity, tuivet
-go run ./cmd/app -out frames -sizes 80x24,120x40           # every state (and -light, -ascii, -profile ansi256)
+go run ./cmd/app -out frames -sizes 80x24,120x40           # every state (and -light, -ascii, -profile ansi256|ansi, NO_COLOR=1)
 tuilint frames frames --theme themes/brand.json            # slop and correctness, by rule ID
 tuilint code .                                             # the same for the Go source
 cellshot frames/*-80x24.ansi --sheet sheet.png             # look at it
@@ -135,6 +135,8 @@ cellshot frames/*-80x24.ansi --sheet sheet.png             # look at it
 ```
 
 ![Light, dark and ASCII renders of one state](docs/images/gallery-modes.png)
+
+![Reduced colour: a borderless dialog keeps an edge at 16 colours and under NO_COLOR; a theme whose one hue means "new" draws focus in fg (focus fg, a ruled dialog)](docs/images/gallery-reduced.png)
 
 ![The assistant: tool calls, thinking, a turn footer, the working indicator](docs/images/gallery-assistant.png)
 
