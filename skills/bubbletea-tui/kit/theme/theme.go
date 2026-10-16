@@ -176,7 +176,7 @@ func CheckHex(s string) error {
 		if digits {
 			fix = fmt.Sprintf("%q", "#"+s)
 		}
-		return fmt.Errorf("%q has no #: Lip Gloss reads it as an ANSI index or no colour; write %s", s, fix)
+		return fmt.Errorf("%q has no #: Lip Gloss reads it as an ANSI index, a packed integer or no colour; write %s", s, fix)
 	}
 	return fmt.Errorf("%q is not #RGB or #RRGGBB", s)
 }

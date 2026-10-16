@@ -110,6 +110,10 @@ func TestMissingBaselineFails(t *testing.T) {
 			`diversity: note: baselines "ink", "charm" are not among the themes, so the min-distance rule did not run against them ` +
 				"(pass kit/themes/ink.json kit/themes/charm.json, or --baseline \"\" to silence this)\n"},
 		{[]string{inkling, twinA, "--baseline", ""}, 0, ""},
+		// a space after the comma names the same theme
+		{[]string{inkling, twinA, kit + "ink.json", "--baseline", "ink, charm"}, 2,
+			`diversity: baseline "charm" is not among the themes, so the min-distance rule cannot run: ` +
+				"pass its theme file too (e.g. kit/themes/charm.json, from the skill directory) or drop it from --baseline\n"},
 		{[]string{inkling, twinA, kit + "ink.json", kit + "charm.json", "--baseline", "ink,charm"}, 1, ""},
 	} {
 		var out, errb bytes.Buffer

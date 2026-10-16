@@ -92,7 +92,7 @@ func Main(args []string, usage string, stdout, stderr io.Writer) int {
 	}
 	o.Baseline = map[string]bool{}
 	for _, n := range strings.Split(baseline, ",") {
-		o.Baseline[n] = true
+		o.Baseline[strings.TrimSpace(n)] = true
 	}
 	themes := make([]Theme, 0, len(paths))
 	for _, p := range paths {
@@ -130,6 +130,7 @@ func MissingBaselines(themes []Theme, baseline string) []string {
 	var missing []string
 	seen := map[string]bool{}
 	for _, n := range strings.Split(baseline, ",") {
+		n = strings.TrimSpace(n)
 		if n != "" && !have[n] && !seen[n] {
 			missing = append(missing, n)
 			seen[n] = true

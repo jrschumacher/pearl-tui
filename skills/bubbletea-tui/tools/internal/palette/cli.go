@@ -98,6 +98,9 @@ func check(path string, stdout, stderr io.Writer) int {
 		for _, k := range sortedKeys(obj) {
 			val := obj[k]
 			s, isStr := val.(string)
+			if isStr && s == "" {
+				continue // derived by the engine, as theme.Load does with a missing role
+			}
 			if !referenced[k] && !roleKeys[k] {
 				if isStr {
 					r[k] = s

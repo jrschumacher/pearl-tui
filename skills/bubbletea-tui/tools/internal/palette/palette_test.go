@@ -254,17 +254,19 @@ func TestCheckRejectsWhatTheEngineRejects(t *testing.T) {
 		roles string
 		err   string // the stderr line after "palette: <path>: "; "" means accepted
 	}{
-		{`"primary": "6B50FF"`, `dark.primary: "6B50FF" has no #: Lip Gloss reads it as an ANSI index or no colour; write "#6B50FF"`},
+		{`"primary": "6B50FF"`, `dark.primary: "6B50FF" has no #: Lip Gloss reads it as an ANSI index, a packed integer or no colour; write "#6B50FF"`},
 		{`"primary": "#6B50FFAA"`, `dark.primary: "#6B50FFAA" is not #RGB or #RRGGBB`},
 		{`"primary": "#6B50"`, `dark.primary: "#6B50" is not #RGB or #RRGGBB`},
 		{`"primary": "#6B50F"`, `dark.primary: "#6B50F" is not #RGB or #RRGGBB`},
 		{`"primary": "##6B50FF"`, `dark.primary: "##6B50FF" is not #RGB or #RRGGBB`},
 		{`"primary": " #6B50FF"`, `dark.primary: " #6B50FF" is not #RGB or #RRGGBB`},
-		{`"warning": "12"`, `dark.warning: "12" has no #: Lip Gloss reads it as an ANSI index or no colour; write #RGB or #RRGGBB`},
-		{`"fgSoft": "6B50FF"`, `dark.fgSoft: "6B50FF" has no #: Lip Gloss reads it as an ANSI index or no colour; write "#6B50FF"`},
+		{`"warning": "12"`, `dark.warning: "12" has no #: Lip Gloss reads it as an ANSI index, a packed integer or no colour; write #RGB or #RRGGBB`},
+		{`"fgSoft": "6B50FF"`, `dark.fgSoft: "6B50FF" has no #: Lip Gloss reads it as an ANSI index, a packed integer or no colour; write "#6B50FF"`},
 		{`"primary": "#6B50FF"`, ""},
 		{`"primary": "#6b50ff"`, ""},
 		{`"primary": "#abc"`, ""},
+		{`"primary": ""`, ""},
+		{`"primary": "#6B50FF", "bgOverlay": ""`, ""},
 	} {
 		path := filepath.Join(t.TempDir(), "theme.json")
 		js := `{"roles": {"dark": {"bg": "#201F26", "fg": "#DFDBDD", ` + c.roles + `}}}`
