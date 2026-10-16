@@ -1,6 +1,11 @@
 // Diversity defines "different", or every brand picks the same different.
 //
-//	diversity themes/*.json [--max-shared 9] [--max-popular 0.5] [--baseline ink,charm --min-distance 8]
+//	diversity themes/*.json kit/themes/ink.json kit/themes/charm.json [--max-shared 9] [--max-popular 0.5]
+//	          [--baseline ink,charm --min-distance 8]
+//
+// A baseline is matched by theme name, so its file must be among the themes: an explicit
+// --baseline name that matches none exits 2 (the default ink,charm only notes it on
+// stderr; --baseline "" turns the rule off).
 //
 // Tabulates every theme's visible choices (expressions + signature glyphs) and fails when:
 //

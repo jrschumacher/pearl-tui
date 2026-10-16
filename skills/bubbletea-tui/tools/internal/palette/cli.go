@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
+	"tuikit/theme"
 	"tuitools/internal/oklch"
 	"tuitools/internal/pyfmt"
 )
@@ -92,16 +95,25 @@ func check(path string, stdout, stderr io.Writer) int {
 			continue
 		}
 		r := map[string]string{}
-		for k, val := range obj {
+		for _, k := range sortedKeys(obj) {
+			val := obj[k]
 			s, isStr := val.(string)
-			if !referenced[k] {
+			if isStr && s == "" {
+				continue // derived by the engine, as theme.Load does with a missing role
+			}
+			if !referenced[k] && !roleKeys[k] {
 				if isStr {
 					r[k] = s
 				}
 				continue
 			}
-			if !isStr || !oklch.Valid(s) {
+			if !isStr {
 				return fail(stderr, fmt.Errorf("%s: %s.%s: %s is not a hex colour", path, mode, k, pyfmt.Repr(val)))
+			}
+			// The engine's rule (theme.Load), not oklch.Parse's looser one: a role Lip
+			// Gloss would misread ("6B50FF", "#6B50FFAA") must not pass as OK.
+			if err := theme.CheckHex(s); err != nil {
+				return fail(stderr, fmt.Errorf("%s: %s.%s: %w", path, mode, k, err))
 			}
 			r[k] = s
 		}
@@ -117,6 +129,28 @@ func check(path string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	return 0
+}
+
+// roleKeys are the role names the engine reads (theme.Roles' JSON keys). check
+// validates each of them, not only the ones a contrast check reads, so it fails
+// whatever theme.Load fails.
+var roleKeys = func() map[string]bool {
+	m := map[string]bool{}
+	t := reflect.TypeOf(theme.Roles{})
+	for i := range t.NumField() {
+		k, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ",")
+		m[k] = true
+	}
+	return m
+}()
+
+func sortedKeys(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func verdict(bad int) string {

@@ -71,11 +71,64 @@ func TestArguments(t *testing.T) {
 		{[]string{"-h"}, 0}, {[]string{"--help"}, 0}, {[]string{"--he"}, 0}, {nil, 2},
 		{[]string{ink, "--max-shared"}, 2}, {[]string{ink, "--max-shared", "x"}, 2},
 		{[]string{ink, "--max"}, 2}, {[]string{ink, "--colour", "x"}, 2}, {[]string{"nope.json"}, 2},
-		{[]string{"--min-distance=-1", "--", ink}, 0}, {[]string{"--max-p", "0.9", ink, "--baseline", "x"}, 0},
+		{[]string{"--min-distance=-1", "--", ink}, 0}, {[]string{"--max-p", "0.9", ink, "--baseline", "ink"}, 0},
+		// diversity.py exited 0 here, having skipped the min-distance rule: see
+		// TestMissingBaselineFails.
+		{[]string{"--max-p", "0.9", ink, "--baseline", "x"}, 2},
 	} {
 		var out, errb bytes.Buffer
 		if code := Main(c.args, "USAGE", &out, &errb); code != c.exit {
 			t.Errorf("diversity %v: exit %d, want %d (stderr %q)", c.args, code, c.exit, errb.String())
 		}
+	}
+}
+
+// A deliberate break from diversity.py, which skipped the min-distance rule without a
+// word when a --baseline name matched no theme. brand.md's example passed only the
+// brand's themes, so "the default with a new palette" (inkling, here) passed. An
+// explicit --baseline that is missing now exits 2 with one line saying which file to
+// pass; the default baseline, when missing, only adds a note on stderr.
+func TestMissingBaselineFails(t *testing.T) {
+	const (
+		kit     = "../../../kit/themes/"
+		inkling = "testdata/themes/inkling.json"
+		twinA   = "testdata/themes/twin-a.json"
+	)
+	for _, c := range []struct {
+		args   []string
+		exit   int
+		stderr string
+	}{
+		{[]string{inkling, twinA, "--baseline", "ink,charm", "--min-distance", "8"}, 2,
+			`diversity: baselines "ink", "charm" are not among the themes, so the min-distance rule cannot run: ` +
+				"pass their theme files too (e.g. kit/themes/ink.json kit/themes/charm.json, from the skill directory) or drop them from --baseline\n"},
+		{[]string{inkling, twinA, kit + "ink.json", "--baseline=ink,charm"}, 2,
+			`diversity: baseline "charm" is not among the themes, so the min-distance rule cannot run: ` +
+				"pass its theme file too (e.g. kit/themes/charm.json, from the skill directory) or drop it from --baseline\n"},
+		// the miss itself: without the baselines, inkling passes (exit 0), so say so
+		{[]string{inkling, twinA}, 0,
+			`diversity: note: baselines "ink", "charm" are not among the themes, so the min-distance rule did not run against them ` +
+				"(pass kit/themes/ink.json kit/themes/charm.json, or --baseline \"\" to silence this)\n"},
+		{[]string{inkling, twinA, "--baseline", ""}, 0, ""},
+		// a space after the comma names the same theme
+		{[]string{inkling, twinA, kit + "ink.json", "--baseline", "ink, charm"}, 2,
+			`diversity: baseline "charm" is not among the themes, so the min-distance rule cannot run: ` +
+				"pass its theme file too (e.g. kit/themes/charm.json, from the skill directory) or drop it from --baseline\n"},
+		{[]string{inkling, twinA, kit + "ink.json", kit + "charm.json", "--baseline", "ink,charm"}, 1, ""},
+	} {
+		var out, errb bytes.Buffer
+		code := Main(c.args, "", &out, &errb)
+		if code != c.exit || errb.String() != c.stderr {
+			t.Errorf("diversity %v: exit %d stderr %q; want %d %q", c.args, code, errb.String(), c.exit, c.stderr)
+		}
+		if code == 2 && out.Len() != 0 {
+			t.Errorf("diversity %v: printed a report before failing:\n%s", c.args, out.String())
+		}
+	}
+	// With the baseline passed, the rule runs and catches the recoloured default.
+	var out, errb bytes.Buffer
+	Main([]string{inkling, kit + "ink.json", "--baseline", "ink"}, "", &out, &errb)
+	if !strings.Contains(out.String(), "inkling differs from baseline ink on only") {
+		t.Errorf("min-distance did not catch inkling:\n%s", out.String())
 	}
 }

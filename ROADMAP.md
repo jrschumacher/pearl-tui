@@ -68,11 +68,8 @@ agreeing with your grades line for line.
   Impeccable does with its detectors. Agents ignore prose; they don't ignore a hook. The
   first dogfood run is the case for it: the skill described theming Huh, and the agent
   skipped it until a lint rule (C-HUHTHEME) made it fail.
-- **Follow-ups the Go port surfaced**: `palette derive` can fail its own check for
-  mid-luminance brands (`#2E8B57`); a hex colour without `#` passes `palette check` but
-  Lip Gloss reads it as an ANSI index; `diversity` skips the min-distance rule silently
-  when a baseline isn't among its inputs; the contrast rules should live once in
-  `tuikit/theme` (`theme.Audit`) for both the kit tests and `palette check`.
+- **One contrast audit**: the contrast rules should live once in `tuikit/theme`
+  (`theme.Audit`) for both the kit tests and `palette check`.
 - **Distribution**: a Claude plugin marketplace manifest, and builds for other agents
   (Cursor, Codex, Gemini CLI) once the formats are verified.
 - **Theme gallery**: a browsable page of every kit theme, with the same states side by

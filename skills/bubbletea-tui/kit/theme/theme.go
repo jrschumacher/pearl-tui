@@ -17,6 +17,9 @@ import (
 	"fmt"
 	"image/color"
 	"os"
+	"reflect"
+	"sort"
+	"strings"
 
 	"charm.land/lipgloss/v2"
 )
@@ -130,7 +133,9 @@ type File struct {
 	Wordmark    Wordmark         `json:"wordmark"`
 }
 
-// Load reads a theme file.
+// Load reads a theme file. Every role colour must be "#RGB" or "#RRGGBB" (see
+// CheckHex), or empty to be derived: Lip Gloss draws anything else as a different
+// colour or none, so a theme that would render wrong fails here instead.
 func Load(path string) (File, error) {
 	var f File
 	b, err := os.ReadFile(path)
@@ -140,7 +145,56 @@ func Load(path string) (File, error) {
 	if err := json.Unmarshal(b, &f); err != nil {
 		return f, fmt.Errorf("%s: %w", path, err)
 	}
+	modes := make([]string, 0, len(f.Roles))
+	for m := range f.Roles {
+		modes = append(modes, m)
+	}
+	sort.Strings(modes)
+	for _, m := range modes {
+		if err := f.Roles[m].check(); err != nil {
+			return f, fmt.Errorf("%s: roles.%s.%w", path, m, err)
+		}
+	}
 	return f, nil
+}
+
+// CheckHex reports whether s is a colour Lip Gloss draws as written: "#RGB" or
+// "#RRGGBB", either case. Lip Gloss reads a string without "#" as an ANSI index
+// ("12"), a packed integer ("123456") or no colour at all ("6B50FF"), and any
+// other length after "#" as no colour, so all of those are errors here.
+func CheckHex(s string) error {
+	if s == "" {
+		return fmt.Errorf("empty colour: write #RGB or #RRGGBB")
+	}
+	body, hasHash := strings.CutPrefix(s, "#")
+	digits := (len(body) == 3 || len(body) == 6) && strings.Trim(body, "0123456789abcdefABCDEF") == ""
+	switch {
+	case hasHash && digits:
+		return nil
+	case !strings.Contains(s, "#"):
+		fix := "#RGB or #RRGGBB"
+		if digits {
+			fix = fmt.Sprintf("%q", "#"+s)
+		}
+		return fmt.Errorf("%q has no #: Lip Gloss reads it as an ANSI index, a packed integer or no colour; write %s", s, fix)
+	}
+	return fmt.Errorf("%q is not #RGB or #RRGGBB", s)
+}
+
+// check validates every non-empty role, naming the role by its JSON key.
+func (r Roles) check() error {
+	v, t := reflect.ValueOf(r), reflect.TypeOf(r)
+	for i := range t.NumField() {
+		s := v.Field(i).String()
+		if s == "" {
+			continue
+		}
+		if err := CheckHex(s); err != nil {
+			key, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ",")
+			return fmt.Errorf("%s: %w", key, err)
+		}
+	}
+	return nil
 }
 
 // Palette is a resolved role set as colours.
@@ -195,7 +249,8 @@ func (t *Theme) AppName() string {
 	return "app"
 }
 
-// Hex parses "#rrggbb" into a colour (nil for "").
+// Hex parses "#rrggbb" or "#rgb" into a colour (nil for ""). It does not
+// validate: see CheckHex.
 func Hex(s string) color.Color {
 	if s == "" {
 		return nil
