@@ -28,6 +28,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -36,7 +37,9 @@ import (
 const usage = `usage: tuilint frames <dir|files...> [--cols W --rows H] [--theme theme.json] [--bg #rrggbb] [--json out.json]
 
 Lints rendered truecolor ANSI frames (the output of your -state X -w W -h H flag).
-A directory means its *.ansi files. A finding prints as [SEV] ID  file:where  message.
+A directory means its *.ansi files. Without --cols/--rows, a name ending -<W>x<H>.ansi
+(what -out writes) sets that frame's size; otherwise W is the widest row and H is free.
+A finding prints as [SEV] ID  file:where  message.
 P0/P1 findings fail the run (exit 1); P2 are warnings to fix or justify in one line.
 --bg is the terminal default background for cells that set none (default #16161a).
 
@@ -130,10 +133,35 @@ func Main(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintf(stderr, "tuilint frames: %v\n", err)
 			return 2
 		}
-		findings = append(findings, lintText(p, string(data), cols, rows, pal, bg)...)
+		w, h := cols, rows
+		if fw, fh, ok := sizeFromName(p); ok {
+			if w == 0 {
+				w = fw
+			}
+			if h == 0 {
+				h = fh
+			}
+		}
+		findings = append(findings, lintText(p, string(data), w, h, pal, bg)...)
 	}
 	fmt.Fprintf(stdout, "linted %d frame(s)\n", len(paths))
 	return Report(findings, opts["json"], stdout, stderr)
+}
+
+var sizeSuffix = regexp.MustCompile(`-(\d+)x(\d+)\.ansi$`)
+
+// sizeFromName reads W×H from a "-<W>x<H>.ansi" suffix, the name a harness's -out
+// writes, so a directory of mixed sizes lints each frame at its own size without
+// flags. Deliberate deviation: tuilint.py took W from the widest row and never
+// checked H unless --cols/--rows were given; those flags still win.
+func sizeFromName(path string) (int, int, bool) {
+	m := sizeSuffix.FindStringSubmatch(filepath.Base(path))
+	if m == nil {
+		return 0, 0, false
+	}
+	w, _ := strconv.Atoi(m[1])
+	h, _ := strconv.Atoi(m[2])
+	return w, h, w > 0 && h > 0
 }
 
 // expand turns directories into their *.ansi files (sorted, dotfiles skipped,
