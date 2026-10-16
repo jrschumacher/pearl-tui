@@ -11,7 +11,7 @@
       "assertions": [
         "imports charm.land/bubbletea/v2 and charm.land/lipgloss/v2 (no v1 imports)",
         "go run ./cmd/<app> with no flags starts tea.NewProgram; -golden -w 80 -h 24 and -w 120 -h 40 exit 0",
-        "go test ./... passes in the app's module, the copied internal/ui tests included (they used to look for themes only at the kit's ../themes)",
+        "go test ./... passes in the app's module, the copied internal/ui and cmd/<app> tests included, on the app's own theme (they used to load the kit's themes by path and name)",
         "a themes/tidepool.json exists with dark and light roles derived from #0F5257 and #FF6F59; no hex literals outside the theme package (tuilint code C-HEX passes)",
         "a brand read (read field or .read.md) ties at least 5 expression choices to product traits",
         "diversity shows the theme differs from kit ink on >= 8 axes",

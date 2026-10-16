@@ -52,15 +52,17 @@ cellshot frames/*-80x24.ansi --sheet sheet.png
 From the project root, with `<skill>` the directory holding `SKILL.md`:
 
 ```sh
-mkdir -p internal themes
+mkdir -p internal themes cmd
 cp -r <skill>/kit/theme internal/theme && cp -r <skill>/kit/ui internal/ui
+cp -r <skill>/kit/cmd/showcase cmd/<app>
 cp <skill>/kit/themes/<closest>.json themes/
-perl -pi -e 's#"tuikit/#"<your/module>/internal/#' $(grep -rl '"tuikit/' internal)
+perl -pi -e 's#"tuikit/#"<your/module>/internal/#' $(grep -rl '"tuikit/' internal cmd)
 go get <the pins in references/architecture.md> && go mod tidy && go test ./...
 ```
 
-`perl -pi` because `sed -i` takes different arguments on macOS. The `ui` tests read
-`themes/*.json` from either layout, so they pass in your project as they do here.
+`perl -pi` because `sed -i` takes different arguments on macOS. The tests find
+`themes/*.json` from `internal/ui` and `cmd/<app>` as they do from the kit, and use your
+theme where they name one of the kit's, so they pass in your project as they do here.
 
-Then build your root model on the showcase's shape (action tables, `render`, `setState`,
-harness flags, the two test files) and replace its screens with yours.
+Then build your root model in `cmd/<app>` on the showcase's shape (action tables,
+`render`, `setState`, harness flags, the test files) and replace its screens with yours.
