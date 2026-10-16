@@ -86,7 +86,8 @@ jobs:
         run: tuilint code skills/bubbletea-tui/kit
       - name: palettes and diversity
         run: |
-          for t in skills/bubbletea-tui/kit/themes/*.json; do palette check "$t"; done
+          # theme/testdata holds the kit's test themes (quire); palette check also gates glyph twins
+          for t in skills/bubbletea-tui/kit/themes/*.json skills/bubbletea-tui/kit/theme/testdata/*.json; do palette check "$t"; done
           diversity skills/bubbletea-tui/kit/themes/*.json
       # dark truecolour is what a theme is designed in; light, ASCII, 256 and 16 colours and
       # NO_COLOR are what many users get, and where the footer bar, rules, background steps
