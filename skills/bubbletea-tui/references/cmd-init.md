@@ -9,6 +9,12 @@ built) both go in `TUI.md`. Every command reads that file first; a second file g
 skipped, and then the screens drift from the model that draws them. Never split it into
 an `ARCH.md`.
 
+**`TUI.md` is the only file `init` writes.** The user's SPEC, README and docs are theirs:
+an answer that changes one goes in the hand-off as a proposed edit, applied only when
+they say yes, because a silent rewrite hides who decided what. Layout, keys, colours and
+screens never leave `TUI.md`; a breakpoint written in two files drifts in one. Point at
+the other docs ("product behaviour: SPEC.md") instead of restating them.
+
 ## 0. Read The Project's Own Docs First
 
 `SPEC.md`, the README, `CLAUDE.md`/`AGENTS.md` and `docs/` hold decisions already made:
@@ -205,6 +211,7 @@ Global key a text box eats (`ctrl+k` deletes to end of line in a Bubbles textare
 
 ```
 Captured: <product, users, brand read, N screens, stack>. Assumed: <the defaults nobody confirmed>.
+Proposed for <SPEC.md>: <product changes from the interview, one line each> (apply? y/n)
 Next: brand (no theme yet) | shape (theme exists) | restyle (an existing app).
 ```
 
