@@ -125,7 +125,7 @@ type Expressions struct {
 	// are fg and bold, and the kit's marks (spinner, progress, busy dot, header and
 	// dialog-title rules, the dialog border unless borderFocus is set) are neutral.
 	// For a brand whose hue is reserved for a state. Fills the theme opts into (a bar
-	// header, a filled tag, an inverse wordmark) keep primary.
+	// header, a bar dialog title, a filled tag, an inverse wordmark) keep primary.
 	Focus   string `json:"focus"`   // primary | fg
 	PaintBg bool   `json:"paintBg"` // own the terminal background (tea.View.BackgroundColor)
 	Gutter  int    `json:"gutter"`  // side margin in cells (default 2)

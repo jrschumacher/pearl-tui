@@ -112,7 +112,8 @@ and dialog-title rule in the rule role, a hairline like the section rules; the d
 border fgMuted unless `borderFocus` says otherwise). What the theme opts into keeps
 primary, because the brand chose it: a bar or stamp header, a banner, a gradient,
 solid, inverse or tracked wordmark (`plain` is the name in fg), `sectionTitle: primary`,
-filled tags, the field backdrop, the scramble. So does what the app asks for
+`dialogTitle: bar` (the title on a primary strip), filled tags, the field backdrop, the
+scramble. So does what the app asks for
 (`t.S.Primary`, `ui.Tag(t, "primary", …)`): that is the state.
 
 Missing roles are derived, and missing glyphs and expressions default, so a theme can
