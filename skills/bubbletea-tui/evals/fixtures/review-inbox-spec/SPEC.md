@@ -9,6 +9,10 @@ tern gathers everything that is waiting on you as a reviewer into one keyboard-d
 inbox: review requests and mentions from the Forge code host, and pages from Beacon, our
 on-call service. You triage, read the thread, and reply without leaving the terminal.
 
+A day with tern: triage the inbox each morning (open, answer, snooze or mark done, many at
+a time), work the threads through the day, and acknowledge a Beacon page within a minute
+of it arriving, wherever you are in the app.
+
 Users are platform engineers who keep tern open in a tmux pane all day, locally and over
 SSH into their dev boxes. Development happens in cloud dev containers: a fresh clone must
 build, test and run with no manual setup.
@@ -23,7 +27,9 @@ build, test and run with no manual setup.
 ## Screens
 
 - **Inbox**: one row per item. The first column shows its state as a dot: ● unread,
-  ◐ seen but unanswered, ○ done.
+  ◐ seen but unanswered, ○ done, ✓ answered. From the inbox you open, mark done, snooze,
+  select, bulk-mark done, filter, save a search, switch filter tabs, refresh, and open the
+  quick switcher.
 - **Thread**: the conversation, newest last, with the diff hunk it refers to. Some
   threads run to hundreds of comments on diffs of 20,000 lines.
 - **Reply**: a text box under the thread. Enter sends; Shift+Enter adds a newline, like
@@ -37,9 +43,10 @@ goldens) before any code is written.
 
 ## Brand
 
-Calm, nocturnal, precise. Deep slate backgrounds and one accent: signal amber (#F2A33A).
-Amber marks whatever wants your attention: unread items, the focused row, and the active
-filter tab. Nothing else gets colour.
+Calm, nocturnal, precise: like reading a well-set page at night. Deep slate backgrounds
+and one accent: signal amber (#F2A33A). Amber marks whatever wants your attention: unread
+items, the focused row, and the active filter tab. Nothing else gets colour. Dialogs are
+filled panels, one background step up, with no border.
 
 ## v1
 

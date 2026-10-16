@@ -22,7 +22,7 @@ geometry  <round or square, light or heavy, soft or hard>
 density   <airy or compact, and why the users need that>
 type      <case, tracking, weight; what the wordmark looks like>
 motif     <the one shape the brand repeats: a slash, a diamond, a sail, a dot>
-remember  <the one thing a user will remember about this TUI>
+remember  <the one move a user will remember, drawn on every screen: a glyph, a rule, a layout move>
 
 <one line per expression below, tying the choice to a product trait>
 ```

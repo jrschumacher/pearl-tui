@@ -25,7 +25,7 @@ One action table per state; footer and dispatcher both read it.
 
 | state (harness name) | screen / overlay | keys |
 |---|---|---|
-| inbox                | inbox            | ↑↓/jk move · enter open · e done · s snooze · ? help · q quit |
+| inbox                | inbox            | ↑↓/jk move · enter open · e done · s snooze · x select · q quit · ? help ‖ E done selected · / filter · ctrl+s save search · tab next filter · r refresh |
 | inbox-empty          | inbox            | r refresh · ? help · q quit |
 | thread               | thread           | ↑↓ scroll · r reply · n note · esc back |
 | reply                | overlay          | enter send · shift+enter/ctrl+j newline · esc cancel |

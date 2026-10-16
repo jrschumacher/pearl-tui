@@ -37,7 +37,7 @@ One action table per state; footer and dispatcher both read it.
 
 | state (harness name) | screen / overlay | keys |
 |---|---|---|
-| board                | board            | ↑↓/jk move · tab/shift+tab panel · 1-4 jump to panel · enter open · r refresh · ? help · q quit |
+| board                | board            | ↑↓/jk move · enter open · tab/shift+tab panel · r refresh · ? help · q quit ‖ 1-4 jump to panel |
 | board-empty          | board            | r refresh · ? help · q quit |
 | board-error          | board            | r retry · ? help · q quit |
 | board-partial        | board            | ↑↓/jk move · enter open · r retry failed · ? help · q quit |

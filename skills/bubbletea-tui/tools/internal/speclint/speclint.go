@@ -27,7 +27,7 @@ func Usage() string { return cmddoc.Text(docSrc) + "\n" }
 // Severity maps each rule ID to P1 (fails the run) or P2 (warns).
 var Severity = map[string]string{
 	"S-TABLE": "P1", "S-KEYAMBIG": "P1", "S-KEYDUP": "P1",
-	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2",
+	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2", "S-FOOTER": "P2",
 }
 
 // Finding is one result, in the shape the other tuilint modes write to --json.
@@ -120,6 +120,10 @@ type row struct {
 	keys          string // the keys cell as written
 	bindings      []binding
 	global        bool
+	footer        []string // the items the footer shows: all, or those before ‖
+	helpOnly      []string // the other items: in ? help, not in the footer
+	marker        string   // how the cell marks its footer: "", "‖" or "bold"
+	mixed         bool     // the cell uses both markers
 }
 
 type spec struct {
@@ -150,10 +154,16 @@ func Lint(file, src string) []Finding {
 			}
 		}
 	}
+	for _, r := range s.rows {
+		if r.mixed {
+			warn("S-TABLE", r.line, "%s: the keys cell marks its footer both with **bold** and with ‖. Pick one footer marker: bold the footer keys, or put ‖ after the last of them; this run reads the ‖", r.state)
+		}
+	}
 	s.keyAmbig(add, warn)
 	s.keyDup(add)
 	s.keyShadow(add)
 	s.glyphWidth(add)
+	s.footerFit(add)
 	sort.SliceStable(out, func(i, j int) bool {
 		a, b := out[i], out[j]
 		if a.Sev != b.Sev {
@@ -235,7 +245,12 @@ func parse(file, src string) *spec {
 			}
 			return ""
 		}
-		r := row{line: i + 1, state: get(stateCol), screen: get(screenCol), keys: get(keysCol), bindings: parseKeys(get(keysCol))}
+		keys := get(keysCol)
+		r := row{line: i + 1, state: get(stateCol), screen: get(screenCol), keys: keys, bindings: parseKeys(keys)}
+		raw := splitRaw(t)
+		if keysCol < len(raw) {
+			r.footer, r.helpOnly, r.marker, r.mixed = footerItems(raw[keysCol])
+		}
 		if globalCell.MatchString(r.state) {
 			r.global = true
 			s.globals = append(s.globals, r)
@@ -262,8 +277,18 @@ func isSep(cells []string) bool {
 	return true
 }
 
-// splitRow splits a markdown table row into trimmed cells; `\|` is a literal pipe.
+// splitRow splits a markdown table row into trimmed cells with their markup removed.
 func splitRow(t string) []string {
+	cells := splitRaw(t)
+	for i, c := range cells {
+		cells[i] = clean(c)
+	}
+	return cells
+}
+
+// splitRaw splits a markdown table row into trimmed cells as written, markup and all;
+// `\|` is a literal pipe.
+func splitRaw(t string) []string {
 	t = strings.TrimPrefix(t, "|")
 	if strings.HasSuffix(t, "|") && !strings.HasSuffix(t, `\|`) {
 		t = t[:len(t)-1]
@@ -276,13 +301,13 @@ func splitRow(t string) []string {
 			b.WriteByte('|')
 			i++
 		case t[i] == '|':
-			cells = append(cells, clean(b.String()))
+			cells = append(cells, strings.TrimSpace(b.String()))
 			b.Reset()
 		default:
 			b.WriteByte(t[i])
 		}
 	}
-	return append(cells, clean(b.String()))
+	return append(cells, strings.TrimSpace(b.String()))
 }
 
 var spaceRe = regexp.MustCompile(`\s+`)
@@ -299,7 +324,7 @@ func parseKeys(cell string) []binding {
 		return nil
 	}
 	var out []binding
-	for _, item := range strings.FieldsFunc(cell, func(r rune) bool { return r == '·' || r == '•' }) {
+	for _, item := range splitItems(cell) {
 		f := strings.Fields(item)
 		if len(f) == 0 {
 			continue
@@ -311,6 +336,12 @@ func parseKeys(cell string) []binding {
 		out = append(out, readItem(f))
 	}
 	return out
+}
+
+// splitItems splits a keys cell into its `key action` items. ‖ (the footer cut) ends
+// an item as · does.
+func splitItems(cell string) []string {
+	return strings.FieldsFunc(cell, func(r rune) bool { return r == '·' || r == '•' || r == footerCut })
 }
 
 func actionText(f []string) string {
@@ -368,7 +399,7 @@ func readItem(f []string) binding {
 // parseGlobalKeys reads a Global line. Older TUI.md files separate it with commas
 // ("ctrl+c quit, ? help, ctrl+k switcher"), so a line without · splits on , and ; too.
 func parseGlobalKeys(line string) []binding {
-	if strings.ContainsAny(line, "·•") {
+	if strings.ContainsAny(line, "·•‖") {
 		return parseKeys(line)
 	}
 	return parseKeys(strings.NewReplacer(",", "·", ";", "·").Replace(line))

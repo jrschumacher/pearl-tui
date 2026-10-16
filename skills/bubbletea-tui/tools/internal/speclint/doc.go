@@ -11,8 +11,15 @@
 // section's level or above; elsewhere it is prose:
 //
 //	| state (harness name) | screen / overlay | keys                                      |
+//	| inbox                | inbox            | **↑↓/jk move** · **enter open** · **q quit** · **? help** · r refresh |
+//	| thread               | thread           | ↑↓ scroll · r reply · esc back · ? help ‖ y copy link · o open in browser |
 //	| reply                | overlay          | enter send · shift+enter/ctrl+j newline · esc cancel |
 //	Global: ctrl+c quit · ctrl+p switch
+//
+// The footer shows a state's keys in table order. A cell marks which ones in one of two
+// ways: its **bold** items are the footer, or the items before a ‖ are. The other keys
+// are help-only (show: false in the action table, listed by ? help). A cell with
+// neither marker is all footer, so older tables read as before.
 //
 // A key token may list alternatives with "/" (`shift+enter/ctrl+j`, `↑↓/jk`, `1-9`), and
 // an item may list more tokens before its action: `j/k, ↑/↓ move`, `h/l or ←/→ switch`,
@@ -20,6 +27,7 @@
 //
 //	S-TABLE      [P1] no States-and-keys table in the template's format: nothing else can be checked
 //	             [P2] a key token it can't read as a key: the key rules skip it
+//	             [P2] a keys cell with both footer markers, bold and ‖: pick one (the ‖ is read)
 //	S-KEYAMBIG   [P1] a key that terminals without key disambiguation (tmux by default, many
 //	                  terminals, most SSH sessions) deliver as another key, with no fallback for
 //	                  the same action in the same cell. Bubble Tea v2.1.0 asks for disambiguation;
@@ -53,4 +61,16 @@
 //	                  the kit's ASCII map already draws a twin for (─ │ ▌ ● ○ ◆ ▲ ■ → …,
 //	                  theme.ASCIITwin), arrows (U+2190–U+21FF) outside the key table, which
 //	                  are prose, and arrow keys in a key token (↑↓←→), which are key names.
+//	S-FOOTER     [P2] a state's footer keys (all of them, the bold ones, or those before ‖) don't
+//	                  fit the footer the kit draws at 80 columns: ui.Help packs `key action` hints
+//	                  two spaces apart into the 76 columns inside the kit's default 2-cell gutters
+//	                  (it assumes them: a theme with a 1-cell gutter has 2 more columns), keeps 3
+//	                  for "…" while hints remain, pins a last `?` or `ctrl+g` hint, and drops the
+//	                  rest. The message names what it drops and suggests a footer that fits, with
+//	                  the state's way out (esc, quit, back, close, cancel) and its one main action
+//	                  kept and the other keys moved out from the end. Global keys are not in a
+//	                  state's footer; a mode badge or status text on the row takes more.
+//	             [P2] a state with a marked footer and help-only keys whose footer shows no key
+//	                  that opens help (`?`, ctrl+g, an action that says help), when Global doesn't
+//	                  bind one: nobody finds the help-only keys.
 package speclint

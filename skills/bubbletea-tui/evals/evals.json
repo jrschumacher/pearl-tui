@@ -126,7 +126,8 @@
         "wrote TUI.md with product, users and terminals, brand read, theme, screens and states, keys per state, architecture (root model, regions, forms library, async work, harness states), decisions, never",
         "named the forms library and how it is themed (Huh with the kit form theme) in the architecture section",
         "ended by naming the next command (brand or shape) and what it assumed",
-        "created no file besides TUI.md (no SPEC.md, PRD or ARCH.md); with no product doc in the repo, TUI.md § Product holds the product facts and the hand-off has no 'Proposed for' line"
+        "created no file besides TUI.md (no SPEC.md, PRD or ARCH.md); with no product doc in the repo, TUI.md § Product holds the product facts and the hand-off has no 'Proposed for' line",
+        "round 2 confirmed the screen list, each screen with its one-line job, in a question's default (e.g. 'Screens: list — find a job; detail — read its log (recommended)'), instead of inferring the screens silently"
       ]
     },
     {
@@ -136,7 +137,7 @@
       "files": [
         "evals/fixtures/review-inbox-spec/SPEC.md"
       ],
-      "expected_output": "A TUI.md that keeps what SPEC.md decided, catches what it got wrong for a terminal (indistinguishable keys, a global key a text box eats, one accent with three meanings, ambiguous-width state dots), settles which design method governs, proposes a first slice, and passes tuilint spec.",
+      "expected_output": "A TUI.md that keeps what SPEC.md decided, catches what it got wrong for a terminal (indistinguishable keys, a global key a text box eats, one accent with three meanings, ambiguous-width state dots), settles which design method governs without skipping the screens question, keeps a visible brand signature and the ◐ glyph, fits every footer in 80 columns, keeps dialogs visible without colour, proposes a first slice of the main loop, and passes tuilint spec.",
       "assertions": [
         "no key that terminals without key disambiguation deliver as another key (shift+enter, ctrl+enter, ctrl+m, ctrl+i, ctrl+[, ctrl+backspace …) is advertised in TUI.md's key table without a fallback in the same cell (e.g. `shift+enter/ctrl+j newline`), although SPEC.md asks for Shift+Enter; tuilint spec reports no S-KEYAMBIG",
         "the ctrl+k quick switcher is not a global key in the reply and note states, where a Bubbles textarea deletes to end of line on ctrl+k: it is rebound, or those states bind it explicitly; tuilint spec reports no S-KEYSHADOW for it",
@@ -150,7 +151,13 @@
         "TUI.md's architecture half names the largest realistic data (the 20,000-line diff, a thread of hundreds of comments) and how it stays fast: a virtual list or a render cache with its key",
         "TUI.md says how focus, selection and errors stay visible under -profile ascii and lists the colour profiles it supports (truecolor, 256, 16, none)",
         "the key table has a partial state for the inbox (one of Forge, Beacon or mail failed while the others loaded), besides its empty, loading and error states",
-        "TUI.md is the only file init created or changed (apart from the skill install files): SPEC.md is untouched, its product changes from the interview are listed in the hand-off as a proposed edit, and no layout, key, colour or screen detail was written outside TUI.md"
+        "TUI.md is the only file init created or changed (apart from the skill install files): SPEC.md is untouched, its product changes from the interview are listed in the hand-off as a proposed edit, and no layout, key, colour or screen detail was written outside TUI.md",
+        "round 2 confirmed the screen list, each screen with its job, in a question's default, although the Grainline conflict also needed a question: the conflict got its own short round or replaced a lower-value question, never the screens one, and the flows SPEC.md describes outside § Screens (morning triage with bulk mark-done and snooze, acknowledging a Beacon page from anywhere) appear in that list or are deferred by name",
+        "the brand read's remember line names a move the TUI draws on every screen (the state-dot column, a rule, a gutter, a layout move), not a quality of the content such as 'reads like a well-set page'",
+        "the ● ◐ ○ ✓ state ladder keeps ◐: it has an ASCII twin and sits in a 2-cell column, and is not dropped or replaced by plain text for being ambiguous-width",
+        "no state's footer keys overflow the 80-column footer: a state with more actions than fit (the inbox) marks its footer (bold keys, or ‖ after them), keeping its main actions and its way out in it and the rest reachable from ? help; tuilint spec reports no S-FOOTER",
+        "TUI.md's colour line says what separates dialogs and overlays from the page where the background step is gone (16 colours, NO_COLOR, -profile ascii), e.g. a hairline rule or border, although SPEC.md asks for borderless filled panels",
+        "the First slice is the main loop's 2–3 screens (inbox, thread, reply) with every state of those on fixtures, not every state of every screen; note, the quick switcher and the rest come after it"
       ]
     }
   ]

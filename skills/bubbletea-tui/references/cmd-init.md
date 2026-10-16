@@ -24,7 +24,9 @@ points to. Often there is none, and the interview is the only source. What you f
 confirm in a question's default; don't ask it again. If one routes screen design
 to another method, tool or skill ("screens are designed with the X method"), ask which
 one governs this TUI and record the answer, with its reason, in § Decisions. A build
-agent follows whichever instruction it read last, so two methods give two designs.
+agent follows whichever instruction it read last, so two methods give two designs. Ask
+it in its own one-question round before round 2, or in place of a lower-value round-2
+question (forms, the floor), never in place of the screens question.
 
 ## 1. Explore Before Asking
 
@@ -51,8 +53,9 @@ Huh on its default theme) as a `gap:` line, which `restyle` then closes.
   default first, marked "(recommended)", plus one or two real alternatives.
 - **Ask only what you couldn't infer.** Confirm an inference in the question's default
   instead of asking it open.
-- **Stop at two rounds** unless an answer changes the design. Whatever is still unknown
-  takes its default and goes under `## Assumed`.
+- **Stop at two rounds** (a step-0 conflict round doesn't count) unless an answer
+  changes the design. Whatever is still unknown takes its default and goes under
+  `## Assumed`.
 
 Round 1, design (skip what the repo answered):
 
@@ -64,7 +67,12 @@ Round 1, design (skip what the repo answered):
 
 Round 2, architecture (only what the code didn't answer):
 
-1. **Screens and the job of each.** Default: one screen per command you found.
+1. **Screens and the job of each. Always ask it**, even when a spec lists them, because
+   screens are the backbone every later command reads (`shape`, the harness states,
+   the first slice), and a list inferred in silence drops the flows the user cares
+   about. Default: one line per screen with its job (`services — see what is
+   deployed`), one per command you found, plus each flow the docs describe that has
+   no screen yet (an export, a background sync).
 2. **Forms.** Default: Huh v2 for input mechanics (select, input, confirm), themed from
    the brand theme through the kit's `ui.NewForm` (`ui/form.go`), because Huh's own theme is the indigo
    every Huh demo ships.
@@ -93,9 +101,11 @@ Read before any UI change. Update it when a decision changes.
 ### Users and terminals
 <who; sizes (80×24 design floor); light/dark; SSH/tmux; NO_COLOR; screen readers>
 colour: truecolor → 256 → 16 → none; under -profile ascii, focus, selection and errors stay visible by <glyph, weight>
+dialogs and overlays: where the background step is gone (16 colours, NO_COLOR, ascii), the edge is <border | ─ rule above and below>
 
 ### Brand read
-palette / tone / geometry / density / type / motif / remember   (references/brand.md §1)
+palette / tone / geometry / density / type / motif   (references/brand.md §1)
+remember: <a move every screen draws: a title motif, a header rule, a layout move>, not a quality of the content
 accents: <hue> = <its one meaning>, one line per hue; focus = <gutter, weight>, never a state hue
 glyphs: <glyph> <meaning> (ascii <twin>), one line each; width-safe: <narrow glyph | 2-cell column>
 
@@ -139,10 +149,11 @@ Bubbles: <textarea, viewport, …>. Kit ui: <List, Table, Dialog, Footer, …>.
 ### States and keys
 One action table per state; footer and dispatcher both read it. Every screen that
 loads data has its empty, loading, error and partial (some sources failed) rows.
+Footer keys are **bold** (in a long cell, ‖ after the last of them does the same): main actions first, then the way out and ? help. The rest are help-only.
 
 | state (harness name) | screen / overlay | keys |
 |---|---|---|
-| services             | services         | ↑↓ move · enter open · / filter · ? help · q quit |
+| services             | services         | **↑↓ move** · **enter open** · **d deploy** · **r roll back** · **/ filter** · **q quit** · **? help** · l logs · c copy id · s sort by status |
 | services-empty       | services         | r refresh · ? help · q quit |
 | confirm              | overlay          | ←→ choose · enter confirm · esc cancel |
 
@@ -165,7 +176,7 @@ ACCESSIBLE=1 or --accessible: no alt screen, Huh WithAccessible(true), status as
 lines. stdout not a TTY: <--json | plain output>, never escape codes.
 
 ## First slice
-<the core screens, every state, rendered from fixtures through the harness; no integration>
+<the main loop's 2–3 screens, every state of those, rendered from fixtures through the harness; no integration>
 Then: <the rest of v1, in order>
 
 ## Decisions
@@ -175,21 +186,34 @@ Then: <the rest of v1, in order>
 - <default the user didn't confirm>   (confirm it, then move it to Decisions)
 ````
 
-A brief written before this skill (a spec, a PRD, an earlier TUI.md) gets four sections
+A brief written before this skill (a spec, a PRD, an earlier TUI.md) gets these sections
 wrong. Write them this way:
 
+- **A `remember` line the TUI draws.** Name a move visible on every screen: a `╱` in
+  every title, a two-tone header rule, an accent `▌` gutter. Law 10 makes the brand two
+  or three such moves; "feels trustworthy and well made" describes a quality of the
+  product, and no later command can draw it, so the screens go generic.
 - **One meaning per accent hue.** One hue for "new" *and* for focus makes the cursor
   row and a new row look the same. Focus is the gutter and the weight (`interaction.md`
   § Focus); a hue is a state.
-- **An ASCII twin and a width for every motif glyph.** `◆ ★ ▲ ■` are East Asian
-  "ambiguous": two cells in CJK locales, and the kit's ASCII map covers only its own
-  glyphs. Name the twin (`◆ ◇ (ascii * o)`), and pick a narrow glyph (`✓ ❯ ▸`) or a
-  2-cell column.
+- **Keep a meaningful glyph, with an ASCII twin and a width.** `◆ ◇ ▲ ★ ■` are East
+  Asian "ambiguous": two cells in CJK locales, and the kit's ASCII map covers only its
+  own glyphs. Keep the glyph, name its twin (`◆ ◇ ▲ (ascii * o ^)`), and set it in a
+  2-cell column, which the other ambiguous glyphs in that column need anyway. Swap it
+  only for a narrow glyph with the same meaning (`✓ ❯ ▸`), never for a word: a set of
+  marks read at a glance is part of the signature, and dropping one for width merges
+  two meanings into one mark.
+- **A dialog edge that survives without colour.** A filled panel one background step
+  up, with no border, sits on the page in the same colour under 16 colours and
+  NO_COLOR, so the dialog's edge vanishes. The kit's `dialog: none` gets an ASCII
+  border under -ascii only; name the edge for the other profiles too.
 - **A fake for every external service.** The harness renders every state offline and
   the tests run in CI; a state that needs a live CLI or API is a state nobody reviews.
-- **A first slice.** The smallest milestone that renders the core screens on fixtures,
-  so the design is judged on renders before the integrations eat the effort. If the
-  interview grew v1 past the brief, say so and propose the slice; don't just order it.
+- **A first slice.** The smallest milestone that renders the main loop on fixtures: the
+  2–3 screens a session spends its time in (list → detail → act), every state of
+  those, so the design is judged on renders before the integrations eat the effort.
+  "Every state on fixtures" is the whole app, not a slice. If the interview grew v1
+  past the brief, say so and propose the slice; don't just order it.
 
 Keep three things true as the project goes, because each one is what a later command
 checks:
@@ -199,6 +223,7 @@ checks:
   frame.
 - **Keys here are the action tables.** If the table and `actions()` disagree, the code
   wins and this file is fixed in the same change; `TestHelpIsHandled` holds the code.
+  The help-only keys (not bold, or after ‖) are the actions with `show: false`.
 - **A decision carries its reason.** "Square dialogs" is a default in disguise; "square
   dialogs because the brand is industrial" survives the next restyle.
 
@@ -211,7 +236,11 @@ two actions in one state's cell or in Global [S-KEYDUP]. A state that binds a Gl
 key to its own action (`esc cancel` over Global `esc back`) overrides it and passes,
 because the state's table is dispatched first. Fix its warnings or justify each in
 § Decisions: a Global key a text box eats (`ctrl+k` deletes to end of line in a Bubbles
-textarea) [S-KEYSHADOW], and an ambiguous-width glyph with no ASCII twin [S-GLYPHWIDTH].
+textarea) [S-KEYSHADOW], an ambiguous-width glyph with no ASCII twin [S-GLYPHWIDTH], and
+a state whose footer keys overflow the 76 columns an 80-column footer has inside the
+kit's gutters, where `ui.Help` drops the tail behind `…` [S-FOOTER]. Fix that one by
+marking the footer, bold or ‖: the state's main actions and its way out, then `? help`,
+so the rest are help-only by decision rather than cut by width, and never `esc` or quit.
 
 ## 5. Hand Off In Three Lines
 

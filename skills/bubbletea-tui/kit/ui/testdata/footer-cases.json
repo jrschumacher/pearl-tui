@@ -1,0 +1,10 @@
+[
+ {"name": "fits", "hints": ["↑↓ move", "enter open", "/ filter", "? help", "q quit"], "dropped": []},
+ {"name": "76 columns exactly", "hints": ["a xxxxxxxxxxxxxxxxxxxxxxxxxxxx", "b yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"], "dropped": []},
+ {"name": "77 columns", "hints": ["a xxxxxxxxxxxxxxxxxxxxxxxxxxxx", "b yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"], "dropped": ["b yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"]},
+ {"name": "the tail drops", "hints": ["↑↓/jk move", "tab/shift+tab panel", "1-4 jump to panel", "enter open", "r refresh", "? help", "q quit"], "dropped": ["? help", "q quit"]},
+ {"name": "? pinned last", "hints": ["↑↓/jk move", "enter open", "e done", "s snooze", "x select", "E done selected", "/ filter", "ctrl+s save search", "r refresh", "? help"], "dropped": ["E done selected", "/ filter", "ctrl+s save search", "r refresh"]},
+ {"name": "ctrl+g pinned last", "hints": ["enter send", "ctrl+j newline", "esc cancel", "ctrl+o attach a file", "ctrl+t pick a template", "ctrl+e open in editor", "ctrl+g help"], "dropped": ["ctrl+t pick a template", "ctrl+e open in editor"]},
+ {"name": "reserve for the ellipsis", "hints": ["a xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "b yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy", "c z"], "dropped": ["b yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy", "c z"]},
+ {"name": "f1 is not pinned", "hints": ["↑↓/jk move", "enter open", "e done", "s snooze", "x select", "E done selected", "/ filter", "r refresh", "f1 help"], "dropped": ["/ filter", "r refresh", "f1 help"]}
+]

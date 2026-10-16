@@ -62,7 +62,7 @@ One action table per state; footer and dispatcher both read it.
 
 | state (harness name) | screen / overlay | keys |
 |---|---|---|
-| services             | services         | ↑↓/jk move · enter open · d deploy · r roll back · ctrl+p commands · ? help · q quit |
+| services             | services         | ↑↓/jk move · enter open · d deploy · r roll back · q quit · ? help ‖ ctrl+p commands |
 | services-empty       | services         | r refresh · ? help · q quit |
 | services-error       | services         | r retry · ? help · q quit |
 | deploy               | deploy           | enter next · tab/shift+tab field · esc back |
