@@ -291,6 +291,30 @@ func TestTemplatePasses(t *testing.T) {
 	}
 }
 
+// Ordinary TUI.md files lint clean; only real problems fire. Each of these drew false
+// findings before: a ▌ gutter and arrows in prose (dashboard), states overriding Global
+// esc, ? and ctrl+c (wizard), `q / ctrl+c quit` and `j/k, ↑/↓ move` (git), and a
+// "Global:" note under § Decisions (dashboard).
+func TestOrdinaryFilesLintClean(t *testing.T) {
+	files, err := filepath.Glob(filepath.Join("testdata", "clean", "*.md"))
+	if err != nil || len(files) < 3 {
+		t.Fatalf("testdata/clean: %v %v", files, err)
+	}
+	for _, f := range files {
+		src, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fs := Lint(f, string(src)); len(fs) != 0 {
+			t.Errorf("%s:\n%s", f, dump(fs))
+		}
+	}
+	// and a real duplicate in one of them still fires
+	if fs := Lint("TUI.md", table("| status | status | c commit · c comment |", "ctrl+c quit")); len(fs) != 1 || fs[0].Rule != "S-KEYDUP" || fs[0].Sev != "P1" {
+		t.Errorf("c commit · c comment: want one P1 S-KEYDUP, got\n%s", dump(fs))
+	}
+}
+
 func TestMainExitCodes(t *testing.T) {
 	var out, errb bytes.Buffer
 	if code := Main([]string{"-h"}, &out, &errb); code != 0 || !strings.Contains(out.String(), "usage: tuilint spec") {
