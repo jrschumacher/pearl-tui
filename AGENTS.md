@@ -18,9 +18,17 @@ skills/bubbletea-tui/
   scripts/        wordmark, logo2cells (Python 3 + Pillow/numpy; brand-asset conversion only)
   kit/            Go module `tuikit`: theme/, ui/, themes/*.json, cmd/showcase (reference app + harness)
   evals/          evals.json (skill-creator format) + fixtures (each Go fixture its own module)
+.claude-plugin/   plugin.json + marketplace.json: the repo root is a Claude Code plugin that
+                  bundles skills/bubbletea-tui (default skills/ scan) and hooks/
+hooks/            hooks.json (PostToolUse on Edit|Write|MultiEdit) → tuilint-edit.sh, which
+                  builds the tools once and runs `tuilint hook`; test.sh tests it end to end
 tools/gallery.sh  regenerates docs/images from the kit
 ROADMAP.md        what's next, and the open problems
 ```
+
+Keep `.claude-plugin/plugin.json` `version` equal to SKILL.md `metadata.version` (CI
+checks); a set version pins users to it, so bump both with every release. Don't set a
+version in `marketplace.json`: `plugin.json` wins anyway.
 
 ## Commands
 
@@ -34,6 +42,8 @@ diversity skills/bubbletea-tui/kit/themes/*.json
 for t in skills/bubbletea-tui/kit/themes/*.json; do palette check "$t"; done
 skills-ref validate skills/bubbletea-tui                           # pip install "git+https://github.com/agentskills/agentskills#subdirectory=skills-ref"
 tools/gallery.sh                                                   # after any change to what the kit renders
+hooks/test.sh                                                      # the plugin's lint hook, end to end
+claude plugin validate .                                           # plugin, marketplace and hooks manifests
 ```
 
 CI (`.github/workflows/ci.yml`) runs all of these plus a render-and-lint pass over every

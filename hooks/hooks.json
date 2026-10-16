@@ -1,0 +1,18 @@
+{
+  "description": "Lint the Go package an edit touched with tuilint code, and hand P0/P1 findings back to Claude",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/tuilint-edit.sh\"",
+            "timeout": 300,
+            "statusMessage": "tuilint code on the edited package"
+          }
+        ]
+      }
+    ]
+  }
+}

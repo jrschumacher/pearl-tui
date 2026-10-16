@@ -107,6 +107,34 @@ jobs:
             python3 "$s" --help > /dev/null
           done
 
+  plugin:
+    name: Claude Code plugin (manifests + lint hook)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: skills/bubbletea-tui/tools/go.mod
+          cache-dependency-path: skills/bubbletea-tui/tools/go.sum
+      - name: manifests parse
+        run: |
+          for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json hooks/hooks.json; do
+            jq empty "$f" || { echo "::error file=$f::not valid JSON"; exit 1; }
+          done
+      - name: plugin version matches SKILL.md metadata.version
+        run: |
+          skill=$(sed -n 's/^  version: "\(.*\)"$/\1/p' skills/bubbletea-tui/SKILL.md)
+          plugin=$(jq -r .version .claude-plugin/plugin.json)
+          echo "SKILL.md $skill, plugin.json $plugin"
+          test -n "$skill" && test "$skill" = "$plugin" ||
+            { echo "::error file=.claude-plugin/plugin.json::version $plugin, but SKILL.md metadata.version is $skill"; exit 1; }
+      # the official validator: marketplace, the plugin it lists, and hooks/hooks.json. Not
+      # --strict: it warns that the repo's CLAUDE.md (for contributors) isn't plugin context
+      - name: claude plugin validate
+        run: npx --yes @anthropic-ai/claude-code@2.1.301 plugin validate .
+      - name: the hook, end to end (unthemed Huh form, clean file, non-Go file, non-TUI module)
+        run: hooks/test.sh
+
   skill-spec:
     name: Agent Skills spec
     runs-on: ubuntu-latest

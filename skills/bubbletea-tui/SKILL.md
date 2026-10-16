@@ -187,6 +187,8 @@ are Python 3 with Pillow and numpy, needed only when you convert brand assets.
 The verification loop that ties them together is `references/verify.md`. Run it before
 every hand-off.
 
+With the plugin installed, a hook runs `tuilint code` after every Go edit: fix what it reports.
+
 ## The Kit
 
 `kit/` (module `tuikit`): `go test ./...` renders seven themes × dark/light/ASCII × every
