@@ -6,6 +6,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -122,6 +123,17 @@ func TestRules(t *testing.T) {
 		{"a cut that still overflows", table("| inbox | inbox | ↑↓/jk move · enter open · e done · s snooze · x select · E done selected · / filter · ctrl+s save search · ? help ‖ r refresh · q quit |", ""), map[string]int{"S-FOOTER": 1}},
 		{"a cut with no help key in the footer", table("| inbox | inbox | ↑↓/jk move · enter open ‖ r refresh |", ""), map[string]int{"S-FOOTER": 1}},
 		{"a cut with help in Global", table("| inbox | inbox | ↑↓/jk move · enter open ‖ r refresh |", "? help · ctrl+c quit"), nil},
+		{"a cut that hides nothing", table("| inbox | inbox | ↑↓/jk move · enter open ‖ |", ""), nil},
+		{"help named in a phrase", table("| inbox | inbox | ↑↓/jk move · enter open · f1 show help ‖ r refresh |", ""), nil},
+		{"f1 help overflowing", table("| inbox | inbox | ↑↓/jk move · enter open · e done · s snooze · x select · E done selected · / filter · r refresh · f1 help |", ""), map[string]int{"S-FOOTER": 1}},
+		{"?/f1 help overflowing", table("| inbox | inbox | ↑↓/jk move · enter open · e done · s snooze · x select · E done selected · / filter · r refresh · ?/f1 help |", ""), map[string]int{"S-FOOTER": 1}},
+		{"a bold footer that fits", table("| inbox | inbox | **↑↓/jk move** · **enter open** · **e done** · **? help** · s snooze · x select · E done selected · / filter · ctrl+s save search · r refresh · q quit |", ""), nil},
+		{"a bold key alone marks its item", table("| inbox | inbox | **↑↓/jk** move · **enter** open · **?** help · s snooze · x select · E done selected · / filter · ctrl+s save search · r refresh · q quit |", ""), nil},
+		{"a bold footer too wide", table("| inbox | inbox | **↑↓/jk move** · **enter open** · **e done** · **s snooze** · **x select** · **E done selected** · **/ filter** · **ctrl+s save search** · **? help** · r refresh · q quit |", ""), map[string]int{"S-FOOTER": 1}},
+		{"a bold footer with no help key", table("| inbox | inbox | **↑↓/jk move** · **enter open** · r refresh |", ""), map[string]int{"S-FOOTER": 1}},
+		{"bold and ‖ in one cell", table("| inbox | inbox | **↑↓/jk move** · **enter open** · ? help ‖ r refresh |", ""), map[string]int{"S-TABLE": 1}},
+		{"bold footers written by a cold agent", table("| tour | pr / tour | **↑↓/jk scroll** · **n next stop** · **d show diff** · **a ask** · **v finish** · **? help** · p previous stop · t conversation · c cards · tab focus inbox · [ back · ] forward · ctrl+p palette · q quit |\n| cards | pr / cards | **1 fine** · **2 question** · **3 blocking** · **e edit note** · **esc back to tour** · **? help** · ↑↓/jk move · v finish · q quit |", ""), nil},
+		{"a writing state overflowing", table("| tour-writing | tour | ↑↓/jk scroll · pgup/pgdn page · g/G top/bottom · tab next section · shift+tab previous section · r write the rest · esc stop writing · ? help |", ""), map[string]int{"S-FOOTER": 1}},
 		{"ctrl+g opens help while typing", table("| reply | overlay | enter send · ctrl+j newline · esc cancel · ctrl+g help ‖ ctrl+o attach |", ""), nil},
 		{"76 columns exactly fit", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 42)+" |", ""), nil},
 		{"77 columns don't", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 43)+" |", ""), map[string]int{"S-FOOTER": 1}},
@@ -134,6 +146,13 @@ func TestRules(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			fs := Lint("TUI.md", c.doc)
 			got := rules(fs)
+			for _, f := range fs {
+				if f.Rule == "S-FOOTER" && strings.Contains(f.Msg, "e.g. `") {
+					if again := relint(t, f, ""); len(again) > 0 {
+						t.Errorf("the suggested cut still fires:\n%s", dump(again))
+					}
+				}
+			}
 			want := c.want
 			if want == nil {
 				want = map[string]int{}
@@ -308,7 +327,7 @@ func TestTemplatePasses(t *testing.T) {
 // findings before: a ▌ gutter and arrows in prose (dashboard), states overriding Global
 // esc, ? and ctrl+c (wizard), `q / ctrl+c quit` and `j/k, ↑/↓ move` (git), and a
 // "Global:" note under § Decisions (dashboard). Their widest states overflowed the
-// 80-column footer (S-FOOTER), so dashboard and git now mark the cut with ‖.
+// 80-column footer (S-FOOTER), so dashboard marks its footer with ‖ and git with bold.
 func TestOrdinaryFilesLintClean(t *testing.T) {
 	files, err := filepath.Glob(filepath.Join("testdata", "clean", "*.md"))
 	if err != nil || len(files) < 3 {
@@ -398,32 +417,69 @@ func TestPackFooter(t *testing.T) {
 	}
 }
 
-// S-FOOTER's constants are the kit's footer: if ui.Help or the default gutter changes,
-// this fails until footer.go follows it.
-func TestFooterMirrorsKit(t *testing.T) {
-	kit := filepath.Join("..", "..", "..", "kit")
-	for file, wants := range map[string][]string{
-		filepath.Join("ui", "chrome.go"): {
-			`sep := t.S.Subtle.Render("  ")`,                                          // hintSep
-			`bindings[n-1].Help().Key == "?" || bindings[n-1].Help().Key == "ctrl+g"`, // pinsLast
-			`w -= lipgloss.Width(pinned) + 2`,
-			`reserve = 3`,                                                      // moreReserve
-			`part := t.S.Key.Render(h.Key) + " " + t.S.KeyDesc.Render(h.Desc)`, // `key desc`
-			`inner := w - 2*g`,                                                 // gutters on both sides
-		},
-		filepath.Join("theme", "derive.go"): {"x.Gutter = 2"}, // kitGutter
-	} {
-		src, err := os.ReadFile(filepath.Join(kit, file))
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, w := range wants {
-			if !strings.Contains(string(src), w) {
-				t.Errorf("kit/%s no longer has %q: update footer.go to match the kit's footer", file, w)
-			}
+// kit/ui/testdata/footer-cases.json is what the kit's ui.Footer drops at 80 columns
+// (kit/ui TestFooterCases renders it); packFooter must drop the same hints.
+func TestFooterCases(t *testing.T) {
+	b, err := os.ReadFile(filepath.Join("..", "..", "..", "kit", "ui", "testdata", "footer-cases.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cases []struct {
+		Name           string
+		Hints, Dropped []string
+	}
+	if err := json.Unmarshal(b, &cases); err != nil || len(cases) == 0 {
+		t.Fatalf("footer-cases.json: %v", err)
+	}
+	for _, c := range cases {
+		_, dropped := packFooter(c.Hints, footerBudget)
+		if strings.Join(dropped, "|") != strings.Join(c.Dropped, "|") {
+			t.Errorf("%s: packFooter drops %q, the kit drops %q", c.Name, dropped, c.Dropped)
 		}
 	}
-	if hintSep != 2 || moreReserve != 3 || kitGutter != 2 {
-		t.Errorf("footer.go constants drifted from the strings above")
+}
+
+var suggestionRe = regexp.MustCompile("e\\.g\\. `(.*)`$")
+
+// relint lints the cell an S-FOOTER finding suggests, in place of the row, and returns
+// any S-FOOTER it draws: a suggestion must fix what it was given for.
+func relint(t *testing.T, f Finding, global string) []Finding {
+	t.Helper()
+	m := suggestionRe.FindStringSubmatch(f.Msg)
+	if m == nil {
+		t.Fatalf("S-FOOTER suggests no cell: %s", f.Msg)
+	}
+	var out []Finding
+	for _, g := range Lint("TUI.md", table("| s | s | "+m[1]+" |", global)) {
+		if g.Rule == "S-FOOTER" {
+			out = append(out, g)
+		}
+	}
+	return out
+}
+
+func TestSuggestCut(t *testing.T) {
+	cases := []struct{ name, cell, front, back string }{
+		{"f1 help is not pinned, so it is packed last",
+			"↑↓/jk move · enter open · e done · s snooze · x select · E done selected · / filter · r refresh · f1 help",
+			"↑↓/jk move · enter open · e done · s snooze · x select · E done selected · f1 help", "/ filter · r refresh"},
+		{"?/f1 help is not pinned either",
+			"↑↓/jk move · enter open · e done · s snooze · x select · E done selected · / filter · r refresh · ?/f1 help",
+			"↑↓/jk move · enter open · e done · s snooze · x select · ?/f1 help", "E done selected · / filter · r refresh"}, // 2 columns wider than f1 help
+		{"the way out and the state's purpose stay in front",
+			"↑↓/jk scroll · pgup/pgdn page · g/G top/bottom · tab next section · shift+tab previous section · r write the rest · esc stop writing · ? help",
+			"↑↓/jk scroll · pgup/pgdn page · r write the rest · esc stop writing · ? help", "g/G top/bottom · tab next section · shift+tab previous section"},
+		{"quit stays, secondary actions go from the end",
+			"↑↓/jk move · enter open · e done · s snooze · x select · E done selected · / filter · ctrl+s save search · tab next filter · r refresh · ? help · q quit",
+			"↑↓/jk move · enter open · e done · s snooze · x select · q quit · ? help", "E done selected · / filter · ctrl+s save search · tab next filter · r refresh"},
+		{"roll back is an action, not a way out",
+			"↑↓/jk move · enter open · d deploy · r roll back · ctrl+p commands · l logs · c copy id · s sort by status · q quit",
+			"↑↓/jk move · enter open · d deploy · r roll back · q quit · ? help", "ctrl+p commands · l logs · c copy id · s sort by status"},
+	}
+	for _, c := range cases {
+		front, back := suggestCut(hints(c.cell))
+		if got, want := strings.Join(front, " · ")+" ‖ "+strings.Join(back, " · "), c.front+" ‖ "+c.back; got != want {
+			t.Errorf("%s:\n got %s\nwant %s", c.name, got, want)
+		}
 	}
 }

@@ -121,8 +121,9 @@ type row struct {
 	bindings      []binding
 	global        bool
 	footer        []string // the items the footer shows: all, or those before ‖
-	helpOnly      []string // the items after ‖: in ? help, not in the footer
-	cut           bool     // the cell has a ‖
+	helpOnly      []string // the other items: in ? help, not in the footer
+	marker        string   // how the cell marks its footer: "", "‖" or "bold"
+	mixed         bool     // the cell uses both markers
 }
 
 type spec struct {
@@ -151,6 +152,11 @@ func Lint(file, src string) []Finding {
 				warn("S-TABLE", r.line, "%s: can't read key %q in `%s %s`, so the key rules skip it. Write keys as Bubble Tea names (ctrl+k, shift+tab, enter, pgdown, ↑↓, j/k), each item `key action`, items separated by ·",
 					r.state, b.bad, b.token, b.action)
 			}
+		}
+	}
+	for _, r := range s.rows {
+		if r.mixed {
+			warn("S-TABLE", r.line, "%s: the keys cell marks its footer both with **bold** and with ‖. Pick one footer marker: bold the footer keys, or put ‖ after the last of them; this run reads the ‖", r.state)
 		}
 	}
 	s.keyAmbig(add, warn)
@@ -241,7 +247,10 @@ func parse(file, src string) *spec {
 		}
 		keys := get(keysCol)
 		r := row{line: i + 1, state: get(stateCol), screen: get(screenCol), keys: keys, bindings: parseKeys(keys)}
-		r.footer, r.helpOnly, r.cut = footerItems(keys)
+		raw := splitRaw(t)
+		if keysCol < len(raw) {
+			r.footer, r.helpOnly, r.marker, r.mixed = footerItems(raw[keysCol])
+		}
 		if globalCell.MatchString(r.state) {
 			r.global = true
 			s.globals = append(s.globals, r)
@@ -268,8 +277,18 @@ func isSep(cells []string) bool {
 	return true
 }
 
-// splitRow splits a markdown table row into trimmed cells; `\|` is a literal pipe.
+// splitRow splits a markdown table row into trimmed cells with their markup removed.
 func splitRow(t string) []string {
+	cells := splitRaw(t)
+	for i, c := range cells {
+		cells[i] = clean(c)
+	}
+	return cells
+}
+
+// splitRaw splits a markdown table row into trimmed cells as written, markup and all;
+// `\|` is a literal pipe.
+func splitRaw(t string) []string {
 	t = strings.TrimPrefix(t, "|")
 	if strings.HasSuffix(t, "|") && !strings.HasSuffix(t, `\|`) {
 		t = t[:len(t)-1]
@@ -282,13 +301,13 @@ func splitRow(t string) []string {
 			b.WriteByte('|')
 			i++
 		case t[i] == '|':
-			cells = append(cells, clean(b.String()))
+			cells = append(cells, strings.TrimSpace(b.String()))
 			b.Reset()
 		default:
 			b.WriteByte(t[i])
 		}
 	}
-	return append(cells, clean(b.String()))
+	return append(cells, strings.TrimSpace(b.String()))
 }
 
 var spaceRe = regexp.MustCompile(`\s+`)
