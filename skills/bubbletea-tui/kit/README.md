@@ -49,7 +49,8 @@ cellshot frames/*-80x24.ansi --sheet sheet.png
 
 ## Copying it into a project
 
-From the project root, with `<skill>` the directory holding `SKILL.md`:
+From the project root (after `go mod init <your/module>` in a new one), with `<skill>` the
+directory holding `SKILL.md`:
 
 ```sh
 mkdir -p internal themes cmd
@@ -57,8 +58,15 @@ cp -r <skill>/kit/theme internal/theme && cp -r <skill>/kit/ui internal/ui
 cp -r <skill>/kit/cmd/showcase cmd/<app>
 cp <skill>/kit/themes/<closest>.json themes/
 perl -pi -e 's#"tuikit/#"<your/module>/internal/#' $(grep -rl '"tuikit/' internal cmd)
-go get <the pins in references/architecture.md> && go mod tidy && go test ./...
+go mod edit -go=1.26.7
+go get charm.land/bubbletea/v2@v2.1.0 charm.land/lipgloss/v2@v2.0.6 \
+  charm.land/bubbles/v2@v2.2.1 charm.land/huh/v2@v2.0.3 \
+  github.com/charmbracelet/ultraviolet@v0.0.0-20261008173134-6b8d4baf91b4
+go mod tidy && go test ./...
 ```
+
+Huh is pinned too: `ui/form.go` works around v2.0.3's quirks, each with a test, and a
+newer Huh can change them. CI runs this block in a fresh module on every change.
 
 `perl -pi` because `sed -i` takes different arguments on macOS. The tests find
 `themes/*.json` from `internal/ui` and `cmd/<app>` as they do from the kit, and use your
