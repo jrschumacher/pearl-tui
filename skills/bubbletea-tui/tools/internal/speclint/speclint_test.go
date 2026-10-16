@@ -67,6 +67,8 @@ func TestRules(t *testing.T) {
 		{"dup in a state", table("| list | list | esc back · esc clear |", ""), map[string]int{"S-KEYDUP": 1}},
 		{"dup across alternatives", table("| list | list | ↑↓/jk move · k kill |", ""), map[string]int{"S-KEYDUP": 1}},
 		{"dup with Global", table("| list | list | ctrl+k kill line |", "ctrl+k switch"), map[string]int{"S-KEYDUP": 1}},
+		{"a state restating a Global pair in fewer words", table("| pr | pr | t tour · [ ] back/fwd |", "ctrl+c quit, [ ] back/forward between items."), nil},
+		{"a pair written with a space", table("| list | list | j k scroll · k kill |", ""), map[string]int{"S-KEYDUP": 1}},
 		{"dup in Global, once", table("| a | a | x go |\n| b | b | y go |", "ctrl+k switch · ctrl+k palette"), map[string]int{"S-KEYDUP": 1}},
 		{"shift+g is G", table("| list | list | G bottom · shift+g end |", ""), map[string]int{"S-KEYDUP": 1}},
 		{"same action twice", table("| list | list | ? help · q quit |", "? help · ctrl+c quit"), nil},
@@ -76,6 +78,7 @@ func TestRules(t *testing.T) {
 		// S-KEYSHADOW
 		{"ctrl+k over a textarea", table("| reply | overlay | enter send · shift+enter/ctrl+j newline · esc cancel |", "ctrl+k switch · ctrl+c quit"), map[string]int{"S-KEYSHADOW": 1}},
 		{"printable over a text input", table("| search | search (text input) | enter go · esc cancel |", "q quit"), map[string]int{"S-KEYSHADOW": 1}},
+		{"Global separated by commas", table("| ask | overlay | enter send · shift+enter/ctrl+j newline · esc cancel |", "ctrl+c quit, ctrl+k switcher."), map[string]int{"S-KEYSHADOW": 1}},
 		{"type to", table("| list-filter | list | type to filter · esc clear |", "/ filter"), map[string]int{"S-KEYSHADOW": 1}},
 		{"no text entry", table("| list | list | enter open · esc back |", "ctrl+k switch · q quit"), nil},
 		{"filter alone is not text entry", table("| list | list | / filter · esc back |", "q quit"), nil},

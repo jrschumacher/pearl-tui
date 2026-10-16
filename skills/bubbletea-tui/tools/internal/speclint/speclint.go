@@ -7,8 +7,10 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"golang.org/x/text/width"
 
@@ -168,7 +170,7 @@ func parse(file, src string) *spec {
 		if !strings.HasPrefix(t, "|") {
 			inTable = false
 			if m := globalRe.FindStringSubmatch(clean(listMark.ReplaceAllString(t, ""))); m != nil {
-				s.globals = append(s.globals, row{line: i + 1, state: "Global", global: true, bindings: parseKeys(m[1])})
+				s.globals = append(s.globals, row{line: i + 1, state: "Global", global: true, bindings: parseGlobalKeys(m[1])})
 			}
 			continue
 		}
@@ -260,10 +262,26 @@ func parseKeys(cell string) []binding {
 		if len(f) == 0 {
 			continue
 		}
+		token, keys := f[0], parseToken(f[0])
+		// "[ ] back/fwd" and "j k scroll": a lone one-character field after the key is a
+		// second key, not the first word of the action.
+		if len(f) >= 3 && utf8.RuneCountInString(f[1]) == 1 && !strings.ContainsAny(f[1], "-–—=:") {
+			token, keys = f[0]+" "+f[1], append(keys, parseToken(f[1])...)
+			f = append([]string{token}, f[2:]...)
+		}
 		action := strings.ToLower(strings.TrimRight(spaceRe.ReplaceAllString(strings.Join(f[1:], " "), " "), ".,;"))
-		out = append(out, binding{token: f[0], keys: parseToken(f[0]), action: action})
+		out = append(out, binding{token: token, keys: keys, action: action})
 	}
 	return out
+}
+
+// parseGlobalKeys reads a Global line. Older TUI.md files separate it with commas
+// ("ctrl+c quit, ? help, ctrl+k switcher"), so a line without · splits on , and ; too.
+func parseGlobalKeys(line string) []binding {
+	if strings.ContainsAny(line, "·•") {
+		return parseKeys(line)
+	}
+	return parseKeys(strings.NewReplacer(",", "·", ";", "·").Replace(line))
 }
 
 func (s *spec) globalBindings() []binding {
@@ -340,6 +358,22 @@ func hasFallback(bs []binding, at int, k key) bool {
 	return false
 }
 
+// sameAction reports whether two hints name one action in different words, as when a
+// state restates a Global key ("back/fwd" for "back/forward between items"). It
+// compares first words, so it errs toward silence.
+func sameAction(a, b string) bool {
+	fa, fb := strings.Fields(a), strings.Fields(b)
+	if len(fa) == 0 || len(fb) == 0 {
+		return a == b
+	}
+	x, y := []rune(fa[0]), []rune(fb[0])
+	n := 0
+	for n < len(x) && n < len(y) && x[n] == y[n] {
+		n++
+	}
+	return n == len(x) || n == len(y) || n >= 4
+}
+
 func (s *spec) keyDup(add func(string, int, string, ...any)) {
 	type use struct {
 		action string
@@ -354,14 +388,14 @@ func (s *spec) keyDup(add func(string, int, string, ...any)) {
 		for _, k := range keys {
 			us := uses[k]
 			var parts []string
-			seen := map[string]bool{}
+			var seen []string
 			local := false
 			for _, u := range us {
 				local = local || !u.global
-				if seen[u.action] {
+				if slices.ContainsFunc(seen, func(a string) bool { return sameAction(a, u.action) }) {
 					continue
 				}
-				seen[u.action] = true
+				seen = append(seen, u.action)
 				p := fmt.Sprintf("%q", u.action)
 				if u.global && !r.global {
 					p += " (Global)"
