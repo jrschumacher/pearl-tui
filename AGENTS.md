@@ -128,6 +128,7 @@ type(scope)!: description        e.g.  fix(kit): keep the focus bar on resize
   | `scripts` | the Python brand-asset converters |
   | `evals` | `evals/` and its fixtures |
   | `site` | the landing page |
+  | `plugin` | the Claude Code plugin: `hooks/` and `.claude-plugin/` |
 
   Work that spans the repo takes no scope: `ci: …`, `docs: …`, `chore: …`. Dependency
   bumps are `build(<module>): …`, e.g. `build(kit): bump lipgloss to v2.0.7`.
