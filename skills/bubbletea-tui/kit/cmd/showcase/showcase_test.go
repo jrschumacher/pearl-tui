@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,14 +12,65 @@ import (
 	"tuikit/theme"
 )
 
+// testThemes finds the theme JSONs two levels up: kit/themes here, and the project's
+// themes/ once the showcase is copied to cmd/<app> (kit/README.md). Finding none fails,
+// so a copied test never passes by testing nothing.
+func testThemes(t *testing.T) []string {
+	t.Helper()
+	files, _ := filepath.Glob("../../themes/*.json")
+	if len(files) == 0 {
+		t.Fatal("no theme JSON in ../../themes")
+	}
+	return files
+}
+
+// testTheme loads the named theme where it exists (the kit) and the project's own
+// first theme where it doesn't.
+func testTheme(t *testing.T, name string) theme.File {
+	t.Helper()
+	files := testThemes(t)
+	path := files[0]
+	for _, f := range files {
+		if filepath.Base(f) == name {
+			path = f
+		}
+	}
+	f, err := theme.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return f
+}
+
+// An -out file's name is the size it holds: tuilint frames reads W×H from the name,
+// so the too-small frame (always 50×14) named toosmall-80x24 failed F-WIDTH.
+func TestFrameNameIsRenderedSize(t *testing.T) {
+	m := newApp(testTheme(t, "halyard.json"), true, false)
+	for _, s := range states {
+		for _, sz := range [][2]int{{80, 24}, {120, 40}} {
+			name := frameName(s, sz[0], sz[1])
+			var w, h int
+			if _, err := fmt.Sscanf(name[len(s):], "-%dx%d.ansi", &w, &h); err != nil {
+				t.Fatalf("%s: %v", name, err)
+			}
+			m.setState(s)
+			rw, rh := frameSize(s, sz[0], sz[1])
+			rows := strings.Split(ansi.Strip(m.render(rw, rh).String()), "\n")
+			if len(rows) != h || lipgloss.Width(rows[0]) != w {
+				t.Errorf("%s holds %dx%d", name, lipgloss.Width(rows[0]), len(rows))
+			}
+		}
+	}
+	if got := frameName("toosmall", 120, 40); got != "toosmall-50x14.ansi" {
+		t.Errorf("too-small frame named %s", got)
+	}
+}
+
 // Every state, every theme, both modes, ASCII, at the sizes people actually
 // use: each frame must be exactly W×H cells. One row at W+1 wraps and tears
 // the whole screen, and it is invisible in code review.
 func TestFootprint(t *testing.T) {
-	files, _ := filepath.Glob("../../themes/*.json")
-	if len(files) == 0 {
-		t.Fatal("no themes found")
-	}
+	files := testThemes(t)
 	sizes := [][2]int{{80, 24}, {100, 30}, {120, 40}, {200, 60}, {60, 18}}
 	for _, f := range files {
 		tf, err := theme.Load(f)
@@ -53,7 +105,7 @@ func TestFootprint(t *testing.T) {
 
 // The ASCII set must not leak a non-ASCII glyph from the theme's vocabulary.
 func TestASCIIFallback(t *testing.T) {
-	files, _ := filepath.Glob("../../themes/*.json")
+	files := testThemes(t)
 	for _, f := range files {
 		tf, _ := theme.Load(f)
 		th := theme.Resolve(tf, true, true)
@@ -71,7 +123,7 @@ func TestASCIIFallback(t *testing.T) {
 
 // Contrast floors on every theme's resolved palette (both modes).
 func TestContrast(t *testing.T) {
-	files, _ := filepath.Glob("../../themes/*.json")
+	files := testThemes(t)
 	for _, f := range files {
 		tf, _ := theme.Load(f)
 		for _, dark := range []bool{true, false} {
@@ -104,7 +156,7 @@ func TestContrast(t *testing.T) {
 // text takes the terminal's default fg, which no palette check ever saw (on a
 // painted light background it can vanish).
 func TestNoUnstyledText(t *testing.T) {
-	files, _ := filepath.Glob("../../themes/*.json")
+	files := testThemes(t)
 	for _, f := range files {
 		tf, _ := theme.Load(f)
 		m := newApp(tf, true, false)

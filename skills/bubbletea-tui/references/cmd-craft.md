@@ -11,15 +11,10 @@ invents its regions and keys screen by screen.
 
 ## 1. Start From The Kit, Not From Prose
 
-```
-cp -r <skill>/kit/theme  internal/theme      # theme engine
-cp -r <skill>/kit/ui     internal/ui         # components
-cp <skill>/kit/themes/<closest>.json themes/ # or the brand's theme
-# read kit/cmd/showcase/{app.go,screens.go,main.go}: the model, render(w,h), harness
-```
-
-Fix the import paths (`tuikit/theme` → `<module>/internal/theme`). Pin the versions from
-`architecture.md`. A cold rebuild from these references loses half the idiom at once
+Run the copy block in `kit/README.md` § Copying it into a project, as written: it copies
+`theme/`, `ui/` and `cmd/showcase` (as `cmd/<app>`, tests included), rewrites the import
+paths and pins the versions, and CI proves it passes in a fresh module. Then read
+`cmd/<app>/{app.go,screens.go,main.go}`: the model, `render(w,h)`, the harness. A cold rebuild from these references loses half the idiom at once
 (the focus gutter, the filled-row backgrounds, the help truncation, the scrim order).
 The code already has them.
 

@@ -36,14 +36,18 @@ to all three. A half-applied idiom reads as noise.
    descriptions loses half the idiom at once.
 4. **Build the tools** once per session, from the directory holding this file:
    `go -C tools build -o "$HOME/.cache/tuitools/" ./cmd/...`, then put that directory on
-   `PATH`. That gives `cellshot`, `tuilint`, `palette`, `diversity` and `tuivet`.
+   `PATH` (if `$HOME/.cache` isn't writable, any writable `-o` directory works). That
+   gives `cellshot`, `tuilint`, `palette`, `diversity` and `tuivet`. The
+   modules need Go ≥ 1.26.7; if `go` says "requires go >= 1.26.7", prefix the command
+   with `GOTOOLCHAIN=auto` and Go fetches it.
 5. **Never show the user anything you haven't rendered and looked at** with
    `cellshot`. Never ask them for a screenshot.
 
 Once per project, **keep the skill in fresh clones**: a cloud container clones without
 it. Either commit `.agents/skills/` as installed, or commit `skills-lock.json` plus the
 `.claude/skills/bubbletea-tui` link and run `npx skills experimental_install` after
-cloning (it restores `.agents/skills/` only). Pick one with the user.
+cloning (it restores `.agents/skills/` only). Pick one with the user. Installed as the
+Claude Code plugin instead, the skill lives with the user, not the repo.
 
 ## The Laws
 
@@ -191,6 +195,9 @@ are Python 3 with Pillow and numpy, needed only when you convert brand assets.
 
 The verification loop that ties them together is `references/verify.md`. Run it before
 every hand-off.
+
+With the plugin installed, a hook runs `tuilint code` after every Go edit in a project with
+a `TUI.md`: fix what it reports.
 
 ## The Kit
 

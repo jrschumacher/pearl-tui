@@ -150,6 +150,19 @@ func Main(args []string, stdout, stderr io.Writer) int {
 // Lint runs every analyzer over the packages under root. File paths in the findings are
 // relative to root. A note goes to stderr when it falls back to syntax-only analysis.
 func Lint(root, themePkg string, stderr io.Writer) ([]Finding, error) {
+	return LintWith(root, themePkg, stderr, Load{})
+}
+
+// Load is how LintWith runs the go command to load packages with types. The zero value
+// inherits the process environment and adds no flags.
+type Load struct {
+	Env        []string // the go command's environment; nil means os.Environ()
+	BuildFlags []string // e.g. -mod=readonly, which overrides a -mod in GOFLAGS
+}
+
+// LintWith is Lint with control over how the go command loads the packages, for a
+// caller such as the edit hook that must stay offline and never write go.mod or go.sum.
+func LintWith(root, themePkg string, stderr io.Writer, load Load) ([]Finding, error) {
 	if err := HexAnalyzer.Flags.Set("theme-pkg", themePkg); err != nil {
 		return nil, err
 	}
@@ -158,7 +171,7 @@ func Lint(root, themePkg string, stderr io.Writer) ([]Finding, error) {
 	if err != nil {
 		return nil, err
 	}
-	units, fset, err := loadTyped(abs)
+	units, fset, err := loadTyped(abs, load)
 	if err != nil {
 		fmt.Fprintf(stderr, "tuilint code: %s: loading with types failed (%v); falling back to syntax-only analysis\n", root, firstLine(err))
 		units, fset, err = loadSyntax(abs)

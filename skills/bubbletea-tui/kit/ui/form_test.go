@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -11,9 +12,31 @@ import (
 	"tuikit/theme"
 )
 
+// testThemes finds the theme JSONs in the kit (ui/../themes) or in a project that
+// copied ui/ to internal/ui and its theme to themes/ (kit/README.md). Finding none
+// fails: a glob that matches nothing would pass every test without running one.
+func testThemes(t *testing.T) []string {
+	t.Helper()
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ := filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			return files
+		}
+	}
+	t.Fatal("no theme JSON in ../themes or ../../themes")
+	return nil
+}
+
+// testTheme is halyard in the kit, and the project's own theme after a copy.
 func testTheme(t *testing.T, ascii bool) *theme.Theme {
 	t.Helper()
-	f, err := theme.Load("../themes/halyard.json")
+	files := testThemes(t)
+	path := files[0]
+	for _, f := range files {
+		if filepath.Base(f) == "halyard.json" {
+			path = f
+		}
+	}
+	f, err := theme.Load(path)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -27,8 +27,12 @@ func drive(m *app, keys ...string) {
 
 func screenText(m *app, w, h int) string { return ansi.Strip(m.render(w, h).String()) }
 
-// header is the first row: the brand bar with the step counter in it.
-func header(m *app) string { return strings.SplitN(screenText(m, 120, 40), "\n", 2)[0] }
+// header is the header's rows at 120×40: one for most themes, the wordmark rows
+// plus the details row for a "banner" header.
+func header(m *app) string {
+	n := len(ui.Header(m.t, 120, 40, m.t.AppName(), ""))
+	return strings.Join(strings.SplitN(screenText(m, 120, 40), "\n", n+1)[:n], "\n")
+}
 
 // The review's focused default is the expected forward choice, Continue,
 // and enter on it signs in (the user's wizard defaulted to "Edit settings").
@@ -171,7 +175,7 @@ func TestSetupStaleSignin(t *testing.T) {
 // The select cursor and an input prompt never show at once, and a blurred
 // input draws no prompt glyph at all.
 func TestSetupOneCursor(t *testing.T) {
-	files, _ := filepath.Glob("../../themes/*.json")
+	files := testThemes(t)
 	for _, f := range files {
 		tf, _ := theme.Load(f)
 		m := newApp(tf, true, false)
@@ -211,7 +215,7 @@ func TestSetupNoDefaultColours(t *testing.T) {
 		}
 		return ""
 	}
-	files, _ := filepath.Glob("../../themes/*.json")
+	files := testThemes(t)
 	for _, f := range files {
 		tf, _ := theme.Load(f)
 		for _, dark := range []bool{true, false} {
@@ -263,7 +267,7 @@ func (l *lines) Read(p []byte) (int, error) {
 // escape codes, no repainting, every step answered.
 func TestAccessibleSetup(t *testing.T) {
 	t.Setenv("ACCESSIBLE", "1")
-	tf, _ := theme.Load("../../themes/halyard.json")
+	tf := testTheme(t, "halyard.json")
 	var out bytes.Buffer
 	in := &lines{[]string{"1", "payments", "2", "n", "y"}}
 	if err := runAccessibleSetup(theme.Resolve(tf, true, true), in, &out, 0); err != nil {

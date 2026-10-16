@@ -15,8 +15,7 @@ var sgrFG = regexp.MustCompile(`\x1b\[[0-9;]*38;2;(\d+);(\d+);(\d+)`)
 // read on that background: a pill's ink is its fill's on-colour, often the background
 // itself, which made the focused button invisible (found by linting -ascii renders).
 func TestASCIIButtonsReadOnTheBackground(t *testing.T) {
-	files, _ := filepath.Glob("../themes/*.json")
-	for _, f := range files {
+	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)
 		if err != nil {
 			t.Fatal(err)
