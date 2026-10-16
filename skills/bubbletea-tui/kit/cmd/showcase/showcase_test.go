@@ -216,7 +216,8 @@ func TestOverlaysInReducedProfiles(t *testing.T) {
 	}
 }
 
-// -profile wins; without it NO_COLOR (any non-empty value) means no colour.
+// -profile wins; without it NO_COLOR means no colour when strconv.ParseBool says true,
+// exactly as colorprofile reads it for the live program.
 func TestRenderProfile(t *testing.T) {
 	for _, c := range []struct {
 		name     string
@@ -226,6 +227,11 @@ func TestRenderProfile(t *testing.T) {
 	}{
 		{"truecolor", false, "", colorprofile.TrueColor},
 		{"truecolor", false, "1", colorprofile.Ascii},
+		{"truecolor", false, "true", colorprofile.Ascii},
+		{"truecolor", false, "0", colorprofile.TrueColor},
+		{"truecolor", false, "false", colorprofile.TrueColor},
+		{"truecolor", false, "yes", colorprofile.TrueColor},
+		{"truecolor", false, "x", colorprofile.TrueColor},
 		{"ansi", true, "1", colorprofile.ANSI},
 		{"ansi256", true, "", colorprofile.ANSI256},
 	} {

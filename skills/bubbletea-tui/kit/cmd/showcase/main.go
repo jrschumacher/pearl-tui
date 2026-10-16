@@ -121,7 +121,7 @@ func main() {
 	w := flag.Int("w", 80, "width")
 	h := flag.Int("h", 24, "height")
 	frame := flag.Int("frame", 24, "animation frame for renders")
-	profile := flag.String("profile", "truecolor", "truecolor | ansi256 | ansi | ascii (NO_COLOR set: ascii)")
+	profile := flag.String("profile", "truecolor", "truecolor | ansi256 | ansi | ascii (NO_COLOR=1: ascii)")
 	firstRun := flag.Bool("first-run", false, "start with the setup wizard")
 	flag.Parse()
 
@@ -250,10 +250,11 @@ var profileNames = map[string]colorprofile.Profile{"truecolor": colorprofile.Tru
 	"ansi": colorprofile.ANSI, "ascii": colorprofile.Ascii}
 
 // renderProfile is the profile renders are drawn for: -profile when given, else no
-// colour when NO_COLOR is set (https://no-color.org: any non-empty value), as
-// Bubble Tea's own detection does for the live program.
+// colour when NO_COLOR is true as strconv.ParseBool reads it (1, t, true…; "yes" or
+// "x" is not), which is exactly how colorprofile v0.4.3, and so Bubble Tea's
+// detection for the live program, reads it.
 func renderProfile(name string, explicit bool, noColor string) (colorprofile.Profile, error) {
-	if !explicit && noColor != "" {
+	if off, _ := strconv.ParseBool(noColor); !explicit && off {
 		return colorprofile.Ascii, nil
 	}
 	p, ok := profileNames[name]
