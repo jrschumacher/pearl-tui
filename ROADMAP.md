@@ -64,14 +64,18 @@ agreeing with your grades line for line.
   emulation, Node) as the heavier option, and Charm's `teatest` for Go-side golden tests.
 - **Temporal lint for animation** (`cell-art.md` rule 14) as a script over frame
   sequences.
-- **Hooks**: a PostToolUse hook that runs `tuilint code` on edited `.go` files, as
-  Impeccable does with its detectors. Agents ignore prose; they don't ignore a hook. The
-  first dogfood run is the case for it: the skill described theming Huh, and the agent
-  skipped it until a lint rule (C-HUHTHEME) made it fail.
+- ~~**Hooks**~~ (done): the repo is a Claude Code plugin whose PostToolUse hook runs
+  `tuilint code` after every `.go` edit in a Bubble Tea or Huh module of a project built
+  with the skill (a `TUI.md`, or a copy of the kit's theme) and hands the edited file's
+  P0/P1 findings back to the model (`hooks/`, `tuilint hook`). Agents ignore
+  prose; they don't ignore a hook. The first dogfood run was the case for it: the skill
+  described theming Huh, and the agent skipped it until C-HUHTHEME made it fail. Still to
+  measure: whether the next dogfood run fixes findings on the edit that caused them.
 - **One contrast audit**: the contrast rules should live once in `tuikit/theme`
   (`theme.Audit`) for both the kit tests and `palette check`.
-- **Distribution**: a Claude plugin marketplace manifest, and builds for other agents
-  (Cursor, Codex, Gemini CLI) once the formats are verified.
+- **Distribution**: builds for other agents (Cursor, Codex, Gemini CLI) once the formats
+  are verified. The Claude Code marketplace manifest shipped with the hook
+  (`.claude-plugin/marketplace.json`).
 - **Theme gallery**: a browsable page of every kit theme, with the same states side by
   side, to pick a starting point for `brand`.
 - **Other renderers**: the theme JSON is language-neutral by design. A ratatui (Rust) or

@@ -34,6 +34,35 @@ npx skills add jrschumacher/skill-bubbletea-tui
 or copy `skills/bubbletea-tui` into `~/.claude/skills/` (or your agent's skills
 directory).
 
+### Install as a Claude Code plugin (adds the lint hook)
+
+In Claude Code:
+
+```
+/plugin marketplace add jrschumacher/skill-bubbletea-tui
+/plugin install bubbletea-tui@jrschumacher
+```
+
+On Claude Code 2.1.275 or later, one step does both:
+`/plugin install bubbletea-tui --marketplace jrschumacher/skill-bubbletea-tui`.
+
+The plugin carries the same skill, plus a hook. After every Edit or Write of a `.go` file
+in a Bubble Tea or Huh module, it runs `tuilint code` and hands the edited file's
+blocking (P0/P1) findings back to Claude, which fixes them before it moves on. Agents
+skim prose; they can't skim a failing check. The first Go edit builds the tools (about
+25 s on a cold Go cache); after that a check takes about 0.3 s.
+
+The hook acts only in projects built with the skill, so your other Bubble Tea repos are
+left alone: a `TUI.md` (which `init` writes) in the module root or above it up to the
+repository root, or a copy of the kit's theme package (`theme/` or `internal/theme/`). It
+runs the go command offline and read-only, so it never downloads modules or writes
+`go.mod` or `go.sum`. If it can't lint at all (no Go on `PATH`, Go too old, a failed
+build), it lets the edit through and shows you a one-line warning saying why, once per
+cause; a failed build isn't retried until the plugin's sources change.
+
+Install one or the other, not both, or the skill loads twice. Plugin skills are
+namespaced, so the commands become `/bubbletea-tui:bubbletea-tui init` and so on.
+
 Requirements: Go ≥ 1.26.7 (Bubble Tea v2.1, Lip Gloss v2.0.6, Bubbles v2.2, Huh v2.0).
 The skill's tools are Go and build in one step on first use. Only the wordmark and logo
 converters need Python 3 with Pillow and numpy.
@@ -84,6 +113,8 @@ skills/bubbletea-tui/
 │   └── cmd/showcase/     the reference app (an ops dashboard and a first-run setup wizard)
 │                         + harness (-golden, -state, -out, -profile, -light, -ascii, -first-run)
 └── evals/                cases for skill-creator, with fixtures
+.claude-plugin/           plugin.json + marketplace.json: the repo as a Claude Code plugin
+hooks/                    the plugin's PostToolUse hook: tuilint code after every Go edit
 ```
 
 `cd skills/bubbletea-tui/kit && go test ./...` renders every theme × dark/light/ASCII ×

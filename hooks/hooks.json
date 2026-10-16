@@ -1,0 +1,18 @@
+{
+  "description": "Lint the Go file an edit touched with tuilint code, in projects built with the bubbletea-tui skill, and hand its P0/P1 findings back to Claude",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/tuilint-edit.sh\"",
+            "timeout": 300,
+            "statusMessage": "tuilint code on the edited file"
+          }
+        ]
+      }
+    ]
+  }
+}

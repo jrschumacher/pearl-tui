@@ -18,9 +18,17 @@ skills/bubbletea-tui/
   scripts/        wordmark, logo2cells (Python 3 + Pillow/numpy; brand-asset conversion only)
   kit/            Go module `tuikit`: theme/, ui/, themes/*.json, cmd/showcase (reference app + harness)
   evals/          evals.json (skill-creator format) + fixtures (each Go fixture its own module)
+.claude-plugin/   plugin.json + marketplace.json: the repo root is a Claude Code plugin that
+                  bundles skills/bubbletea-tui (default skills/ scan) and hooks/
+hooks/            hooks.json (PostToolUse on Edit|Write|MultiEdit) → tuilint-edit.sh, which
+                  builds the tools once and runs `tuilint hook`; test.sh tests it end to end
 tools/gallery.sh  regenerates docs/images from the kit
 ROADMAP.md        what's next, and the open problems
 ```
+
+Leave `version` out of `.claude-plugin/plugin.json` and `marketplace.json`: Claude Code
+then versions the plugin by commit SHA, so every push to `main` reaches installed users.
+A set version pins them to the cached copy until someone bumps it, and nothing here does.
 
 ## Commands
 
@@ -34,6 +42,8 @@ diversity skills/bubbletea-tui/kit/themes/*.json
 for t in skills/bubbletea-tui/kit/themes/*.json; do palette check "$t"; done
 skills-ref validate skills/bubbletea-tui                           # pip install "git+https://github.com/agentskills/agentskills#subdirectory=skills-ref"
 tools/gallery.sh                                                   # after any change to what the kit renders
+hooks/test.sh                                                      # the plugin's lint hook, end to end
+claude plugin validate .                                           # plugin, marketplace and hooks manifests
 ```
 
 CI (`.github/workflows/ci.yml`) runs all of these plus a render-and-lint pass over every
@@ -121,6 +131,7 @@ type(scope)!: description        e.g.  fix(kit): keep the focus bar on resize
   | `scripts` | the Python brand-asset converters |
   | `evals` | `evals/` and its fixtures |
   | `site` | the landing page |
+  | `plugin` | the Claude Code plugin: `hooks/` and `.claude-plugin/` |
 
   Work that spans the repo takes no scope: `ci: …`, `docs: …`, `chore: …`. Dependency
   bumps are `build(<module>): …`, e.g. `build(kit): bump lipgloss to v2.0.7`.
