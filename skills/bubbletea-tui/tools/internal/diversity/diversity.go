@@ -1,13 +1,16 @@
 // Package diversity is the engine behind the diversity command: tabulate each theme's
 // visible choices and fail a set of themes that are one design in several colours.
 // It is a port of scripts/diversity.py and prints the same bytes (see the testdata
-// goldens). It differs on purpose in three places:
+// goldens). It differs on purpose in four places:
 //
 //   - below --max-popular 0.5 one axis can fail on several values; they are listed in
 //     first-seen order, where diversity.py iterates a set (hash order, so its output
 //     changed from run to run);
 //   - an unreadable or malformed theme exits 2 with one line on stderr instead of a
 //     traceback (exit 1); usage errors exit 2 as argparse's do, with similar wording;
+//   - a --baseline name that matches no theme exits 2 with one line on stderr, where
+//     diversity.py skipped the min-distance rule silently (the default baseline, when
+//     missing, only adds a note on stderr);
 //   - -h prints the command's Go doc comment.
 package diversity
 

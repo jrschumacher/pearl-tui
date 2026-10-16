@@ -14,12 +14,12 @@
     ok   info         on bg         6.34  (want ≥3.0)  #3CA2E0 / #071B0F
     ok   border       on bg         1.22  (want ≥1.14 ≤1.9)  #092F1A / #071B0F
     ok   bgSubtle     on bg         1.23  (want ≥1.1 ≤2.2)  #102F1D / #071B0F
-    FAIL onPrimary    on primary    4.39  (want ≥4.5)  #001709 / #2E8B57
+    ok   onPrimary    on primary    4.51  (want ≥4.5)  #001307 / #2E8B57
     ok   onSecondary  on secondary  4.33  (want ≥3.5)  #001709 / #008889
     ok   onWarning    on warning   11.36  (want ≥4.5)  #001709 / #F1C45E
     ok   onError      on error      6.10  (want ≥3.5)  #001709 / #DD7573
     ok   onSuccess    on success    6.81  (want ≥3.5)  #001709 / #56AE6C
-    ok   fgSelected   on primary    4.39  (want ≥3.5)  #001709 / #2E8B57
+    ok   fgSelected   on primary    4.51  (want ≥3.5)  #001307 / #2E8B57
   light
     ok   fg           on bg        12.04  (want ≥7.0)  #29372E / #F1FEF5
     ok   fgMuted      on bg         4.65  (want ≥4.5)  #5A7964 / #F1FEF5
@@ -36,11 +36,11 @@
     ok   info         on bg         5.70  (want ≥3.0)  #006A9D / #F1FEF5
     ok   border       on bg         1.22  (want ≥1.14 ≤1.9)  #CAEDD6 / #F1FEF5
     ok   bgSubtle     on bg         1.24  (want ≥1.1 ≤2.2)  #CCEAD6 / #F1FEF5
-    FAIL onPrimary    on primary    4.39  (want ≥4.5)  #001709 / #2E8B57
+    ok   onPrimary    on primary    4.51  (want ≥4.5)  #001307 / #2E8B57
     ok   onSecondary  on secondary  4.33  (want ≥3.5)  #001709 / #008889
     ok   onWarning    on warning    4.72  (want ≥4.5)  #F4FDF7 / #906B00
     ok   onError      on error      6.17  (want ≥3.5)  #F4FDF7 / #A03F40
     ok   onSuccess    on success    5.44  (want ≥3.5)  #F4FDF7 / #137738
-    ok   fgSelected   on primary    4.39  (want ≥3.5)  #001709 / #2E8B57
+    ok   fgSelected   on primary    4.51  (want ≥3.5)  #001307 / #2E8B57
 wrote swatch.ansi (render: cellshot.py swatch.ansi swatch.png)
-FAIL (2 contrast problems)
+OK (0 contrast problems)

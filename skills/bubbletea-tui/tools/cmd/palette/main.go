@@ -19,7 +19,9 @@
 // Options take their value as the next argument or after "=".
 //
 // `check` fills the on-colours a theme leaves out exactly as the kit's engine does
-// (tuikit/theme), so it checks the inks the app will draw.
+// (tuikit/theme), so it checks the inks the app will draw. It reads role colours by the
+// engine's rule too: "#RGB" or "#RRGGBB", nothing else. Lip Gloss reads "6B50FF" (no #)
+// as an ANSI index or no colour, and "#6B50FFAA" as no colour, so those exit 2.
 //
 // Thresholds (WCAG 2 contrast ratio against the role's background):
 //
@@ -32,6 +34,8 @@
 //	hints (fgSubtle) on bgSubtle, so that pair must clear tuilint's 2.3 floor
 //
 // derive aims higher than these floors (fgMuted 4.6, fg 11–12, accent and status 4.5).
+// On a mid-tone fill where neither ink clears its floor, derive deepens the ink toward
+// black or white along its hue (the engine does the same), so the brand keeps its hex.
 //
 // Exit status: 0 OK, 1 contrast problems, 2 usage or input errors.
 package main

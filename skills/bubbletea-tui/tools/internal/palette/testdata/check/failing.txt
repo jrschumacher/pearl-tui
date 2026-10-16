@@ -14,12 +14,12 @@
     ok   info         on bg         6.49  (want ≥3.0)  #2E5E8C / #FAFAF9
     FAIL border       on bg        12.10  (want ≥1.14 ≤1.9)  #333333 / #FAFAF9
     FAIL bgSubtle     on bg         1.03  (want ≥1.1 ≤2.2)  #F7F7F5 / #FAFAF9
-    FAIL onPrimary    on primary    3.48  (want ≥4.5)  #555555 / #7FB3FF
+    ok   onPrimary    on primary    4.54  (want ≥4.5)  #444444 / #7FB3FF
     ok   onSecondary  on secondary  4.10  (want ≥3.5)  #555555 / #C0C0C0
     ok   onWarning    on warning    4.77  (want ≥4.5)  #555555 / #EBCB8B
     ok   onError      on error      5.97  (want ≥3.5)  #FFFFFF / #B3363F
     ok   onSuccess    on success    4.18  (want ≥3.5)  #555555 / #8FD19E
-    FAIL fgSelected   on primary    3.48  (want ≥3.5)  #555555 / #7FB3FF
+    ok   fgSelected   on primary    4.54  (want ≥3.5)  #444444 / #7FB3FF
   dark
     ok   fg           on bg        13.27  (want ≥7.0)  #d8dee9 / #15171c
     ok   fgMuted      on bg         5.79  (want ≥4.5)  #8A93A3 / #15171c
@@ -33,4 +33,4 @@
     ACCEPT onWarning    on warning    1.56  (want ≥4.5)  #ffffff / #EBCB8B  — True
     ok   onSuccess    on success   10.06  (want ≥3.5)  #15171c / #8FD19E
     ok   fgSelected   on primary    8.61  (want ≥3.5)  #15171c / #8fb8de
-FAIL (11 contrast problems)
+FAIL (9 contrast problems)
