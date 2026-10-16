@@ -83,6 +83,7 @@ Read before any UI change. Update it when a decision changes.
 
 ### Users and terminals
 <who; sizes (80×24 design floor); light/dark; SSH/tmux; NO_COLOR; screen readers>
+colour: truecolor → 256 → 16 → none; under -profile ascii, focus, selection and errors stay visible by <glyph, weight>
 
 ### Brand read
 palette / tone / geometry / density / type / motif / remember   (references/brand.md §1)
@@ -94,6 +95,10 @@ themes/<brand>.json   (palette derive from <measured hexes, source>)
 
 ### Screens
 <screen> — <its job in one line>
+
+### Motion
+hero: <the one long-running action> → <its animation, ≤ 30 cells, from the brand motif>
+rows: <spinners for row-level work>; idle: nothing moves
 
 ### Never
 <anti-references: what this product must not look or sound like>
@@ -123,7 +128,8 @@ Huh v2 for <setup, config, confirm>, themed with the kit's `ui.NewForm` from
 Bubbles: <textarea, viewport, …>. Kit ui: <List, Table, Dialog, Footer, …>.
 
 ### States and keys
-One action table per state; footer and dispatcher both read it.
+One action table per state; footer and dispatcher both read it. Every screen that
+loads data has its empty, loading, error and partial (some sources failed) rows.
 
 | state (harness name) | screen / overlay | keys |
 |---|---|---|
@@ -140,6 +146,7 @@ fakes: <service> → <fake>, one per external CLI or API; no render or test touc
 ### Async and the clock
 <work> → <cmd> → <msg>; cancel: <context>; stale results: <id or generation>.
 One gen-stamped tick, armed only while <what> animates.
+largest: <realistic worst case, e.g. a 20k-line diff, 5k items> → <virtual list | render cache keyed by …>
 
 ### Size floor
 Below 60×18: ui.TooSmall. Below 110 columns: <what collapses>. Below 30 rows: <what>.
