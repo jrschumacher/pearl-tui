@@ -255,8 +255,8 @@ func isASCII(s string) bool {
 }
 
 // twin is the glyph ASCII draws for s: the theme's twin, the kit's, s itself when it
-// is already ASCII, else "?". Load refuses a theme that would reach "?", so "?" only
-// shows for a File built in code, and never as another mark's twin.
+// is already ASCII, else "?": loud (F-ASCII fails it, CheckGlyphs names it) and never
+// another mark's twin.
 func twin(own map[string]string, s string) string {
 	if v, ok := own[s]; ok {
 		return v
@@ -270,9 +270,23 @@ func twin(own map[string]string, s string) string {
 	return "?"
 }
 
-// CheckGlyphs fails a theme whose glyphs ASCII can't draw: a twin in glyphs.ascii
-// that isn't ASCII itself, or a glyph outside ASCII with no twin in the theme's map or
-// the kit's. Load and palette check call it.
+// glyphMeanings are the glyph fields that mark different states of one thing. Under
+// ASCII two of a set that differ as glyphs must differ as twins too, or two states
+// become one mark (a ◔ reading and a ● new both "*"). warn and fail are in the status
+// set as ASCII draws them, "!" and "x".
+var glyphMeanings = [][]string{
+	{"Done", "Current", "Todo", "Pending", "Warn", "Fail"}, // a step's or an item's state
+	{"RadioOn", "RadioOff"},
+	{"CheckOn", "CheckOff"},
+	{"Thumb", "Track"},
+	{"FocusBar", "BlurBar"},
+}
+
+// CheckGlyphs reports a theme whose glyphs ASCII can't draw faithfully: a twin in
+// glyphs.ascii that isn't ASCII itself, a glyph outside ASCII with no twin in the
+// theme's map or the kit's (it would draw as "?"), or two glyphs of one meaning set
+// (glyphMeanings) that differ but share a twin. palette check and the kit's tests
+// fail on it; theme.Load doesn't, so an app never refuses to start over a glyph.
 func CheckGlyphs(g Glyphs) error {
 	keys := make([]string, 0, len(g.ASCII))
 	for k := range g.ASCII {
@@ -285,13 +299,37 @@ func CheckGlyphs(g Glyphs) error {
 		}
 	}
 	var err error
-	glyphFields(&g, func(name, key string, p *string) {
+	src := glyphDefaults(g)
+	glyphFields(&src, func(name, key string, p *string) {
 		if err != nil || asciiForced[name] || twin(g.ASCII, *p) != "?" {
 			return
 		}
-		err = fmt.Errorf("glyphs.%s %q has no ASCII twin: -ascii and TERM=linux can't draw it, and a guess could match another mark's twin; add \"ascii\": {%q: \"<twin>\"} to glyphs", key, *p, *p)
+		err = fmt.Errorf("glyphs.%s %q has no ASCII twin: -ascii and TERM=linux would draw it as \"?\"; add \"ascii\": {%q: \"<twin>\"} to glyphs", key, *p, *p)
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	out := ASCII(src)
+	sv, ov, t := reflect.ValueOf(src), reflect.ValueOf(out), reflect.TypeOf(src)
+	jsonKey := func(name string) string {
+		f, _ := t.FieldByName(name)
+		k, _, _ := strings.Cut(f.Tag.Get("json"), ",")
+		return k
+	}
+	for _, set := range glyphMeanings {
+		for i, a := range set {
+			for _, b := range set[i+1:] {
+				ga, gb := sv.FieldByName(a).String(), sv.FieldByName(b).String()
+				ta, tb := ov.FieldByName(a).String(), ov.FieldByName(b).String()
+				if ga == "" || gb == "" || ga == gb || ta != tb {
+					continue
+				}
+				return fmt.Errorf("glyphs.%s %q and glyphs.%s %q both draw as %q under ASCII, so two states read as one: give one of them another twin in glyphs.ascii",
+					jsonKey(a), ga, jsonKey(b), gb, ta)
+			}
+		}
+	}
+	return nil
 }
 
 // ASCII maps a glyph set onto tier-0 characters: TERM=linux, --ascii, or a
@@ -306,6 +344,11 @@ func ASCII(g Glyphs) Glyphs {
 	}
 	if g.Current == g.Warn || g.Current == g.Fail {
 		g.Current = "*"
+	}
+	// ┃ thumb and │ track both twin to "|": without colour the scrollbar would have no
+	// position, so the thumb becomes the solid block it stands for
+	if g.Thumb == g.Track && g.Thumb != "" {
+		g.Thumb = "#"
 	}
 	return g
 }

@@ -67,7 +67,10 @@
    " ··",
    "  ·",
    "   "
-  ]
+  ],
+  "ascii": {
+   "•": "+"
+  }
  },
  "expressions": {
   "header": "minimal",

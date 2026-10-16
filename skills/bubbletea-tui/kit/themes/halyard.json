@@ -76,7 +76,10 @@
    "◤",
    "◥"
   ],
-  "warn": "!"
+  "warn": "!",
+  "ascii": {
+   "◆": "+"
+  }
  },
  "expressions": {
   "header": "bar",

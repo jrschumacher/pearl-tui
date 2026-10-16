@@ -62,8 +62,10 @@ type Roles struct {
 
 // Glyphs is the brand's glyph vocabulary. Every glyph has an ASCII twin (see ASCII)
 // drawn when the theme is resolved with ascii=true: from the theme's own ascii map,
-// else the kit's. Load fails on a glyph with neither, so no two marks silently share
-// a fallback. A project that adds a glyph field here gets it mapped and checked too.
+// else the kit's. CheckGlyphs (palette check, the kit's tests) fails a glyph with
+// neither, and two marks of one meaning set that share a twin. Load doesn't: at run
+// time an unmapped glyph draws as "?", which tuilint frames --ascii fails. A project
+// that adds a glyph field here gets it mapped and checked too.
 type Glyphs struct {
 	HeaderRule string   `json:"headerRule"` // fills the header after the wordmark: ╱ ─ ═ · ━ ╌ ~ (or "")
 	Rule       string   `json:"rule"`       // section rules: ─ ━ ╌ ┄ ═ ·
@@ -168,9 +170,6 @@ func Load(path string) (File, error) {
 		if err := f.Roles[m].check(); err != nil {
 			return f, fmt.Errorf("%s: roles.%s.%w", path, m, err)
 		}
-	}
-	if err := CheckGlyphs(f.Glyphs); err != nil {
-		return f, fmt.Errorf("%s: %w", path, err)
 	}
 	return f, nil
 }

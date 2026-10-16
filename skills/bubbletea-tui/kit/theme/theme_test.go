@@ -116,24 +116,73 @@ func writeTheme(t *testing.T, json string) string {
 }
 
 // A glyph the kit's ASCII map doesn't know used to become "*" under -ascii, which is
-// ●'s twin: a ◔ "reading" state beside a ● "new" one drew as the same mark. Now a
-// theme gives its glyphs twins in glyphs.ascii, and Load fails on one without.
-func TestLoadFailsOnAGlyphWithNoASCIITwin(t *testing.T) {
-	for _, c := range []struct{ json, want string }{
-		{`{"glyphs": {"current": "●", "pending": "◔"}}`, `glyphs.pending "◔" has no ASCII twin`},
-		{`{"glyphs": {"focusBar": "🮇"}}`, `glyphs.focusBar "🮇" has no ASCII twin`},
-		{`{"glyphs": {"pending": "◔", "ascii": {"◔": "◐"}}}`, `glyphs.ascii: "◔" → "◐" is not ASCII`},
-		{`{"glyphs": {"ascii": {"◔": ""}}}`, `glyphs.ascii: "◔" → "" is not ASCII`},
+// ●'s twin: a ◔ "reading" state beside a ● "new" one drew as the same mark. A theme
+// gives its glyphs twins in glyphs.ascii; CheckGlyphs (palette check, the kit's tests)
+// fails one without, and two marks of one meaning that share a twin. Load still loads
+// the theme, so no app refuses to start over a glyph, and ASCII draws it as "?", which
+// tuilint frames --ascii fails.
+func TestCheckGlyphs(t *testing.T) {
+	for _, c := range []struct{ json, want, ascii string }{
+		{`{"glyphs": {"current": "●", "pending": "◔"}}`, `glyphs.pending "◔" has no ASCII twin`, "?"},
+		{`{"glyphs": {"focusBar": "🮇"}}`, `glyphs.focusBar "🮇" has no ASCII twin`, ""},
+		{`{"glyphs": {"pending": "◔", "ascii": {"◔": "◐"}}}`, `glyphs.ascii: "◔" → "◐" is not ASCII`, ""},
+		{`{"glyphs": {"ascii": {"◔": ""}}}`, `glyphs.ascii: "◔" → "" is not ASCII`, ""},
+		// a declared twin that is another state's twin
+		{`{"glyphs": {"current": "●", "pending": "◔", "ascii": {"◔": "*"}}}`, `glyphs.current "●" and glyphs.pending "◔" both draw as "*"`, "*"},
+		// halyard and lumen before their glyphs.ascii: done and pending, done and current
+		{`{"glyphs": {"done": "◆", "current": "▲", "todo": "△"}}`, `glyphs.done "◆" and glyphs.pending "●" both draw as "*"`, ""},
+		{`{"glyphs": {"done": "•", "current": "●", "todo": "○"}}`, `glyphs.done "•" and glyphs.current "●" both draw as "*"`, ""},
+		{`{"glyphs": {"checkOn": "◼", "checkOff": "◻", "ascii": {"◼": "#", "◻": "#"}}}`, `glyphs.checkOn "◼" and glyphs.checkOff "◻" both draw as "#"`, ""},
 	} {
 		path := writeTheme(t, c.json)
-		_, err := Load(path)
-		if err == nil || !strings.Contains(err.Error(), c.want) || !strings.HasPrefix(err.Error(), path+": ") {
-			t.Errorf("Load(%s) = %v, want %q", c.json, err, c.want)
+		f, err := Load(path)
+		if err != nil {
+			t.Errorf("Load(%s) = %v: a glyph must never stop an app from starting", c.json, err)
+			continue
+		}
+		if err := CheckGlyphs(f.Glyphs); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("CheckGlyphs(%s) = %v, want %q", c.json, err, c.want)
+		}
+		if c.ascii != "" {
+			if g := Resolve(f, true, true).G; g.Pending != c.ascii {
+				t.Errorf("%s: pending draws %q under ASCII, want %q", c.json, g.Pending, c.ascii)
+			}
 		}
 	}
-	// warn and fail are always "!" and "x" under ASCII, so they need no twin
-	if _, err := Load(writeTheme(t, `{"glyphs": {"warn": "◬", "fail": "✘"}}`)); err != nil {
-		t.Errorf("Load: %v", err)
+	// warn and fail are always "!" and "x" under ASCII, so they need no twin; the same
+	// glyph in two fields is one mark on purpose
+	for _, js := range []string{`{"glyphs": {"warn": "◬", "fail": "✘"}}`, `{"glyphs": {"done": "■", "current": "■"}}`} {
+		f, err := Load(writeTheme(t, js))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := CheckGlyphs(f.Glyphs); err != nil {
+			t.Errorf("CheckGlyphs(%s) = %v", js, err)
+		}
+	}
+}
+
+// Every theme beside the package (kit/themes, or the project's themes/ after a copy)
+// and every test theme under testdata passes CheckGlyphs: what palette check asks.
+func TestThemesPassCheckGlyphs(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	test, _ := filepath.Glob(filepath.Join("testdata", "*.json"))
+	if len(files) == 0 {
+		t.Fatal("no theme JSON in ../themes or ../../themes")
+	}
+	for _, path := range append(files, test...) {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := CheckGlyphs(f.Glyphs); err != nil {
+			t.Errorf("%s: %v", path, err)
+		}
 	}
 }
 

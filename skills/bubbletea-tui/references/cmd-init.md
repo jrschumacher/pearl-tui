@@ -200,7 +200,8 @@ wrong. Write them this way:
 - **Keep a meaningful glyph, with an ASCII twin and a width.** `◆ ◇ ▲ ★ ■` are East
   Asian "ambiguous": two cells in CJK locales, and the kit's ASCII map covers only its
   own glyphs. Keep the glyph, name its twin (`◆ ◇ ▲ (ascii * o ^)`), write the twin into
-  the theme's `glyphs.ascii` (`theme.Load` fails on a glyph with no twin), and set it in a
+  the theme's `glyphs.ascii` (`palette check` fails a glyph with no twin, or one that
+  shares another state's twin), and set it in a
   2-cell column, which the other ambiguous glyphs in that column need anyway. Swap it
   only for a narrow glyph with the same meaning (`✓ ❯ ▸`), never for a word: a set of
   marks read at a glance is part of the signature, and dropping one for width merges

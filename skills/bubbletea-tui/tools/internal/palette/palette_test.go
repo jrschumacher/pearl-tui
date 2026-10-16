@@ -291,11 +291,12 @@ func TestCheckRejectsWhatTheEngineRejects(t *testing.T) {
 	}
 }
 
-// check fails a glyph -ascii can't draw, as theme.Load does, with the same message.
+// check fails a glyph -ascii can't draw, and two states that share a twin (CheckGlyphs).
 func TestCheckRejectsGlyphsWithNoASCIITwin(t *testing.T) {
 	for _, c := range []struct{ glyphs, err string }{
 		{`{"pending": "◔"}`, `glyphs.pending "◔" has no ASCII twin`},
 		{`{"pending": "◔", "ascii": {"◔": "◑"}}`, `glyphs.ascii: "◔" → "◑" is not ASCII`},
+		{`{"pending": "◔", "ascii": {"◔": "*"}}`, `glyphs.current "●" and glyphs.pending "◔" both draw as "*"`},
 		{`{"pending": "◔", "ascii": {"◔": "~"}}`, ""},
 		{`{"todo": "◦"}`, ""}, // the kit's map has it
 	} {
@@ -306,15 +307,18 @@ func TestCheckRejectsGlyphsWithNoASCIITwin(t *testing.T) {
 		}
 		var out, errb bytes.Buffer
 		code := Main([]string{"check", path}, "", &out, &errb)
-		_, loadErr := theme.Load(path)
+		// theme.Load never fails on a glyph: an app must start; palette check is the gate
+		if _, err := theme.Load(path); err != nil {
+			t.Errorf("%s: theme.Load %v, want it to load", c.glyphs, err)
+		}
 		if c.err == "" {
-			if code == 2 || loadErr != nil {
-				t.Errorf("%s: check exit %d (%q), theme.Load %v; want both to accept", c.glyphs, code, errb.String(), loadErr)
+			if code == 2 {
+				t.Errorf("%s: check exit 2 (%q), want it to accept", c.glyphs, errb.String())
 			}
 			continue
 		}
-		if code != 2 || !strings.Contains(errb.String(), c.err) || loadErr == nil || !strings.Contains(loadErr.Error(), c.err) {
-			t.Errorf("%s: check exit %d (%q), theme.Load %v; want both to fail with %q", c.glyphs, code, errb.String(), loadErr, c.err)
+		if code != 2 || !strings.Contains(errb.String(), c.err) {
+			t.Errorf("%s: check exit %d (%q), want exit 2 with %q", c.glyphs, code, errb.String(), c.err)
 		}
 	}
 }

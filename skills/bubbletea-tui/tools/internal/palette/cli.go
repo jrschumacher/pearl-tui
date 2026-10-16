@@ -52,8 +52,9 @@ func check(path string, stdout, stderr io.Writer) int {
 	if err := json.Unmarshal(data, &top); err != nil {
 		return fail(stderr, fmt.Errorf("%s: %w", path, err))
 	}
-	// the engine's glyph rule (theme.Load): a glyph -ascii can't draw, or a twin that
-	// isn't ASCII, fails here as it fails at startup
+	// theme.CheckGlyphs: a glyph -ascii can't draw, a twin that isn't ASCII, or two
+	// states that share a twin. theme.Load lets them through so an app always starts;
+	// this is the gate
 	if raw, ok := top["glyphs"]; ok {
 		var g theme.Glyphs
 		if err := json.Unmarshal(raw, &g); err != nil {
