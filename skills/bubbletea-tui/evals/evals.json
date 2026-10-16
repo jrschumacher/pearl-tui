@@ -141,7 +141,11 @@
         "TUI.md's architecture half says one fixtures file feeds both the harness (-state, -out) and the tests, and names a fake for each external service (the forge CLI and the Beacon API)",
         "noticed that SPEC.md routes screen design to 'the tui-design method', asked which method governs the screens before writing TUI.md, and recorded the answer with its reason in TUI.md § Decisions",
         "TUI.md proposes a first slice: the smallest milestone that renders the core screens (inbox, thread, reply) on fixtures before any integration, with the rest of the v1 list ordered after it",
-        "did not commit and then un-commit the installed skill: it followed SKILL.md Setup (commit skills-lock.json and the .claude/skills link and restore with npx skills experimental_install, or commit .agents/skills/), so a fresh clone in a cloud container gets the skill back"
+        "did not commit and then un-commit the installed skill: it followed SKILL.md Setup (commit skills-lock.json and the .claude/skills link and restore with npx skills experimental_install, or commit .agents/skills/), so a fresh clone in a cloud container gets the skill back",
+        "TUI.md names one hero animation for the long-running action (the AI summary or a source refresh), drawn from the brand motif and at most 30 cells wide, and says nothing moves while idle",
+        "TUI.md's architecture half names the largest realistic data (the 20,000-line diff, a thread of hundreds of comments) and how it stays fast: a virtual list or a render cache with its key",
+        "TUI.md says how focus, selection and errors stay visible under -profile ascii and lists the colour profiles it supports (truecolor, 256, 16, none)",
+        "the key table has a partial state for the inbox (one of Forge, Beacon or mail failed while the others loaded), besides its empty, loading and error states"
       ]
     }
   ]

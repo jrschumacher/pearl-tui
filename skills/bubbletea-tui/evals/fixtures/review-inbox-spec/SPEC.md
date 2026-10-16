@@ -24,7 +24,8 @@ build, test and run with no manual setup.
 
 - **Inbox**: one row per item. The first column shows its state as a dot: ● unread,
   ◐ seen but unanswered, ○ done.
-- **Thread**: the conversation, newest last, with the diff hunk it refers to.
+- **Thread**: the conversation, newest last, with the diff hunk it refers to. Some
+  threads run to hundreds of comments on diffs of 20,000 lines.
 - **Reply**: a text box under the thread. Enter sends; Shift+Enter adds a newline, like
   every chat app.
 - **Note**: a private note on an item, same text box and keys as Reply.
