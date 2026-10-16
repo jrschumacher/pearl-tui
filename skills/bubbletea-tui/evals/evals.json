@@ -122,7 +122,8 @@
         "asked at most three questions per round, each with a proposed default",
         "wrote TUI.md with product, users and terminals, brand read, theme, screens and states, keys per state, architecture (root model, regions, forms library, async work, harness states), decisions, never",
         "named the forms library and how it is themed (Huh with the kit form theme) in the architecture section",
-        "ended by naming the next command (brand or shape) and what it assumed"
+        "ended by naming the next command (brand or shape) and what it assumed",
+        "created no file besides TUI.md (no SPEC.md, PRD or ARCH.md); with no product doc in the repo, TUI.md § Product holds the product facts and the hand-off has no 'Proposed for' line"
       ]
     },
     {
