@@ -194,10 +194,12 @@ wrong. Write them this way:
 - **One meaning per accent hue.** One hue for "new" *and* for focus makes the cursor
   row and a new row look the same. Focus is the gutter and the weight (`interaction.md`
   § Focus); a hue is a state.
-- **An ASCII twin and a width for every motif glyph.** `◆ ★ ▲ ■` are East Asian
-  "ambiguous": two cells in CJK locales, and the kit's ASCII map covers only its own
-  glyphs. Name the twin (`◆ ◇ (ascii * o)`), and pick a narrow glyph (`✓ ❯ ▸`) or a
-  2-cell column.
+- **Keep a meaningful glyph, with an ASCII twin and a width.** `● ◐ ◆ ★ ▲ ■` are East
+  Asian "ambiguous": two cells in CJK locales, and the kit's ASCII map covers only its
+  own glyphs. Keep the glyph, name its twin (`● ◐ ○ (ascii * ~ o)`), and set it in a
+  2-cell column, the one `●` already needs. Swap it only for a narrow glyph with the
+  same meaning (`✓ ❯ ▸`), never for a word: a state ladder read at a glance is part of
+  the signature, and dropping one rung for width merges two states into one mark.
 - **A fake for every external service.** The harness renders every state offline and
   the tests run in CI; a state that needs a live CLI or API is a state nobody reviews.
 - **A first slice.** The smallest milestone that renders the core screens on fixtures,
