@@ -49,10 +49,18 @@ cellshot frames/*-80x24.ansi --sheet sheet.png
 
 ## Copying it into a project
 
+From the project root, with `<skill>` the directory holding `SKILL.md`:
+
 ```sh
-cp -r kit/theme internal/theme && cp -r kit/ui internal/ui && cp kit/themes/<closest>.json themes/
-sed -i 's#"tuikit/#"<your/module>/internal/#' $(grep -rl '"tuikit/' internal)
+mkdir -p internal themes
+cp -r <skill>/kit/theme internal/theme && cp -r <skill>/kit/ui internal/ui
+cp <skill>/kit/themes/<closest>.json themes/
+perl -pi -e 's#"tuikit/#"<your/module>/internal/#' $(grep -rl '"tuikit/' internal)
+go get <the pins in references/architecture.md> && go mod tidy && go test ./...
 ```
+
+`perl -pi` because `sed -i` takes different arguments on macOS. The `ui` tests read
+`themes/*.json` from either layout, so they pass in your project as they do here.
 
 Then build your root model on the showcase's shape (action tables, `render`, `setState`,
 harness flags, the two test files) and replace its screens with yours.

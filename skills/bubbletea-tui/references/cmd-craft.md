@@ -12,6 +12,7 @@ invents its regions and keys screen by screen.
 ## 1. Start From The Kit, Not From Prose
 
 ```
+mkdir -p internal themes
 cp -r <skill>/kit/theme  internal/theme      # theme engine
 cp -r <skill>/kit/ui     internal/ui         # components
 cp <skill>/kit/themes/<closest>.json themes/ # or the brand's theme
