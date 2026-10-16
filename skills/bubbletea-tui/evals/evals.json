@@ -155,7 +155,7 @@
         "round 2 confirmed the screen list, each screen with its job, in a question's default, although the Grainline conflict also needed a question: the conflict got its own short round or replaced a lower-value question, never the screens one, and the flows SPEC.md describes outside § Screens (morning triage with bulk mark-done and snooze, acknowledging a Beacon page from anywhere) appear in that list or are deferred by name",
         "the brand read's remember line names a move the TUI draws on every screen (the state-dot column, a rule, a gutter, a layout move), not a quality of the content such as 'reads like a well-set page'",
         "the ● ◐ ○ ✓ state ladder keeps ◐: it has an ASCII twin and sits in a 2-cell column, and is not dropped or replaced by plain text for being ambiguous-width",
-        "no state's footer keys overflow the 80-column footer: a state with more actions than fit (the inbox) marks its footer cut with ‖, keys after it reachable from ? help; tuilint spec reports no S-FOOTER",
+        "no state's footer keys overflow the 80-column footer: a state with more actions than fit (the inbox) marks its footer (bold keys, or ‖ after them), keeping its main actions and its way out in it and the rest reachable from ? help; tuilint spec reports no S-FOOTER",
         "TUI.md's colour line says what separates dialogs and overlays from the page where the background step is gone (16 colours, NO_COLOR, -profile ascii), e.g. a hairline rule or border, although SPEC.md asks for borderless filled panels",
         "the First slice is the main loop's 2–3 screens (inbox, thread, reply) with every state of those on fixtures, not every state of every screen; note, the quick switcher and the rest come after it"
       ]
