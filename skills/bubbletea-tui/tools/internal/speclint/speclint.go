@@ -135,19 +135,21 @@ func Lint(file, src string) []Finding {
 	add := func(rule string, line int, format string, a ...any) {
 		out = append(out, Finding{Rule: rule, Sev: Severity[rule], File: file, Line: line, Msg: fmt.Sprintf(format, a...)})
 	}
+	warn := func(rule string, line int, format string, a ...any) { // P2 under a rule that is P1 by default
+		out = append(out, Finding{Rule: rule, Sev: "P2", File: file, Line: line, Msg: fmt.Sprintf(format, a...)})
+	}
 	if len(s.rows) == 0 {
 		add("S-TABLE", 1, "no States-and-keys table: write `| state (harness name) | screen / overlay | keys |` with keys as `key action · key action`, as cmd-init.md's template does; the key rules can't run without it")
 	}
 	for _, r := range append(append([]row{}, s.globals...), s.rows...) {
 		for _, b := range r.bindings {
 			if b.bad != "" {
-				out = append(out, Finding{Rule: "S-TABLE", Sev: "P2", File: file, Line: r.line, Msg: fmt.Sprintf(
-					"%s: can't read key %q in `%s %s`, so the key rules skip it. Write keys as Bubble Tea names (ctrl+k, shift+tab, enter, pgdown, ↑↓, j/k), each item `key action`, items separated by ·",
-					r.state, b.bad, b.token, b.action)})
+				warn("S-TABLE", r.line, "%s: can't read key %q in `%s %s`, so the key rules skip it. Write keys as Bubble Tea names (ctrl+k, shift+tab, enter, pgdown, ↑↓, j/k), each item `key action`, items separated by ·",
+					r.state, b.bad, b.token, b.action)
 			}
 		}
 	}
-	s.keyAmbig(add)
+	s.keyAmbig(add, warn)
 	s.keyDup(add)
 	s.keyShadow(add)
 	s.glyphWidth(add)
@@ -393,10 +395,15 @@ func (s *spec) meaning(r row, k key) string {
 	return ""
 }
 
-func (s *spec) keyAmbig(add func(string, int, string, ...any)) {
+func (s *spec) keyAmbig(add, warn func(string, int, string, ...any)) {
 	for _, r := range append(append([]row{}, s.globals...), s.rows...) {
 		for bi, b := range r.bindings {
 			for _, k := range b.keys {
+				if bsClash(k) {
+					warn("S-KEYAMBIG", r.line, "%s: %s (%s) arrives as itself, but BS (0x08) decodes as ctrl+h too, and xterm-like terminals send BS for ctrl+backspace (a few for backspace), so there that key does %q as well. Keep it if that's harmless here; otherwise pick another key",
+						r.state, k, b.action, b.action)
+					continue
+				}
 				as, why, ok := legacy(k)
 				if ok || hasFallback(r.bindings, bi, k) {
 					continue

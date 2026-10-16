@@ -27,11 +27,13 @@
 //	                    shift+ or ctrl+ on enter, tab, backspace, esc, space → the bare key
 //	                    (shift+tab and ctrl+space have their own codes and are fine)
 //	                    ctrl+m → enter    ctrl+i → tab    ctrl+[ → esc    ctrl+@ → ctrl+space
-//	                    ctrl+h → the byte backspace sends on many terminals
+//	                    ctrl+backspace → ctrl+h (BS) on xterm-like terminals, backspace (DEL) on the rest
 //	                    ctrl+shift+<letter> → ctrl+<letter>    ctrl+/ → ctrl+_ (0x1f)
 //	                    ctrl+<digit> or other ctrl+<punctuation> → no legacy code at all
 //	                    meta+, hyper+, super+ → only the kitty protocol sends them
 //	                  Fix: `shift+enter/ctrl+j newline` (ctrl+j is LF, which every terminal sends).
+//	             [P2] ctrl+h: it arrives as itself, but BS (0x08) also decodes as ctrl+h, and
+//	                  xterm-like terminals send BS for ctrl+backspace (a few for backspace)
 //	S-KEYDUP     [P1] one key bound to two different actions in one state's cell, or in Global:
 //	                  the first match wins and the other hint lies. A state that binds a
 //	                  Global key to its own action overrides it (dispatch runs overlay, then

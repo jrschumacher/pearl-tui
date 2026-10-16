@@ -47,7 +47,9 @@ func TestRules(t *testing.T) {
 		{"ctrl+enter", table("| reply | overlay | ctrl+enter send |", ""), map[string]int{"S-KEYAMBIG": 1}},
 		{"ctrl+m", table("| list | list | ctrl+m mark |", ""), map[string]int{"S-KEYAMBIG": 1}},
 		{"ctrl+i", table("| list | list | ctrl+i info |", ""), map[string]int{"S-KEYAMBIG": 1}},
-		{"ctrl+h", table("| list | list | ctrl+h history |", ""), map[string]int{"S-KEYAMBIG": 1}},
+		{"ctrl+h warns", table("| list | list | ctrl+h history |", ""), map[string]int{"S-KEYAMBIG": 1}},
+		{"ctrl+backspace", table("| list | list | ctrl+backspace delete word |", ""), map[string]int{"S-KEYAMBIG": 1}},
+		{"ctrl+backspace with a fallback", table("| list | list | ctrl+backspace/ctrl+w delete word |", ""), nil},
 		{"ctrl+[", table("| list | list | ctrl+[ back |", ""), map[string]int{"S-KEYAMBIG": 1}},
 		{"shift+space", table("| list | list | shift+space page up |", ""), map[string]int{"S-KEYAMBIG": 1}},
 		{"ctrl+tab", table("| list | list | ctrl+tab next pane |", ""), map[string]int{"S-KEYAMBIG": 1}},
@@ -132,6 +134,19 @@ func TestRules(t *testing.T) {
 	}
 }
 
+// Some findings are P2 under a rule that is P1 by default: they must not fail init.
+func TestWarningsDontBlock(t *testing.T) {
+	for _, doc := range []string{
+		table("| list | list | ctrl+h history |", ""),
+		table("| list | list | enter open · foo bar |", ""),
+	} {
+		fs := Lint("TUI.md", doc)
+		if len(fs) != 1 || fs[0].Sev != "P2" {
+			t.Errorf("want one P2, got\n%s", dump(fs))
+		}
+	}
+}
+
 func dump(fs []Finding) string {
 	var b strings.Builder
 	for _, f := range fs {
@@ -143,10 +158,10 @@ func dump(fs []Finding) string {
 func TestLegacy(t *testing.T) {
 	cases := map[string]string{ // key → what arrives ("ok" if itself, "" if nothing)
 		"shift+enter": "enter", "ctrl+enter": "enter", "ctrl+shift+enter": "enter", "alt+shift+enter": "alt+enter",
-		"ctrl+m": "enter", "ctrl+i": "tab", "ctrl+[": "esc", "ctrl+h": "backspace", "ctrl+@": "ctrl+space",
+		"ctrl+m": "enter", "ctrl+i": "tab", "ctrl+[": "esc", "ctrl+h": "ok", "ctrl+@": "ctrl+space",
 		"ctrl+2": "ctrl+space", "ctrl+/": "ctrl+_", "ctrl+shift+k": "ctrl+k", "ctrl+K": "ok",
 		"ctrl+tab": "tab", "ctrl+shift+tab": "shift+tab", "shift+space": "space", "ctrl+shift+space": "ctrl+space",
-		"shift+backspace": "backspace", "ctrl+backspace": "backspace", "shift+esc": "esc",
+		"shift+backspace": "backspace", "ctrl+backspace": "ctrl+h", "alt+ctrl+backspace": "ctrl+alt+h", "shift+esc": "esc",
 		"super+k": "", "meta+x": "", "hyper+a": "", "ctrl+1": "", "ctrl+,": "", "ctrl+.": "",
 		"enter": "ok", "alt+enter": "ok", "shift+tab": "ok", "ctrl+space": "ok", "ctrl+j": "ok", "ctrl+k": "ok",
 		"ctrl+_": "ok", "ctrl+\\": "ok", "ctrl+]": "ok", "ctrl+^": "ok", "shift+up": "ok", "ctrl+right": "ok",

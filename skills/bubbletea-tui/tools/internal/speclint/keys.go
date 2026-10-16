@@ -233,6 +233,10 @@ func legacy(k key) (as string, why string, ok bool) {
 		if k.base == "space" && k.mods&modCtrl != 0 {
 			rest = key{mods: modCtrl | (k.mods & modAlt), base: "space"}
 		}
+		if k.base == "backspace" && k.mods&modCtrl != 0 {
+			return key{mods: modCtrl | (k.mods & modAlt), base: "h"}.String(),
+				"legacy encoding has no code for ctrl+backspace: xterm-like terminals send BS (0x08), which decodes as ctrl+h, and the rest send DEL (0x7f), plain backspace", false
+		}
 		return rest.String(), k.base + " is one byte, so its modifiers are lost", false
 	}
 	if k.mods&modCtrl == 0 || utf8.RuneCountInString(k.base) != 1 {
@@ -247,8 +251,6 @@ func legacy(k key) (as string, why string, ok bool) {
 		return key{mods: alt, base: "tab"}.String(), "ctrl+i and tab are both HT (0x09)", false
 	case r == '[':
 		return key{mods: alt, base: "esc"}.String(), "ctrl+[ and esc are both ESC (0x1b)", false
-	case r == 'h' && k.mods&modShift == 0:
-		return key{mods: alt, base: "backspace"}.String(), "many terminals send backspace (and ctrl+backspace) as BS (0x08), which decodes as ctrl+h", false
 	case r == '@' || r == '2':
 		return key{mods: modCtrl | alt, base: "space"}.String(), "ctrl+@, ctrl+2 and ctrl+space are all NUL (0x00)", false
 	case r == '/':
@@ -264,6 +266,13 @@ func legacy(k key) (as string, why string, ok bool) {
 		return "", "", true
 	}
 	return "", "ctrl+" + k.base + " has no legacy code of its own; terminals send the bare key, another key's control byte, or nothing", false
+}
+
+// bsClash reports a key that arrives as itself but shares its byte with backspace:
+// Ultraviolet decodes BS (0x08) as ctrl+h, and xterm-like terminals send BS for
+// ctrl+backspace (a few for backspace), so those arrive as ctrl+h too.
+func bsClash(k key) bool {
+	return k.base == "h" && k.mods&^modAlt == modCtrl
 }
 
 // textKeys are the keys a focused Bubbles v2.2.1 textarea or textinput handles in its
