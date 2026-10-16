@@ -53,8 +53,9 @@ Huh on its default theme) as a `gap:` line, which `restyle` then closes.
   default first, marked "(recommended)", plus one or two real alternatives.
 - **Ask only what you couldn't infer.** Confirm an inference in the question's default
   instead of asking it open.
-- **Stop at two rounds** unless an answer changes the design. Whatever is still unknown
-  takes its default and goes under `## Assumed`.
+- **Stop at two rounds** (a step-0 conflict round doesn't count) unless an answer
+  changes the design. Whatever is still unknown takes its default and goes under
+  `## Assumed`.
 
 Round 1, design (skip what the repo answered):
 
@@ -71,7 +72,7 @@ Round 2, architecture (only what the code didn't answer):
    the first slice), and a list inferred in silence drops the flows the user cares
    about. Default: one line per screen with its job (`services — see what is
    deployed`), one per command you found, plus each flow the docs describe that has
-   no screen yet (a bulk action, an alert answered from any screen).
+   no screen yet (an export, a background sync).
 2. **Forms.** Default: Huh v2 for input mechanics (select, input, confirm), themed from
    the brand theme through the kit's `ui.NewForm` (`ui/form.go`), because Huh's own theme is the indigo
    every Huh demo ships.
@@ -104,7 +105,7 @@ dialogs and overlays: where the background step is gone (16 colours, NO_COLOR, a
 
 ### Brand read
 palette / tone / geometry / density / type / motif   (references/brand.md §1)
-remember: <a move every screen draws: a glyph column, a rule, a layout move>, not how the content reads
+remember: <a move every screen draws: a title motif, a header rule, a layout move>, not a quality of the content
 accents: <hue> = <its one meaning>, one line per hue; focus = <gutter, weight>, never a state hue
 glyphs: <glyph> <meaning> (ascii <twin>), one line each; width-safe: <narrow glyph | 2-cell column>
 
@@ -148,11 +149,11 @@ Bubbles: <textarea, viewport, …>. Kit ui: <List, Table, Dialog, Footer, …>.
 ### States and keys
 One action table per state; footer and dispatcher both read it. Every screen that
 loads data has its empty, loading, error and partial (some sources failed) rows.
-Keys before ‖ are the footer, most used first, ending in ? help; keys after ‖ are help-only.
+Footer keys are **bold** (in a long cell, ‖ after the last of them does the same): main actions first, then the way out and ? help. The rest are help-only.
 
 | state (harness name) | screen / overlay | keys |
 |---|---|---|
-| services             | services         | ↑↓ move · enter open · / filter · ? help ‖ r refresh · q quit |
+| services             | services         | **↑↓ move** · **enter open** · **d deploy** · **r roll back** · **/ filter** · **q quit** · **? help** · l logs · c copy id · s sort by status |
 | services-empty       | services         | r refresh · ? help · q quit |
 | confirm              | overlay          | ←→ choose · enter confirm · esc cancel |
 
@@ -188,19 +189,20 @@ Then: <the rest of v1, in order>
 A brief written before this skill (a spec, a PRD, an earlier TUI.md) gets these sections
 wrong. Write them this way:
 
-- **A `remember` line the TUI draws.** Name a move visible on every screen: the state
-  glyph column, a `╱` in every title, an accent `▌` gutter. Law 10 makes the brand two
-  or three such moves; "reads like a well-set essay" describes the content, and no
-  later command can draw it, so the screens go generic.
+- **A `remember` line the TUI draws.** Name a move visible on every screen: a `╱` in
+  every title, a two-tone header rule, an accent `▌` gutter. Law 10 makes the brand two
+  or three such moves; "feels trustworthy and well made" describes a quality of the
+  product, and no later command can draw it, so the screens go generic.
 - **One meaning per accent hue.** One hue for "new" *and* for focus makes the cursor
   row and a new row look the same. Focus is the gutter and the weight (`interaction.md`
   § Focus); a hue is a state.
-- **Keep a meaningful glyph, with an ASCII twin and a width.** `● ◐ ◆ ★ ▲ ■` are East
+- **Keep a meaningful glyph, with an ASCII twin and a width.** `◆ ◇ ▲ ★ ■` are East
   Asian "ambiguous": two cells in CJK locales, and the kit's ASCII map covers only its
-  own glyphs. Keep the glyph, name its twin (`● ◐ ○ (ascii * ~ o)`), and set it in a
-  2-cell column, the one `●` already needs. Swap it only for a narrow glyph with the
-  same meaning (`✓ ❯ ▸`), never for a word: a state ladder read at a glance is part of
-  the signature, and dropping one rung for width merges two states into one mark.
+  own glyphs. Keep the glyph, name its twin (`◆ ◇ ▲ (ascii * o ^)`), and set it in a
+  2-cell column, which the other ambiguous glyphs in that column need anyway. Swap it
+  only for a narrow glyph with the same meaning (`✓ ❯ ▸`), never for a word: a set of
+  marks read at a glance is part of the signature, and dropping one for width merges
+  two meanings into one mark.
 - **A dialog edge that survives without colour.** A filled panel one background step
   up, with no border, sits on the page in the same colour under 16 colours and
   NO_COLOR, so the dialog's edge vanishes. The kit's `dialog: none` gets an ASCII
@@ -221,7 +223,7 @@ checks:
   frame.
 - **Keys here are the action tables.** If the table and `actions()` disagree, the code
   wins and this file is fixed in the same change; `TestHelpIsHandled` holds the code.
-  Keys after ‖ are the actions with `show: false`.
+  The help-only keys (not bold, or after ‖) are the actions with `show: false`.
 - **A decision carries its reason.** "Square dialogs" is a default in disguise; "square
   dialogs because the brand is industrial" survives the next restyle.
 
@@ -236,9 +238,9 @@ because the state's table is dispatched first. Fix its warnings or justify each 
 § Decisions: a Global key a text box eats (`ctrl+k` deletes to end of line in a Bubbles
 textarea) [S-KEYSHADOW], an ambiguous-width glyph with no ASCII twin [S-GLYPHWIDTH], and
 a state whose footer keys overflow the 76 columns an 80-column footer has inside the
-kit's gutters, where `ui.Help` drops the tail behind `…` [S-FOOTER]. Fix that one with
-a ‖ after the keys a user needs most, ending in `? help`, so the rest are help-only by
-decision rather than cut by width.
+kit's gutters, where `ui.Help` drops the tail behind `…` [S-FOOTER]. Fix that one by
+marking the footer, bold or ‖: the state's main actions and its way out, then `? help`,
+so the rest are help-only by decision rather than cut by width, and never `esc` or quit.
 
 ## 5. Hand Off In Three Lines
 
