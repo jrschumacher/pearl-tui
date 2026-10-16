@@ -24,7 +24,9 @@ points to. Often there is none, and the interview is the only source. What you f
 confirm in a question's default; don't ask it again. If one routes screen design
 to another method, tool or skill ("screens are designed with the X method"), ask which
 one governs this TUI and record the answer, with its reason, in § Decisions. A build
-agent follows whichever instruction it read last, so two methods give two designs.
+agent follows whichever instruction it read last, so two methods give two designs. Ask
+it in its own one-question round before round 2, or in place of a lower-value round-2
+question (forms, the floor), never in place of the screens question.
 
 ## 1. Explore Before Asking
 
@@ -64,7 +66,12 @@ Round 1, design (skip what the repo answered):
 
 Round 2, architecture (only what the code didn't answer):
 
-1. **Screens and the job of each.** Default: one screen per command you found.
+1. **Screens and the job of each. Always ask it**, even when a spec lists them, because
+   screens are the backbone every later command reads (`shape`, the harness states,
+   the first slice), and a list inferred in silence drops the flows the user cares
+   about. Default: one line per screen with its job (`services — see what is
+   deployed`), one per command you found, plus each flow the docs describe that has
+   no screen yet (a bulk action, an alert answered from any screen).
 2. **Forms.** Default: Huh v2 for input mechanics (select, input, confirm), themed from
    the brand theme through the kit's `ui.NewForm` (`ui/form.go`), because Huh's own theme is the indigo
    every Huh demo ships.
