@@ -102,7 +102,8 @@ Read before any UI change. Update it when a decision changes.
 colour: truecolor → 256 → 16 → none; under -profile ascii, focus, selection and errors stay visible by <glyph, weight>
 
 ### Brand read
-palette / tone / geometry / density / type / motif / remember   (references/brand.md §1)
+palette / tone / geometry / density / type / motif   (references/brand.md §1)
+remember: <a move every screen draws: a glyph column, a rule, a layout move>, not how the content reads
 accents: <hue> = <its one meaning>, one line per hue; focus = <gutter, weight>, never a state hue
 glyphs: <glyph> <meaning> (ascii <twin>), one line each; width-safe: <narrow glyph | 2-cell column>
 
@@ -183,9 +184,13 @@ Then: <the rest of v1, in order>
 - <default the user didn't confirm>   (confirm it, then move it to Decisions)
 ````
 
-A brief written before this skill (a spec, a PRD, an earlier TUI.md) gets four sections
+A brief written before this skill (a spec, a PRD, an earlier TUI.md) gets these sections
 wrong. Write them this way:
 
+- **A `remember` line the TUI draws.** Name a move visible on every screen: the state
+  glyph column, a `╱` in every title, an accent `▌` gutter. Law 10 makes the brand two
+  or three such moves; "reads like a well-set essay" describes the content, and no
+  later command can draw it, so the screens go generic.
 - **One meaning per accent hue.** One hue for "new" *and* for focus makes the cursor
   row and a new row look the same. Focus is the gutter and the weight (`interaction.md`
   § Focus); a hue is a state.
