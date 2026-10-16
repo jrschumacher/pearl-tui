@@ -65,8 +65,9 @@ agreeing with your grades line for line.
 - **Temporal lint for animation** (`cell-art.md` rule 14) as a script over frame
   sequences.
 - ~~**Hooks**~~ (done): the repo is a Claude Code plugin whose PostToolUse hook runs
-  `tuilint code` after every `.go` edit in a Bubble Tea or Huh module and hands the edited
-  package's P0/P1 findings back to the model (`hooks/`, `tuilint hook`). Agents ignore
+  `tuilint code` after every `.go` edit in a Bubble Tea or Huh module of a project built
+  with the skill (a `TUI.md`, or a copy of the kit's theme) and hands the edited file's
+  P0/P1 findings back to the model (`hooks/`, `tuilint hook`). Agents ignore
   prose; they don't ignore a hook. The first dogfood run was the case for it: the skill
   described theming Huh, and the agent skipped it until C-HUHTHEME made it fail. Still to
   measure: whether the next dogfood run fixes findings on the edit that caused them.

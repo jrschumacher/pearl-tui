@@ -47,11 +47,18 @@ On Claude Code 2.1.275 or later, one step does both:
 `/plugin install bubbletea-tui --marketplace jrschumacher/skill-bubbletea-tui`.
 
 The plugin carries the same skill, plus a hook. After every Edit or Write of a `.go` file
-in a module that uses Bubble Tea or Huh, it runs `tuilint code` and hands the edited
-package's blocking (P0/P1) findings back to Claude, which fixes them before it moves on.
-Agents skim prose; they can't skim a failing check. The first Go edit builds the tools
-(about 25 s on a cold Go cache); after that a check takes about 0.3 s. If the hook can't
-run (no Go on `PATH`, a failed build), it notes why and lets the edit through.
+in a Bubble Tea or Huh module, it runs `tuilint code` and hands the edited file's
+blocking (P0/P1) findings back to Claude, which fixes them before it moves on. Agents
+skim prose; they can't skim a failing check. The first Go edit builds the tools (about
+25 s on a cold Go cache); after that a check takes about 0.3 s.
+
+The hook acts only in projects built with the skill, so your other Bubble Tea repos are
+left alone: a `TUI.md` (which `init` writes) in the module root or above it up to the
+repository root, or a copy of the kit's theme package (`theme/` or `internal/theme/`). It
+runs the go command offline and read-only, so it never downloads modules or writes
+`go.mod` or `go.sum`. If it can't lint at all (no Go on `PATH`, Go too old, a failed
+build), it lets the edit through and shows you a one-line warning saying why, once per
+cause; a failed build isn't retried until the plugin's sources change.
 
 Install one or the other, not both, or the skill loads twice. Plugin skills are
 namespaced, so the commands become `/bubbletea-tui:bubbletea-tui init` and so on.
