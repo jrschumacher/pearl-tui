@@ -1,8 +1,13 @@
 // Package palette is the engine behind the palette command: derive a dark and a light
 // role set from one to three brand colours in OKLCH, and check any role set's contrast.
 // It is a port of scripts/palette.py and produces the same bytes (see the testdata
-// goldens). It differs on purpose in five places:
+// goldens). It differs on purpose in six places:
 //
+//   - derive's on-colours come from the kit's theme.OnInk: on a mid-tone fill where
+//     neither ink clears the check's floor (palette.py emitted a failing palette, e.g.
+//     for #2E8B57), the ink deepens toward black or white along its hue, so with the
+//     backgrounds it picks, derive's output always passes its own check and the brand's
+//     primary keeps its hex;
 //   - check takes a missing on-colour from the kit's engine (theme.Resolve) rather than
 //     re-deriving it, so a theme without bg or fg is checked against the engine's default
 //     inks (#15171C/#D8DEE9 dark) where palette.py used #000000/#ffffff;
@@ -158,14 +163,18 @@ func Derive(primary, secondary, accent, bg, lightBg string, tint float64) []Mode
 			r[s.role] = role(l, bandC, s.hue, target)
 		}
 		lightInk, darkInk := oklch.FromLCH(0.985, nc*0.4, hn), oklch.FromLCH(0.18, nc*1.5, hn)
-		on := func(fill string) string { // text on a filled role: whichever ink reads better
-			if theme.OnColor(oklch.Color(fill), oklch.Color(lightInk), oklch.Color(darkInk)) == oklch.Color(lightInk) {
+		on := func(role, fill string) string { // text on a filled role: the engine's ink (theme.OnInk)
+			c := theme.OnInk(oklch.Color(r[fill]), oklch.Color(lightInk), oklch.Color(darkInk), onFloor(role))
+			switch {
+			case same(c, oklch.Color(lightInk)):
 				return lightInk
+			case same(c, oklch.Color(darkInk)):
+				return darkInk
 			}
-			return darkInk
+			return hexOf(c) // neither ink clears the floor: one pushed toward black or white
 		}
-		r["onPrimary"], r["onSecondary"], r["onWarning"] = on(r["primary"]), on(r["secondary"]), on(r["warning"])
-		r["onError"], r["onSuccess"] = on(r["error"]), on(r["success"])
+		r["onPrimary"], r["onSecondary"], r["onWarning"] = on("onPrimary", "primary"), on("onSecondary", "secondary"), on("onWarning", "warning")
+		r["onError"], r["onSuccess"] = on("onError", "error"), on("onSuccess", "success")
 		r["fgSelected"] = r["onPrimary"]
 		out = append(out, Mode{mode, r})
 	}
@@ -189,6 +198,21 @@ var Checks = []Check{
 	{"bgSubtle", "bg", 1.1, 2.2, "≥1.1 ≤2.2"}, {"onPrimary", "primary", 4.5, 0, "≥4.5"}, {"onSecondary", "secondary", 3.5, 0, "≥3.5"},
 	{"onWarning", "warning", 4.5, 0, "≥4.5"}, {"onError", "error", 3.5, 0, "≥3.5"}, {"onSuccess", "success", 3.5, 0, "≥3.5"},
 	{"fgSelected", "primary", 3.5, 0, "≥3.5"},
+}
+
+// onFloor is the contrast Checks asks of an on-colour on its fill.
+func onFloor(on string) float64 {
+	for _, f := range onFills {
+		if f.on != on {
+			continue
+		}
+		for _, c := range Checks {
+			if c.A == on && c.B == f.fill {
+				return c.Min
+			}
+		}
+	}
+	panic("palette: no check for " + on)
 }
 
 // ExpressionChecks are the pairs that exist only because of an expression choice
