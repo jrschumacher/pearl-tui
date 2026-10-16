@@ -175,7 +175,7 @@ ACCESSIBLE=1 or --accessible: no alt screen, Huh WithAccessible(true), status as
 lines. stdout not a TTY: <--json | plain output>, never escape codes.
 
 ## First slice
-<the core screens, every state, rendered from fixtures through the harness; no integration>
+<the main loop's 2–3 screens, every state of those, rendered from fixtures through the harness; no integration>
 Then: <the rest of v1, in order>
 
 ## Decisions
@@ -207,9 +207,11 @@ wrong. Write them this way:
   border under -ascii only; name the edge for the other profiles too.
 - **A fake for every external service.** The harness renders every state offline and
   the tests run in CI; a state that needs a live CLI or API is a state nobody reviews.
-- **A first slice.** The smallest milestone that renders the core screens on fixtures,
-  so the design is judged on renders before the integrations eat the effort. If the
-  interview grew v1 past the brief, say so and propose the slice; don't just order it.
+- **A first slice.** The smallest milestone that renders the main loop on fixtures: the
+  2–3 screens a session spends its time in (list → detail → act), every state of
+  those, so the design is judged on renders before the integrations eat the effort.
+  "Every state on fixtures" is the whole app, not a slice. If the interview grew v1
+  past the brief, say so and propose the slice; don't just order it.
 
 Keep three things true as the project goes, because each one is what a later command
 checks:
