@@ -585,7 +585,7 @@ var EllipsisAnalyzer = newAnalyzer("tuiellipsis",
 // runEllipsis flags a use of the theme package's Ellipsis constant in any package but
 // ui, whose Fit holds the one cut made with no theme at hand. Elsewhere the theme is
 // at hand, and the constant skips it: the brand's glyph, and under ASCII its twin
-// ("..."), where the canvas sweep draws one cell (".") for the constant.
+// ("..."), where the canvas sweep can only overwrite the cut's last two cells with dots.
 func runEllipsis(pass *analysis.Pass) (any, error) {
 	p := program(pass)
 	once := lineOnce{}

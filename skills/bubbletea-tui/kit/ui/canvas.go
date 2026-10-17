@@ -172,12 +172,33 @@ func (c *Canvas) ASCIIfy() {
 			nc := *cell
 			nc.Content, nc.Width = asciiRune(r), 1
 			c.SetCell(x, y, &nc)
+			if string(r) == theme.Ellipsis { // a bare cut: finish it as "..."
+				c.cutDots(x, y, &nc)
+			}
 			if cell.Width == 2 && x+1 < b.Max.X { // a wide glyph's second cell
 				sp := nc
 				sp.Content = " "
 				c.SetCell(x+1, y, &sp)
 			}
 		}
+	}
+}
+
+// cutDots finishes a cut the sweep found as a bare "…" (ui.Fit's, a screen's own
+// ansi.Truncate): one "." reads as a full stop ("unknown key."), so the two cells
+// before it turn to "." too and the cut reads as the theme's twin ("unknown k...").
+// Only cells of the cut text change: the same style and link as the ellipsis (a
+// truncated string carries its style to the tail), never a border's | or +.
+func (c *Canvas) cutDots(x, y int, dot *uv.Cell) {
+	for i := 1; i <= 2 && x-i >= c.Bounds().Min.X; i++ {
+		l := c.CellAt(x-i, y)
+		if l == nil || l.Width != 1 || l.Content == "|" || l.Content == "+" ||
+			!l.Style.Equal(&dot.Style) || l.Link != dot.Link {
+			return
+		}
+		nc := *l
+		nc.Content = "."
+		c.SetCell(x-i, y, &nc)
 	}
 }
 
@@ -234,8 +255,9 @@ var latin1Map = map[rune]string{
 // a run of glyphs to one twin; the map, single glyphs. They agree with theme.ASCIITwin
 // where a glyph carries a meaning: the caret ▏ is ', not the focus bar's |, and an
 // ellipsis left for the sweep (a cut made with the bare theme.Ellipsis, ui.Fit's) is
-// ".", one cell of the theme's "...", never "~", the partial mark's twin: a cut line
-// read as a row in progress. Cut with t.G.Ellipsis (ui.Trunc) to get the full twin.
+// ".", never "~", the partial mark's twin: a cut line read as a row in progress; and
+// cutDots turns the two cells of cut text before it to ".", so the cut reads "..." and
+// not as a full stop. Cut with t.G.Ellipsis (ui.Trunc) to keep the text's last cells.
 var asciiClasses = []struct{ glyphs, twin string }{
 	{"─━═╌┄┈╍┅┉▔▁╴╶╸╺", "-"},
 	{"│┃║╎┆┊╏┇┋▎▍▌▐▕", "|"},
@@ -270,8 +292,9 @@ func OnBg(s string, bg color.Color) string {
 var resetRe = regexp.MustCompile(`\x1b\[0?m`)
 
 // Fit pads or truncates a single line to exactly w cells. A cut ends in the kit's
-// ellipsis, which ASCII sweeps to "."; for the theme's own glyph and its full ASCII twin
-// cut with Trunc first. Tabs expand to 8-column stops first.
+// ellipsis, which the ASCII sweep draws as "..." over the cut's last cells; for the
+// theme's own glyph and its ASCII twin after the text, cut with Trunc first. Tabs
+// expand to 8-column stops first.
 func Fit(s string, w int) string {
 	if w <= 0 {
 		return ""

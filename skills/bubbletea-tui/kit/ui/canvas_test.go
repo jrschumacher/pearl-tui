@@ -12,19 +12,34 @@ import (
 // The theme's ellipsis resolves to its twin ("...") before a screen draws, but a cut
 // made with the bare theme.Ellipsis (ui.Fit, a screen's own ansi.Truncate) reaches the
 // canvas as "…", and the sweep drew it as "~": the partial mark's twin, so a cut line
-// read as a row in progress ("unknown key~"). The sweep draws "." (one cell of the
-// theme's twin) and never a status twin.
+// read as a row in progress ("unknown key~"). Then as one ".", which reads as a full
+// stop ("unknown key."). The sweep finishes the cut as the theme's twin: the "…" and
+// the two cells of cut text before it draw "...", never a border's cell.
 func TestASCIIfyCutIsNotThePartialTwin(t *testing.T) {
 	th := theme.Resolve(theme.Default(), true, true)
 	c := NewCanvas(th, 16, 1)
 	c.Draw(Fit("unknown key value", 12), Rect(0, 0, 12, 1))
 	c.ASCIIfy()
 	row := ansi.Strip(c.String())
-	if !strings.HasPrefix(row, "unknown key.") {
-		t.Errorf("a Fit cut under ASCII draws %q, want \"unknown key.\"", row)
+	if !strings.HasPrefix(row, "unknown k... ") {
+		t.Errorf("a Fit cut under ASCII draws %q, want \"unknown k...\"", row)
 	}
 	if strings.ContainsAny(row, th.G.Partial+"~") {
 		t.Errorf("a Fit cut under ASCII draws %q: the partial mark's twin %q reads as in progress", row, th.G.Partial)
+	}
+	for _, d := range []struct{ in, want string }{
+		{"|" + Fit("abcdef", 1) + "|", "|.|"},                                   // a one-cell cut beside a border: the border stays
+		{"+" + Fit("abcdef", 2) + "+", "+..+"},                                  // the corner too
+		{th.S.Muted.Render("> ") + Fit(th.S.Base.Render("abcdef"), 3), "> ..."}, // the prompt is not the text
+		{Fit("日本語です", 5), "? ..."},                                              // a wide cell's stand-in and its spacer are cut text
+		{Fit("short", 8), "short"},                                              // no cut, no dots
+	} {
+		cv := NewCanvas(th, 12, 1)
+		cv.Draw(d.in, Rect(0, 0, 12, 1))
+		cv.ASCIIfy()
+		if got := strings.TrimRight(ansi.Strip(cv.String()), " "); got != d.want {
+			t.Errorf("ASCIIfy(%q) = %q, want %q", ansi.Strip(d.in), got, d.want)
+		}
 	}
 	if tw, _ := theme.ASCIITwin(theme.Ellipsis); !strings.HasPrefix(tw, asciiRune('…')) {
 		t.Errorf("the sweep's ellipsis %q is not a cell of the theme's twin %q", asciiRune('…'), tw)
