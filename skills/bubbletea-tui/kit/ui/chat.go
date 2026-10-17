@@ -148,7 +148,7 @@ func ToolCall(t *theme.Theme, tc Tool, w int, focused bool) []string {
 	case tc.State == ToolError:
 		rows = append(rows, "", Tag(t, "error", "ERROR")+" "+t.S.Muted.Render(Trunc(t, tc.Err, inner-8)))
 	case tc.State == ToolCanceled:
-		rows = append(rows, "", t.S.Subtle.Render(t.Copy("Canceled")+"."))
+		rows = append(rows, "", t.S.Subtle.Render(t.Copy("Canceled.")))
 	case tc.State == ToolPending:
 		rows = append(rows, "", t.S.Subtle.Render(t.Copy("Waiting for permission")+t.G.Ellipsis))
 	case len(tc.Body) > 0:

@@ -212,16 +212,19 @@ func TestBlurBarIsVisible(t *testing.T) {
 // "Waiting for permission" and Thinking's "Thought for" were fixed. Under
 // labelCase/titleCase lower they read as a second brand. The kit's fixed copy takes
 // labelCase when the theme sets one, else titleCase (t.Copy); the data after it (an
-// elapsed time, a size) stays as it is.
+// elapsed time, a size) stays as it is. labelCase is for labels, one word: a sentence
+// (a space or a full stop) takes titleCase, so a sentence-case brand with lower labels
+// draws "Canceled." and not "canceled.", a typo at the head of a line.
 func TestFixedCopyFollowsTheme(t *testing.T) {
 	for _, c := range []struct {
 		name, titleCase, labelCase                        string
 		tabs, small, canceled, waiting, thought, thinking string
 	}{
-		{"quire", "sentence", "lower", "services / deploys", "terminal too small", "canceled.", "waiting for permission", "thought for 6.1s", ""},
+		{"quire", "sentence", "lower", "services / deploys", "Terminal too small", "Canceled.", "Waiting for permission", "Thought for 6.1s", ""},
 		{"default", "sentence", "", "Services / Deploys", "Terminal too small", "Canceled.", "Waiting for permission", "Thought for 6.1s", ""},
 		{"upper titles", "upper", "", "SERVICES / DEPLOYS", "TERMINAL TOO SMALL", "CANCELED.", "WAITING FOR PERMISSION", "THOUGHT FOR 6.1s", ""},
-		{"upper titles, lower labels", "upper", "lower", "services / deploys", "terminal too small", "canceled.", "waiting for permission", "thought for 6.1s", ""},
+		{"upper titles, lower labels", "upper", "lower", "services / deploys", "TERMINAL TOO SMALL", "CANCELED.", "WAITING FOR PERMISSION", "THOUGHT FOR 6.1s", ""},
+		{"lower titles, upper labels", "lower", "upper", "SERVICES / DEPLOYS", "terminal too small", "canceled.", "waiting for permission", "thought for 6.1s", ""},
 	} {
 		f := quire(t)
 		f.Expressions.TitleCase, f.Expressions.LabelCase = c.titleCase, c.labelCase

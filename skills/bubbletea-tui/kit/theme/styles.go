@@ -225,11 +225,14 @@ func (t *Theme) Case(s string) string {
 
 // Copy applies the theme's case to the kit's own fixed copy: tab names, "Terminal too
 // small", a tool call's "Canceled." and "Waiting for permission", Thinking's "Thought
-// for". labelCase when the theme sets one (the brand's case for the small words of its
-// UI), else titleCase. Text the app writes (Huh field titles, labels, prose) is the
-// app's own: write it in the brand's case.
+// for". A label (one word: tab names, step names) takes labelCase when the theme sets
+// one, the brand's case for the small words of its UI; a sentence (a space or a full
+// stop: "Canceled.", "Terminal too small") takes titleCase, so a sentence-case brand
+// with lower labels never starts a line with "canceled.". Pass a sentence whole, full
+// stop included. Text the app writes (Huh field titles, labels, prose) is the app's
+// own: write it in the brand's case.
 func (t *Theme) Copy(s string) string {
-	if t.X.LabelCase != "" {
+	if t.X.LabelCase != "" && !strings.ContainsAny(s, " .") {
 		return t.Label(s, "as-is")
 	}
 	return t.Case(s)
