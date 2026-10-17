@@ -71,6 +71,10 @@ func TestFocusFgKeepsPrimaryOffChrome(t *testing.T) {
 			f.Expressions.Button, f.Expressions.Selection = button, sel
 			for _, m := range modes {
 				th := theme.ResolveProfile(f, m.dark, m.ascii, m.p)
+				// the kit's own rungs: a rung the theme's ladder puts in primary is content
+				// the brand asked for (TestThemeLadder), not chrome
+				kit := f
+				kit.Ladder = nil
 				items := []Item{{Title: "The long read", State: "busy"}, {Title: "Weekly notes"}}
 				steps := Steps{Names: []string{"Account", "Feeds", "Done"}, Cur: 1}
 				huh := HuhStyles(th).Focused
@@ -80,7 +84,7 @@ func TestFocusFgKeepsPrimaryOffChrome(t *testing.T) {
 					"focused button":   Button(th, "Subscribe", true, false, 0),
 					"steps":            steps.Row(th, 60),
 					"steps list":       strings.Join(steps.List(th), "\n"),
-					"ladder":           strings.Join(Ladder(th, 0), "\n"),
+					"ladder":           strings.Join(Ladder(theme.ResolveProfile(kit, m.dark, m.ascii, m.p), 0), "\n"),
 					"marks":            Mark(th, "current") + Mark(th, "partial") + Mark(th, "todo") + Mark(th, "done"),
 					"tabs":             strings.Join(Tabs(th, []string{"Inbox", "Saved"}, 0, nil), "\n"),
 					"wordmark":         Wordmark(th, "quire"),

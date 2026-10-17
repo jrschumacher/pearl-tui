@@ -171,8 +171,10 @@ voice.
 ## Status Column — `ui.Dot`, `ui.Busy`
 
 One cell per row, before the name. `ui.Dot(t, state)` draws each state in its own shape
-and role colour: ok `current`, busy `partial`, warning `warn`, error `fail`, idle `todo`,
-so the shape says it under NO_COLOR too. A row in progress takes `ui.Busy(t, frame)`: the
+and role colour: ok `done`, busy `partial`, warning `warn`, error `fail`, idle `todo`,
+so the shape says it under NO_COLOR too, and `●` (`current`) keeps one meaning: now. A
+state of the product's own (`new`, `reviewed`) is a rung of the theme's `ladder`, drawn
+with `ui.Mark(t, "new")` (brand.md §4). A row in progress takes `ui.Busy(t, frame)`: the
 theme's spinner when its frames are one cell, else the still partial glyph, never a
 multi-cell spinner that pushes the name out of line. The label or a tag beside it says
 the state in words.

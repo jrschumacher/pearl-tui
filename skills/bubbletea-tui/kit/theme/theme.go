@@ -174,6 +174,16 @@ type Wordmark struct {
 	Style string   `json:"style"` // half | shade | ascii | tracked: the style wordmark.py drew the rows with. Metadata: the kit reads the rows, whose glyphs (█ ▓ ▒) carry the tones
 }
 
+// LadderRung is one rung of the product's own status ladder (File.Ladder): a glyph,
+// what it means to the product, and the role it draws in. ui.Mark(t, meaning) draws it,
+// ui.Rungs lists it and the showcase's ladder state shows it, so a sheet can judge the
+// product's states and not only the kit's slots.
+type LadderRung struct {
+	Glyph   string `json:"glyph"`   // a status slot (done, current, todo, pending, partial, warn, fail: that glyph, and its twin under ASCII) or a literal with a twin in glyphs.ascii or the kit's map
+	Meaning string `json:"meaning"` // the name the product gives the state (new, reading, reviewed): what ui.Mark takes
+	Role    string `json:"role"`    // the ink: any colour role (primary, fgSubtle, success, …), or focus / working, the inks expressions.focus and expressions.spinner resolve to
+}
+
 // File is the theme JSON.
 type File struct {
 	Name        string           `json:"name"`
@@ -189,6 +199,13 @@ type File struct {
 	// error's slot; no hex fixes that without leaving amber at 256 colours. A role derived
 	// from a pinned one (secondary from primary) follows it. See ANSI16Clashes.
 	ANSI16 map[string]map[string]int `json:"ansi16,omitempty"`
+	// Ladder is the product's own status ladder, in the order a thing moves through it:
+	// [{"glyph": "current", "meaning": "new", "role": "primary"}, …]. Set, ui.Rungs and
+	// the ladder state draw these rungs instead of the kit's default ones, and
+	// ui.Mark(t, "new") draws the rung so named; the kit's slots (done, current, …) keep
+	// their own inks. See CheckLadder (palette check fails a role or glyph the kit
+	// doesn't know); Load keeps loading.
+	Ladder []LadderRung `json:"ladder,omitempty"`
 }
 
 // Load reads a theme file: Parse on its bytes, errors named by the path.
@@ -306,7 +323,73 @@ func CheckKeys(data []byte) error {
 			return fmt.Errorf("wordmark.style %q is not a style wordmark.py writes: %s", w.Style, strings.Join(wordmarkStyles, " | "))
 		}
 	}
+	if raw, ok := top["ladder"]; ok {
+		var rungs []json.RawMessage
+		if err := json.Unmarshal(raw, &rungs); err != nil {
+			return fmt.Errorf("ladder: not an array of rungs [{\"glyph\": …, \"meaning\": …, \"role\": …}]")
+		}
+		for i, r := range rungs {
+			if err := exact(r, fmt.Sprintf("ladder[%d]", i), jsonKeys(reflect.TypeOf(LadderRung{}))); err != nil {
+				return err
+			}
+		}
+		var f File
+		if err := json.Unmarshal(data, &f); err == nil {
+			return CheckLadder(f)
+		}
+	}
 	return nil
+}
+
+// ladderInks are the two inks a rung may name beside the colour roles: what
+// expressions.focus and expressions.spinner resolve to (ui.RoleInk).
+var ladderInks = []string{"focus", "working"}
+
+// CheckLadder reports a rung of the theme's ladder the kit can't draw: a role that is
+// neither a colour role nor focus / working, a glyph that is neither a status slot nor
+// a literal with an ASCII twin, two rungs with one meaning, or two rungs that draw as
+// one mark under ASCII. palette check fails on it (through CheckKeys); Load doesn't,
+// so an app still starts, drawing the rung in fg.
+func CheckLadder(f File) error {
+	g := ASCII(glyphDefaults(f.Glyphs))
+	seen, twins := map[string]int{}, map[string]int{}
+	for i, r := range f.Ladder {
+		where := fmt.Sprintf("ladder[%d]", i)
+		if r.Meaning == "" {
+			return fmt.Errorf("%s.meaning is empty: name the state (new, reading, reviewed)", where)
+		}
+		if j, dup := seen[r.Meaning]; dup {
+			return fmt.Errorf("%s.meaning %q is also ladder[%d]'s: one name per state", where, r.Meaning, j)
+		}
+		seen[r.Meaning] = i
+		if !roleKey(r.Role) && !slices.Contains(ladderInks, r.Role) {
+			return fmt.Errorf("%s.role %q is not a colour role (primary, fgSubtle, success, …) or focus / working", where, r.Role)
+		}
+		tw, ok := GlyphSlot(g, r.Glyph)
+		if !ok {
+			tw = twin(f.Glyphs.ASCII, r.Glyph)
+		}
+		if r.Glyph == "" || tw == "?" {
+			return fmt.Errorf("%s.glyph %q is neither a status slot (done, current, todo, pending, partial, warn, fail) nor a glyph with an ASCII twin: add \"ascii\": {%q: \"<twin>\"} to glyphs", where, r.Glyph, r.Glyph)
+		}
+		if j, dup := twins[tw]; dup {
+			return fmt.Errorf("%s.glyph %q and ladder[%d].glyph %q both draw as %q under ASCII, so two states read as one", where, r.Glyph, j, f.Ladder[j].Glyph, tw)
+		}
+		twins[tw] = i
+	}
+	return nil
+}
+
+// GlyphSlot is the glyph in g with JSON key key (done, current, caret, …) and whether
+// key names one. A ladder rung's glyph may be a slot's name instead of a literal.
+func GlyphSlot(g Glyphs, key string) (string, bool) {
+	v, t := reflect.ValueOf(g), reflect.TypeOf(g)
+	for i := range t.NumField() {
+		if k, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ","); k == key && t.Field(i).Type.Kind() == reflect.String {
+			return v.Field(i).String(), true
+		}
+	}
+	return "", false
 }
 
 // jsonKeys are t's fields' JSON keys, in the contract's order.
@@ -708,6 +791,27 @@ func (t *Theme) Ink(c, fill color.Color) color.Color {
 		}
 	}
 	return c
+}
+
+// Role is the resolved colour of the role with JSON key key (primary, fgSubtle, …), or
+// nil when key names none: what a ladder rung's role draws in.
+func (t *Theme) Role(key string) color.Color {
+	if !roleKey(key) {
+		return nil
+	}
+	return paletteRole(t.P, key)
+}
+
+// LadderGlyph is the glyph rung r draws in this theme: the slot's glyph when r.Glyph
+// names a status slot, else the literal; under ASCII, its twin either way.
+func (t *Theme) LadderGlyph(r LadderRung) string {
+	if g, ok := GlyphSlot(t.G, r.Glyph); ok {
+		return g
+	}
+	if t.ASCII {
+		return twin(t.File.Glyphs.ASCII, r.Glyph)
+	}
+	return r.Glyph
 }
 
 // AppName is the brand name the theme declares.

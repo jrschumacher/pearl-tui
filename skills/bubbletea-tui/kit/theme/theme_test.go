@@ -109,6 +109,15 @@ func TestCheckKeys(t *testing.T) {
 		{`{"wordmark": {"rows": [], "styl": "half"}}`, `wordmark.styl is not a key the kit reads (rows, style)`},
 		{`{"roles": {"dark": {"primary": "#6B50FF", "white": "#fff"}}, "glyphs": {"focusBar": "▌", "ascii": {"▌": "|"}}, "wordmark": {"rows": ["x"], "style": "shade"}, "contrastAccept": {}, "unknownTop": 1}`, ""},
 		{`{"roles": {"dark": {"primary": 12}}}`, ""}, // not a key problem: Load reports the colour
+		// the product's own ladder: keys the kit reads, a role it can draw, a glyph it can twin
+		{`{"ladder": [{"glyph": "current", "meaning": "new", "colour": "primary"}]}`, `ladder[0].colour is not a key the kit reads (glyph, meaning, role)`},
+		{`{"ladder": [{"glyph": "current", "meaning": "new", "role": "amber"}]}`, `ladder[0].role "amber" is not a colour role`},
+		{`{"ladder": [{"glyph": "◔", "meaning": "queued", "role": "info"}]}`, `ladder[0].glyph "◔" is neither a status slot`},
+		{`{"ladder": [{"glyph": "●", "meaning": "new", "role": "primary"}, {"glyph": "◆", "meaning": "done", "role": "success"}]}`, `ladder[1].glyph "◆" and ladder[0].glyph "●" both draw as "*" under ASCII`},
+		{`{"ladder": [{"glyph": "current", "meaning": "new", "role": "primary"}, {"glyph": "done", "meaning": "new", "role": "success"}]}`, `ladder[1].meaning "new" is also ladder[0]'s`},
+		{`{"ladder": [{"glyph": "current", "meaning": "", "role": "primary"}]}`, `ladder[0].meaning is empty`},
+		{`{"ladder": {"glyph": "current"}}`, `ladder: not an array of rungs`},
+		{`{"ladder": [{"glyph": "current", "meaning": "new", "role": "primary"}, {"glyph": "◔", "meaning": "queued", "role": "working"}, {"glyph": "✔", "meaning": "reviewed", "role": "fgSubtle"}], "glyphs": {"ascii": {"◔": "%"}}}`, ""},
 	} {
 		err := CheckKeys([]byte(c.json))
 		if c.want == "" && err != nil || c.want != "" && (err == nil || !strings.Contains(err.Error(), c.want)) {

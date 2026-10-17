@@ -10,7 +10,8 @@ ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                 controls.go Button(s), Tag, Alert, Dot, KV, Progress, Sparkline, Scrollbar, Count, Empty
                 list.go     List (selection styles, fuzzy underline, scrollbar), Table (borderless),
                             Follow (scroll-into-view), Fuzzy (subsequence match with indices)
-                ladder.go   Mark (a status rung in its role), Ladder (the legend the ladder state draws)
+                ladder.go   Mark (a status rung in its role), Rungs (the theme's ladder, or the kit's),
+                            Ladder (the legend the ladder state draws)
                 dialog.go   DialogTitle, Dialog (on bgPanel), Popover (on bgOverlay), Canvas.Overlay/Popover
                 chat.go     Gutter, UserMessage, AssistantMessage, ToolCall, Thinking, TurnFooter, Tree
                 anim.go     FrameInterval, Anim (brand spinner or the Crush scramble), Spinner,
@@ -29,6 +30,13 @@ cmd/showcase/   the reference app and its harness
 draws, mirrored in `references/brand.md` §4. `palette check` fails a key or value the
 kit doesn't know. `wordmark.style` is the one key nothing reads: wordmark.py records the
 style it drew with; the tones come from the glyphs in the rows.
+
+`ladder` (optional) is the product's own status ladder, `[{"glyph", "meaning", "role"}]`
+in the order a thing moves through it: a glyph that is a status slot (`current`) or a
+literal with a twin, a meaning (`new`), and any colour role (or `focus` / `working`).
+`ui.Rungs`, `ui.Mark(t, "new")` and the `ladder` state draw those rungs in those inks
+instead of the kit's default rungs; the kit's slots keep theirs. `theme/testdata/quire.json`
+declares one; `palette check` fails a role or glyph the kit can't draw (`theme.CheckLadder`).
 
 ## The showcase is the pattern
 
