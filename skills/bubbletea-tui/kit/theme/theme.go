@@ -31,7 +31,7 @@ import (
 type Roles struct {
 	Primary   string `json:"primary"`   // the brand hue: focus, current, selected rows, header rule (under expressions.focus "fg": only what the theme or app asks for)
 	Secondary string `json:"secondary"` // second hue: primary buttons, gradient end, subtitles
-	Tertiary  string `json:"tertiary"`  // prompts, cursors, input carets
+	Tertiary  string `json:"tertiary"`  // a third voice: inline code, links; prompts and carets where primary doesn't read on bgOverlay
 	Accent    string `json:"accent"`    // section titles, headings; reads as "heading", never "alert"
 
 	Bg        string `json:"bg"`        // the background the brand expects
@@ -713,6 +713,8 @@ type Theme struct {
 	// Resolve leaves it false (ctrl+j, which every terminal sends); set it again after
 	// every Resolve once the message has arrived.
 	KeyDisambiguation bool
+
+	promptTertiary bool // the focus ink doesn't read on bgOverlay: the prompt keeps tertiary (build)
 }
 
 // Resolve picks the dark or light roles, fills gaps, and builds every style, for a
@@ -748,6 +750,14 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 		pins = pins16(f, mode, dark)
 	}
 	t.P = derive(r, dark, pins)
+	// the prompt takes the focus ink, unless that ink is unreadable on bgOverlay, where
+	// a palette's filter input sits (Charm's #6B50FF on #4D4C57 is 1.7:1): judged on the
+	// colours as written, so one theme and mode draws one prompt colour in every profile
+	tc := t.P
+	if pins != nil {
+		tc = derive(r, dark, nil)
+	}
+	t.promptTertiary = Contrast(tc.Primary, tc.BgOverlay) < promptFloor
 	t.Unicode = glyphDefaults(f.Glyphs)
 	t.G = t.Unicode
 	if ascii {

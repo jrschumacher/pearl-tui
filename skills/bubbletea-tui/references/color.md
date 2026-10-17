@@ -11,7 +11,7 @@ literal.
 |---|---|---|
 | `primary` | the brand hue: focus bar, selection, current, header motif | 3.5 as text |
 | `secondary` | second voice: primary button fill, gradient end | 3.0 |
-| `tertiary` | prompts and carets | 4.5 |
+| `tertiary` | a third voice: inline code, links; prompts and carets where primary is under 2.3:1 on `bgOverlay` (else they take the focus ink) | 4.5 |
 | `accent` | section titles: reads "heading", never "alert" | 4.5 |
 | `bg › bgPanel › bgSubtle › bgOverlay` | the background ramp | bgSubtle 1.1–2.2 |
 | `fg › fgSoft › fgMuted › fgSubtle` | the text ramp | 7 › (unchecked) › 4.5 › 2.6; on bgSubtle fg 4.5, fgMuted 3.0 |

@@ -101,7 +101,7 @@ reversible.
 ```
 ▌ Version                                   ← label: bold when focused, muted when not
 ▌ tag or commit; latest is v2.4.1           ← hint in subtle, always visible
-▌ > v2.4.1▏                                 ← input: prompt in tertiary, caret
+▌ > v2.4.1▏                                 ← input: prompt in the focus ink, caret
 ```
 
 The gutter bar (`ui.Gutter`) marks the focused field and spans all its rows. Radios
@@ -185,7 +185,9 @@ state's keys cell (`[plan] · **enter send** · …`) so `tuilint spec` [S-FOOTE
 
 ## Editor / Prompt
 
-A rule above, a prompt glyph in tertiary (bold when focused, muted when not),
+A rule above, a prompt glyph in the focus ink (`t.S.Prompt`: primary, or bold fg under
+`focus: fg`; tertiary where primary is under 2.3:1 on `bgOverlay`; muted when not
+focused), since where you type is the focus,
 continuation lines with a subtle `:`, and the real cursor via `View.Cursor`. Grow from 1
 to ~8 rows with content, then scroll. The placeholder says what to type, in the brand's
 voice.
