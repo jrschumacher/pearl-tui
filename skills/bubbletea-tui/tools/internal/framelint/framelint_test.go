@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -614,6 +615,63 @@ func TestBoldSkipsSparseFrames(t *testing.T) {
 	}
 	if n := bolds(frame("list-80x24.ansi", boldFloor+40)); n != 1 {
 		t.Errorf("a frame over the floor at 40%% bold: %d F-BOLD, want 1", n)
+	}
+}
+
+// F-TRUNC on an overlay frame: the kit's Overlay clears the word a dialog cuts and puts
+// an ellipsis where the kept text ends, so rows the dialog cuts end near its left edge,
+// at one column when their words break alike. Those are the dialog's cut, not a column
+// budgeted short: an ellipsis with only blanks between it and the dialog doesn't count.
+// The same rows with no dialog, or with text between them and the dialog, still do; a
+// borderless dialog, whose edges can't be found, isn't judged (its page is, in its own
+// frame).
+func TestTruncatedBesideADialog(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, body string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	page := func(edge func(y int) string, gap string) string {
+		var b strings.Builder
+		for y := range 8 {
+			b.WriteString("  14:0" + strconv.Itoa(y) + "  circuit opened on…" + gap + edge(y) + " body text     \n")
+		}
+		return b.String()
+	}
+	box := func(y int) string {
+		switch y {
+		case 0:
+			return "╭──────────╮"
+		case 7:
+			return "╰──────────╯"
+		}
+		return "│  dialog  │"
+	}
+	bare := func(int) string { return "   dialog    " }
+	truncs := func(p string) int {
+		fs, _, _ := run(t, p)
+		n := 0
+		for _, f := range fs {
+			if f.Rule == "F-TRUNC" {
+				n++
+			}
+		}
+		return n
+	}
+	if n := truncs(write("confirm-60x8.ansi", page(box, "  "))); n != 0 {
+		t.Errorf("an overlay frame, ellipses beside its dialog: %d F-TRUNC, want 0", n)
+	}
+	if n := truncs(write("services-60x8.ansi", page(box, "  "))); n != 1 {
+		t.Errorf("the same rows on a page with a box: %d F-TRUNC, want 1", n)
+	}
+	if n := truncs(write("help-61x8.ansi", page(box, " x "))); n != 1 {
+		t.Errorf("an overlay frame, text between the ellipses and the dialog: %d F-TRUNC, want 1", n)
+	}
+	if n := truncs(write("palette-61x8.ansi", page(bare, "  "))); n != 0 {
+		t.Errorf("a borderless dialog: %d F-TRUNC, want 0", n)
 	}
 }
 

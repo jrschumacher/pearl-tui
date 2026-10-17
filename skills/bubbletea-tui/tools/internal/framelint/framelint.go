@@ -36,7 +36,8 @@
 //	                 run to the next 8-column stop, so the row tears; expand tabs before fitting
 //	F-TRUNC     [P2] more than 3 rows ending in an ellipsis (…, the theme's glyphs.ellipsis, or
 //	                 ... with --ascii) at one column: a column budgeted narrower than its content
-//	                 (not a table's last column headed path, file, command or url)
+//	                 (not a table's last column headed path, file, command or url, nor
+//	                 an ellipsis an overlay's cut put beside its dialog)
 //	F-ASCII     [P1] (with --ascii) a cell outside ASCII in a frame rendered for ASCII; with
 //	                 --unicode, also a "?" where the unicode frame of the same state draws
 //	                 something else (a rune the sweep had no twin for)
