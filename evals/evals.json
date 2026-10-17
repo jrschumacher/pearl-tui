@@ -219,7 +219,8 @@
         "round 2 confirmed the screen list, each screen with its job, in a question's default, although the Grainline conflict also needed a question: the conflict got its own short round or replaced a lower-value question, never the screens one, and the flows SPEC.md describes outside § Screens (morning triage with bulk mark-done and snooze, acknowledging a Beacon page from anywhere) appear in that list or are deferred by name",
         "the brand read's remember line names a move the TUI draws on every screen (the state-dot column, a rule, a gutter, a layout move), not a quality of the content such as 'reads like a well-set page'",
         "the First slice is the main loop's 2–3 screens (inbox, thread, reply) with every state of those on fixtures, not every state of every screen; note, the quick switcher and the rest come after it",
-        "TUI.md § Screens holds one block per screen in the template's shape, not one line: the job, regions with x,y w×h at 80×24 and at 120×40, what collapses below 110 columns and 30 rows, the kit components that draw it, the fixture notes (longest name, failing row, empty list) and an 80-wide sketch in a code fence; a filled TUI.md still passes tuilint spec"
+        "TUI.md § Screens holds one block per screen in the template's shape, not one line: the job, regions with x,y w×h at 80×24 and at 120×40, what collapses below 110 columns and 30 rows, the kit components that draw it, the fixture notes (longest name, failing row, empty list) and an 80-wide sketch in a code fence; a filled TUI.md still passes tuilint spec",
+        "TUI.md's architecture half puts the root model, render(w,h), the fixtures and the harness in cmd/<app>/ (where the kit's README copy block puts the showcase and its tests), not in internal/app/; internal/ holds only the copied theme/ and ui/"
       ]
     }
   ]

@@ -147,10 +147,11 @@ rows: <spinners for row-level work>; idle: nothing moves
 ### Stack
 Go 1.26.7; charm.land/bubbletea/v2 v2.1.0, lipgloss/v2 v2.0.6, bubbles/v2 v2.2.1,
 huh/v2 v2.0.3; ultraviolet v0.0.0-20261008173134-6b8d4baf91b4.
-theme/ and ui/ copied from the kit into internal/.
+theme/ and ui/ copied from the kit into internal/; the showcase into cmd/<app>.
 
 ### Root model and regions
-One *model in internal/app; regions are structs drawn into rectangles (x,y w×h at 80×24):
+One *model in cmd/<app> (where the kit's copy block puts the harness and its tests);
+regions are structs drawn into rectangles (x,y w×h at 80×24):
 
     header   0,0    80×1
     list     0,2    32×20
@@ -181,7 +182,7 @@ Footer keys are **bold** (in a long cell, ‖ after the last of them does the sa
 Global: ctrl+c quit · ctrl+g help
 
 ### Harness and fixtures
-internal/app/fixtures.go feeds setState for the harness (-state, -out) and every test.
+cmd/<app>/fixtures.go feeds setState for the harness (-state, -out) and every test.
 fakes: <service> → <fake>, one per external CLI or API; no render or test touches the network.
 
 ### Async and the clock

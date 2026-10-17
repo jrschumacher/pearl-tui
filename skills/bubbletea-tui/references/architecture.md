@@ -213,8 +213,14 @@ the footprint (`showcase_test.go`); `toosmall` is skipped there and checked by
 
 ```
 cmd/<app>/main.go        flags, harness, tea.NewProgram
+cmd/<app>/app.go         the root model: state, Update, the action tables, the clock
+cmd/<app>/screens.go     render(w,h): every region into its rectangle, overlays last
+cmd/<app>/fixtures.go    realistic data for every state (the showcase's data.go, renamed)
+cmd/<app>/*_test.go      the footprint, contrast and behaviour tests, copied with the kit
 internal/theme/          the kit's theme package (copied); themes/<brand>.json, embedded by themes/embed.go
 internal/ui/             the kit's components (copied), plus your own
-internal/app/            the root model: state, Update, render(w,h), screens
-internal/app/fixtures.go realistic data for every state
 ```
+
+One package, `cmd/<app>`, because that is where `kit/README.md`'s copy block puts the
+showcase and its tests: a model in `internal/app` splits the harness from the states it
+renders, and every cold run that read both layouts chose `cmd/<app>`.
