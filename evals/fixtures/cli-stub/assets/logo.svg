@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- cairn: three flat stones, widest at the bottom (fictional brand fixture) -->
+  <rect x="8"  y="44" width="48" height="12" rx="6" fill="#3B5B8C"/>
+  <rect x="14" y="28" width="36" height="12" rx="6" fill="#3B5B8C"/>
+  <rect x="22" y="12" width="20" height="12" rx="6" fill="#9CB37A"/>
+</svg>
