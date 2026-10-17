@@ -111,10 +111,13 @@ func packFooter(items []string, w int) (shown, dropped []string) {
 // ellipsis while hints remain: moreReserve, or asciiReserve for an ASCII theme.
 func packFooterReserving(items []string, w, reserveMore int) (shown, dropped []string) {
 	var pinned string
-	if n := len(items); n > 1 && pinsLast(items[n-1]) {
-		pinned = items[n-1]
-		w -= ansi.StringWidth(pinned) + hintSep
-		items = items[:n-1]
+	for i, it := range items {
+		if len(items) > 1 && pins(it) {
+			pinned = it
+			w -= ansi.StringWidth(pinned) + hintSep
+			items = append(items[:i:i], items[i+1:]...)
+			break
+		}
 	}
 	used := 0
 	for i, it := range items {
@@ -143,8 +146,9 @@ func packFooterReserving(items []string, w, reserveMore int) (shown, dropped []s
 	return shown, dropped
 }
 
-// pinsLast is Help's own test: it pins a last hint whose key is exactly ? or ctrl+g.
-func pinsLast(item string) bool {
+// pins is Help's own test: it pins last the first hint whose key is exactly ? or
+// ctrl+g, wherever the cell lists it.
+func pins(item string) bool {
 	f := strings.Fields(item)
 	return len(f) > 0 && (f[0] == "?" || f[0] == "ctrl+g")
 }

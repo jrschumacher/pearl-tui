@@ -24,7 +24,9 @@
   `TestHelpIsHandled` proves the key fires, not that the label is true, so render both
   states and read the footer against the header: `following` beside `f follow` is a lie.
 - Key order in the help: the primary action, navigation, secondary actions, then
-  `? help`/`q quit` last. It truncates from the right with `…`.
+  `? help`/`q quit` last. It truncates from the right with `…`, and `ui.Help` pins the
+  first `?`/`ctrl+g` binding last wherever the table lists it, so the way to the rest
+  survives the cut.
 
 ## Focus
 

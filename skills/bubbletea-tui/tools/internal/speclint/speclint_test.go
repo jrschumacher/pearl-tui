@@ -407,7 +407,7 @@ func TestUsageIsTheDocComment(t *testing.T) {
 }
 
 // packFooter lays hints out as kit/ui Help does: two spaces apart, 3 columns kept for
-// "…" while hints remain, and a last ? or ctrl+g hint pinned.
+// "…" while hints remain, and the first ? or ctrl+g hint pinned last, wherever it is.
 func TestPackFooter(t *testing.T) {
 	cases := []struct {
 		items   string
@@ -419,7 +419,7 @@ func TestPackFooter(t *testing.T) {
 		{"a one · b two · c three", 16, "c three"},         // a one + b two = 12, + reserve 3 = 15 ≤ 16, then c three needs 9
 		{"a one · b two · c three", 14, "b two · c three"}, // 12 + reserve 3 > 14
 		{"a one · b two · ? help", 13, "b two"},            // ? help pinned: 13 - 8 = 5 for the rest
-		{"a one · ? help · b two", 13, "? help · b two"},   // ? help not last, so not pinned
+		{"a one · ? help · b two", 13, "b two"},            // ? help pinned from the middle too
 		{"a very long first hint", 10, "a very long first hint"},
 	}
 	for _, c := range cases {

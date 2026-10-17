@@ -67,8 +67,8 @@
 //	                  fit the footer the kit draws at 80 columns: ui.Help packs `key action` hints
 //	                  two spaces apart into the 76 columns inside the kit's default 2-cell gutters
 //	                  (it assumes them: a theme with a 1-cell gutter has 2 more columns), keeps 3
-//	                  for "…" while hints remain, pins a last `?` or `ctrl+g` hint, and drops the
-//	                  rest. The message names what it drops and suggests a footer that fits, with
+//	                  for "…" while hints remain, pins the first `?` or `ctrl+g` hint last wherever
+//	                  it sits, and drops the rest. The message names what it drops and suggests a footer that fits, with
 //	                  the state's way out (esc, quit, back, close, cancel) and its one main action
 //	                  kept and the other keys moved out from the end. Global keys are not in a
 //	                  state's footer; a mode badge or status text on the row takes more.

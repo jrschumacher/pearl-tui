@@ -154,14 +154,14 @@ func Rule(t *theme.Theme, w int) string {
 // it had to drop hints, so the user knows there is more (full help).
 func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 	sep := t.S.Subtle.Render("  ")
-	// the key that opens full help is pinned last: the … promises more, so the
-	// way to see it must survive truncation
+	// the key that opens full help is pinned last, wherever the table lists it: the …
+	// promises more, so the way to see it must survive truncation
 	pinned := ""
-	if n := len(bindings); n > 1 && (bindings[n-1].Help().Key == "?" || bindings[n-1].Help().Key == "ctrl+g") {
-		h := bindings[n-1].Help()
+	if i := helpBinding(bindings); i >= 0 && len(bindings) > 1 {
+		h := bindings[i].Help()
 		pinned = t.S.Key.Render(h.Key) + " " + t.S.KeyDesc.Render(h.Desc)
 		w -= lipgloss.Width(pinned) + 2
-		bindings = bindings[:n-1]
+		bindings = append(bindings[:i:i], bindings[i+1:]...)
 	}
 	var parts []string
 	used := 0
@@ -198,6 +198,17 @@ func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 		return line + sep + pinned
 	}
 	return line
+}
+
+// helpBinding is the index of the first enabled binding whose help key is ? or ctrl+g
+// (the key that opens full help), or -1.
+func helpBinding(bindings []key.Binding) int {
+	for i, b := range bindings {
+		if k := b.Help().Key; b.Enabled() && (k == "?" || k == "ctrl+g") {
+			return i
+		}
+	}
+	return -1
 }
 
 // Footer is the bottom row(s) per expressions.footer: bare keys, keys on a
