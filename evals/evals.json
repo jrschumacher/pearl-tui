@@ -102,8 +102,7 @@
         "editor uses a real cursor via tea.View.Cursor",
         "the brand read ties 'warm' and 'editorial' each to a named expression axis and its value (e.g. editorial → titleCase lower, measure 72; warm → a tinted neutral, a soft motif), not to a colour alone",
         "if the brand read makes the type lowercase, the theme says so for labels too (expressions.labelCase \"lower\"): table headers, tags and toast labels follow it, and no kit-forced SERVICE or SETUP is left on screen",
-        "a body viewer (tool output, code, JSON, a response) draws its text at two lightnesses, names or keys in fg and punctuation or values in muted, not at one flat level and not as a rainbow of per-token colours",
-        "when the transcript is cut at the top (following the tail at 80×24), the first visible row is a block's head or the ↑ N more lines marker carrying that head; no frame starts on a tool call's body line or a '… N lines hidden' row with its head off-screen"
+        "a body viewer (tool output, code, JSON, a response) draws its text at two lightnesses, names or keys in fg and punctuation or values in muted, not at one flat level and not as a rainbow of per-token colours"
       ]
     },
     {
