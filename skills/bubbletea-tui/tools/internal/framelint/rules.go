@@ -687,10 +687,12 @@ func filled(grid [][]Cell, r region) bool {
 	return painted == 0 || float64(ok) >= 0.8*float64(painted)
 }
 
-// asciiBoxCells are the cells of a frame that draw an ASCII box or table edge: a | with
-// a | or + above and below it (a vertical run of 3+), and a + joined to a - beside it
-// or a | above or below it. Under --ascii these are what ─ │ ╭ became, so they are
-// decoration as those are, and not text for F-CONTRAST or F-LEVELS.
+// asciiBoxCells are the cells of a frame that draw an ASCII box, rail or bar: a | in a
+// vertical run of 3+ (with | or +), a + joined to a - beside it or a | above or below
+// it, and a lone | with a blank or the edge on both sides (a focus bar or a turn's
+// gutter: what ▌ ▎ ┃ became; a | against a letter, "ro|", is a caret and stays text).
+// Under --ascii these are what ─ │ ╭ became, so they are decoration as those are, and
+// not text for F-CONTRAST or F-LEVELS.
 func asciiBoxCells(grid [][]Cell) map[[2]int]bool {
 	at := func(y, x int) string {
 		if y < 0 || y >= len(grid) || x < 0 || x >= len(grid[y]) {
@@ -704,7 +706,8 @@ func asciiBoxCells(grid [][]Cell) map[[2]int]bool {
 		for x := range grid[y] {
 			switch at(y, x) {
 			case "|":
-				if vert(y-1, x) && vert(y+1, x) || vert(y-1, x) && vert(y-2, x) || vert(y+1, x) && vert(y+2, x) {
+				lone := (x == 0 || blank(at(y, x-1))) && (x+1 >= len(grid[y]) || blank(at(y, x+1)))
+				if lone || vert(y-1, x) && vert(y+1, x) || vert(y-1, x) && vert(y-2, x) || vert(y+1, x) && vert(y+2, x) {
 					out[[2]int{y, x}] = true
 				}
 			case "+":

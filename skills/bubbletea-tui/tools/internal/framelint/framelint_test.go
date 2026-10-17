@@ -688,7 +688,9 @@ func TestContrastJudgesStatusMarks(t *testing.T) {
 		{"bullet-20x1.ansi", "  " + faint + "•\x1b[0m item            ", 1},
 		{"spark-20x1.ansi", faint + "⣀⣠⣤⣶⣿⣿⣶⣤⣀⣀⣀⣀⣀⣀      \x1b[0m", 0},
 		{"blocks-20x1.ansi", faint + "▁▂▃▄▅▆▇█ ░▒▓ ─━│┃  \x1b[0m", 0},
-		{"dots-20x1.ansi", faint + "moss ·········· prod\x1b[0m", 1}, // the words, not the dotted rule
+		{"dots-20x1.ansi", faint + "moss ·········· prod\x1b[0m", 1},       // the words, not the dotted rule
+		{"bar-20x1.ansi", faint + "| \x1b[0mselected row       ", 0},       // a lone | is a bar (what ▌ became)
+		{"caret-20x1.ansi", "  > ro" + faint + "|\x1b[0m             ", 1}, // a | against a letter is a caret: text
 		{"dotrule-20x1.ansi", faint + "····················\x1b[0m", 0},
 	} {
 		hits := contrastHits(t, write(c.name, c.text))
