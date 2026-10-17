@@ -106,17 +106,18 @@ func TestSetupCounterAdvancesPastReview(t *testing.T) {
 		}
 		seen[want] = true
 	}
-	step("1/6 Cluster")
+	// the step names take the project theme's case (t.Copy)
+	step("1/6 " + m.t.Copy("Cluster"))
 	drive(m, "enter", "p", "a", "y", "enter")
-	step("2/6 Sign-in")
+	step("2/6 " + m.t.Copy("Sign-in"))
 	drive(m, "down", "enter")
-	step("3/6 Alerts")
+	step("3/6 " + m.t.Copy("Alerts"))
 	drive(m, "enter")
-	step("4/6 Review")
+	step("4/6 " + m.t.Copy("Review"))
 	drive(m, "enter")
-	step("5/6 Connect")
+	step("5/6 " + m.t.Copy("Connect"))
 	m.Update(signedInMsg{m.setup.gen})
-	step("6/6 Finish")
+	step("6/6 " + m.t.Copy("Finish"))
 	if m.setup.namespace != "pay" || m.setup.auth != "device" || !m.setup.alerts {
 		t.Fatalf("values lost on the way: %+v", *m.setup)
 	}
@@ -268,18 +269,50 @@ func (l *lines) Read(p []byte) (int, error) {
 func TestAccessibleSetup(t *testing.T) {
 	t.Setenv("ACCESSIBLE", "1")
 	tf := testTheme(t, "halyard.json")
+	th := theme.Resolve(tf, true, true)
 	var out bytes.Buffer
 	in := &lines{[]string{"1", "payments", "2", "n", "y"}}
-	if err := runAccessibleSetup(theme.Resolve(tf, true, true), in, &out, 0); err != nil {
+	if err := runAccessibleSetup(th, in, &out, 0); err != nil {
 		t.Fatal(err)
 	}
 	txt := out.String()
 	if strings.Contains(txt, "\x1b[") {
 		t.Errorf("accessible transcript has escape codes:\n%q", txt)
 	}
-	for _, want := range []string{"Cluster", "Namespace", "Sign in with", "Signing in to prod-us-east-1", "WXKD-4PQM", "Saved. prod-us-east-1 is your default cluster."} {
+	// the field titles take the project theme's case (t.Copy)
+	for _, want := range []string{th.Copy("Cluster"), th.Copy("Namespace"), th.Copy("Sign in with"), "Signing in to prod-us-east-1", "WXKD-4PQM", "Saved. prod-us-east-1 is your default cluster."} {
 		if !strings.Contains(txt, want) {
 			t.Errorf("transcript lacks %q:\n%s", want, txt)
+		}
+	}
+}
+
+// The wizard's own copy follows the brand's case like the kit's: its step names and the
+// Huh field titles go through t.Copy, so a labelCase lower brand (quire) draws
+// "cluster", "sign-in", "namespace", and a sentence-case one keeps them as written.
+func TestSetupCopyFollowsTheme(t *testing.T) {
+	q, err := theme.Load(filepath.Join("..", "..", "theme", "testdata", "quire.json"))
+	if err != nil {
+		t.Skip("quire.json is the kit's; a copied project has its own themes")
+	}
+	for _, c := range []struct {
+		name      string
+		f         theme.File
+		step, huh string
+	}{
+		{"quire", q, "cluster", "namespace"},
+		{"sentence", testTheme(t, "halyard.json"), "Cluster", "Namespace"},
+	} {
+		if c.f.Expressions.LabelCase == "" && c.f.Expressions.TitleCase == "upper" {
+			continue // a copied project's one theme may shout; the quire case still holds
+		}
+		m := newApp(c.f, true, false)
+		m.setState("setup-namespace")
+		frame := ansi.Strip(m.render(100, 30).String())
+		for _, want := range []string{c.step, c.huh} {
+			if !strings.Contains(frame, want) {
+				t.Errorf("%s: setup frame lacks %q:\n%s", c.name, want, frame)
+			}
 		}
 	}
 }

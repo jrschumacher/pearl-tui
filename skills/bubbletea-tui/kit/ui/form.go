@@ -66,7 +66,7 @@ func HuhStyles(t *theme.Theme) *huh.Styles {
 	blur := lipgloss.Border{Left: " "}
 	blurFg := p.Bg
 	if g.BlurBar != "" {
-		blur, blurFg = lipgloss.Border{Left: g.BlurBar}, p.BgSubtle
+		blur, blurFg = lipgloss.Border{Left: g.BlurBar}, t.S.BlurBar.GetForeground()
 	}
 
 	f := &s.Focused

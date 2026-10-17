@@ -366,7 +366,7 @@ var asciiTwins = map[string]string{
 	"•": "*", "▪": "*", "…": "...", "■": "[x]", "□": "[ ]", "☑": "[x]", "☐": "[ ]",
 	"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "◐": "~", "▲": "^", "△": "o", "◢": "/",
 	"◦": "o", "–": "-", "—": "-", "█": "#", "░": ".",
-	"▏": "|", "↑": "^", "↓": "v", "↑↓": "^v", "←": "<-", "←→": "<>", "╸": "=", "▔": "-",
+	"▏": "'", "↑": "^", "↓": "v", "↑↓": "^v", "←": "<-", "←→": "<>", "╸": "=", "▔": "-",
 }
 
 // ASCIITwin returns the twin ASCII draws for glyph, and whether the kit's map has one.
@@ -505,6 +505,13 @@ func CheckGlyphs(g Glyphs) error {
 				return fmt.Errorf("glyphs.%s %q and glyphs.%s %q both draw as %q under ASCII, so two states read as one: give one of them another twin in glyphs.ascii",
 					jsonKey(a), ga, jsonKey(b), gb, ta)
 			}
+		}
+	}
+	// the caret sits after typed text; as a bar, or a bar's twin, "> ro|" reads as a
+	// focused block
+	for _, bar := range []string{"FocusBar", "BlurBar"} {
+		if b := sv.FieldByName(bar).String(); b != "" && (src.Caret == b || out.Caret == ov.FieldByName(bar).String()) {
+			return fmt.Errorf("glyphs.caret %q draws as %q, the %s's: a caret that is a bar reads as focus; pick ▏ or _ (ASCII ')", src.Caret, out.Caret, jsonKey(bar))
 		}
 	}
 	return nil

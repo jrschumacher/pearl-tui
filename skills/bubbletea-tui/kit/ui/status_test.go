@@ -88,24 +88,28 @@ func TestRulesVisibleAt16And256Colours(t *testing.T) {
 func TestLabelCase(t *testing.T) {
 	base := theme.Default()
 	for _, c := range []struct {
-		labelCase                 string
-		header, tag, toast, strip string
+		labelCase                          string
+		header, tag, toast, strip, summary string
 	}{
-		{"", "SERVICE", "SETUP", "DEPLOYED", "namespace"},
-		{"lower", "service", "setup", "deployed", "namespace"},
-		{"upper", "SERVICE", "SETUP", "DEPLOYED", "NAMESPACE"},
-		{"as-is", "Service", "SETUP", "DEPLOYED", "Namespace"},
+		{"", "SERVICE", "SETUP", "DEPLOYED", "namespace", ""},
+		{"lower", "service", "setup", "deployed", "namespace", "namespace"},
+		{"upper", "SERVICE", "SETUP", "DEPLOYED", "NAMESPACE", "NAMESPACE"},
+		{"as-is", "Service", "SETUP", "DEPLOYED", "Namespace", "Namespace"},
 	} {
 		f := base
 		f.Expressions.LabelCase = c.labelCase
 		th := theme.Resolve(f, true, false)
 		got := map[string]string{
-			"header": strings.Fields(ansi.Strip(Table(th, []string{"Service", "when"}, nil, []int{10, 0}, "lr", -1, 40, false)[0]))[0],
-			"tag":    strings.TrimSpace(ansi.Strip(Tag(th, "info", "SETUP"))),
-			"toast":  strings.Fields(ansi.Strip(Toast(th, "ok", "DEPLOYED", "ledger v7.1.0", 60)))[0],
-			"strip":  strings.Fields(ansi.Strip(SummaryStrip(th, []SummaryRow{{Label: "Namespace", Value: "payments", Set: true}}, 60)))[0],
+			"header":  strings.Fields(ansi.Strip(Table(th, []string{"Service", "when"}, nil, []int{10, 0}, "lr", -1, 40, false)[0]))[0],
+			"tag":     strings.TrimSpace(ansi.Strip(Tag(th, "info", "SETUP"))),
+			"toast":   strings.Fields(ansi.Strip(Toast(th, "ok", "DEPLOYED", "ledger v7.1.0", 60)))[0],
+			"strip":   strings.Fields(ansi.Strip(SummaryStrip(th, []SummaryRow{{Label: "Namespace", Value: "payments", Set: true}}, 60)))[0],
+			"summary": strings.Fields(ansi.Strip(Summary(th, "Summary", "", []SummaryRow{{Label: "Namespace", Value: "payments", Set: true}}, 40)[2]))[0],
 		}
-		for what, want := range map[string]string{"header": c.header, "tag": c.tag, "toast": c.toast, "strip": c.strip} {
+		if c.labelCase == "" {
+			c.summary = "Namespace" // the sidebar's labels keep the app's case unless the theme sets one
+		}
+		for what, want := range map[string]string{"header": c.header, "tag": c.tag, "toast": c.toast, "strip": c.strip, "summary": c.summary} {
 			if got[what] != want {
 				t.Errorf("labelCase %q: %s %q, want %q", c.labelCase, what, got[what], want)
 			}
@@ -170,6 +174,72 @@ func TestFocusFgTabs(t *testing.T) {
 			if hits := primaryCells(th, strings.Join(Tabs(th, []string{"Inbox", "Saved"}, 0, nil), "\n"), p); len(hits) > 0 {
 				t.Errorf("tabs %s %v: primary at %v", tabs, p, hits)
 			}
+		}
+	}
+}
+
+// The blurred selection gutter (S.BlurBar: an unfocused list or table under a dialog)
+// drew in bgSubtle, about 1.2:1 on the page: invisible at truecolour, and under NO_COLOR
+// a bare | told from the focused bar by bold alone. It is fgSubtle, a text level that
+// holds the 2.3:1 floor on bg in every theme and mode, and Huh's blurred field bar is
+// the same ink.
+func TestBlurBarIsVisible(t *testing.T) {
+	files := append(testThemes(t), filepath.Join("..", "theme", "testdata", "quire.json"))
+	for _, f := range files {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dark := range []bool{true, false} {
+			th := theme.Resolve(tf, dark, false)
+			ink := th.S.BlurBar.GetForeground()
+			if !sameColor(ink, th.P.FgSubtle) {
+				t.Errorf("%s dark=%v: BlurBar draws %v, want fgSubtle %v", filepath.Base(f), dark, ink, th.P.FgSubtle)
+			}
+			if r := theme.Contrast(ink, th.P.Bg); r < 2.3 {
+				t.Errorf("%s dark=%v: BlurBar is %.2f:1 on bg, under the 2.3 floor", filepath.Base(f), dark, r)
+			}
+			if huh := HuhStyles(th).Blurred.Base.GetBorderLeftForeground(); th.G.BlurBar != "" && !sameColor(huh, ink) {
+				t.Errorf("%s dark=%v: Huh's blurred field bar draws %v, want BlurBar's %v", filepath.Base(f), dark, huh, ink)
+			}
+		}
+	}
+}
+
+// Case reached section and dialog titles, table headers and tags, but not the kit's
+// own words: ui.Tabs never called t.Case (Services 8  Deploys beside lowercase labels),
+// ui.TooSmall hard-coded "Terminal too small", and a tool call's "Canceled." and
+// "Waiting for permission" and Thinking's "Thought for" were fixed. Under
+// labelCase/titleCase lower they read as a second brand. The kit's fixed copy takes
+// labelCase when the theme sets one, else titleCase (t.Copy); the data after it (an
+// elapsed time, a size) stays as it is.
+func TestFixedCopyFollowsTheme(t *testing.T) {
+	for _, c := range []struct {
+		name, titleCase, labelCase                        string
+		tabs, small, canceled, waiting, thought, thinking string
+	}{
+		{"quire", "sentence", "lower", "services / deploys", "terminal too small", "canceled.", "waiting for permission", "thought for 6.1s", ""},
+		{"default", "sentence", "", "Services / Deploys", "Terminal too small", "Canceled.", "Waiting for permission", "Thought for 6.1s", ""},
+		{"upper titles", "upper", "", "SERVICES / DEPLOYS", "TERMINAL TOO SMALL", "CANCELED.", "WAITING FOR PERMISSION", "THOUGHT FOR 6.1s", ""},
+		{"upper titles, lower labels", "upper", "lower", "services / deploys", "terminal too small", "canceled.", "waiting for permission", "thought for 6.1s", ""},
+	} {
+		f := quire(t)
+		f.Expressions.TitleCase, f.Expressions.LabelCase = c.titleCase, c.labelCase
+		th := theme.Resolve(f, true, false)
+		plain := func(rows []string) string { return strings.TrimSpace(ansi.Strip(strings.Join(rows, "\n"))) }
+		got := map[string]string{
+			"tabs":     plain(Tabs(th, []string{"Services", "Deploys"}, 0, nil)),
+			"canceled": plain(ToolCall(th, Tool{Name: "Edit", State: ToolCanceled}, 60, false)[2:]),
+			"waiting":  strings.TrimSuffix(plain(ToolCall(th, Tool{Name: "Edit", State: ToolPending}, 60, false)[2:]), th.G.Ellipsis),
+			"thought":  plain(Thinking(th, []string{"a"}, 2, "6.1s", 60)[1:]),
+		}
+		for what, want := range map[string]string{"tabs": c.tabs, "canceled": c.canceled, "waiting": c.waiting, "thought": c.thought} {
+			if got[what] != want {
+				t.Errorf("%s: %s %q, want %q", c.name, what, got[what], want)
+			}
+		}
+		if small := ansi.Strip(TooSmall(th, 52, 16, 60, 18)); !strings.Contains(small, c.small) || !strings.Contains(small, "52x16, needs 60x18") {
+			t.Errorf("%s: TooSmall draws %q, want %q and the sizes", c.name, strings.TrimSpace(small), c.small)
 		}
 	}
 }

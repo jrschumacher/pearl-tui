@@ -126,13 +126,14 @@ func Alert(t *theme.Theme, kind, label, msg string, w int) string {
 	return tg + bar.Width(rest).Render(Trunc(t, msg, max(0, rest-2)))
 }
 
-// Dot is a status dot: ● in a role colour, with the label after it. Never
-// colour alone: the label says the state too, and each state has its own shape
-// (busy is the partial rung, ◐, not ok's ● in another colour).
+// Dot is a status dot: a rung's glyph in its role, with the label after it. Never
+// colour alone: the label says the state too, and each state has its own shape. ok is
+// the done rung (✓ in success), not current's ● in green: ● is "now" (a step, a new
+// item), and one glyph carries one meaning. busy is the partial rung, ◐.
 func Dot(t *theme.Theme, state string) string {
 	switch state {
 	case "ok", "healthy", "online", "done":
-		return t.S.OK.Render(t.G.Current)
+		return Mark(t, "done")
 	case "error", "failed", "down":
 		return t.S.Err.Render(t.G.Fail)
 	case "warning", "degraded":

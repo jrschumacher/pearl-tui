@@ -13,7 +13,8 @@ Details truncate before the brand does.
 
 ## Tabs — `ui.Tabs`
 
-Text, never boxes. The active tab is bold with a marker drawn per `expressions.tabs`
+Text, never boxes, the names in the theme's case (`labelCase` when set, else `titleCase`).
+The active tab is bold with a marker drawn per `expressions.tabs`
 (a `▔` underline row, a pill, `[brackets]`, or a ` / ` path). Counts sit beside the
 names in subtle; a count is only red if it needs attention now.
 
@@ -56,6 +57,10 @@ collapses to one summary line under the list.
   fill), or `rules`, the editorial one: a filled panel between two hairline rules
   (`── Send reply ──────`), a one-cell margin inside, no sides, the title in the top rule.
   Its edge is glyphs, so it holds in every profile.
+- `ui.Dialog(t, w, h, …)` takes the rows it may use (the showcase passes those between
+  the tabs and a row of air above the footer) and scrolls its body when it doesn't fit
+  (`ui.Clip`: `↑ n more` above, `… n more` below; `DialogScrolled` for a screen with an
+  offset, `DialogBodyRows` and `ClipMax` to clamp it), so no dialog reaches the footer.
 - Palette: a prompt input with a caret, then a fixed-height list (it doesn't jump while
   typing), with fuzzy matches underlined and shortcuts right-aligned.
 - Only the front dialog takes input. `esc` closes it. The scrim dims the rest.
@@ -96,6 +101,8 @@ words. The primary button is filled because Enter triggers it, and the footer sa
 
 Huh does the input; the kit does the look and the frame around it. The reference is the
 showcase's first-run setup (`go run ./cmd/showcase -first-run`, harness states `setup-*`).
+Huh field titles are the app's text: the kit re-cases only its own fixed copy (`t.Copy`:
+tab names, "Terminal too small", "Canceled."), so write a field's title in the brand's case.
 
 ```
 H A L Y A R D                                         setup / 2/6 Sign-in
@@ -153,8 +160,9 @@ on a filled strip, or under a rule. Full help (`?`) expands into columns, groupe
 
 ## Stream (chat, logs, events) — `ui.UserMessage`, `ui.AssistantMessage`, `ui.ToolCall`, `ui.Thinking`, `ui.TurnFooter`
 
-- The user's voice carries a primary bar; the assistant's text is indented 2 and wrapped
-  to the measure.
+- The user's voice carries a bar: the focus bar while the turn is focused, the turn bar
+  in muted when it isn't (a bold or coloured bar means focus, and a sent turn has none);
+  the assistant's text is indented 2 and wrapped to the measure.
 - Actions use the tool-call grammar (`idiom.md` §6). Collapsed output gets an honest
   "N lines hidden" affordance.
 - Follow mode pins to the bottom. When scrolled up, show "↑ N more lines" at the top and
@@ -171,11 +179,14 @@ voice.
 ## Status Column — `ui.Dot`, `ui.Busy`
 
 One cell per row, before the name. `ui.Dot(t, state)` draws each state in its own shape
-and role colour: ok `current`, busy `partial`, warning `warn`, error `fail`, idle `todo`,
-so the shape says it under NO_COLOR too. A row in progress takes `ui.Busy(t, frame)`: the
-theme's spinner when its frames are one cell, else the still partial glyph, never a
-multi-cell spinner that pushes the name out of line. The label or a tag beside it says
-the state in words.
+and role colour: ok `done`, busy `partial`, warning `warn`, error `fail`, idle `todo`,
+so the shape says it under NO_COLOR too, and `●` (`current`) keeps one meaning: now. A
+state of the product's own (`new`, `reviewed`) is a rung of the theme's `ladder`, drawn
+with `ui.Mark(t, "new")` (brand.md §4). A row in progress takes `ui.Busy(t, frame)`: the
+theme's spinner when its frames are one cell, else the still partial glyph (in unicode
+and ASCII alike), never a multi-cell spinner that pushes the name out of line; the
+clock for such a row runs only when `ui.BusyAnimates(t)`. The label or a tag beside it
+says the state in words.
 
 ## Progress, Sparkline, Meter — `ui.Progress`, `ui.Sparkline`
 

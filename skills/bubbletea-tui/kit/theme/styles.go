@@ -121,7 +121,9 @@ func build(t *Theme) Styles {
 	if fgFocus {
 		s.FocusBar = s.Bold
 	}
-	s.BlurBar = lipgloss.NewStyle().Foreground(p.BgSubtle)
+	// the blurred bar is a hint level, not a background step: bgSubtle is about 1.2:1 on
+	// the page, which vanishes at truecolour and leaves a bare | under NO_COLOR
+	s.BlurBar = lipgloss.NewStyle().Foreground(p.FgSubtle)
 	s.Match = lipgloss.NewStyle().Underline(true)
 
 	switch x.Button {
@@ -219,6 +221,18 @@ func (t *Theme) Case(s string) string {
 		return strings.ToLower(s)
 	}
 	return s
+}
+
+// Copy applies the theme's case to the kit's own fixed copy: tab names, "Terminal too
+// small", a tool call's "Canceled." and "Waiting for permission", Thinking's "Thought
+// for". labelCase when the theme sets one (the brand's case for the small words of its
+// UI), else titleCase. Text the app writes (Huh field titles, labels, prose) is the
+// app's own: write it in the brand's case.
+func (t *Theme) Copy(s string) string {
+	if t.X.LabelCase != "" {
+		return t.Label(s, "as-is")
+	}
+	return t.Case(s)
 }
 
 // Label applies the theme's label case (expressions.labelCase) to a table header, tag,

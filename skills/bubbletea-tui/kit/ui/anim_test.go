@@ -92,3 +92,61 @@ func TestSpinnerColour(t *testing.T) {
 		}
 	}
 }
+
+// Busy decided by the resolved frames' width, so a theme whose spinner is wider than
+// one cell (lumen's "···") drew a still ◐ in unicode and a turning / under ASCII, where
+// the kit's line frames are one cell. BusyAnimates judges the theme's own frames, so a
+// theme animates in both profiles or holds the partial mark in both, and the showcase
+// clock (TestOneClock) ticks only where Busy changes between frames.
+func TestBusyAgreesAcrossProfiles(t *testing.T) {
+	files := append(testThemes(t), filepath.Join("..", "theme", "testdata", "quire.json"))
+	moves := func(th *theme.Theme) bool {
+		seen := map[string]bool{}
+		for n := range 8 {
+			seen[ansi.Strip(Busy(th, n))] = true
+		}
+		return len(seen) > 1
+	}
+	wide := 0
+	for _, f := range files {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		uni, asc := theme.Resolve(tf, true, false), theme.Resolve(tf, true, true)
+		if BusyAnimates(uni) != BusyAnimates(asc) {
+			t.Errorf("%s: BusyAnimates %v in unicode, %v under ASCII", filepath.Base(f), BusyAnimates(uni), BusyAnimates(asc))
+		}
+		for _, th := range []*theme.Theme{uni, asc} {
+			if got := moves(th); got != BusyAnimates(th) {
+				t.Errorf("%s ascii=%v: Busy changes between frames: %v, BusyAnimates says %v", filepath.Base(f), th.ASCII, got, BusyAnimates(th))
+			}
+			if !BusyAnimates(th) {
+				wide++
+				if got := ansi.Strip(Busy(th, 3)); got != th.G.Partial {
+					t.Errorf("%s ascii=%v: a still Busy is %q, want the partial mark %q", filepath.Base(f), th.ASCII, got, th.G.Partial)
+				}
+			}
+		}
+	}
+	// the kit's themes include a multi-cell spinner (lumen); a copied project may not
+	if wide == 0 {
+		t.Log("no theme here has a spinner wider than one cell")
+	}
+	f := theme.Default()
+	f.Glyphs.Spinner = []string{"·  ", " · ", "  ·"}
+	for _, ascii := range []bool{false, true} {
+		if th := theme.Resolve(f, true, ascii); BusyAnimates(th) || moves(th) {
+			t.Errorf("ascii=%v: a three-cell spinner animates Busy", ascii)
+		}
+	}
+	// one frame is no motion in unicode, so it is none under ASCII either, where the
+	// kit's line spinner would otherwise turn
+	f.Glyphs.Spinner = []string{"◍"}
+	f.Glyphs.ASCII = map[string]string{"◍": "@"}
+	for _, ascii := range []bool{false, true} {
+		if th := theme.Resolve(f, true, ascii); BusyAnimates(th) || moves(th) {
+			t.Errorf("ascii=%v: a one-frame spinner animates Busy", ascii)
+		}
+	}
+}

@@ -92,7 +92,8 @@ read it too.
     "sectionTitle": "primary",  // accent | primary | muted-upper | fg
     "titleCase": "sentence",    // sentence | upper | lower
     "labelCase": "lower",       // upper | lower | as-is: table headers, tags, toast and summary
-                                //   labels (unset: headers upper, tags as the app writes them)
+                                //   labels, and the kit's fixed copy (tabs, "Terminal too small",
+                                //   "Canceled."; unset: headers upper, fixed copy in titleCase)
     "selection": "fill",        // bar | fill | caret | inverse
     "button": "bracket",        // pill | bracket | underline | inverse
     "tag": "filled",            // filled | bracket | bold
@@ -114,6 +115,7 @@ read it too.
     "gutter": 2, "measure": 100
   },
   "wordmark": { "rows": ["…"], "style": "half" },   // optional, from wordmark.py; style is its note, the kit reads rows
+  "ladder": [{ "glyph": "current", "meaning": "new", "role": "primary" }, …],   // optional: the product's own rungs (a status slot or a one-cell literal with a twin; a meaning that is no kit slot; any colour role or focus / working), drawn by ui.Mark(t, "new"), ui.Rungs and the ladder state
   "ansi16": { "dark": { "warning": 11 }, "light": { "warning": 3 } }  // optional, color.md
 }
 ```
@@ -137,13 +139,13 @@ another state's glyph in another colour, and one mark under NO_COLOR.
 
 **Keep a state's glyph and hue exclusive.** The kit's own components draw the same slots
 with the same meanings: `ui.Steps` done/current/todo/fail, `ui.ToolCall`
-pending/partial/done/fail, `ui.Dot` current (ok), partial (busy), warn, fail and todo
-(idle), and `ui.Busy` the spinner (one cell, the partial glyph when the frames are wider).
-So a ladder mapped onto the slots by meaning stays consistent everywhere. Where a rung
-means something no kit component means (an app whose `●` means "queued", while `ui.Dot`
-draws `current` for "healthy"), keep that component off the ladder's screens, or give the rung
-its own field in the copied `Glyphs` (`ASCII` maps it and `CheckGlyphs` checks its twin;
-add it to `glyphMeanings`' status set so the rungs stay apart). The hue stays off the
+pending/partial/done/fail, `ui.Dot` done (ok: `●` is "now", never also "healthy"),
+partial (busy), warn, fail and todo (idle), and `ui.Busy` the spinner (one cell, the
+partial glyph when the frames are wider). So a ladder mapped onto the slots by meaning
+stays consistent everywhere. Where a rung means something no kit slot means (`●` for
+"new", `✓` in subtle for "reviewed"), declare it in the theme's `ladder` (above): `ui.Mark(t,
+"new")` draws it, the `ladder` state shows it in its ink, and `palette check` keeps the
+rungs apart under ASCII (`theme.CheckLadder`). The hue stays off the
 kit's chrome with `focus: fg`; a spinner frame may not be a status or focus mark
 (`CheckGlyphs`), and under `-ascii` the kit's spinner leaves out the focus bar's `|`.
 
