@@ -63,6 +63,11 @@ func TestLadderRoles(t *testing.T) {
 			if got := firstInk(Dot(th, "ok")); !sameColor(got, th.P.Success) {
 				t.Errorf("%s dark=%v: Dot ok draws %v, want success", filepath.Base(f), dark, got)
 			}
+			// current (the open collection, the loaded profile) is the current rung, ● in the
+			// focus ink: it fell through to idle's ○, so an app drew it by hand
+			if got, want := Dot(th, "current"), Mark(th, "current"); got != want || !sameColor(firstInk(got), focus) {
+				t.Errorf("%s dark=%v: Dot current draws %q, want the current rung %q in the focus ink", filepath.Base(f), dark, got, want)
+			}
 		}
 		// under ASCII the rungs' glyphs stay distinct in shape, or two states read as one
 		g := theme.Resolve(tf, true, true)
