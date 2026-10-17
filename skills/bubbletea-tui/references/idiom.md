@@ -67,6 +67,10 @@ quieter tone, so the user can see where they were.
 - The status glyph is coloured by state (pending, running, `✓` done, `×` error), the name
   in the info colour, the main parameter muted, `k=v` options subtle.
 - The `k=v` group is dropped before the main parameter would drop below 30 cells.
+- A right-aligned note in subtle on the head row says what the body can't: elapsed
+  (`0.2s`, `6s`) and how the call was allowed (`allowed once`, `for session`). It is
+  dropped before the name is, and a description (`Run import tests`) is a muted line
+  under the head, cut with it, never a `k=v` with an empty value (`Run import tests=`).
 - The body is collapsed to N lines with an honest affordance. It never hides exactly one
   line (it shows that line instead).
 - An error is an `ERROR` chip plus a one-line message, not a stack trace.
