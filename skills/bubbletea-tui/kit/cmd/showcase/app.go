@@ -202,6 +202,9 @@ func (m *app) startClock() tea.Cmd {
 // armRefresh retires the pending refresh tick and arms one at the current rate, or
 // none while paused. Every setting change returns it: a gen bump alone would orphan
 // the pending tick and stop the clock for good.
+// This sync is in place; a real poll is async (tick → fetch cmd → result msg), and its
+// result handler re-arms only if the result's gen is current, or a setting change
+// mid-fetch, which armed its own tick, starts a second chain.
 func (m *app) armRefresh() tea.Cmd {
 	m.refresh.gen++
 	if m.paused {

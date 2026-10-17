@@ -30,6 +30,8 @@ case tickMsg:
   that changes its interval or pauses and resumes it returns the new arm cmd, never a
   `gen` bump alone, or it stops for good with nothing on screen to say so
   (`TestClockSurvivesSettingChange`, copied with the kit; TUI.md § Async names both).
+  A poll's result handler re-arms only if the result's `gen` is current, or a setting
+  change mid-fetch starts a second chain.
 - `ui.FrameInterval` is 50 ms (20 fps). Spinners can advance every 2nd frame (100 ms).
 
 ## Deterministic Frames
