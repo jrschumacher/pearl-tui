@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/colorprofile"
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
@@ -37,6 +39,42 @@ func TestInProgressHasItsOwnShape(t *testing.T) {
 			}
 			if run, wait := icon(ToolRunning), icon(ToolPending); run == wait {
 				t.Errorf("%s ascii=%v: a running and a pending tool call both lead with %q", filepath.Base(f), ascii, run)
+			}
+		}
+	}
+}
+
+// A section rule, a table's header rule and the footer rule are drawn in the border
+// role, a step off bg. At 16 colours that step downsampled onto the page and every rule
+// vanished. Read back as the terminal holds them, their cells are never bg's colour.
+func TestRulesVisibleAt16And256Colours(t *testing.T) {
+	files := append(testThemes(t), filepath.Join("..", "theme", "testdata", "quire.json"))
+	for _, f := range files {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dark := range []bool{true, false} {
+			for _, p := range []colorprofile.Profile{colorprofile.ANSI, colorprofile.ANSI256} {
+				th := theme.ResolveProfile(tf, dark, false, p)
+				rows := []string{Section(th, "Activity", 40, "last hour")}
+				rows = append(rows, Table(th, []string{"service", "when"}, [][]string{{"ledger", "2d"}}, []int{0, 6}, "lr", -1, 40, false)...)
+				s := strings.Join(rows, "\n")
+				buf := uv.NewScreenBuffer(40, len(rows))
+				uv.NewStyledString(downsample(s, p)).Draw(buf, buf.Bounds())
+				bg := p.Convert(th.P.Bg)
+				for y := range len(rows) {
+					for x := range 40 {
+						c := buf.CellAt(x, y)
+						if c == nil || c.Content != th.G.Rule {
+							continue
+						}
+						if c.Style.Fg == nil || sameColor(c.Style.Fg, bg) {
+							t.Errorf("%s dark=%v %v: rule cell %d,%d draws in the page's colour", filepath.Base(f), dark, p, x, y)
+							break
+						}
+					}
+				}
 			}
 		}
 	}

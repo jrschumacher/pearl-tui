@@ -387,7 +387,8 @@ func Resolve(f File, dark, ascii bool) *Theme {
 // theme's ansi16 pins replace the roles they name. Where a
 // background step the styles separate things with can't be told from the page at
 // that profile (Distinct), they add an edge instead: a borderless dialog gets a rule
-// above and below. Keep the profile and pass it again on every re-resolve.
+// above and below. A rule or border colour that lands on bg moves to the nearest one
+// that doesn't (ANSI 8 or 7 at 16 colours), so rules stay visible. Keep the profile and pass it again on every re-resolve.
 func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *Theme {
 	mode := "dark"
 	r, ok := f.Roles["dark"]
@@ -413,6 +414,9 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 	if t.X.Focus == "fg" && r.BorderFocus == "" {
 		t.P.BorderFocus = t.P.FgMuted // the dialog border is chrome too: not the hue
 	}
+	// rules are "barely lighter than bg": downsampled, they can land on bg itself and
+	// every section, table and footer rule vanishes
+	t.P.Border, t.P.BorderFocus = t.edge(t.P.Border), t.edge(t.P.BorderFocus)
 	t.S = build(t)
 	return t
 }
@@ -432,6 +436,35 @@ func (t *Theme) Distinct(a, b color.Color) bool {
 	r1, g1, b1, _ := ca.RGBA()
 	r2, g2, b2, _ := cb.RGBA()
 	return r1 != r2 || g1 != g2 || b1 != b2
+}
+
+// edge is c, a rule or border colour, or where c lands on the page's colour at the
+// theme's profile, the nearest colour that doesn't: at 16 colours the quiet grey (ANSI 8
+// on a dark page, 7 on a light one, whichever is apart from bg), at 256 c stepped toward
+// fg until it leaves bg's slot. Like Ink, a no-op wherever the two stay apart, and under
+// NO_COLOR, where nothing has a colour and a rule is its glyphs.
+func (t *Theme) edge(c color.Color) color.Color {
+	if t.Profile != colorprofile.ANSI && t.Profile != colorprofile.ANSI256 || t.Distinct(c, t.P.Bg) {
+		return c
+	}
+	if t.Profile == colorprofile.ANSI {
+		greys := []int{8, 7}
+		if !t.Dark {
+			greys = []int{7, 8}
+		}
+		for _, n := range greys {
+			if g := ansi.BasicColor(n); t.Distinct(g, t.P.Bg) {
+				return g
+			}
+		}
+		return c
+	}
+	for i := 1; i <= 20; i++ {
+		if m := Mix(c, t.P.Fg, float64(i)/20); t.Distinct(m, t.P.Bg) {
+			return m
+		}
+	}
+	return c
 }
 
 // Ink is the colour to draw text on fill with: c, or when c and fill land on one

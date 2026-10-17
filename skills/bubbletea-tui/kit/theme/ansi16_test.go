@@ -1,6 +1,7 @@
 package theme
 
 import (
+	"image/color"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -120,6 +121,43 @@ func TestFocusFgThemesKeepPrimaryApartAt16Colours(t *testing.T) {
 		for _, c := range ANSI16Clashes(f) {
 			if c.A == "primary" || c.B == "primary" {
 				t.Errorf("%s: %s", filepath.Base(path), c)
+			}
+		}
+	}
+}
+
+// The border role is "barely lighter than bg": at 16 colours it downsamples onto the
+// page's own colour (ANSI 0 on dark, 15 on light) and every rule, section rule and table
+// rule vanishes. ResolveProfile moves a rule or border colour that isn't Distinct from
+// bg to the nearest one that is, at 16 and 256 colours; truecolour keeps the theme's.
+func TestRulesStayVisibleInReducedProfiles(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	test, _ := filepath.Glob(filepath.Join("testdata", "*.json"))
+	for _, path := range append(files, test...) {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dark := range []bool{true, false} {
+			for _, p := range []colorprofile.Profile{colorprofile.ANSI, colorprofile.ANSI256} {
+				th := ResolveProfile(f, dark, false, p)
+				for what, c := range map[string]color.Color{"border": th.P.Border, "borderFocus": th.P.BorderFocus, "S.Rule": th.S.Rule.GetForeground()} {
+					if !th.Distinct(c, th.P.Bg) {
+						t.Errorf("%s dark=%v %v: %s draws in the page's colour", filepath.Base(path), dark, p, what)
+					}
+				}
+			}
+			mode := "dark"
+			if !dark {
+				mode = "light"
+			}
+			if tc, base := Resolve(f, dark, false).P, derive(f.Roles[mode], dark, nil); !sameRGB(tc.Border, base.Border) {
+				t.Errorf("%s dark=%v: truecolour border %v, want the theme's %v", filepath.Base(path), dark, tc.Border, base.Border)
 			}
 		}
 	}

@@ -119,6 +119,10 @@ and look at the PNGs. What usually breaks:
   apart, or add the glyph marker.
 - `fgMuted` and `fgSubtle` collapse to one grey at 16 colours. Acceptable if nothing
   depends on the difference.
+- `border`, a step off `bg`, lands on `bg` itself at 16 colours and every rule vanishes.
+  `theme.ResolveProfile` moves a rule or border colour that isn't `Distinct` from bg to
+  ANSI 8 (dark) or 7 (light), or at 256 colours one step toward fg; keep the profile from
+  `tea.ColorProfileMsg` and pass it, or the rules go.
 - at `ascii`, everything is the same colour. Focus, selection, error and disabled must
   still be visible through glyphs, bold, reverse video and words.
 - two state roles land on one of the 16 colours: downsampling takes the nearest of 16,
