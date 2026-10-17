@@ -75,6 +75,10 @@
   "partial": "◐",
   "bullet": "·",
   "sep": "·",
+  "caret": "▏",
+  "more": "↑",
+  "progressFill": "━",
+  "progressEmpty": "╌",
   "ascii": {
    "◐": "~"
   },

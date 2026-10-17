@@ -17,7 +17,7 @@ linted 18 frame(s)
 [P1] F-OFFPAL    rainbow.ansi:r8c0  3 colours not in the theme roles: #5050E0, #A040E0, #E040A0
 [P1] F-OFFPAL    sgr-mix.ansi:r1c38  1 colours not in the theme roles: #000000
 [P2] F-BOLD      all-bold.ansi:frame  100% of text is bold
-[P2] F-CONTRAST  help-overlay.ansi:frame  overlay frame without a bordered dialog: contrast and palette checked only by eye here
+[P2] F-CONTRAST  help-overlay.ansi:frame  overlay frame without a bordered or ruled dialog: contrast and palette checked only by eye here
 [P2] F-EDGE      edge.ansi:frame  content touches the terminal edge on most rows: give it a 1–2 cell gutter
 [P2] F-EMPTY     empty.ansi:frame  almost nothing on screen: if this is an empty state, say what is missing and what to do
 [P2] F-LEVELS    all-bold.ansi:frame  only 1 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle

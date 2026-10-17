@@ -85,6 +85,10 @@
    "▝",
    "▗"
   ],
+  "caret": "▏",
+  "more": "↑",
+  "progressFill": "━",
+  "progressEmpty": "╌",
   "ascii": {
    "◧": "~",
    "▚": "\\",

@@ -40,10 +40,7 @@ func UserMessage(t *theme.Theme, text string, w int, focused bool) []string {
 	if !focused && t.G.BlurBar != "" {
 		bar = t.G.BlurBar
 	} else if !focused {
-		bar = "│"
-		if t.ASCII {
-			bar = "|"
-		}
+		bar = t.G.TurnBar
 	}
 	g := t.S.Focus.Render(bar) + " "
 	return prefix(strings.Split(body, "\n"), g, w)
@@ -149,7 +146,7 @@ func ToolCall(t *theme.Theme, tc Tool, w int, focused bool) []string {
 	case tc.State == ToolCanceled:
 		rows = append(rows, "", t.S.Subtle.Render("Canceled."))
 	case tc.State == ToolPending:
-		rows = append(rows, "", t.S.Subtle.Render("Waiting for permission…"))
+		rows = append(rows, "", t.S.Subtle.Render("Waiting for permission"+t.G.Ellipsis))
 	case len(tc.Body) > 0:
 		rows = append(rows, "")
 		shown := tc.Shown

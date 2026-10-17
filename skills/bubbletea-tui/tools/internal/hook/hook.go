@@ -34,6 +34,7 @@
 package hook
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"go/ast"
@@ -45,8 +46,15 @@ import (
 	"strconv"
 	"strings"
 
+	"tuitools/internal/cmddoc"
 	"tuitools/internal/codelint"
 )
+
+//go:embed hook.go
+var docSrc string
+
+// Usage is the -h text: the package doc comment.
+func Usage() string { return cmddoc.Text(docSrc) + "\n" }
 
 // TUIModules are the module paths that make a module a TUI worth linting.
 var TUIModules = []string{"charm.land/bubbletea/v2", "charm.land/huh/v2"}

@@ -12,7 +12,7 @@ go -C "$root/skills/bubbletea-tui/tools" build -o "$tmp/" ./cmd/cellshot
 cd "$kit"
 render() { go run ./cmd/showcase "$@"; }
 
-for n in charm ferrous lumen halyard moss cartridge; do
+for n in charm ferrous lumen halyard moss cartridge terrarium; do
   mode=""; case $n in lumen|moss) mode="-light";; esac
   render -theme "themes/$n.json" $mode -state services -w 120 -h 40 > "$tmp/$n · services.ansi"
   render -theme "themes/$n.json" $mode -state palette  -w 120 -h 40 > "$tmp/$n · palette.ansi"
@@ -34,8 +34,8 @@ render -theme theme/testdata/quire.json -light -state confirm -w 120 -h 40 > "$t
 
 cd "$tmp"
 sheet() { local name=$1; shift; "$tmp/cellshot" "$@" --sheet "$out/$name" --cell 8x16 | tail -1; }
-sheet gallery-services.png  {charm,ferrous,lumen,halyard,moss,cartridge}" · services.ansi"
-sheet gallery-palette.png   {charm,ferrous,lumen,halyard,moss,cartridge}" · palette.ansi"
+sheet gallery-services.png  {charm,ferrous,lumen,halyard,moss,cartridge,terrarium}" · services.ansi"
+sheet gallery-palette.png   {charm,ferrous,lumen,halyard,moss,cartridge,terrarium}" · palette.ansi"
 sheet gallery-modes.png     "halyard · dark.ansi" "halyard · light.ansi" "halyard · ascii, no colour.ansi"
 sheet gallery-assistant.png "charm · assistant working.ansi" "moss (light) · assistant.ansi"
 sheet gallery-setup.png     "halyard · setup, sign-in.ansi" "lumen (light) · setup, review.ansi" "ferrous · setup, waiting.ansi"

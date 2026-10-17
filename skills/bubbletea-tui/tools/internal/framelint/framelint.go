@@ -12,16 +12,23 @@
 //	                 default index (204) is the role, and its hex is judged in truecolour.
 //	                 A frame with only 16-colour SGR (-profile ansi) is not judged: its 16
 //	                 slots are the terminal's palette, and every role lands on one
-//	F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1 (P2 note on a borderless overlay).
-//	                 Box drawing, blocks, braille and ASCII rule runs (----, ====) are decoration.
+//	F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1. Box drawing and blocks (U+2500–259F),
+//	                 braille, legacy blocks and rule runs (────, ----, ····) are decoration; status
+//	                 marks (● ◆ ▶ ○ ◐ •) are text. On an overlay frame (named dialog, palette,
+//	                 confirm, modal, overlay, popup, help or keys) only the dialog and the footer
+//	                 are judged: a bordered box, an ASCII +--+ box, or a "dialog": "rules" panel
+//	                 (two rule rows of one span around a filled panel); with none found, a P2
+//	                 note instead ("dialog": "none" has no edge to find).
 //	                 In a 16-colour frame: text in the same slot as its background
 //	F-BOXES     [P1] more than one bordered box (nested or side by side noted)
-//	F-RAINBOW   [P2] more than 7 distinct foreground hues
+//	F-RAINBOW   [P2] more than 7 distinct foreground hues (not judged on a 256-colour frame, where
+//	                 downsampling scatters a gradient's steps over hues the design never chose)
 //	F-LEVELS    [P2] fewer than 3 neutral text levels on a dense frame (not judged on a
 //	                 frame with no colour, NO_COLOR: its levels are weight and glyphs)
-//	F-BOLD      [P2] more than 30% of text cells bold
+//	F-BOLD      [P2] more than 30% of text cells bold (not on a splash*, intro* or wordmark* frame)
 //	F-EDGE      [P2] content touching column 0 or the last column on most rows
-//	F-EMPTY     [P2] frame is more than 98.5% blank
+//	F-EMPTY     [P2] frame is more than 98.5% blank (not on a splash*, intro* or wordmark* frame:
+//	                 a wordmark on an empty page is what a splash is)
 //	F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
 //	F-ASCII     [P1] (with --ascii) a cell outside ASCII in a frame rendered for ASCII
 package framelint
@@ -39,7 +46,7 @@ import (
 	"strings"
 )
 
-const usage = `usage: tuilint frames <dir|files...> [--cols W --rows H] [--theme theme.json] [--bg #rrggbb] [--ascii] [--json out.json]
+const usage = `usage: tuilint frames <dir|files...> [--cols W --rows H] [--theme theme.json] [--bg #rrggbb] [--ascii] [--max-warnings N] [--json out.json]
 
 Lints rendered truecolor ANSI frames (the output of your -state X -w W -h H flag).
 A directory means its *.ansi files. A name ending -<W>x<H>.ansi (what -out writes) sets
@@ -47,6 +54,8 @@ that frame's size, and --cols/--rows each override their own dimension; with nei
 W is the widest row and H is free.
 A finding prints as [SEV] ID  file:where  message.
 P0/P1 findings fail the run (exit 1); P2 are warnings to fix or justify in one line.
+--max-warnings N also fails the run (exit 1) when more than N warnings remain, so a
+CI baseline catches a new warning class. Exit 2 on usage errors or an unreadable input.
 --bg is the terminal default background for cells that set none (default #16161a).
 --ascii says the frames were rendered for ASCII (-ascii: TERM=linux, --ascii), where
 every cell must be ASCII: a glyph that leaks through is tofu on a console font.
@@ -57,14 +66,18 @@ every cell must be ASCII: a glyph that leaks through is tofu on a console font.
                    and Huh's #F780E2 fuchsia (Charm theme, spinner), #7571F9 / #5A56E0 indigo
   F-OFFPAL    [P1] (with --theme) a colour not in, or blended from, the theme's roles
                    (a 16-colour frame, -profile ansi, is not judged: the terminal owns those slots)
-  F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1 (P2 note on a borderless overlay);
-                   in a 16-colour frame, text in the same slot as its background
+  F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1; box drawing, blocks, braille and
+                   rule runs are decoration, status marks (● ◆ ▶ ○ •) are text. On an overlay
+                   frame (named dialog|palette|confirm|modal|overlay|popup|help|keys) only the
+                   dialog is judged: a bordered box, an ASCII +--+ box or a "dialog": "rules"
+                   panel (two rule rows of one span around a filled panel); none found is a
+                   P2 note. In a 16-colour frame, text in the same slot as its background
   F-BOXES     [P1] more than one bordered box
-  F-RAINBOW   [P2] more than 7 distinct foreground hues
+  F-RAINBOW   [P2] more than 7 distinct foreground hues (not on a 256-colour frame)
   F-LEVELS    [P2] fewer than 3 neutral text levels on a dense frame (not on a no-colour frame)
-  F-BOLD      [P2] more than 30% of text cells bold
+  F-BOLD      [P2] more than 30% of text cells bold (not on a splash*/intro*/wordmark* frame)
   F-EDGE      [P2] content touching column 0 or the last column on most rows
-  F-EMPTY     [P2] frame is more than 98.5% blank
+  F-EMPTY     [P2] frame is more than 98.5% blank (not on a splash*/intro*/wordmark* frame)
   F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
   F-ASCII     [P1] (with --ascii) a cell outside ASCII: give the glyph an ASCII twin
 `
@@ -76,6 +89,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 	opts := map[string]string{}
 	var pos []string
 	ascii := false
+	maxWarnings := -1
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		if a == "-h" || a == "--help" {
@@ -92,7 +106,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		}
 		k := a[2:]
 		switch k {
-		case "cols", "rows", "theme", "json", "bg":
+		case "cols", "rows", "theme", "json", "bg", "max-warnings":
 		default:
 			fmt.Fprintf(stderr, "tuilint frames: unknown flag %s\n%s", a, usage)
 			return 2
@@ -120,6 +134,14 @@ func Main(args []string, stdout, stderr io.Writer) int {
 	rows, ok2 := num("rows")
 	if !ok1 || !ok2 {
 		return 2
+	}
+	if v, ok := opts["max-warnings"]; ok {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 0 {
+			fmt.Fprintf(stderr, "tuilint frames: --max-warnings %q is not a count\n", v)
+			return 2
+		}
+		maxWarnings = n
 	}
 	bg := RGB{0x16, 0x16, 0x1a}
 	if v, ok := opts["bg"]; ok {
@@ -161,7 +183,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		findings = append(findings, lintText(p, string(data), w, h, pal, bg, ascii)...)
 	}
 	fmt.Fprintf(stdout, "linted %d frame(s)\n", len(paths))
-	return Report(findings, opts["json"], stdout, stderr)
+	return Report(findings, opts["json"], maxWarnings, stdout, stderr)
 }
 
 var sizeSuffix = regexp.MustCompile(`-(\d+)x(\d+)\.ansi$`)
@@ -209,8 +231,9 @@ func escapeGlob(p string) string {
 }
 
 // Report sorts findings by severity, rule and file, prints them and the
-// verdict, writes the JSON when asked, and returns the exit status.
-func Report(findings []Finding, jsonPath string, stdout, stderr io.Writer) int {
+// verdict, writes the JSON when asked, and returns the exit status: 1 on a P0 or
+// P1, or on more than maxWarnings warnings (-1 for no limit).
+func Report(findings []Finding, jsonPath string, maxWarnings int, stdout, stderr io.Writer) int {
 	sort.SliceStable(findings, func(i, j int) bool {
 		a, b := findings[i], findings[j]
 		if sevOrder[a.Sev] != sevOrder[b.Sev] {
@@ -228,11 +251,15 @@ func Report(findings []Finding, jsonPath string, stdout, stderr io.Writer) int {
 			fails++
 		}
 	}
-	verdict := "OK"
+	warnings := len(findings) - fails
+	verdict, over := "OK", ""
 	if fails > 0 {
 		verdict = "FAIL"
 	}
-	fmt.Fprintf(stdout, "%s  %d blocking, %d warnings\n", verdict, fails, len(findings)-fails)
+	if maxWarnings >= 0 && warnings > maxWarnings {
+		verdict, over = "FAIL", fmt.Sprintf(" (more than --max-warnings %d)", maxWarnings)
+	}
+	fmt.Fprintf(stdout, "%s  %d blocking, %d warnings%s\n", verdict, fails, warnings, over)
 	if jsonPath != "" {
 		var b bytes.Buffer
 		enc := json.NewEncoder(&b)
@@ -247,7 +274,7 @@ func Report(findings []Finding, jsonPath string, stdout, stderr io.Writer) int {
 			return 2
 		}
 	}
-	if fails > 0 {
+	if fails > 0 || over != "" {
 		return 1
 	}
 	return 0

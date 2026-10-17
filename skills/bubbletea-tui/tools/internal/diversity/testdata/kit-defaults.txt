@@ -21,4 +21,9 @@ focusBar     █           ▌           ┃           ▎           ▌        
 cursor       ▶           >           >           ▸           ›           ›           →           
 done         ■           ✓           ■           ◆           ✓           •           ✓           
 
+nearest to cartridge: ferrous (shares 5/19 axes)
+nearest to ferrous: cartridge (shares 5/19 axes)
+nearest to halyard: cartridge (shares 5/19 axes)
+nearest to lumen: moss (shares 9/20 axes)
+nearest to moss: lumen (shares 9/20 axes)
 OK

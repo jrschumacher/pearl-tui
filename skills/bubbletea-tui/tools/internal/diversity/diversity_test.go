@@ -148,3 +148,33 @@ func TestRulesDialogKillsDialogTitle(t *testing.T) {
 		t.Errorf("choices %v, want dialogTitle dead under dialog rules", th.Choices)
 	}
 }
+
+// The nearest-theme line is advice under the table, never a failure: welp passed the
+// baselines and matched the kit's moss on 11 of 14 axes, and nothing said so (#22).
+// twin-a and twin-b are each other's nearest; a baseline never appears as a subject,
+// and with fewer than two brand themes nothing is said.
+func TestNearest(t *testing.T) {
+	const kit = "../../../kit/themes/"
+	var out, errb bytes.Buffer
+	code := Main([]string{"testdata/themes/twin-a.json", "testdata/themes/twin-b.json", kit + "ink.json", kit + "charm.json", "--baseline", "ink,charm"}, "", &out, &errb)
+	if code != 1 {
+		t.Fatalf("exit %d (twins share too many axes)\n%s", code, out.String())
+	}
+	for _, want := range []string{"nearest to twin-a: twin-b (shares 16/", "nearest to twin-b: twin-a (shares 16/"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("no %q in\n%s", want, out.String())
+		}
+	}
+	if strings.Contains(out.String(), "nearest to ink") || strings.Contains(out.String(), "nearest to charm") {
+		t.Errorf("a baseline got a nearest line:\n%s", out.String())
+	}
+	out.Reset()
+	if code := Main([]string{"testdata/themes/twin-a.json", kit + "ink.json", "--baseline", "ink"}, "", &out, &errb); code != 0 || strings.Contains(out.String(), "nearest") {
+		t.Errorf("one brand theme: exit %d, output\n%s", code, out.String())
+	}
+	// a passing set still gets the note: it is not a failure
+	out.Reset()
+	if code := Main([]string{kit + "halyard.json", kit + "moss.json", kit + "ink.json", "--baseline", "ink"}, "", &out, &errb); code != 0 || !strings.Contains(out.String(), "nearest to halyard: moss (shares ") || !strings.HasSuffix(out.String(), "OK\n") {
+		t.Errorf("halyard and moss: exit %d\n%s", code, out.String())
+	}
+}

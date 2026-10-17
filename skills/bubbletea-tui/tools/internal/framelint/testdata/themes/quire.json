@@ -1,0 +1,105 @@
+{
+ "name": "quire",
+ "brand": "quire",
+ "read": "A reader for long-form newsletters (fictional; a kit test theme). Quiet, grey, typographic: the only hue is amber, and amber means one thing, new. Focus is weight and the caret, never the hue (focus fg): a minimal header with the name plain and bold, muted small-caps section titles, slash tabs, underlined text buttons in fg, lowercase labels, tags and table headers, like its name. Dialogs are ruled panels, like a pull quote. A ◐ for reading (the partial rung) beside ● new and ○ read, its ASCII twin ~ in the theme.",
+ "ansi16": {
+  "dark": {
+   "primary": 11,
+   "warning": 3
+  },
+  "light": {
+   "primary": 3,
+   "error": 1,
+   "warning": 5
+  }
+ },
+ "roles": {
+  "dark": {
+   "accent": "#E4E2DF",
+   "bg": "#17181B",
+   "bgOverlay": "#3B3732",
+   "bgPanel": "#22201C",
+   "bgSubtle": "#2D2925",
+   "border": "#2C2823",
+   "borderFocus": "#87827D",
+   "error": "#FF7A8A",
+   "fg": "#CFCDCA",
+   "fgMuted": "#87827D",
+   "fgSelected": "#14110D",
+   "fgSoft": "#B2AFAB",
+   "fgSubtle": "#615D57",
+   "info": "#56BDFF",
+   "onPrimary": "#14110D",
+   "onSecondary": "#14110D",
+   "onSuccess": "#14110D",
+   "primary": "#E8A33D",
+   "secondary": "#9AA0AA",
+   "success": "#6ACB82",
+   "tertiary": "#4BC5FF",
+   "warning": "#F28C6B"
+  },
+  "light": {
+   "accent": "#232220",
+   "bg": "#FAF9F6",
+   "bgOverlay": "#D1CECA",
+   "bgPanel": "#EFEDEA",
+   "bgSubtle": "#E3E0DC",
+   "border": "#E5E1DD",
+   "borderFocus": "#73706D",
+   "error": "#B0263F",
+   "fg": "#333230",
+   "fgMuted": "#73706D",
+   "fgSelected": "#13110F",
+   "fgSoft": "#474543",
+   "fgSubtle": "#9C9894",
+   "info": "#006A9D",
+   "onPrimary": "#13110F",
+   "onSecondary": "#13110F",
+   "onSuccess": "#FBFAF9",
+   "primary": "#B57700",
+   "secondary": "#7F858F",
+   "success": "#007835",
+   "tertiary": "#006C94",
+   "warning": "#A8481F"
+  }
+ },
+ "glyphs": {
+  "headerRule": "─",
+  "rule": "─",
+  "focusBar": "┃",
+  "cursor": "▸",
+  "prompt": "▸",
+  "done": "✔",
+  "current": "●",
+  "todo": "○",
+  "partial": "◐",
+  "bullet": "·",
+  "sep": "·",
+  "caret": "▏",
+  "more": "↑",
+  "progressFill": "━",
+  "progressEmpty": "╌",
+  "ascii": {
+   "◐": "~"
+  },
+  "pending": "◌"
+ },
+ "expressions": {
+  "header": "minimal",
+  "wordmark": "plain",
+  "sectionTitle": "muted-upper",
+  "titleCase": "sentence",
+  "labelCase": "lower",
+  "selection": "caret",
+  "button": "underline",
+  "tag": "bracket",
+  "dialog": "rules",
+  "dialogTitle": "plain",
+  "tabs": "slash",
+  "footer": "rule",
+  "keys": "inline",
+  "density": "compact",
+  "focus": "fg",
+  "measure": 72
+ }
+}

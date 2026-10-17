@@ -59,7 +59,11 @@ theme (and the test themes in `kit/theme/testdata`) in the variants its loop lis
 today: dark, `-light`, `-ascii` (linted with `--ascii`), `-profile ansi256`,
 `-profile ansi`, `-light -profile ansi` and `NO_COLOR=1`. Light, ASCII, 256 and 16
 colours and no colour are where footers, rules, background steps and downsampled roles
-break first, so lint the variant you touched before pushing, not only dark. It also runs
+break first, so lint the variant you touched before pushing, not only dark. Each render
+is held to `.github/tuilint-baseline.json` (`"<theme>-<variant>": warnings`; a missing
+entry means 0) through `tuilint frames --max-warnings`, so a new warning class fails CI;
+to raise an entry on purpose, justify the warning in the PR and edit the number (today only
+moss's `dialog: none` overlays, which have no edge for the linter to find). It also runs
 `kit/README.md`'s copy block, as written, in a fresh module, because a kit test that
 names a kit path passes here and fails in every project that copied the kit; checks that
 every tool invocation in SKILL.md and `references/` names a real mode and flag (the
@@ -95,7 +99,8 @@ The skill gets better from observed misses, not from adding prose.
   (`kit/cmd/showcase/app.go`); `TestHelpIsHandled` enforces it. Don't add a footer
   binding any other way.
 - **No literals in screens.** Colours and glyphs come from the theme. `tuilint code`
-  fails on hex outside `theme/`.
+  fails on hex [C-HEX] and on a glyph (`·`, `▏`, `→`) [C-GLYPH] outside `theme/` and
+  `ui/canvas.go`'s twin table; a new glyph is a `theme.Glyphs` field with an ASCII twin.
 - **Libraries go through the kit's theme.** Huh forms are built with `ui.NewForm` and
   spinners with `ui.HuhSpinner` / `ui.BubblesSpinner`; `tuilint code` fails a bare
   `huh.NewForm` or an unstyled spinner [C-HUHTHEME]. Huh v2.0.3's quirks and the kit's

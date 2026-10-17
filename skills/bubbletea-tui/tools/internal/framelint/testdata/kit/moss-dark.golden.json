@@ -4,13 +4,6 @@
   "sev": "P2",
   "file": "help-80x24.ansi",
   "where": "frame",
-  "msg": "overlay frame without a bordered dialog: contrast and palette checked only by eye here"
- },
- {
-  "rule": "F-EMPTY",
-  "sev": "P2",
-  "file": "splash-120x40.ansi",
-  "where": "frame",
-  "msg": "almost nothing on screen: if this is an empty state, say what is missing and what to do"
+  "msg": "overlay frame without a bordered or ruled dialog: contrast and palette checked only by eye here"
  }
 ]

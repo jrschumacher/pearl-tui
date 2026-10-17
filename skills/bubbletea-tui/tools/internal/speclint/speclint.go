@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -27,16 +28,23 @@ func Usage() string { return cmddoc.Text(docSrc) + "\n" }
 // Severity maps each rule ID to P1 (fails the run) or P2 (warns).
 var Severity = map[string]string{
 	"S-TABLE": "P1", "S-KEYAMBIG": "P1", "S-KEYDUP": "P1",
-	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2", "S-FOOTER": "P2",
+	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2", "S-FOOTER": "P2", "S-ACCENT": "P2",
 }
 
-// Finding is one result, in the shape the other tuilint modes write to --json.
+// Finding is one result, in the shape the other tuilint modes write to --json: Where
+// is the line number, as a string like frames' "r3c4" and code's line.
 type Finding struct {
-	Rule string `json:"rule"`
-	Sev  string `json:"sev"`
-	File string `json:"file"`
-	Line int    `json:"line"`
-	Msg  string `json:"msg"`
+	Rule  string `json:"rule"`
+	Sev   string `json:"sev"`
+	File  string `json:"file"`
+	Where string `json:"where"`
+	Msg   string `json:"msg"`
+}
+
+// Line is the finding's line number.
+func (f Finding) Line() int {
+	n, _ := strconv.Atoi(f.Where)
+	return n
 }
 
 // Main runs `tuilint spec` with its arguments and returns the exit status.
@@ -79,7 +87,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 	}
 	fails := 0
 	for _, f := range findings {
-		fmt.Fprintf(stdout, "[%s] %-12s %s:%d  %s\n", f.Sev, f.Rule, f.File, f.Line, f.Msg)
+		fmt.Fprintf(stdout, "[%s] %-12s %s:%s  %s\n", f.Sev, f.Rule, f.File, f.Where, f.Msg)
 		if f.Sev != "P2" {
 			fails++
 		}
@@ -138,10 +146,10 @@ func Lint(file, src string) []Finding {
 	s := parse(file, src)
 	var out []Finding
 	add := func(rule string, line int, format string, a ...any) {
-		out = append(out, Finding{Rule: rule, Sev: Severity[rule], File: file, Line: line, Msg: fmt.Sprintf(format, a...)})
+		out = append(out, Finding{Rule: rule, Sev: Severity[rule], File: file, Where: strconv.Itoa(line), Msg: fmt.Sprintf(format, a...)})
 	}
 	warn := func(rule string, line int, format string, a ...any) { // P2 under a rule that is P1 by default
-		out = append(out, Finding{Rule: rule, Sev: "P2", File: file, Line: line, Msg: fmt.Sprintf(format, a...)})
+		out = append(out, Finding{Rule: rule, Sev: "P2", File: file, Where: strconv.Itoa(line), Msg: fmt.Sprintf(format, a...)})
 	}
 	if len(s.rows) == 0 {
 		add("S-TABLE", 1, "no States-and-keys table: write `| state (harness name) | screen / overlay | keys |` with keys as `key action · key action`, as cmd-init.md's template does; the key rules can't run without it")
@@ -164,13 +172,14 @@ func Lint(file, src string) []Finding {
 	s.keyShadow(add)
 	s.glyphWidth(add)
 	s.footerFit(add)
+	s.accentDrift(add)
 	sort.SliceStable(out, func(i, j int) bool {
 		a, b := out[i], out[j]
 		if a.Sev != b.Sev {
 			return a.Sev < b.Sev
 		}
-		if a.Line != b.Line {
-			return a.Line < b.Line
+		if a.Line() != b.Line() {
+			return a.Line() < b.Line()
 		}
 		return a.Rule < b.Rule
 	})
@@ -671,3 +680,74 @@ func asciiHint(gs []string) string {
 	}
 	return strings.Join(out, " ")
 }
+
+var (
+	accentsLine = regexp.MustCompile(`(?i)^\s*(?:[-*+]\s+)?accents?\s*:\s*(.+)$`)
+	accentPair  = regexp.MustCompile(`^\s*([^=]+?)\s*=\s*(.+)$`)
+	// "the accent", "primary hue/colour/accent": the hue. "primary pane", "primary key"
+	// and "primary button" are not.
+	accentWord = regexp.MustCompile(`(?i)\baccent\b|\bprimary\s+(?:hue|colou?r|accent)\b`)
+	wordRe     = regexp.MustCompile(`[\p{L}\p{N}]+`)
+)
+
+// accentDrift is S-ACCENT: once the `accents:` lines give each hue one meaning
+// ("amber = new, nothing else"), a later line that puts "the accent" or "the primary
+// hue" on something else (the wordmark, the spinner's dots, a progress ramp) breaks the
+// promise; only the critic used to catch it. Every `hue = meaning` pair of every
+// accents line (pairs separated by ;) joins one set of words; a line passes when it
+// holds a hue or a word of a meaning. Lines of the States-and-keys table, fenced
+// sketches and the accents lines themselves are not read.
+func (s *spec) accentDrift(add func(string, int, string, ...any)) {
+	same, isAccents := map[string]bool{}, map[int]bool{}
+	firstLine := 0
+	for i, l := range s.lines {
+		m := accentsLine.FindStringSubmatch(clean(l))
+		if m == nil {
+			continue
+		}
+		for _, seg := range strings.Split(m[1], ";") {
+			p := accentPair.FindStringSubmatch(seg)
+			if p == nil || strings.HasPrefix(p[1], "<") || strings.HasPrefix(p[2], "<") {
+				continue // the template's placeholders, or no "hue = meaning"
+			}
+			if firstLine == 0 {
+				firstLine = i + 1
+			}
+			isAccents[i+1] = true
+			for _, w := range wordRe.FindAllString(strings.ToLower(p[1]+" "+p[2]), -1) {
+				if len(w) >= 3 && !accentStop[w] {
+					same[w] = true
+				}
+			}
+		}
+	}
+	if firstLine == 0 {
+		return
+	}
+	fenced := false
+	for i, l := range s.lines {
+		t := strings.TrimSpace(l)
+		if strings.HasPrefix(t, "```") {
+			fenced = !fenced
+			continue
+		}
+		if fenced || isAccents[i+1] || strings.HasPrefix(t, "|") || !accentWord.MatchString(t) {
+			continue
+		}
+		drift := true
+		for _, w := range wordRe.FindAllString(strings.ToLower(t), -1) {
+			if same[w] {
+				drift = false
+				break
+			}
+		}
+		if !drift {
+			continue
+		}
+		add("S-ACCENT", i+1, "puts the accent on something else: `%s`, but line %d says `%s`. One hue, one meaning: give this the role you mean (fg, fgMuted, secondary) or the hue's own meaning",
+			t, firstLine, strings.TrimSpace(s.lines[firstLine-1]))
+	}
+}
+
+// accentStop are words of an accents line that carry no meaning of their own.
+var accentStop = map[string]bool{"the": true, "and": true, "for": true, "only": true, "nothing": true, "else": true, "one": true, "its": true, "hue": true, "never": true, "not": true, "any": true, "all": true, "that": true, "this": true, "with": true}

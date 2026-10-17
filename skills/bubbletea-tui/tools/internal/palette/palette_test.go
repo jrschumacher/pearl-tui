@@ -363,7 +363,7 @@ func TestFocusFgDropsTheSelectedFillCheck(t *testing.T) {
 	}
 }
 
-// At 16 colours colorprofile maps welp's amber and its error to one ANSI colour (issue
+// At 16 colours colorprofile maps a one-hue brand's amber and its error to one ANSI colour (issue
 // #12: #D99A3B and #EF8482 both 9 on dark, #AF7400 and #A13E40 both 1 on light). Under
 // focus "fg" the amber is a state, so check fails the clash and names the fix, an
 // ansi16 pin; with the pin it passes. A clash between the status roles is a warning on

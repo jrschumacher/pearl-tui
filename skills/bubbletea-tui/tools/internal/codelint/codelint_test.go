@@ -78,7 +78,7 @@ func checkWant(t *testing.T, got map[string][]string, exp map[string][]*regexp.R
 	}
 }
 
-var modules = []string{"bad", "good", "quiet", "broken", "huh", "huhsyntax"}
+var modules = []string{"bad", "good", "quiet", "broken", "huh", "huhsyntax", "glyph"}
 
 // syntaxOnly are the modules whose dependencies cannot resolve.
 var syntaxOnly = map[string]bool{"broken": true, "huhsyntax": true}
@@ -232,6 +232,12 @@ var deviations = []deviation{
 	{"bad", "C-LEN", "main.go:101", true, "m.row is a []string, not text"},
 	{"bad", "C-LEN", "main.go:104", true, "len(m.name) > 3 is a length check; the Width on the line belongs to another operand"},
 	{"broken", "C-LEN", "main.go:49", true, "m.list.Items() is a []string (local types are known even without dependencies)"},
+
+	// C-GLYPH: a rule tuilint.py never had; the kit passes it, so only the fixtures differ
+	{"bad", "C-GLYPH", "main.go:100", false, "a ─ typed in a screen"},
+	{"bad", "C-GLYPH", "main.go:105", false, "an … typed in a screen: the theme's ellipsis"},
+	{"bad", "C-GLYPH", "main.go:113", false, "a ✓ typed in a screen: a status mark"},
+	{"broken", "C-GLYPH", "main.go:48", false, "a ─ typed in a screen (also without types)"},
 
 	// C-EMOJI
 	{"bad", "C-EMOJI", "main.go:109", false, "rune literal: tuilint.py needed a \" on the line"},

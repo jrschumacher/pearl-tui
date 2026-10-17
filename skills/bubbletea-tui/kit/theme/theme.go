@@ -99,6 +99,17 @@ type Glyphs struct {
 	FieldA     string   `json:"fieldA"`     // backdrop field bright glyph ◆ ▲ ╱
 	FieldB     string   `json:"fieldB"`     // backdrop field subtle glyph ◇ △
 
+	Caret         string `json:"caret"`         // input caret after the typed text: ▏ ▌ _ |
+	More          string `json:"more"`          // marks lines scrolled off ("↑ 12 more lines"): ↑ ▲ ^
+	UpDown        string `json:"upDown"`        // the arrow-key pair as footers name it: ↑↓ (ascii ^v)
+	LeftRight     string `json:"leftRight"`     // ←→ (ascii <>)
+	Back          string `json:"back"`          // a form's back link: ← ‹ <
+	ProgressFill  string `json:"progressFill"`  // the filled part of a progress bar: ━ █ ■
+	ProgressEmpty string `json:"progressEmpty"` // the rest of it: ╌ ░ ·
+	ProgressHead  string `json:"progressHead"`  // the half cell at the fill's end: ╸ ▌
+	TurnBar       string `json:"turnBar"`       // the user's turn in a chat when blurred: │ ┆ (focusBar when focused; blurBar wins when set)
+	TabUnderline  string `json:"tabUnderline"`  // the active tab's underline under tabs "underline": ▔ ─ ▀ (ASCII draws the rule glyph instead)
+
 	// ASCII is the theme's own twins, glyph → ASCII, for glyphs the kit's map lacks
 	// or draws differently: {"✎": ">", "◔": "~"}. It wins over the kit's map.
 	ASCII map[string]string `json:"ascii,omitempty"`
@@ -136,6 +147,26 @@ type Expressions struct {
 	Gutter  int    `json:"gutter"`  // side margin in cells (default 2)
 	Measure int    `json:"measure"` // max prose width (default 100)
 }
+
+// The three tones of a shade wordmark (scripts/wordmark.py --style shade). The kit tones
+// them full → accent, dark → primary, mid → muted; they are the script's glyphs, not the
+// brand's, so they are constants here rather than Glyphs.
+const (
+	ShadeFull = "█"
+	ShadeDark = "▓"
+	ShadeMid  = "▒"
+)
+
+// Ellipsis is the kit's default ellipsis, for a cut made where no theme is at hand
+// (ui.Fit); ui.Trunc cuts with the theme's own glyphs.ellipsis.
+const Ellipsis = "…"
+
+// SparkRamp is the eight heights of a sparkline, lowest first, and SparkRampASCII what
+// an ASCII terminal draws in their place (controls.go Sparkline).
+const (
+	SparkRamp      = "▁▂▃▄▅▆▇█"
+	SparkRampASCII = "_.-=+*#@"
+)
 
 // Wordmark is an optional multi-row wordmark (scripts/wordmark.py output).
 type Wordmark struct {

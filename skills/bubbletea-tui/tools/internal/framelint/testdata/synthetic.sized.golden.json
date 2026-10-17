@@ -88,7 +88,7 @@
   "sev": "P1",
   "file": "emoji.ansi",
   "where": "frame",
-  "msg": "emoji glyphs present: use a glyph from the brand's vocabulary (\u2713 \u25cf \u25c6 \u203a \u2571) instead"
+  "msg": "emoji glyphs present: use a glyph from the brand's vocabulary (✓ ● ◆ › ╱) instead"
  },
  {
   "rule": "F-OFFPAL",
@@ -130,14 +130,14 @@
   "sev": "P2",
   "file": "help-overlay.ansi",
   "where": "frame",
-  "msg": "overlay frame without a bordered dialog: contrast and palette checked only by eye here"
+  "msg": "overlay frame without a bordered or ruled dialog: contrast and palette checked only by eye here"
  },
  {
   "rule": "F-EDGE",
   "sev": "P2",
   "file": "edge.ansi",
   "where": "frame",
-  "msg": "content touches the terminal edge on most rows: give it a 1\u20132 cell gutter"
+  "msg": "content touches the terminal edge on most rows: give it a 1–2 cell gutter"
  },
  {
   "rule": "F-EMPTY",

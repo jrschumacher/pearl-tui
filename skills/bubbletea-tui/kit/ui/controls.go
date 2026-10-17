@@ -158,19 +158,16 @@ func KV(t *theme.Theme, rows [][2]string, keyW int) []string {
 	return out
 }
 
-// Progress is a bar of w cells: ━━━━━━╌╌╌ (or █▌ blocks in ASCII-safe themes).
+// Progress is a bar of w cells in the theme's progress glyphs: ━━━━━━╌╌╌ (ASCII ======---).
 // frac 0..1. The filled part takes a gradient from secondary to primary.
 func Progress(t *theme.Theme, frac float64, w int) string {
 	frac = math.Max(0, math.Min(1, frac))
 	full := frac * float64(w)
 	n := int(full)
-	fill, empty := "━", "╌"
-	if t.ASCII {
-		fill, empty = "=", "-"
-	}
+	fill, empty := t.G.ProgressFill, t.G.ProgressEmpty
 	var head string
 	if !t.ASCII && n < w && full-float64(n) >= 0.5 {
-		head = "╸"
+		head = t.G.ProgressHead
 	}
 	filled := strings.Repeat(fill, n) + head
 	if !t.ASCII && n > 1 && t.X.Focus != "fg" {
@@ -194,9 +191,9 @@ func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) stri
 	// a flat series stays a low flat line: ±5% noise drawn full-height reads
 	// as an incident
 	flat := hi <= 0 || (hi-lo)/hi < 0.25
-	bars := []rune("▁▂▃▄▅▆▇█")
+	bars := []rune(theme.SparkRamp)
 	if t.ASCII {
-		bars = []rune("_.-=+*#@")
+		bars = []rune(theme.SparkRampASCII)
 	}
 	var b strings.Builder
 	for _, v := range vals {

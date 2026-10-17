@@ -21,6 +21,13 @@ focusBar     ▌           ▎           │           ┃           ┃        
 cursor       ›           ❯           >           ▸           ▸           ›           >           
 done         ✓           ✔           1           ◆           ■           ✓           ✓           
 
+nearest to inkling: ink (shares 21/21 axes)
+nearest to harbourmaster-deluxe: inkling (shares 6/20 axes)
+nearest to testdata/themes/noname.json: charm (shares 8/20 axes)
+nearest to twin-a: twin-b (shares 16/19 axes)
+nearest to twin-b: twin-a (shares 16/19 axes)
+nearest to ink: inkling (shares 21/21 axes)
+nearest to charm: inkling (shares 14/21 axes)
 FAIL inkling and ink share 21 axes (> 9): header, wordmark, sectionTitle, titleCase, selection, button, tag, dialog, dialogTitle, tabs, footer, keys, density, backdrop, scrim, paintBg, headerRule, rule, focusBar, cursor, done
 FAIL inkling and charm share 14 axes (> 9): header, titleCase, selection, button, tag, dialog, tabs, footer, keys, density, scrim, rule, focusBar, done
 FAIL twin-a and twin-b share 16 axes (> 9): sectionTitle, titleCase, selection, button, tag, dialog, dialogTitle, footer, keys, density, backdrop, scrim, paintBg, rule, focusBar, cursor

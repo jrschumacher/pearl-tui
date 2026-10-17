@@ -8,6 +8,14 @@
 //	C-SLEEP     [P0] time.Sleep or blocking I/O reachable from Update (or Sleep from View): return a tea.Cmd
 //	C-HEX       [P1] lipgloss.Color literal or "#rrggbb" outside the theme package
 //	C-EMOJI     [P1] emoji in string or rune literals
+//	C-GLYPH     [P1] a drawn mark in a string or rune literal outside the theme package and the
+//	                 ASCII twin table (a composite literal initializing a package-level var named
+//	                 *ascii*, the kit's ui/canvas.go): arrows, box drawing, blocks, geometric
+//	                 shapes, misc symbols and technical, dingbats, braille, the marks · • …, and
+//	                 any rune the kit's twin table maps. Screens take those from the theme, so a
+//	                 brand can change them and ASCII gets a twin. Text is not a glyph: letters
+//	                 and digits of any script, quotation marks and dashes (it’s, «q», a — b),
+//	                 currency (£5) and units, marks and maths (72°F © ® ™ × ÷ ± ≥ ≤ ≠ ¹ ² ³ ½ µ)
 //	C-V1        [P1] Bubble Tea / Lip Gloss / Bubbles / Huh v1 import paths
 //	C-SIZE      [P1] a program whose code never handles tea.WindowSizeMsg
 //	C-VIEWIO    [P1] os, net/http or os/exec I/O reachable from View
@@ -35,14 +43,14 @@ import (
 
 // Analyzers are the rules, in the order tuivet registers them.
 var Analyzers = []*analysis.Analyzer{
-	LenAnalyzer, BlockingAnalyzer, HexAnalyzer, EmojiAnalyzer, V1Analyzer, SizeAnalyzer,
+	LenAnalyzer, BlockingAnalyzer, HexAnalyzer, EmojiAnalyzer, GlyphAnalyzer, V1Analyzer, SizeAnalyzer,
 	TickAnalyzer, PrintAnalyzer, KeysAnalyzer, NoColorAnalyzer, HuhThemeAnalyzer,
 }
 
 // Severity maps each rule ID to P0, P1 or P2.
 var Severity = map[string]string{
 	"C-SLEEP": "P0",
-	"C-LEN":   "P1", "C-HEX": "P1", "C-EMOJI": "P1", "C-V1": "P1", "C-SIZE": "P1", "C-VIEWIO": "P1", "C-HUHTHEME": "P1",
+	"C-LEN":   "P1", "C-HEX": "P1", "C-EMOJI": "P1", "C-GLYPH": "P1", "C-V1": "P1", "C-SIZE": "P1", "C-VIEWIO": "P1", "C-HUHTHEME": "P1",
 	"C-FASTTICK": "P2", "C-PRINT": "P2", "C-KEYS": "P2", "C-NOCOLOR": "P2",
 }
 
@@ -58,7 +66,9 @@ type Finding struct {
 const usage = `usage: tuilint code <dir...> [--theme-pkg path/fragment] [--json out.json]
 
 Lints Go source for the mistakes that make frames wrong. A finding prints as
-ID  file:line  message. P0/P1 findings fail the run (exit 1); P2 are warnings.
+[SEV] ID  file:line  message. P0/P1 findings fail the run (exit 1); P2 are
+warnings to fix or justify in one line. Exit 2 on usage errors or a directory
+that won't load. Test files (_test.go) are not linted.
 Packages load with full types; if that fails (unresolvable deps, a v1 app) the
 files are analysed syntax-only and stderr says so.
 
@@ -66,6 +76,12 @@ files are analysed syntax-only and stderr says so.
   C-SLEEP     [P0] time.Sleep or blocking I/O reachable from Update (or Sleep from View)
   C-HEX       [P1] lipgloss.Color literal or "#rrggbb" outside the theme package
   C-EMOJI     [P1] emoji in string or rune literals
+  C-GLYPH     [P1] a drawn mark (arrows, box drawing, blocks, shapes, symbols, dingbats,
+                   braille, · • …, or any rune the kit's twin table maps) in a string or rune
+                   literal outside the theme package and the ASCII twin table (a composite
+                   literal of a package-level var named *ascii*): screens take glyphs from
+                   the theme. Text is not a glyph: other scripts, quotes and dashes (it’s,
+                   «q», a — b), currency (£5), units and maths (72°F © ™ × ± ≥ ½ µ)
   C-V1        [P1] Bubble Tea / Lip Gloss / Bubbles / Huh v1 import paths
   C-SIZE      [P1] a program whose code never handles tea.WindowSizeMsg
   C-VIEWIO    [P1] os, net/http or os/exec I/O reachable from View

@@ -20,7 +20,7 @@ ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                             Actions (button rows), HuhSpinner, BubblesSpinner, Settle, Accessible
                 steps.go    Steps (Count, Row, List), Summary, SummaryStrip: wizard chrome
 themes/         ink (the fallback: theme.Default() as a file, TestInkIsTheDefault keeps them equal),
-                charm (a Crush study), ferrous, lumen, halyard, moss, cartridge;
+                charm (a Crush study), ferrous, lumen, halyard, moss, cartridge, terrarium;
                 embed.go embeds them (themes.Default: the one theme, or ink among several)
 cmd/showcase/   the reference app and its harness
 ```

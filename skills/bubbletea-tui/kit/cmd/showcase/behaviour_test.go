@@ -270,7 +270,7 @@ func TestToggleHelpIsTruthful(t *testing.T) {
 func shape(m *app, w, h int) []string {
 	g := m.t.G
 	var pairs []string
-	for _, mark := range []string{g.FocusBar, g.BlurBar, g.Cursor, caret} {
+	for _, mark := range []string{g.FocusBar, g.BlurBar, g.Cursor, g.Caret} {
 		if mark != "" {
 			pairs = append(pairs, mark, strings.Repeat(" ", lipgloss.Width(mark)))
 		}
@@ -278,9 +278,6 @@ func shape(m *app, w, h int) []string {
 	txt := strings.NewReplacer(pairs...).Replace(ansi.Strip(m.render(w, h).String()))
 	return strings.Split(txt, "\n")
 }
-
-// caret is the input caret the screens draw after the text being edited.
-const caret = "▏"
 
 // tableRows are the rows of the first table in a frame (its header, rule and n rows), cut
 // to the list's own width when a detail pane shares them.

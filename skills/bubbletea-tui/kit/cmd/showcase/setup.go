@@ -42,9 +42,9 @@ const (
 var setupNames = []string{"Cluster", "Sign-in", "Alerts", "Review", "Connect", "Finish"}
 
 var clusterChoices = []ui.Choice[string]{
-	{Name: "prod-us-east-1", Desc: "production · 41 services", Value: "prod-us-east-1"},
-	{Name: "staging-eu-west-1", Desc: "current context · 38 services", Value: "staging-eu-west-1"},
-	{Name: "dev-local", Desc: "kind · 6 services", Value: "dev-local"},
+	{Name: "prod-us-east-1", Desc: "production, 41 services", Value: "prod-us-east-1"},
+	{Name: "staging-eu-west-1", Desc: "current context, 38 services", Value: "staging-eu-west-1"},
+	{Name: "dev-local", Desc: "kind, 6 services", Value: "dev-local"},
 }
 
 var authChoices = []ui.Choice[string]{
@@ -206,11 +206,11 @@ func (m *app) finishSetup(connected bool) {
 	m.screen = scrServices
 	switch {
 	case !connected:
-		m.say("info", "SKIPPED", "Nothing was saved · run "+m.t.AppName()+" connect any time")
+		m.say("info", "SKIPPED", "Nothing was saved "+m.t.G.Sep+" run "+m.t.AppName()+" connect any time")
 	case f.makeDefault:
-		m.say("ok", "CONNECTED", f.cluster+" is your default cluster · 38 services")
+		m.say("ok", "CONNECTED", f.cluster+" is your default cluster "+m.t.G.Sep+" 38 services")
 	default:
-		m.say("ok", "CONNECTED", f.cluster+" · pass --cluster to use it")
+		m.say("ok", "CONNECTED", f.cluster+" "+m.t.G.Sep+" pass --cluster to use it")
 	}
 }
 
@@ -234,7 +234,7 @@ func (m *app) setupActions(help action) []action {
 		enter := strings.ToLower(f.acts.Selected())
 		return []action{
 			{bind([]string{"enter"}, "enter", enter), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return m.reviewChoose() }},
-			{bind([]string{"left", "right", "h", "l", "tab", "shift+tab"}, "←→", "switch"), true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
+			{bind([]string{"left", "right", "h", "l", "tab", "shift+tab"}, m.t.G.LeftRight, "switch"), true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
 				if s := msg.String(); s == "left" || s == "h" || s == "shift+tab" {
 					m.setup.acts.Move(-1)
 				} else {
@@ -254,7 +254,7 @@ func (m *app) setupActions(help action) []action {
 					}
 					return m.goStep(stReview)
 				}},
-				{bind([]string{"left", "right", "h", "l", "tab", "shift+tab"}, "←→", "switch"), true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
+				{bind([]string{"left", "right", "h", "l", "tab", "shift+tab"}, m.t.G.LeftRight, "switch"), true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
 					if s := msg.String(); s == "left" || s == "h" || s == "shift+tab" {
 						m.setup.acts.Move(-1)
 					} else {
@@ -268,7 +268,7 @@ func (m *app) setupActions(help action) []action {
 		}
 		acts := []action{esc("cancel", func(m *app) tea.Cmd {
 			m.setup.gen++ // the pending result is now stale
-			m.say("info", "CANCELED", "Sign-in canceled · nothing was sent to "+m.setup.cluster)
+			m.say("info", "CANCELED", "Sign-in canceled "+m.t.G.Sep+" nothing was sent to "+m.setup.cluster)
 			return m.goStep(stReview)
 		})}
 		if f.auth != "token" {
@@ -310,7 +310,7 @@ func (m *app) setupActions(help action) []action {
 			fwd([]string{"enter"}, "enter", "next", true),
 			fwd([]string{"tab"}, "tab", "next field", false), prev,
 			fwd([]string{"backspace"}, "backspace", "delete", false),
-			fwd([]string{"left", "right", "home", "end"}, "←→", "move", false),
+			fwd([]string{"left", "right", "home", "end"}, m.t.G.LeftRight, "move", false),
 			escAct, help,
 		}
 	case f.focusedConfirm() != nil:
@@ -324,7 +324,7 @@ func (m *app) setupActions(help action) []action {
 		}
 		return []action{
 			fwd([]string{"enter"}, "enter", enter, true),
-			fwd([]string{"left", "right", "h", "l"}, "←→", "switch", true),
+			fwd([]string{"left", "right", "h", "l"}, m.t.G.LeftRight, "switch", true),
 			fwd([]string{"y"}, "y", "yes", false),
 			fwd([]string{"n"}, "n", "no", false),
 			prev, escAct, help,
@@ -332,7 +332,7 @@ func (m *app) setupActions(help action) []action {
 	}
 	return []action{
 		fwd([]string{"enter"}, "enter", "next", true),
-		fwd([]string{"up", "k", "down", "j"}, "↑↓", "choose", true),
+		fwd([]string{"up", "k", "down", "j"}, m.t.G.UpDown, "choose", true),
 		fwd([]string{"tab"}, "tab", "next field", false), prev,
 		escAct, help,
 	}

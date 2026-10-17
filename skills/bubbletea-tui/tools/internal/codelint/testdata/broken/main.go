@@ -45,7 +45,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() tea.View {
 	pad := strings.Repeat(" ", m.width-len(m.name))          // want `C-LEN: len\(m.name\)`
-	bar := strings.Repeat("─", m.width-len(m.tabs))          // a slice
+	bar := strings.Repeat("─", m.width-len(m.tabs))          // want "C-GLYPH"
 	more := strings.Repeat(" ", m.width-len(m.list.Items())) // a slice: types are known for local declarations
 	rendered := lipgloss.NewStyle().Render(m.name)
 	gap := strings.Repeat(" ", m.width-len(rendered))                                        // want `C-LEN: len\(rendered\)`

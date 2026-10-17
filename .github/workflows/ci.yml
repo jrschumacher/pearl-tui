@@ -97,8 +97,12 @@ jobs:
       # many users get, and where the footer bar, rules, background steps
       # and downsampled roles break first. theme/testdata holds the kit's test themes
       # (quire: focus fg, dialog rules), rendered and linted the same way.
+      # Warnings (P2) are held to .github/tuilint-baseline.json per "<theme>-<variant>"
+      # (missing = 0) with --max-warnings, so a new warning class fails here rather
+      # than passing with hundreds of warnings; raise an entry only with a justification.
       - name: render every state of every theme in every variant, lint the frames, build a sheet
         run: |
+          baseline="$GITHUB_WORKSPACE/.github/tuilint-baseline.json"
           cd skills/bubbletea-tui/kit
           go build -o "$RUNNER_TEMP/showcase" ./cmd/showcase
           fail=0
@@ -115,9 +119,11 @@ jobs:
                 light-ansi) flags=(-light -profile ansi); out=$n-light-ansi ;;
                 nocolor) flags=();                  out=$n-nocolor; env=(NO_COLOR=1) ;;
               esac
-              echo "::group::$n $v"
+              max=$(jq -r --arg k "$n-$v" '.[$k] // 0' "$baseline")
+              echo "::group::$n $v (baseline: $max warnings)"
               env "${env[@]}" "$RUNNER_TEMP/showcase" -theme "$t" "${flags[@]}" -out "../../../frames/$out" -sizes 80x24,120x40 || fail=1
-              tuilint frames "../../../frames/$out" --theme "$t" "${lint[@]}" || { fail=1; echo "::error::tuilint failed: $n $v"; }
+              tuilint frames "../../../frames/$out" --theme "$t" "${lint[@]}" --max-warnings "$max" \
+                || { fail=1; echo "::error::tuilint failed: $n $v (blocking findings, or more than the $max warnings .github/tuilint-baseline.json allows for $n-$v)"; }
               echo "::endgroup::"
             done
           done

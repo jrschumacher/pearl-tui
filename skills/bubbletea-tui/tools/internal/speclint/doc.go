@@ -2,8 +2,9 @@
 //
 // Lints the plan before the code: the States-and-keys table and the brand read of a
 // TUI.md written by init (references/cmd-init.md). With no file it reads ./TUI.md.
-// A finding prints as [SEV] ID  file:line  message. P0/P1 findings fail the run
-// (exit 1); P2 are warnings to fix or justify in one line. Exit 2 on usage errors.
+// A finding prints as [SEV] ID  file:line  message (--json writes it with "where", the
+// line, as frames and code do). P0/P1 findings fail the run (exit 1); P2 are warnings to
+// fix or justify in one line. Exit 2 on usage errors or an unreadable file.
 //
 // It reads the table in the template's format, keys as `key action · key action`, and
 // a `Global:` line (or a row whose state is "global") whose keys apply in every state.
@@ -11,10 +12,11 @@
 // section's level or above; elsewhere it is prose:
 //
 //	| state (harness name) | screen / overlay | keys                                      |
-//	| inbox                | inbox            | **↑↓/jk move** · **enter open** · **q quit** · **? help** · r refresh |
-//	| thread               | thread           | ↑↓ scroll · r reply · esc back · ? help ‖ y copy link · o open in browser |
-//	| reply                | overlay          | enter send · shift+enter/ctrl+j newline · esc cancel |
-//	Global: ctrl+c quit · ctrl+p switch
+//	| services             | services         | **↑↓ move** · **enter open** · **d deploy** · **q quit** · **? help** · l logs · c copy id |
+//	| services-empty       | services         | r refresh · ? help · q quit |
+//	| deploy               | overlay          | ←→ choose · enter confirm · esc cancel ‖ y copy id · o open dashboard |
+//	| confirm              | overlay          | enter send · shift+enter/ctrl+j newline · esc cancel |
+//	Global: ctrl+c quit
 //
 // The footer shows a state's keys in table order. A cell marks which ones in one of two
 // ways: its **bold** items are the footer, or the items before a ‖ are. The other keys
@@ -73,4 +75,10 @@
 //	             [P2] a state with a marked footer and help-only keys whose footer shows no key
 //	                  that opens help (`?`, ctrl+g, an action that says help), when Global doesn't
 //	                  bind one: nobody finds the help-only keys.
+//	S-ACCENT     [P2] the `accents:` lines give each hue one meaning (`accents: amber = new,
+//	                  nothing else; teal = running`) and another line puts "the accent" or "the
+//	                  primary hue/colour" on something else (the wordmark, the spinner's dots, a
+//	                  refresh ramp), quoting both. A line that names a hue or a word of a meaning
+//	                  is the same meaning; "primary pane", "primary key" are not the hue. Table
+//	                  rows and fenced sketches are not read. A warning: the critic stays the judge.
 package speclint

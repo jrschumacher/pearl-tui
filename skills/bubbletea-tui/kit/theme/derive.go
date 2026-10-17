@@ -279,6 +279,16 @@ func glyphDefaults(g Glyphs) Glyphs {
 	d(&g.Track, "│")
 	d(&g.FieldA, "◆")
 	d(&g.FieldB, "◇")
+	d(&g.Caret, "▏")
+	d(&g.More, "↑")
+	d(&g.UpDown, "↑↓")
+	d(&g.LeftRight, "←→")
+	d(&g.Back, "←")
+	d(&g.ProgressFill, "━")
+	d(&g.ProgressEmpty, "╌")
+	d(&g.ProgressHead, "╸")
+	d(&g.TurnBar, "│")
+	d(&g.TabUnderline, "▔")
 	if len(g.Spinner) == 0 {
 		g.Spinner = []string{"◜", "◠", "◝", "◞", "◡", "◟"}
 	}
@@ -341,6 +351,7 @@ var asciiTwins = map[string]string{
 	"•": "*", "▪": "*", "…": "...", "■": "[x]", "□": "[ ]", "☑": "[x]", "☐": "[ ]",
 	"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "◐": "~", "▲": "^", "△": "o", "◢": "/",
 	"◦": "o", "–": "-", "—": "-", "█": "#", "░": ".",
+	"▏": "|", "↑": "^", "↓": "v", "↑↓": "^v", "←": "<-", "←→": "<>", "╸": "=", "▔": "-",
 }
 
 // ASCIITwin returns the twin ASCII draws for glyph, and whether the kit's map has one.

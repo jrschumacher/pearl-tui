@@ -59,6 +59,10 @@ const (
 
 var overlayName = regexp.MustCompile(`(dialog|palette|confirm|modal|overlay|popup|help|keys)`)
 
+// splashName matches the frames F-EMPTY and F-BOLD don't judge: a wordmark on an
+// otherwise empty page is what a splash is.
+var splashName = regexp.MustCompile(`^(splash|intro|wordmark)`)
+
 var defaultFG = RGB{216, 216, 216}
 
 func first(s string) rune {
@@ -215,8 +219,10 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 	if pal != nil && f.Indexed {
 		indexed = pal.Indexed()
 	}
+	boxCells := asciiBoxCells(grid)
 	for y, row := range grid {
 		rules := asciiRuleCells(row)
+		field := fieldRow(row)
 		var line strings.Builder
 		for _, c := range row {
 			line.WriteString(c.Ch)
@@ -266,8 +272,8 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 			if ch >= 0 && strings.ContainsRune(corners, ch) {
 				cornersSeen = append(cornersSeen, corner{y, x, ch})
 			}
-			if ch < 0 || isSpace(ch) || strings.ContainsRune(ruleChars, ch) {
-				continue
+			if ch < 0 || isSpace(ch) || strings.ContainsRune(ruleChars, ch) || rules[x] || boxCells[[2]int{y, x}] {
+				continue // decoration: not a text cell for bold, levels or contrast
 			}
 			o := ch
 			if (0xE000 <= o && o <= 0xF8FF) || 0xF0000 <= o {
@@ -291,8 +297,12 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 			if c.Reverse {
 				fg, bg = bg, fg
 			}
-			decorative := (0x2500 <= o && o <= 0x25FF) || (0x2800 <= o && o <= 0x28FF) ||
-				(0x1FB00 <= o && o <= 0x1FBFF) || ch == '•' || ch == '·' || rules[x]
+			// box drawing and blocks (U+2500–259F), braille and legacy blocks are decoration;
+			// geometric shapes (● ◆ ▶ ○ ◐, U+25A0–25FF) and bullets are status marks that
+			// must read, so they are text unless they form a rule run (····) or a backdrop
+			// field (a row of nothing but ▲ △ ◆ ◇)
+			decorative := (0x2500 <= o && o <= 0x259F) || (0x2800 <= o && o <= 0x28FF) ||
+				(0x1FB00 <= o && o <= 0x1FBFF) || rules[x] || field
 			if f.Basic {
 				// the palette is the terminal's, so only one thing is certain: text in the
 				// same slot as its background is invisible on every palette
@@ -331,13 +341,10 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 			tls = append(tls, c)
 		}
 	}
-	if overlayName.MatchString(name) && len(tls) != 1 && (len(lowc) > 0 || len(offCells) > 0) {
-		// a borderless dialog over a scrim: we can't find its edges, so don't judge the scrim
-		add("F-CONTRAST", "P2", "frame", "overlay frame without a bordered dialog: contrast and palette checked only by eye here")
-		lowc, offCells = nil, nil
-	}
-	if len(tls) == 1 && len(lowc) > 0 {
-		// one box open = a dialog over a scrim: only its inside (and the footer) must be readable
+	// the one dialog over a scrim: a bordered box, or on an overlay frame without one, an
+	// ASCII +--+ box or a rules dialog (two rule rows of one span bounding a filled panel)
+	var dialog *region
+	if len(tls) == 1 {
 		y0, x0 := tls[0].y, tls[0].x
 		y1 := len(grid) - 1
 		for _, c := range cornersSeen {
@@ -354,6 +361,22 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 				break
 			}
 		}
+		dialog = &region{y0, x0, y1, x1}
+	} else if len(tls) == 0 && overlayName.MatchString(name) {
+		if r, ok := asciiBox(grid); ok {
+			dialog = &r
+		} else if r, ok := rulesDialog(grid, f.Basic || f.Indexed); ok {
+			dialog = &r
+		}
+	}
+	if overlayName.MatchString(name) && dialog == nil && (len(lowc) > 0 || len(offCells) > 0) {
+		// a borderless dialog over a scrim: we can't find its edges, so don't judge the scrim
+		add("F-CONTRAST", "P2", "frame", "overlay frame without a bordered or ruled dialog: contrast and palette checked only by eye here")
+		lowc, offCells = nil, nil
+	}
+	if dialog != nil && len(lowc) > 0 {
+		// a dialog over a scrim: only its inside (and the footer) must be readable
+		y0, x0, y1, x1 := dialog.y0, dialog.x0, dialog.y1, dialog.x1
 		last := len(grid) - 1
 		inside := func(y, x int) bool { return (y0 <= y && y <= y1 && x0 <= x && x <= x1) || y == last }
 		var lc []lowCell
@@ -463,7 +486,9 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 			big++
 		}
 	}
-	if big > 7 {
+	// a 256-colour frame holds the xterm colours the roles downsample to, which scatters a
+	// gradient's steps over hues the design never chose: the hues are judged in truecolour
+	if big > 7 && !f.Indexed {
 		add("F-RAINBOW", "P2", "frame", fmt.Sprintf("%d distinct foreground hues: hierarchy should come from lightness levels, colour from roles", big))
 	}
 	// a frame with no colour (NO_COLOR) has one text level by construction: its levels
@@ -474,7 +499,8 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 	if textCells > 400 && len(levels) < 3 && !f.Plain && !f.Basic {
 		add("F-LEVELS", "P2", "frame", fmt.Sprintf("only %d neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle", len(levels)))
 	}
-	if textCells > 0 && float64(bold)/float64(textCells) > 0.30 {
+	splash := splashName.MatchString(name)
+	if textCells > 0 && float64(bold)/float64(textCells) > 0.30 && !splash {
 		add("F-BOLD", "P2", "frame", fmt.Sprintf("%d%% of text is bold", 100*bold/textCells))
 	}
 	if nonblankRows > 0 && (float64(edgeLeft) > 0.6*float64(nonblankRows) || float64(edgeRight) > 0.6*float64(nonblankRows)) {
@@ -487,8 +513,209 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 	if total == 0 {
 		total = 1
 	}
-	if float64(textCells)/float64(total) < 0.015 {
+	if float64(textCells)/float64(total) < 0.015 && !splash {
 		add("F-EMPTY", "P2", "frame", "almost nothing on screen: if this is an empty state, say what is missing and what to do")
+	}
+	return out
+}
+
+// region is a rectangle of cells, both corners inclusive.
+type region struct{ y0, x0, y1, x1 int }
+
+// asciiBox finds the one +--+ box of a frame rendered for ASCII: a + with a run of -
+// to its right and a | below it, closed by a + at the run's end and a + below the
+// |s. Two such boxes, or none, is not a dialog.
+func asciiBox(grid [][]Cell) (region, bool) {
+	head := func(y, x int) string {
+		if y < 0 || y >= len(grid) || x < 0 || x >= len(grid[y]) {
+			return ""
+		}
+		return grid[y][x].Ch
+	}
+	var found []region
+	for y := range grid {
+		for x := range grid[y] {
+			if head(y, x) != "+" || head(y, x+1) != "-" || head(y+1, x) != "|" {
+				continue
+			}
+			x1 := x + 1
+			for head(y, x1) == "-" {
+				x1++
+			}
+			y1 := y + 1
+			for head(y1, x) == "|" {
+				y1++
+			}
+			if head(y, x1) != "+" || head(y1, x) != "+" || x1-x < 4 || y1-y < 2 {
+				continue
+			}
+			found = append(found, region{y, x, y1, x1})
+		}
+	}
+	if len(found) != 1 {
+		return region{}, false
+	}
+	return found[0], true
+}
+
+// horizontalRule are the glyphs a horizontal rule is drawn with, in Unicode and in ASCII
+// (a theme's rule glyph: ─ ━ ═ ┄ ╌ ·, or - = ~ . under ASCII).
+const horizontalRule = "─━═┄┈╌╍▔▁╱╲-=~_·.•"
+
+// ruleRun is a maximal run of one rule glyph on a row, columns a..b inclusive.
+type ruleRun struct {
+	a, b int
+	ch   string
+}
+
+// ruleRuns lists a row's runs of 2+ of one rule glyph.
+func ruleRuns(row []Cell) []ruleRun {
+	var out []ruleRun
+	for x := 0; x < len(row); {
+		ch := first(row[x].Ch)
+		if ch < 0 || !strings.ContainsRune(horizontalRule, ch) {
+			x++
+			continue
+		}
+		e := x + 1
+		for e < len(row) && row[e].Ch == row[x].Ch {
+			e++
+		}
+		if e-x >= 2 {
+			out = append(out, ruleRun{x, e - 1, row[x].Ch})
+		}
+		x = e
+	}
+	return out
+}
+
+// rulesDialog finds a "dialog": "rules" panel: a bottom rule (one run of 12+ of one
+// glyph, the theme's rule) and, above it with rows between, a top rule of the same
+// glyph over the same columns (±2) made of two runs closing around a title (one text
+// segment whose spaces come singly; a table header's columns don't, and two section
+// rules of one width have no title). The panel between must be filled (filled), except
+// in a 16- or 256-colour frame, where the panel's step can land on the page's colour:
+// the rules are the edge there, which is what "dialog": "rules" is for. The first such
+// pair, bottom rule first from the top, is the dialog.
+func rulesDialog(grid [][]Cell, downsampled bool) (region, bool) {
+	runs := make([][]ruleRun, len(grid))
+	for y, row := range grid {
+		runs[y] = ruleRuns(row)
+	}
+	for yb := 2; yb < len(grid); yb++ {
+		for _, rb := range runs[yb] {
+			if rb.b-rb.a < 11 {
+				continue
+			}
+			for yt := yb - 2; yt >= 0; yt-- {
+				for i, r1 := range runs[yt] {
+					if r1.ch != rb.ch || abs(r1.a-rb.a) > 2 {
+						continue
+					}
+					for _, r2 := range runs[yt][i+1:] {
+						if r2.ch != rb.ch || abs(r2.b-rb.b) > 2 || !title(grid[yt], r1.b+1, r2.a-1, rb.ch) {
+							continue
+						}
+						r := region{yt, min(r1.a, rb.a), yb, max(r2.b, rb.b)}
+						if downsampled || filled(grid, r) {
+							return r, true
+						}
+					}
+				}
+			}
+		}
+	}
+	return region{}, false
+}
+
+// title reports whether row[a..b] is a dialog title between two runs of the rule glyph
+// ch: text whose spaces come singly, with a space on each side (── Roll back? ──), and
+// no run of ch inside it (a hyphen in "checkout-api" is text; "--" under ASCII is rule).
+func title(row []Cell, a, b int, ch string) bool {
+	if b-a < 2 || !blank(row[a].Ch) || !blank(row[b].Ch) {
+		return false
+	}
+	spaces, text := 0, 0
+	for x := a + 1; x < b; x++ {
+		if blank(row[x].Ch) {
+			spaces++
+			if spaces >= 3 {
+				return false
+			}
+			continue
+		}
+		spaces = 0
+		if row[x].Ch == ch && x+1 < b && row[x+1].Ch == ch {
+			return false
+		}
+		text++
+	}
+	return text > 0
+}
+
+// filled reports whether the panel inside r is painted: on at least 80% of the rows
+// strictly inside it, one of the panel's first two cells carries a background that
+// differs from the cell left of the panel. Only the edge is read, because a panel's
+// rows carry other backgrounds too (boxed keys on bgSubtle in a help dialog, a selected
+// row's fill). A frame with no background anywhere inside r passes (no colour to judge).
+func filled(grid [][]Cell, r region) bool {
+	same := func(a, b *RGB) bool { return (a == nil) == (b == nil) && (a == nil || *a == *b) }
+	painted, ok := 0, 0
+	for y := r.y0 + 1; y < r.y1; y++ {
+		row := grid[y]
+		if r.x1 >= len(row) {
+			return false
+		}
+		var left *RGB
+		if r.x0 > 0 {
+			left = row[r.x0-1].BG
+		}
+		edge := false
+		for x := r.x0; x <= r.x0+1; x++ {
+			if bg := row[x].BG; bg != nil {
+				edge = true
+				if !same(bg, left) {
+					ok++
+					break
+				}
+			}
+		}
+		if edge {
+			painted++
+		}
+	}
+	return painted == 0 || float64(ok) >= 0.8*float64(painted)
+}
+
+// asciiBoxCells are the cells of a frame that draw an ASCII box, rail or bar: a | in a
+// vertical run of 3+ (with | or +), a + joined to a - beside it or a | above or below
+// it, and a lone | with a blank or the edge on both sides (a focus bar or a turn's
+// gutter: what ▌ ▎ ┃ became; a | against a letter, "ro|", is a caret and stays text).
+// Under --ascii these are what ─ │ ╭ became, so they are decoration as those are, and
+// not text for F-CONTRAST or F-LEVELS.
+func asciiBoxCells(grid [][]Cell) map[[2]int]bool {
+	at := func(y, x int) string {
+		if y < 0 || y >= len(grid) || x < 0 || x >= len(grid[y]) {
+			return ""
+		}
+		return grid[y][x].Ch
+	}
+	vert := func(y, x int) bool { c := at(y, x); return c == "|" || c == "+" }
+	out := map[[2]int]bool{}
+	for y := range grid {
+		for x := range grid[y] {
+			switch at(y, x) {
+			case "|":
+				lone := (x == 0 || blank(at(y, x-1))) && (x+1 >= len(grid[y]) || blank(at(y, x+1)))
+				if lone || vert(y-1, x) && vert(y+1, x) || vert(y-1, x) && vert(y-2, x) || vert(y+1, x) && vert(y+2, x) {
+					out[[2]int{y, x}] = true
+				}
+			case "+":
+				if at(y, x-1) == "-" || at(y, x+1) == "-" || at(y-1, x) == "|" || at(y+1, x) == "|" {
+					out[[2]int{y, x}] = true
+				}
+			}
+		}
 	}
 	return out
 }
@@ -510,10 +737,12 @@ func abs(x int) int {
 // asciiRule is what the ASCII fallbacks turn ─ ━ ═ ┄ ╌ ╱ ╲ into.
 const asciiRule = "-=~_/\\"
 
-// asciiRuleCells are the columns of a row that belong to an ASCII rule: a run of 3+ of
-// one rule character in one colour ("-----", "===="), or 4+ dots (a dotted rule; "..."
-// is an ellipsis). A rule drawn in the border role is decoration in ASCII mode exactly
-// as ─ is in Unicode, so it is not judged as text.
+// asciiRuleCells are the columns of a row that belong to a rule drawn in text glyphs: a
+// run of 3+ of one ASCII rule character in one colour ("-----", "===="), 4+ periods (a
+// dotted rule "...."; "..." is an ellipsis) or 2+ middle dots or bullets ("·····" as a
+// rule, "··" as a stepper's connector; a lone "·" is a separator or a mark and is text).
+// A rule drawn in the border role is decoration exactly as ─ is, so it is not judged as
+// text.
 func asciiRuleCells(row []Cell) map[int]bool {
 	out := map[int]bool{}
 	head := func(c Cell) rune {
@@ -525,7 +754,7 @@ func asciiRuleCells(row []Cell) map[int]bool {
 	sameFG := func(a, b *RGB) bool { return (a == nil) == (b == nil) && (a == nil || *a == *b) }
 	for x := 0; x < len(row); {
 		ch := head(row[x])
-		if ch < 0 || !(strings.ContainsRune(asciiRule, ch) || ch == '.') {
+		if ch < 0 || !(strings.ContainsRune(asciiRule, ch) || ch == '.' || ch == '·' || ch == '•') {
 			x++
 			continue
 		}
@@ -534,8 +763,11 @@ func asciiRuleCells(row []Cell) map[int]bool {
 			e++
 		}
 		min := 3
-		if ch == '.' {
+		switch ch {
+		case '.':
 			min = 4
+		case '·', '•':
+			min = 2
 		}
 		if e-x >= min {
 			for i := x; i < e; i++ {
@@ -545,6 +777,25 @@ func asciiRuleCells(row []Cell) map[int]bool {
 		x = e
 	}
 	return out
+}
+
+// fieldRow reports a backdrop field row ("backdrop": "field"): six or more geometric
+// shapes (U+25A0–25FF, the theme's fieldA and fieldB) and nothing else on the row. The
+// field is a texture drawn faint on purpose, so it is decoration; a status column puts
+// one mark on a row beside a label, and stays text.
+func fieldRow(row []Cell) bool {
+	shapes := 0
+	for _, c := range row {
+		r := first(c.Ch)
+		switch {
+		case r < 0 || isSpace(r):
+		case 0x25A0 <= r && r <= 0x25FF:
+			shapes++
+		default:
+			return false
+		}
+	}
+	return shapes >= 6
 }
 
 var (

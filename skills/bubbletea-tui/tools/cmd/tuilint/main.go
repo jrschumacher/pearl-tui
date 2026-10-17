@@ -5,8 +5,10 @@
 //	tuilint spec [TUI.md...] [--json out.json]
 //	tuilint hook < posttooluse.json
 //
-// Every rule has an ID. Rules marked P0/P1 fail the run (exit 1); P2 are warnings.
-// tuilint frames -h, tuilint code -h and tuilint spec -h list the rules.
+// Every rule has an ID. Rules marked P0/P1 fail the run (exit 1); P2 are warnings, and
+// frames --max-warnings N fails on more than N of them. Exit 2 on usage errors.
+// tuilint frames -h, tuilint code -h and tuilint spec -h list the rules; tuilint hook -h
+// says when the hook runs.
 //
 // `hook` is the Claude Code plugin's PostToolUse hook: it reads the hook input on stdin
 // and, for a .go file in a Bubble Tea or Huh module of a project that opted in to the
@@ -46,6 +48,10 @@ func main() {
 	case "spec":
 		os.Exit(speclint.Main(os.Args[2:], os.Stdout, os.Stderr))
 	case "hook":
+		if len(os.Args) > 2 && (os.Args[2] == "-h" || os.Args[2] == "--help") {
+			fmt.Print(hook.Usage())
+			os.Exit(0)
+		}
 		os.Exit(hook.Main(os.Stdin, os.Stdout, os.Stderr))
 	default:
 		fmt.Fprintf(os.Stderr, "tuilint: unknown mode %q (frames|code|spec|hook)\n", os.Args[1])

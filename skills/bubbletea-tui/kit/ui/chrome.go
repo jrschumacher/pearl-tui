@@ -94,18 +94,18 @@ func Header(t *theme.Theme, w, h int, brand, details string) []string {
 }
 
 func bannerRow(t *theme.Theme, r string) string {
-	if !strings.ContainsAny(r, "▓▒") {
+	if !strings.ContainsAny(r, theme.ShadeDark+theme.ShadeMid) {
 		return t.S.Primary.Render(r)
 	}
 	var sb strings.Builder
 	for _, ch := range r {
-		switch ch {
-		case '█':
-			sb.WriteString(t.S.Accent.Render("█"))
-		case '▓':
-			sb.WriteString(t.S.Primary.Render("▓"))
-		case '▒':
-			sb.WriteString(t.S.Muted.Render("▒"))
+		switch string(ch) {
+		case theme.ShadeFull:
+			sb.WriteString(t.S.Accent.Render(theme.ShadeFull))
+		case theme.ShadeDark:
+			sb.WriteString(t.S.Primary.Render(theme.ShadeDark))
+		case theme.ShadeMid:
+			sb.WriteString(t.S.Muted.Render(theme.ShadeMid))
 		default:
 			sb.WriteRune(ch)
 		}
@@ -296,7 +296,7 @@ func Tabs(t *theme.Theme, names []string, active int, counts []string) []string 
 		top = append(top, s)
 		mark := " "
 		if i == active {
-			mark = "▔"
+			mark = t.G.TabUnderline
 			if t.ASCII { // the theme's rule, as ASCII draws it: an underline, not a run of carets
 				mark = t.G.Rule
 			}
@@ -325,7 +325,7 @@ func Tabs(t *theme.Theme, names []string, active int, counts []string) []string 
 // TooSmall is the whole screen when the terminal is below the minimum.
 func TooSmall(t *theme.Theme, w, h, minW, minH int) string {
 	msg := Wordmark(t, t.AppName()) + "\n\n" + t.S.Soft.Render("Terminal too small") + "\n" + t.S.Muted.Render(
-		strconv.Itoa(w)+"×"+strconv.Itoa(h)+", needs "+strconv.Itoa(minW)+"×"+strconv.Itoa(minH)) + "\n\n" +
+		strconv.Itoa(w)+"x"+strconv.Itoa(h)+", needs "+strconv.Itoa(minW)+"x"+strconv.Itoa(minH)) + "\n\n" +
 		t.S.Key.Render("q") + " " + t.S.KeyDesc.Render("quit")
 	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, lipgloss.JoinVertical(lipgloss.Center, strings.Split(msg, "\n")...))
 }

@@ -11,9 +11,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"golang.org/x/text/width"
 	"golang.org/x/tools/go/analysis"
+
+	"tuikit/theme"
 )
 
 func program(pass *analysis.Pass) *Program { return pass.ResultOf[ModelAnalyzer].(*Program) }
@@ -455,6 +458,133 @@ func runEmoji(pass *analysis.Pass) (any, error) {
 		})
 	}
 	return nil, nil
+}
+
+// C-GLYPH
+
+// GlyphAnalyzer reports glyph literals outside the theme package (C-GLYPH).
+var GlyphAnalyzer = newAnalyzer("tuiglyph",
+	"C-GLYPH: a non-ASCII symbol in a string or rune literal outside the theme package; screens take glyphs from the theme (t.G.Sep, t.G.Caret)",
+	runGlyph)
+
+// glyphExempt are symbols that are text in prose and data, whatever script: units,
+// marks and maths a screen prints, not draws.
+var glyphExempt = map[rune]bool{}
+
+// glyphMarks are the explicit marks a screen draws between and beside words, which the
+// theme holds as sep, bullet and ellipsis.
+var glyphMarks = map[rune]bool{'·': true, '•': true, '…': true}
+
+func init() {
+	for _, r := range "°©®™×÷±≥≤≠¹²³½µ" {
+		glyphExempt[r] = true
+	}
+}
+
+// glyphRune reports a rune a screen draws as a mark: one of the drawn blocks (arrows,
+// miscellaneous technical, box drawing, block elements, geometric shapes, miscellaneous
+// symbols, dingbats, braille), an explicit mark (· • …), or a rune the kit's ASCII twin
+// table maps. Letters, digits and combining marks of any script, spaces, quotation
+// marks and dashes (Pi, Pf, Pd: it’s, «q», a — b), currency (Sc: £5) and the units,
+// marks and maths in glyphExempt (72°F, ©, ≥) are text, not glyphs.
+func glyphRune(r rune) bool {
+	if r <= 127 || glyphExempt[r] || unicode.In(r, unicode.Pi, unicode.Pf, unicode.Pd, unicode.Sc) {
+		return false
+	}
+	if glyphMarks[r] || (0x2190 <= r && r <= 0x21FF) || (0x2300 <= r && r <= 0x23FF) ||
+		(0x2500 <= r && r <= 0x27BF) || (0x2800 <= r && r <= 0x28FF) {
+		return true
+	}
+	_, twin := theme.ASCIITwin(string(r))
+	return twin
+}
+
+// firstGlyph returns the first glyph rune of s.
+func firstGlyph(s string) (rune, bool) {
+	for _, r := range s {
+		if glyphRune(r) {
+			return r, true
+		}
+	}
+	return 0, false
+}
+
+// twinTableLits are the positions of the string and rune literals inside an ASCII twin
+// table: a composite literal (map or slice) that initializes a package-level variable
+// whose name says ascii (the kit's ui/canvas.go asciiMap and asciiClasses). Those
+// literals are the glyphs the table maps, so they are the one place outside the theme
+// that may spell them.
+func twinTableLits(f *ast.File) map[token.Pos]bool {
+	out := map[token.Pos]bool{}
+	for _, d := range f.Decls {
+		gd, ok := d.(*ast.GenDecl)
+		if !ok || gd.Tok != token.VAR {
+			continue
+		}
+		for _, s := range gd.Specs {
+			vs, ok := s.(*ast.ValueSpec)
+			if !ok {
+				continue
+			}
+			for i, n := range vs.Names {
+				if i >= len(vs.Values) || !strings.Contains(strings.ToLower(n.Name), "ascii") {
+					continue
+				}
+				cl, ok := vs.Values[i].(*ast.CompositeLit)
+				if !ok {
+					continue
+				}
+				ast.Inspect(cl, func(n ast.Node) bool {
+					if lit, ok := n.(*ast.BasicLit); ok {
+						out[lit.Pos()] = true
+					}
+					return true
+				})
+			}
+		}
+	}
+	return out
+}
+
+func runGlyph(pass *analysis.Pass) (any, error) {
+	p := program(pass)
+	once := lineOnce{}
+	for _, f := range p.Files {
+		if isTheme(pass, f) {
+			continue
+		}
+		table := twinTableLits(f)
+		ast.Inspect(f, func(n ast.Node) bool {
+			if _, ok := n.(*ast.ImportSpec); ok {
+				return false
+			}
+			lit, ok := n.(*ast.BasicLit)
+			if !ok || lit.Kind != token.STRING && lit.Kind != token.CHAR || table[lit.Pos()] {
+				return true
+			}
+			v, kind := literalValue(lit)
+			if _, emoji := firstEmoji(v); emoji {
+				return true // C-EMOJI's, with the same fix
+			}
+			if r, ok := firstGlyph(v); ok && once.first(pass.Fset, "C-GLYPH", lit.Pos()) {
+				report(pass, lit.Pos(), "C-GLYPH", fmt.Sprintf("glyph '%c' (U+%04X) in a %s literal: screens take glyphs from the theme (t.G.Sep, t.G.Caret, t.G.Arrow); a new one is a Glyphs field with an ASCII twin", r, r, kind))
+			}
+			return true
+		})
+	}
+	return nil, nil
+}
+
+// literalValue is the text of a string or rune literal and which it is.
+func literalValue(lit *ast.BasicLit) (string, string) {
+	if lit.Kind == token.STRING {
+		v, _ := strconv.Unquote(lit.Value)
+		return v, "string"
+	}
+	if r, _, _, err := strconv.UnquoteChar(strings.Trim(lit.Value, "'"), '\''); err == nil {
+		return string(r), "rune"
+	}
+	return "", "rune"
 }
 
 // C-V1
