@@ -63,7 +63,7 @@ is too big.
 
 - `bgPanel` (+~0.035 L): recessed blocks (tool output, code, thinking, cards)
 - `bgSubtle` (+~0.075 L): unselected buttons, inactive chips, a dim focus bar
-- `bgOverlay` (+~0.13 L): popovers, completions, hover
+- `bgOverlay` (+~0.13 L): popovers, completions, hover (`ui.Popover`: the command palette)
 
 ## Light Mode Is Not An Inversion
 

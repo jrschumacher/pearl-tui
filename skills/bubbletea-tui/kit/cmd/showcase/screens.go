@@ -58,7 +58,7 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		// the wizard's step row stands where the tabs stand
 		c.Draw(m.setup.steps().Row(t, w-2*g), ui.Rect(g, y, w-2*g, 1))
 		y += 2
-	} else if m.screen != scrDeploy {
+	} else if m.screen != scrDeploy && m.screen != scrLadder {
 		counts := []string{t.S.Subtle.Render(itoa(len(m.svcs))), "", "", ""}
 		if m.declared {
 			counts[2] = t.S.Warn.Render("1")
@@ -79,6 +79,8 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		m.assistant(c, body)
 	case scrDeploy:
 		m.deployForm(c, body)
+	case scrLadder:
+		m.ladder(c, body)
 	case scrSetup:
 		m.setupView(c, body)
 	}
@@ -112,6 +114,9 @@ func (m *app) footerBadge() string {
 
 func (m *app) footerRight() string {
 	if m.screen == scrServices && m.ov == ovNone {
+		if m.paused {
+			return m.t.S.Subtle.Render("paused")
+		}
 		return m.t.S.Subtle.Render("synced 4s ago")
 	}
 	if m.screen == scrSetup && m.ov == ovNone && !m.setup.saved {
@@ -282,9 +287,29 @@ func (m *app) incidents(c *ui.Canvas, r uv.Rectangle) {
 	if m.declared {
 		title, why, act = "INC-2041 declared", "Paging payments on-call. Updates will appear here as responders join.", ""
 	}
-	rows := ui.Empty(t, r.Dx(), t.G.FieldB, title, why, act)
+	rows := ui.Empty(t, r.Dx(), "", title, why, act)
 	top := r.Min.Y + max(0, (r.Dy()-len(rows))/2-1)
 	c.Draw(strings.Join(rows, "\n"), uv.Rect(r.Min.X, top, r.Dx(), len(rows)))
+}
+
+// ---------------------------------------------------------------- ladder
+
+// ladder is the status legend: every rung of the theme's ladder in its role, the
+// spinner, a step row and the tags, so a brand's marks are judged from one frame in
+// every profile (brand.md §6).
+func (m *app) ladder(c *ui.Canvas, r uv.Rectangle) {
+	t := m.t
+	w := r.Dx()
+	rows := []string{ui.Section(t, "Status", w, "glyph · meaning · slot · role"), ""}
+	rows = append(rows, ui.Ladder(t, m.frame/2)...)
+	if r.Dy() >= len(rows)+7 {
+		steps := ui.Steps{Names: []string{"Build", "Test", "Deploy", "Verify"}, Cur: 2}
+		rows = append(rows, "", ui.Section(t, "Steps", w, ""), "", steps.Row(t, w))
+		tags := []string{ui.Tag(t, "ok", "HEALTHY"), ui.Tag(t, "warning", "DEGRADED"), ui.Tag(t, "error", "FAILING"),
+			ui.Tag(t, "info", "SETUP"), ui.Tag(t, "primary", "NEW"), ui.Tag(t, "muted", "IDLE")}
+		rows = append(rows, "", ui.Section(t, "Tags", w, ""), "", strings.Join(tags, " "))
+	}
+	c.Draw(strings.Join(rows, "\n"), r)
 }
 
 // ---------------------------------------------------------------- assistant
@@ -475,12 +500,13 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 
 	if side.Dx() > 0 {
 		sw := side.Dx()
-		steps := []string{t.S.Soft.Render("build image ") + t.S.Subtle.Render("cached")}
+		// each step's detail on its own line under the tree's rail
+		steps := []string{t.S.Soft.Render("build image") + "\n" + t.S.Subtle.Render("cached")}
 		if m.checks[0] {
-			steps = append(steps, t.S.Soft.Render("run smoke tests ")+t.S.Subtle.Render("~40s"))
+			steps = append(steps, t.S.Soft.Render("run smoke tests")+"\n"+t.S.Subtle.Render("~40s"))
 		}
-		steps = append(steps, t.S.Soft.Render([]string{"roll 3 pods ", "canary 1 pod ", "start 3 new pods "}[m.strategy])+t.S.Subtle.Render(strategies[m.strategy][1]),
-			t.S.Soft.Render("watch error rate ")+t.S.Subtle.Render("5 min, auto-rollback >1%"))
+		steps = append(steps, t.S.Soft.Render([]string{"roll 3 pods", "canary 1 pod", "start 3 new pods"}[m.strategy])+"\n"+t.S.Subtle.Render(strategies[m.strategy][1]),
+			t.S.Soft.Render("watch error rate")+"\n"+t.S.Subtle.Render("5 min, auto-rollback >1%"))
 		pr := []string{ui.Section(t, "What happens", sw, ""), ""}
 		pr = append(pr, t.S.Base.Render(s.Name+" ")+t.S.Muted.Render(s.Version+" "+t.G.Arrow+" ")+t.S.Primary.Bold(true).Render(m.version))
 		pr = append(pr, "")
@@ -503,29 +529,11 @@ func (m *app) filtered() []hit {
 	var out []hit
 	q := strings.ToLower(m.query)
 	for _, c := range commands {
-		if idx, ok := fuzzy(strings.ToLower(c.Title), q); ok {
+		if idx, ok := ui.Fuzzy(strings.ToLower(c.Title), q); ok {
 			out = append(out, hit{c, idx})
 		}
 	}
 	return out
-}
-
-// fuzzy matches q as a subsequence of s, returning the matched rune indices.
-func fuzzy(s, q string) ([]int, bool) {
-	var idx []int
-	rs := []rune(s)
-	j := 0
-	for _, qr := range q {
-		for j < len(rs) && rs[j] != qr {
-			j++
-		}
-		if j == len(rs) {
-			return nil, false
-		}
-		idx = append(idx, j)
-		j++
-	}
-	return idx, true
 }
 
 // dialogTop keeps dialogs below the header and tabs.
@@ -558,11 +566,13 @@ func (m *app) palette(c *ui.Canvas) {
 			body = append(body, "")
 		}
 	} else {
-		body = append(body, ui.List(t, items, min(m.palSel, len(items)-1), 0, inner, listH, true)...)
+		sel := min(m.palSel, len(items)-1)
+		m.palOff = ui.Follow(sel, m.palOff, listH, len(items)) // the list scrolls to the selection
+		body = append(body, ui.List(t, items, sel, m.palOff, inner, listH, true)...)
 	}
 	// no help line inside: the footer above the scrim carries the dialog's keys
-	d := ui.Dialog(t, w, "Commands", body, "", "")
-	c.Overlay(d, &uv.Position{X: -1, Y: min(4, max(0, c.Bounds().Dy()-lipgloss.Height(d)-1))})
+	d := ui.Popover(t, w, "Commands", body, "", "")
+	c.Popover(d, &uv.Position{X: -1, Y: min(4, max(0, c.Bounds().Dy()-lipgloss.Height(d)-1))})
 }
 
 func (m *app) confirm(c *ui.Canvas) {
@@ -601,10 +611,12 @@ func (m *app) keysOverlay(c *ui.Canvas) {
 		body = append(body, t.S.Key.Render(ui.Fit(h.Key, 12))+t.S.Soft.Render(h.Desc))
 	}
 	body = append(body, t.S.Key.Render(ui.Fit("ctrl+c", 12))+t.S.Soft.Render("quit from anywhere"))
-	name := tabNames[min(int(m.screen), 3)]
+	name := tabNames[min(int(m.screen), len(tabNames)-1)]
 	switch m.screen {
 	case scrDeploy:
 		name = "Deploy"
+	case scrLadder:
+		name = "Legend"
 	case scrSetup:
 		name = "Setup"
 	}

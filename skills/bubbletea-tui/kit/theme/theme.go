@@ -123,6 +123,7 @@ type Expressions struct {
 	Density      string `json:"density"`      // airy | compact
 	Backdrop     string `json:"backdrop"`     // none | field
 	Working      string `json:"working"`      // spinner | scramble   (the hero "working" indicator; scramble is Crush's)
+	Spinner      string `json:"spinner"`      // focus | primary | secondary | tertiary | accent | info | fg | muted: the ink of the working marks (spinner frames, a busy row's mark, a running tool); focus = primary, or fg under focus "fg"
 	Scrim        string `json:"scrim"`        // dim | none   (dim the screen under a dialog)
 	// Focus is the ink of the kit's own emphasis: primary (default), or fg, where the
 	// focus bar, cursor, prompt, current step, active tab, selection and focused button
@@ -139,7 +140,7 @@ type Expressions struct {
 // Wordmark is an optional multi-row wordmark (scripts/wordmark.py output).
 type Wordmark struct {
 	Rows  []string `json:"rows"`
-	Style string   `json:"style"` // half | shade | ascii (shade gets three tones)
+	Style string   `json:"style"` // half | shade | ascii | tracked: the style wordmark.py drew the rows with. Metadata: the kit reads the rows, whose glyphs (█ ▓ ▒) carry the tones
 }
 
 // File is the theme JSON.
@@ -159,17 +160,28 @@ type File struct {
 	ANSI16 map[string]map[string]int `json:"ansi16,omitempty"`
 }
 
-// Load reads a theme file. Every role colour must be "#RGB" or "#RRGGBB" (see
-// CheckHex), or empty to be derived: Lip Gloss draws anything else as a different
-// colour or none, so a theme that would render wrong fails here instead.
+// Load reads a theme file: Parse on its bytes, errors named by the path.
 func Load(path string) (File, error) {
-	var f File
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return f, err
+		return File{}, err
 	}
-	if err := json.Unmarshal(b, &f); err != nil {
+	f, err := Parse(b)
+	if err != nil {
 		return f, fmt.Errorf("%s: %w", path, err)
+	}
+	return f, nil
+}
+
+// Parse reads a theme from its JSON, as Load does from a file: for a theme the binary
+// carries (go:embed, see themes/embed.go) or one fetched at run time. Every role colour
+// must be "#RGB" or "#RRGGBB" (see CheckHex), or empty to be derived: Lip Gloss draws
+// anything else as a different colour or none, so a theme that would render wrong fails
+// here instead.
+func Parse(b []byte) (File, error) {
+	var f File
+	if err := json.Unmarshal(b, &f); err != nil {
+		return f, err
 	}
 	modes := make([]string, 0, len(f.Roles))
 	for m := range f.Roles {
@@ -178,11 +190,11 @@ func Load(path string) (File, error) {
 	sort.Strings(modes)
 	for _, m := range modes {
 		if err := f.Roles[m].check(); err != nil {
-			return f, fmt.Errorf("%s: roles.%s.%w", path, m, err)
+			return f, fmt.Errorf("roles.%s.%w", m, err)
 		}
 	}
 	if err := CheckANSI16(f); err != nil {
-		return f, fmt.Errorf("%s: %w", path, err)
+		return f, err
 	}
 	return f, nil
 }

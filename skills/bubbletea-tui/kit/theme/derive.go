@@ -16,11 +16,22 @@ import (
 
 // Default is the fallback theme: monochrome ink with a single cold accent.
 // It exists so a partial theme renders. Never ship it: a product gets its own
-// theme from its own brand (references/brand.md).
+// theme from its own brand (references/brand.md). It is themes/ink.json as Go,
+// one fallback in two forms (TestInkIsTheDefault holds them equal), so the showcase
+// with no flag, which embeds ink.json, and a partial theme's roles draw alike. Ink's
+// expressions are its own quiet choices (a solid wordmark, fg section titles, a plain
+// dialog title: its two blues blend to an off-palette colour at 256 colours); a key a
+// theme leaves unset still takes exprDefaults' first value, not ink's.
 func Default() File {
 	return File{
 		Name:  "ink",
 		Brand: "app",
+		Read: "The fallback: monochrome ink with one cold accent, plain rule header, nothing to remember it by. " +
+			"It exists so a partial theme renders. Never ship it; derive a theme from the product's own brand.",
+		ANSI16: map[string]map[string]int{"dark": {"warning": 11}, "light": {"warning": 3}},
+		Glyphs: Glyphs{Pending: "◌"}, // waiting is not now: the default current is ●
+		Expressions: Expressions{Header: "rule", Wordmark: "solid", SectionTitle: "fg", Selection: "bar", Button: "pill",
+			Tag: "filled", Dialog: "rounded", DialogTitle: "plain", Tabs: "underline", Footer: "keys", Density: "airy"},
 		Roles: map[string]Roles{
 			"dark": {
 				Primary: "#8FB8DE", Secondary: "#5E81AC", Tertiary: "#A3D9C9", Accent: "#E5E9F0",
@@ -496,6 +507,7 @@ var exprValues = map[string][]string{
 	"density":      {"airy", "compact"},
 	"backdrop":     {"none", "field"},
 	"working":      {"spinner", "scramble"},
+	"spinner":      {"focus", "primary", "secondary", "tertiary", "accent", "info", "fg", "muted"},
 	"scrim":        {"dim", "none"},
 	"focus":        {"primary", "fg"},
 }

@@ -23,10 +23,11 @@ type Styles struct {
 	Key     lipgloss.Style // help: the key
 	KeyDesc lipgloss.Style // help: what it does
 	// emphasis, per expressions.focus: primary, or fg and bold
-	Focus  lipgloss.Style // focus, current and selection marks: cursor, current step, active tab, chosen option
-	Prompt lipgloss.Style // input prompts and carets (tertiary, or fg and bold)
-	Mark   lipgloss.Style // the kit's own marks: spinner, progress fill, busy dot (primary, or fg)
-	Motif  lipgloss.Style // the header rule and dialog-title rule runs (primary, or the rule role)
+	Focus   lipgloss.Style // focus, current and selection marks: cursor, current step, active tab, chosen option
+	Prompt  lipgloss.Style // input prompts and carets (tertiary, or fg and bold)
+	Mark    lipgloss.Style // the kit's own marks: the progress fill (primary, or fg)
+	Working lipgloss.Style // the working marks: spinner frames, a busy row's mark, a running tool (per expressions.spinner; Mark by default)
+	Motif   lipgloss.Style // the header rule and dialog-title rule runs (primary, or the rule role)
 	// selection
 	SelRow   lipgloss.Style // a selected row (per expressions.selection)
 	FocusBar lipgloss.Style // ▌ beside the focused block
@@ -34,7 +35,8 @@ type Styles struct {
 	Match    lipgloss.Style // fuzzy-match characters
 	// controls
 	Button, ButtonFocus, ButtonDanger lipgloss.Style
-	Dialog                            lipgloss.Style
+	Dialog                            lipgloss.Style // the one boxed element, filled with bgPanel
+	Popover                           lipgloss.Style // Dialog on bgOverlay: the palette, completions
 	// tags (chips): a word on a filled block, or bold coloured text
 	TagPrimary, TagOK, TagErr, TagWarn, TagInfo, TagMuted lipgloss.Style
 	// bars that follow a tag across the width
@@ -63,6 +65,24 @@ func build(t *Theme) Styles {
 	s.Focus, s.Prompt, s.Mark, s.Motif = s.Primary, s.Tertiary, s.Primary, s.Primary
 	if fgFocus {
 		s.Focus, s.Prompt, s.Mark, s.Motif = s.Bold, s.Bold, s.Base, s.Rule
+	}
+	// the working marks follow the focus ink unless the theme names a role for them
+	s.Working = s.Mark
+	switch x.Spinner {
+	case "primary":
+		s.Working = s.Primary
+	case "secondary":
+		s.Working = s.Secondary
+	case "tertiary":
+		s.Working = s.Tertiary
+	case "accent":
+		s.Working = s.Accent
+	case "info":
+		s.Working = s.Info
+	case "fg":
+		s.Working = s.Base
+	case "muted":
+		s.Working = s.Muted
 	}
 
 	switch x.SectionTitle {
@@ -127,38 +147,40 @@ func build(t *Theme) Styles {
 		s.ButtonDanger = lipgloss.NewStyle().Foreground(ink(p.OnError, p.Error)).Background(p.Error).Bold(true).Padding(0, 2)
 	}
 
-	var b lipgloss.Border
-	switch x.Dialog {
-	case "square":
-		b = lipgloss.NormalBorder()
-	case "double":
-		b = lipgloss.DoubleBorder()
-	case "heavy":
-		b = lipgloss.ThickBorder()
-	case "none":
-		b = lipgloss.HiddenBorder()
-	default:
-		b = lipgloss.RoundedBorder()
+	// a dialog is a filled panel whatever its edge, and whether or not the app paints the
+	// terminal's background (paintBg): unfilled, the page's colour would show through it
+	panel := func(fill color.Color) lipgloss.Style {
+		var b lipgloss.Border
+		switch x.Dialog {
+		case "square":
+			b = lipgloss.NormalBorder()
+		case "double":
+			b = lipgloss.DoubleBorder()
+		case "heavy":
+			b = lipgloss.ThickBorder()
+		case "none":
+			b = lipgloss.HiddenBorder()
+		default:
+			b = lipgloss.RoundedBorder()
+		}
+		if t.ASCII {
+			b = lipgloss.ASCIIBorder()
+		} else if x.Dialog == "none" && !t.Distinct(p.Bg, fill) {
+			// the panel step is the dialog's only edge, and at this profile (16 colours,
+			// NO_COLOR) it lands on the page's colour: draw a rule above and below instead,
+			// in the cells the hidden border kept, so the layout doesn't move
+			b = RuleEdge(t.G.Rule)
+		}
+		if x.Dialog == "rules" {
+			// the editorial dialog: a filled panel, one cell of padding inside and one cell
+			// of page around it, so the page's text never runs into its open sides. ui.Dialog
+			// draws its rules above and below (the title in the top one): its edge is glyphs,
+			// which need no colour and hold at every profile
+			return lipgloss.NewStyle().Background(fill).Padding(1, 1).Margin(1, 1).MarginBackground(p.Bg)
+		}
+		return lipgloss.NewStyle().Border(b).BorderForeground(p.BorderFocus).Padding(1, 2).Background(fill).BorderBackground(fill)
 	}
-	if t.ASCII {
-		b = lipgloss.ASCIIBorder()
-	} else if x.Dialog == "none" && !t.Distinct(p.Bg, p.BgPanel) {
-		// the panel step is the dialog's only edge, and at this profile (16 colours,
-		// NO_COLOR) it lands on the page's colour: draw a rule above and below instead,
-		// in the cells the hidden border kept, so the layout doesn't move
-		b = RuleEdge(t.G.Rule)
-	}
-	s.Dialog = lipgloss.NewStyle().Border(b).BorderForeground(p.BorderFocus).Padding(1, 2)
-	switch x.Dialog {
-	case "none":
-		s.Dialog = s.Dialog.Background(p.BgPanel).BorderBackground(p.BgPanel)
-	case "rules":
-		// the editorial dialog: a filled panel, one cell of padding inside and one cell
-		// of page around it, so the page's text never runs into its open sides. ui.Dialog
-		// draws its rules above and below (the title in the top one): its edge is glyphs,
-		// which need no colour and hold at every profile
-		s.Dialog = lipgloss.NewStyle().Background(p.BgPanel).Padding(1, 1).Margin(1, 1).MarginBackground(p.Bg)
-	}
+	s.Dialog, s.Popover = panel(p.BgPanel), panel(p.BgOverlay)
 
 	tag := func(bg, fg color.Color, text lipgloss.Style) lipgloss.Style {
 		if x.Tag == "filled" {

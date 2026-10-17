@@ -114,7 +114,7 @@ func ToolCall(t *theme.Theme, tc Tool, w int, focused bool) []string {
 	case ToolPending:
 		icon = t.S.Subtle.Render(t.G.Pending)
 	case ToolRunning: // in progress: the partial rung, so it isn't pending in another colour
-		icon = t.S.Mark.Render(t.G.Partial)
+		icon = t.S.Working.Render(t.G.Partial)
 	case ToolDone:
 		icon = t.S.OK.Render(t.G.Done)
 	case ToolError:
@@ -202,15 +202,26 @@ func TurnFooter(t *theme.Theme, model, via, took string, w int) string {
 	return "  " + label + " " + t.S.Rule.Render(strings.Repeat(t.G.Rule, max(0, n)))
 }
 
-// Tree renders children under a rounded rail (sub-agent steps, nested items).
+// Tree renders children under a rounded rail (sub-agent steps, nested items). An item
+// with more than one line continues under the rail (glyphs.treeRail) while items
+// follow, and under air after the last one:
+//
+//	├─ run smoke tests
+//	│  ~40s
+//	╰─ watch error rate
+//	   5 min, auto-rollback >1%
 func Tree(t *theme.Theme, items []string) []string {
-	out := make([]string, len(items))
+	var out []string
 	for i, it := range items {
-		e := t.G.TreeMid
+		e, rail := t.G.TreeMid, t.G.TreeRail
 		if i == len(items)-1 {
-			e = t.G.TreeEnd
+			e, rail = t.G.TreeEnd, ""
 		}
-		out[i] = t.S.Subtle.Render(e) + " " + it
+		lines := strings.Split(it, "\n")
+		out = append(out, t.S.Subtle.Render(e)+" "+lines[0])
+		for _, l := range lines[1:] {
+			out = append(out, t.S.Subtle.Render(Fit(rail, lipgloss.Width(e)))+" "+l)
+		}
 	}
 	return out
 }
