@@ -72,7 +72,7 @@ type Glyphs struct {
 	HeaderRule string   `json:"headerRule"` // fills the header after the wordmark: ╱ ─ ═ · ━ ╌ ~ (or "")
 	Rule       string   `json:"rule"`       // section rules: ─ ━ ╌ ┄ ═ ·
 	FocusBar   string   `json:"focusBar"`   // left marker of the focused block: ▌ ┃ │ ▎ ❯
-	BlurBar    string   `json:"blurBar"`    // the same position, unfocused ("" = padding only)
+	BlurBar    string   `json:"blurBar"`    // the same position, unfocused: ╎ ┆ ▏ ("" = ╎ beside a blurred selection, Theme.BlurBar; padding only in a stream or form); never the focus bar
 	Cursor     string   `json:"cursor"`     // selection cursor in lists/selects: › ❯ > ▸ →
 	Prompt     string   `json:"prompt"`     // input prompt: > $ ❯ ›
 	Done       string   `json:"done"`       // ✓ ✔ ■ ◆ x
@@ -838,6 +838,20 @@ func (t *Theme) LadderGlyph(r LadderRung) string {
 		return twin(t.File.Glyphs.ASCII, r.Glyph)
 	}
 	return r.Glyph
+}
+
+// BlurBar is the marker a blurred selection keeps (ui.List, ui.Table): glyphs.blurBar,
+// or when the theme leaves it unset ╎ (ASCII :). It is never the focus bar's glyph:
+// a blurred and a focused selection differ in shape, so NO_COLOR and ASCII still show
+// one focus (CheckGlyphs refuses a blurBar that is the focusBar).
+func (t *Theme) BlurBar() string {
+	if t.G.BlurBar != "" {
+		return t.G.BlurBar
+	}
+	if t.ASCII {
+		return blurFallbackASCII
+	}
+	return blurFallback
 }
 
 // AppName is the brand name the theme declares.

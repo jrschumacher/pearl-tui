@@ -28,7 +28,10 @@ the border colour, and right info is subtle. This is how regions separate.
 - The marker column is always 2 cells, so selecting never shifts text.
 - Selection follows `expressions.selection`: `bar` (▌ + bold), `fill` (a full-width
   primary bar; every span carries the bg), `caret` (› + primary), `inverse`.
-- Blurred lists keep the selection visible in a quieter style.
+- Blurred lists keep the selection visible in a quieter style and its own shape:
+  `t.BlurBar()` (`glyphs.blurBar`, else `╎`, ASCII `:`) in fgSubtle, never the focus bar
+  or cursor in grey, which under NO_COLOR is a second focus. `CheckGlyphs` refuses a
+  `blurBar` that is the `focusBar`.
 - Title in fg, description muted after it (dropped first when tight), right-aligned
   hint in subtle, fuzzy matches underlined.
 - The scrollbar column appears only when the list overflows.

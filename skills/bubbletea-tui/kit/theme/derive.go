@@ -361,7 +361,7 @@ func defaultPartial(g Glyphs) Glyphs {
 // adds its own in glyphs.ascii.
 var asciiTwins = map[string]string{
 	"╱": "/", "╲": "\\", "─": "-", "━": "=", "═": "=", "╌": "-", "┄": "-", "·": ".", "~": "~",
-	"▌": "|", "┃": "|", "│": "|", "▎": "|", "❯": ">", "›": ">", "▸": ">", "→": "->",
+	"▌": "|", "┃": "|", "│": "|", "▎": "|", "╎": ":", "┆": ":", "┊": ":", "❯": ">", "›": ">", "▸": ">", "→": "->",
 	"✓": "+", "✔": "+", "●": "*", "◆": "*", "◇": "o", "○": "o", "◉": "(*)", "×": "x", "✗": "x", "✕": "x", "✖": "x",
 	"•": "*", "▪": "*", "…": "...", "■": "[x]", "□": "[ ]", "☑": "[x]", "☐": "[ ]",
 	"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "◐": "~", "▲": "^", "△": "o", "◢": "/",
@@ -375,6 +375,10 @@ func ASCIITwin(glyph string) (string, bool) {
 	t, ok := asciiTwins[glyph]
 	return t, ok
 }
+
+// blurFallback is the blurred selection's marker when glyphs.blurBar is unset
+// (Theme.BlurBar), and its ASCII twin: a dashed bar beside the focus bar's solid one.
+const blurFallback, blurFallbackASCII = "╎", ":"
 
 // asciiForced are the glyphs ASCII replaces whatever the theme says: status marks
 // that must stay distinct in shape. They need no twin.
@@ -507,6 +511,14 @@ func CheckGlyphs(g Glyphs) error {
 			}
 		}
 	}
+	// a blurred selection keeps its marker: as the focus bar, or its twin, the frame
+	// shows two focuses once colour is gone
+	switch {
+	case src.BlurBar != "" && src.BlurBar == src.FocusBar:
+		return fmt.Errorf("glyphs.blurBar %q is the focusBar: a blurred selection in the focus bar's shape is a second focus under NO_COLOR and ASCII; pick ╎ ┆ or ▏ (ASCII :), or leave it unset for ╎", src.BlurBar)
+	case src.BlurBar == "" && (src.FocusBar == blurFallback || out.FocusBar == blurFallbackASCII):
+		return fmt.Errorf("glyphs.focusBar %q is the kit's blurred marker (%s, ASCII %s): set glyphs.blurBar to another glyph, or pick another focus bar", src.FocusBar, blurFallback, blurFallbackASCII)
+	}
 	// the caret sits after typed text; as a bar, or a bar's twin, "> ro|" reads as a
 	// focused block
 	for _, bar := range []string{"FocusBar", "BlurBar"} {
@@ -627,6 +639,9 @@ func asciiSpinner(g Glyphs) []string {
 	taken := map[string]bool{}
 	for _, m := range spinnerMarks {
 		taken[v.FieldByName(m).String()] = true
+	}
+	if g.BlurBar == "" {
+		taken[blurFallbackASCII] = true // the blurred selection's marker (Theme.BlurBar)
 	}
 	for _, frames := range [][]string{{"|", "/", "-", "\\"}, {".", ":", "'", ":"}, {"(", ")"}} {
 		var out []string

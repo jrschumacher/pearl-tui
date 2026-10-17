@@ -171,7 +171,8 @@ func asciiRune(r rune) string {
 // where a glyph carries a meaning: the caret ▏ is ', not the focus bar's |.
 var asciiClasses = []struct{ glyphs, twin string }{
 	{"─━═╌┄┈╍┅┉▔▁╴╶╸╺", "-"},
-	{"│┃║╎┆┊╏┇┋▎▍▌▐▕", "|"},
+	{"│┃║╏┇┋▎▍▌▐▕", "|"},
+	{"╎┆┊", ":"}, // the blurred bars: a dashed bar is not the focus bar's |
 	{"╱", "/"}, {"╲", "\\"},
 	{"█▓▒▆▇▅▄▀▙▛▜▟", "#"},
 	{"░▂▃▖▗▘▝▚▞", "."},

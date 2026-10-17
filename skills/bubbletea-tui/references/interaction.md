@@ -32,7 +32,9 @@
   opens.
 - Focus is shown by the gutter bar, the label weight, and the prompt colour. It never
   changes layout.
-- Unfocused-but-selected stays visible in a quieter tone.
+- Unfocused-but-selected stays visible in a quieter tone and its own glyph, never the
+  focus bar recoloured: `t.BlurBar()`, `╎` unless the theme sets `glyphs.blurBar`, `:`
+  under ASCII, so NO_COLOR still shows one focus.
 - Overlays trap focus. Keys go to the front overlay only, and `esc` closes it and
   restores the previous focus.
 

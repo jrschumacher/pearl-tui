@@ -353,3 +353,60 @@ func TestDialogsStayAboveTheFooter(t *testing.T) {
 		}
 	}
 }
+
+// One focus per frame in shape, not only in colour: an -ascii frame (what NO_COLOR and
+// TERM=linux read) has its focus marker, the focus bar's twin under selection bar and the
+// cursor's under caret, standing before a row in one column at most. A list blurred behind
+// a palette kept the focus bar in fgSubtle, so the frame showed two | columns (Law 5); the
+// blurred row now takes Theme.BlurBar, : under ASCII.
+func TestOneFocusMarkerColumn(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := newApp(tf, true, true)
+		mode := m.t.X.Selection
+		if mode != "bar" && mode != "caret" {
+			continue // fill and inverse mark the row, not a column
+		}
+		focus := m.t.G.FocusBar
+		if mode == "caret" {
+			focus = m.t.G.Cursor
+		}
+		for _, s := range states {
+			for _, sz := range [][2]int{{80, 24}, {120, 40}} {
+				m.setState(s)
+				c := m.render(sz[0], sz[1])
+				b := c.Bounds()
+				at := func(x, y int) string {
+					if x < b.Min.X || x >= b.Max.X {
+						return " "
+					}
+					if cell := c.CellAt(x, y); cell != nil && cell.Content != "" {
+						return cell.Content
+					}
+					return " "
+				}
+				cols := map[int][]int{}
+				for y := b.Min.Y; y < b.Max.Y; y++ {
+					for x := b.Min.X; x < b.Max.X; x++ {
+						// a marker stands alone before its row ("  | name"); a tree rail
+						// "|- build", a separator "quit | ? keys" and a dialog's edge do not
+						if at(x, y) != focus || at(x-1, y) != " " || at(x+1, y) != " " || at(x+2, y) == " " {
+							continue
+						}
+						if r := m.ovRect; !r.Empty() && (x == r.Min.X || x == r.Max.X-1) {
+							continue
+						}
+						cols[x] = append(cols[x], y)
+					}
+				}
+				if len(cols) > 1 {
+					t.Errorf("%s %s %dx%d -ascii: the focus marker %q stands in %d columns %v (column: rows), want one: a blurred selection takes Theme.BlurBar (%q)",
+						filepath.Base(f), s, sz[0], sz[1], focus, len(cols), cols, m.t.BlurBar())
+				}
+			}
+		}
+	}
+}

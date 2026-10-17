@@ -1,8 +1,14 @@
 package ui
 
 import (
+	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
+
+	"github.com/charmbracelet/x/ansi"
+
+	"tuikit/theme"
 )
 
 // Follow scrolls the smallest distance that shows the selection and otherwise stays put,
@@ -39,6 +45,49 @@ func TestFuzzy(t *testing.T) {
 		idx, ok := Fuzzy(c.s, c.q)
 		if ok != c.ok || !slices.Equal(idx, c.idx) {
 			t.Errorf("Fuzzy(%q, %q) = %v %v, want %v %v", c.s, c.q, idx, ok, c.idx, c.ok)
+		}
+	}
+}
+
+// A blurred selection is its own glyph, not the focus marker in a quieter colour: with
+// colour stripped (NO_COLOR, ASCII) the blurred row in one pane and the focused row in
+// another were both │, two focuses. Under bar and caret, List and Table mark the blurred
+// row with Theme.BlurBar (glyphs.blurBar, or ╎ / ASCII :), which is never the focus
+// bar's glyph, the cursor's, or either one's twin.
+func TestBlurredSelectionIsItsOwnGlyph(t *testing.T) {
+	files := append(testThemes(t), filepath.Join("..", "theme", "testdata", "quire.json"))
+	items := []Item{{Title: "api"}, {Title: "worker"}}
+	for _, f := range files {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, sel := range []string{"bar", "caret"} {
+			tf.Expressions.Selection = sel
+			for _, ascii := range []bool{false, true} {
+				th := theme.Resolve(tf, true, ascii)
+				focus := th.G.FocusBar
+				if sel == "caret" {
+					focus = th.G.Cursor
+				}
+				blur := th.BlurBar()
+				if blur == "" || blur == focus || blur == th.G.Cursor || blur == th.G.FocusBar {
+					t.Errorf("%s %s ascii=%v: BlurBar %q is no glyph of its own beside focus %q", filepath.Base(f), sel, ascii, blur, focus)
+				}
+				for _, focused := range []bool{true, false} {
+					want := focus
+					if !focused {
+						want = blur
+					}
+					list := ansi.Strip(List(th, items, 1, 0, 30, 2, focused)[1])
+					table := ansi.Strip(Table(th, []string{"name"}, [][]string{{"api"}, {"worker"}}, []int{0}, "l", 1, 30, focused)[3])
+					for what, row := range map[string]string{"List": list, "Table": table} {
+						if !strings.HasPrefix(row, want+" ") {
+							t.Errorf("%s %s ascii=%v focused=%v: %s marks the selected row %q, want %q", filepath.Base(f), sel, ascii, focused, what, row, want)
+						}
+					}
+				}
+			}
 		}
 	}
 }

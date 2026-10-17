@@ -21,7 +21,9 @@ type Item struct {
 // List renders items into exactly h rows of w cells, with the selected row
 // marked per expressions.selection and a scrollbar column only when the list
 // overflows. focused=false keeps the selection visible but quieter, so the
-// user can still see where they were when focus moves elsewhere.
+// user can still see where they were when focus moves elsewhere: under bar and
+// caret it is marked with Theme.BlurBar, its own glyph in fgSubtle, never the
+// focus bar or the cursor in a quieter colour (one focus under NO_COLOR too).
 func List(t *theme.Theme, items []Item, sel, offset, w, h int, focused bool) []string {
 	sb := Scrollbar(t, h, len(items), offset)
 	bodyW := w
@@ -94,14 +96,12 @@ func listRow(t *theme.Theme, it Item, selected, focused bool, w int) string {
 		if focused {
 			marker = t.S.FocusBar.Render(t.G.FocusBar) + " "
 		} else {
-			marker = t.S.BlurBar.Render(t.G.FocusBar) + " "
+			marker = t.S.BlurBar.Render(t.BlurBar()) + " " // its own shape: colour alone is no cue
 		}
+	case selected && mode == "caret" && focused:
+		marker = t.S.Focus.Render(t.G.Cursor) + " "
 	case selected && mode == "caret":
-		st := t.S.Focus
-		if !focused {
-			st = t.S.Muted
-		}
-		marker = st.Render(t.G.Cursor) + " "
+		marker = t.S.BlurBar.Render(t.BlurBar()) + " " // the cursor is the focus: a blurred row keeps the quiet bar
 	}
 	plain := selected && focused && (mode == "fill" || mode == "inverse")
 	if plain {
@@ -246,18 +246,17 @@ func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 		case selected && focused && (mode == "fill" || mode == "inverse"):
 			out = append(out, t.S.SelRow.Render(Fit("  "+ansi.Strip(line), w)))
 		case selected && (mode == "bar"):
-			bar := t.S.FocusBar
+			bar, glyph := t.S.FocusBar, t.G.FocusBar
 			if !focused {
-				bar = t.S.BlurBar
+				bar, glyph = t.S.BlurBar, t.BlurBar() // its own shape, as List draws it
 			} else {
 				line = bolden(line) // SelRow: bold text beside the bar, as List draws it
 			}
-			out = append(out, Fit(bar.Render(t.G.FocusBar)+" "+line, w))
+			out = append(out, Fit(bar.Render(glyph)+" "+line, w))
+		case selected && mode == "caret" && focused:
+			out = append(out, Fit(t.S.Focus.Render(t.G.Cursor)+" "+bolden(line), w))
 		case selected && mode == "caret":
-			if focused {
-				line = bolden(line)
-			}
-			out = append(out, Fit(t.S.Focus.Render(t.G.Cursor)+" "+line, w))
+			out = append(out, Fit(t.S.BlurBar.Render(t.BlurBar())+" "+line, w))
 		case selected:
 			out = append(out, lipgloss.NewStyle().Background(t.P.BgSubtle).Render(Fit("  "+line, w)))
 		default:

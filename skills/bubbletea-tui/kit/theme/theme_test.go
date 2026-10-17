@@ -190,6 +190,11 @@ func TestCheckGlyphs(t *testing.T) {
 		{`{"glyphs": {"focusBar": "▌", "caret": "▌"}}`, `glyphs.caret "▌" draws as "|", the focusBar's`, ""},
 		{`{"glyphs": {"focusBar": "┃", "caret": "│"}}`, `glyphs.caret "│" draws as "|", the focusBar's`, ""},
 		{`{"glyphs": {"focusBar": "▌", "blurBar": "┆", "caret": "┆", "ascii": {"┆": ":"}}}`, `glyphs.caret "┆" draws as ":", the blurBar's`, ""},
+		// a blurred selection keeps a marker of its own shape: the focus bar in a quieter
+		// colour is a second focus under NO_COLOR and ASCII
+		{`{"glyphs": {"focusBar": "│", "blurBar": "│"}}`, `glyphs.blurBar "│" is the focusBar`, ""},
+		{`{"glyphs": {"focusBar": "▌", "blurBar": "▎"}}`, `glyphs.focusBar "▌" and glyphs.blurBar "▎" both draw as "|"`, ""},
+		{`{"glyphs": {"focusBar": "╎"}}`, `glyphs.focusBar "╎" is the kit's blurred marker`, ""},
 	} {
 		path := writeTheme(t, c.json)
 		f, err := Load(path)
