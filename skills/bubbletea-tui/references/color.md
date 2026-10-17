@@ -45,7 +45,7 @@ palette check theme.json   # on any existing theme
   two hues the second is the brand's and the tertiary a complement
 - writes both a dark and a light set, the nearest xterm-256 index per role, and the
   `ansi16` pins its own `check` would ask for (most brands' warning lands on error's red
-  at 16 colours), so the first `palette check` of the theme prints nothing
+  at 16 colours), so the first `palette check` of the theme prints no 16-colour pin
 - warns when `warning` sits beside `primary` in hue and chroma (an amber brand's warning
   a shade brighter than its amber): a warning row then reads as a focused one
 
@@ -127,9 +127,12 @@ and look at the PNGs. What usually breaks:
   apart, or add the glyph marker.
 - a tinted neutral downsamples by distance onto a hue at 16 colours: a warm page lands on
   yellow, warm hints on red, and three cool text levels on one blue. The kit puts every
-  neutral on a grey there (`bg` 0/15, `fg` the opposite, `fgMuted` 7/8, `fgSubtle` and
-  `bgSubtle` 8/7, `border` beside the page); `palette check` fails a pin that puts one
-  back on red and warns on any other hue or two text levels on one grey.
+  neutral on a grey there (`bg` 0/15, `fg` the opposite, `bgSubtle` and `border` beside
+  the page). Dark keeps three text levels at 16 colours (`fgMuted` 7, `fgSubtle` 8);
+  light keeps two (`fgMuted` and `fgSubtle` both 8), because ANSI 7 on a white page is
+  below every floor; `fgSubtle` is never the only carrier of meaning. `palette check`
+  fails a pin that puts a neutral back on red and warns on any other hue or two text
+  levels pinned onto one grey.
 - `border`, a step off `bg`, lands on `bg` itself at 16 colours and every rule vanishes.
   `theme.ResolveProfile` moves a rule or border colour that isn't `Distinct` from bg to
   ANSI 8 (dark) or 7 (light); keep the profile from `tea.ColorProfileMsg` and pass it, or

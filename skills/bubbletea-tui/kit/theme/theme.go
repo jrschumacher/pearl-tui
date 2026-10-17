@@ -432,8 +432,9 @@ func ANSI16Index(f File, mode, role string) int {
 // body text reads as a state and the page as a fill; on red, hints read as errors.
 var NeutralRoles = []string{"bg", "bgPanel", "bgSubtle", "bgOverlay", "border", "fg", "fgSoft", "fgMuted", "fgSubtle"}
 
-// TextRamp are the text levels that must stay three at 16 colours, or metadata and
-// hints read as body text. fgSoft is prose and may share fg's grey.
+// TextRamp are the text levels that stay apart at 16 colours: three on a dark page, two
+// on a light one, where fgSubtle shares fgMuted's grey by design (GreySlot16). fgSoft is
+// prose and may share fg's grey.
 var TextRamp = []string{"fg", "fgMuted", "fgSubtle"}
 
 // NeutralSlot is a neutral role misplaced at 16 colours: on a hue, or sharing a grey with
@@ -457,14 +458,16 @@ func (n NeutralSlot) String() string {
 func Grey16(i int) bool { return i == 0 || i == 7 || i == 8 || i == 15 }
 
 // ANSI16Neutrals reports, per mode, the neutral roles (NeutralRoles) a 16-colour terminal
-// draws on a hue, and the pairs of the text ramp (TextRamp) that draw as one grey, after
-// the theme's ansi16 pins. derive puts every neutral on its grey (GreySlot16), so only a
-// pin moves one off; palette check fails a neutral on red and warns on the rest, each with
-// the pin that puts it back.
+// draws on a hue, and the pairs of the text ramp (TextRamp) that draw as one grey other
+// than by the engine's own assignment (a light page's fgMuted and fgSubtle both on 8),
+// after the theme's ansi16 pins. derive puts every neutral on its grey (GreySlot16), so
+// only a pin moves one off; palette check fails a neutral on red and warns on the rest,
+// each with the pin that puts it back.
 func ANSI16Neutrals(f File) []NeutralSlot {
 	var out []NeutralSlot
 	for _, mode := range modes16(f) {
-		tc := ResolveProfile(f, mode != "light", false, colorprofile.TrueColor).P
+		dark := mode != "light"
+		tc := ResolveProfile(f, dark, false, colorprofile.TrueColor).P
 		for _, role := range NeutralRoles {
 			if i := ANSI16Index(f, mode, role); i >= 0 && !Grey16(i) {
 				out = append(out, NeutralSlot{mode, role, paletteRole(tc, role), i, ""})
@@ -472,9 +475,11 @@ func ANSI16Neutrals(f File) []NeutralSlot {
 		}
 		for i, a := range TextRamp {
 			for _, b := range TextRamp[i+1:] {
-				if ia, ib := ANSI16Index(f, mode, a), ANSI16Index(f, mode, b); ia >= 0 && ia == ib {
-					out = append(out, NeutralSlot{mode, b, paletteRole(tc, b), ib, a})
+				ia, ib := ANSI16Index(f, mode, a), ANSI16Index(f, mode, b)
+				if ia < 0 || ia != ib || (ia == GreySlot16(a, dark) && ib == GreySlot16(b, dark)) {
+					continue
 				}
+				out = append(out, NeutralSlot{mode, b, paletteRole(tc, b), ib, a})
 			}
 		}
 	}

@@ -195,6 +195,7 @@ const (
 	clash16               // two state roles on one colour (theme.ANSI16Clashes)
 	hue16                 // a neutral on a hue (theme.ANSI16Neutrals)
 	share16               // two levels of the text ramp on one grey (theme.ANSI16Neutrals)
+	evict16               // primary on a status role's own slot while that role needs one
 )
 
 // PinJSON is the ansi16 block that applies the finding's pin.
@@ -220,6 +221,9 @@ func (x Finding16) PinJSON() string {
 //     another hue it warns.
 //   - two levels of the text ramp on one grey (theme.ANSI16Neutrals): a warning; the pin
 //     is the grey the engine would have used.
+//   - primary sitting on the own slot of a status role that needs a pin (a yellow brand
+//     natively on 3 while warning is on red): a warning that moves primary to the nearest
+//     free hue, so warning takes its yellow instead of being sent to cyan.
 //
 // Which slot reads well on the page is the terminal's palette, so a pin is a suggestion:
 // a status role to its own slot, else the nearest free hue, never red for a non-error and
@@ -274,7 +278,7 @@ func Findings16(f theme.File) []Finding16 {
 		switch {
 		case n.With != "":
 			x.kind = share16
-			x.What = fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), as %s %s does, so %s read as %s there",
+			x.What = fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), as %s %s does, so %s reads as %s there",
 				n.Mode, n.Role, x.Col, n.Index, n.With, roleHex(f, n.Mode, n.With), neutralText[n.Role], neutralText[n.With])
 		case n.Index == 1 || n.Index == 9:
 			x.Fail = true
@@ -283,6 +287,33 @@ func Findings16(f theme.File) []Finding16 {
 			x.What = fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), a hue, so %s reads as a state there", n.Mode, n.Role, x.Col, n.Index, neutralText[n.Role])
 		}
 		found = append(found, x)
+	}
+	// a status role whose own slot (warning 3/11, success 2/10, info 4/12) is held by
+	// primary's native index: evict primary, since the terminal's palette owns that
+	// meaning, rather than send the status role to the nearest free hue
+	has := map[key]bool{}
+	for _, x := range found {
+		has[key{x.Mode, x.Role}] = true
+	}
+	for _, x := range found {
+		own, isStatus := ownSlot[x.Role]
+		if !isStatus || x.kind == hue16 || x.kind == share16 || has[key{x.Mode, "primary"}] {
+			continue
+		}
+		shift := 0
+		if x.Mode != "light" {
+			shift = 8
+		}
+		p := theme.ANSI16Index(f, x.Mode, "primary")
+		for _, i := range own {
+			if p == i+shift || p == i {
+				tc := theme.Resolve(f, x.Mode != "light", false).P
+				found = append(found, Finding16{Mode: x.Mode, Role: "primary", Col: hexOf(tc.Primary), kind: evict16,
+					What: fmt.Sprintf("%s: primary %s draws as ANSI %d at 16 colours (-profile ansi), %s's own slot, which %s needs", x.Mode, hexOf(tc.Primary), p, x.Role, x.Role)})
+				has[key{x.Mode, "primary"}] = true
+				break
+			}
+		}
 	}
 	// failures first, then the roles the 16 colours own (keepRank: error, success,
 	// warning) before the brand's, so a status role takes its own slot and primary the
@@ -299,12 +330,16 @@ func Findings16(f theme.File) []Finding16 {
 		}
 		return rank(found[i]) < rank(found[j])
 	})
+	// a slot is taken by red, and by every state role that stays where it is; a role
+	// with a finding is being moved, so its slot is free for the next
 	used := map[string]map[int]bool{}
 	for i, x := range found {
 		if used[x.Mode] == nil {
 			used[x.Mode] = map[int]bool{1: true, 9: true} // red is error's alone
 			for _, r := range theme.StateRoles {
-				used[x.Mode][theme.ANSI16Index(f, x.Mode, r)] = true
+				if !has[key{x.Mode, r}] {
+					used[x.Mode][theme.ANSI16Index(f, x.Mode, r)] = true
+				}
 			}
 		}
 		dark := x.Mode != "light"
@@ -325,10 +360,11 @@ func Findings16(f theme.File) []Finding16 {
 	return found
 }
 
-// neutralText is what each neutral role carries on screen, for a finding's sentence.
+// neutralText is what each neutral role carries on screen, for a finding's sentence
+// (singular, so "reads" follows each).
 var neutralText = map[string]string{
-	"bg": "the page", "bgPanel": "panels", "bgSubtle": "the background step", "bgOverlay": "overlays", "border": "every rule",
-	"fg": "body text", "fgSoft": "prose", "fgMuted": "secondary text", "fgSubtle": "hints",
+	"bg": "the page", "bgPanel": "a panel", "bgSubtle": "the background step", "bgOverlay": "an overlay", "border": "every rule",
+	"fg": "body text", "fgSoft": "prose", "fgMuted": "secondary text", "fgSubtle": "a hint",
 }
 
 // roleHex is a text ramp role of mode as the theme draws it at truecolour.
@@ -376,6 +412,8 @@ func Clashes16(f theme.File, path string, stderr io.Writer) int {
 			fmt.Fprintf(stderr, "palette: warning: %s: %s, so those states differ there only by glyph and word; %s separates them\n", path, x.What, pin)
 		case x.kind == share16:
 			fmt.Fprintf(stderr, "palette: warning: %s: %s; %s separates them\n", path, x.What, pin)
+		case x.kind == evict16:
+			fmt.Fprintf(stderr, "palette: warning: %s: %s; %s moves primary off it\n", path, x.What, pin)
 		default:
 			fmt.Fprintf(stderr, "palette: warning: %s: %s; %s moves it\n", path, x.What, pin)
 		}

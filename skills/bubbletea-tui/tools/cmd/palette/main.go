@@ -16,7 +16,7 @@
 // `derive` prints the roles as JSON (`{"dark": {...}, "light": {...}}`, the theme contract's
 // shape), a contrast table, the nearest xterm-256 index for each role (for the
 // ANSI256 fallback), and the "ansi16" pins its own check would ask for (below), so the
-// first check of the theme prints nothing. With one hex, secondary and tertiary are
+// first check of the theme prints no 16-colour pin. With one hex, secondary and tertiary are
 // lightness steps of it (accent its pale tint), not a hue 40° off and a complement the
 // brand never chose; with two, the second is the brand's and tertiary a complement.
 // `--swatch` writes an .ansi file you can render with cellshot.
@@ -51,8 +51,10 @@
 // on primary on red under "focus": "primary" (focus reads as an error), on warning,
 // success or info on red, and on two of those on one colour: their glyphs and words still
 // differ. The neutrals (bg, fg, fgMuted, fgSubtle, their steps, border) draw on the four
-// greys there (the kit assigns them: page 0 or 15, text the opposite, fgMuted 7 or 8,
-// fgSubtle 8 or 7), so only a pin moves one: a neutral on red exits 1 (hints read as
+// greys there (the kit assigns them: page 0 or 15, text the opposite; a dark page keeps
+// three text levels, fgMuted 7 and fgSubtle 8; a light page keeps two, fgMuted and
+// fgSubtle both 8, since ANSI 7 on a white page is below every floor and fgSubtle is
+// never the only carrier of meaning), so only a pin moves one: a neutral on red exits 1 (hints read as
 // errors), on another hue or two text levels on one grey it warns, each with the grey to
 // pin instead. A pin that names no role, no mode or no colour 0-15 exits 2, as
 // theme.Load does.

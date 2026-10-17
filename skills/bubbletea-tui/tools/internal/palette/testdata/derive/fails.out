@@ -22,7 +22,7 @@
    "onSuccess": "#101119",
    "onWarning": "#101119",
    "primary": "#F1F2FF",
-   "secondary": "#F1F2FF",
+   "secondary": "#DEE0FF",
    "success": "#FFFFFF",
    "tertiary": "#FFFFFF",
    "warning": "#FFFFFF"
@@ -76,7 +76,7 @@
    "onSuccess": 233,
    "onWarning": 233,
    "primary": 255,
-   "secondary": 255,
+   "secondary": 189,
    "success": 231,
    "tertiary": 231,
    "warning": 231

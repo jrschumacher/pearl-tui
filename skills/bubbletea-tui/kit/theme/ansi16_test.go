@@ -103,10 +103,11 @@ func TestLoadRejectsBadANSI16(t *testing.T) {
 // What palette check fails at 16 colours, every kit theme and test theme passes: error
 // on red (1 or 9), and under focus "fg", where the hue is a state, primary neither on
 // red nor on another state role's colour. And every neutral (NeutralRoles) on a grey,
-// with fg, fgMuted and fgSubtle three different greys: before derive snapped them, a
-// tinted neutral downsampled by distance to a hue (halyard's light fg, fgMuted and
-// fgSubtle all ANSI 4; moss's light page 11 and its hints 1, error's red) and six of
-// seven themes drew fgMuted and fgSubtle as one grey.
+// with fg, fgMuted and fgSubtle three different greys on a dark page and two on a light
+// one (fgSubtle shares fgMuted's 8 there: ANSI 7 on a white page is below every floor):
+// before derive snapped them, a tinted neutral downsampled by distance to a hue
+// (halyard's light fg, fgMuted and fgSubtle all ANSI 4; moss's light page 11 and its
+// hints 1, error's red) and six of seven themes drew fgMuted and fgSubtle as one grey.
 func TestThemesReadRightAt16Colours(t *testing.T) {
 	var files []string
 	for _, dir := range []string{"../themes", "../../themes"} {
@@ -143,10 +144,13 @@ func TestThemesReadRightAt16Colours(t *testing.T) {
 			seen := map[int]string{}
 			for _, role := range TextRamp {
 				i := ANSI16Index(f, mode, role)
-				if other, dup := seen[i]; dup {
+				if other, dup := seen[i]; dup && (mode == "dark" || other != "fgMuted" || role != "fgSubtle") {
 					t.Errorf("%s %s: %s and %s both ANSI %d", filepath.Base(path), mode, other, role, i)
 				}
 				seen[i] = role
+			}
+			if want := map[string]int{"dark": 3, "light": 2}[mode]; len(seen) < want {
+				t.Errorf("%s %s: %d text greys, want %d", filepath.Base(path), mode, len(seen), want)
 			}
 		}
 	}

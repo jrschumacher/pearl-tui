@@ -177,6 +177,19 @@ func Derive(primary, secondary, accent, bg, lightBg string, tint float64) []Mode
 			lp2, _, _ := oklch.LCH(r["primary"])
 			r["secondary"] = role(stepL(lp2, d, 0.10), cs, hs, 3.5)
 			r["tertiary"] = role(stepL(lp2, d, 0.20), pymin(cp, 0.14), hp, 4.5)
+			// where the lightness step lands on the primary itself (a primary tuned to
+			// the end of the ramp on a mid-grey page), step chroma instead; and where
+			// that end is white, where chroma has no room, step back toward the page at
+			// the check's own floor for secondary (3.0, not derive's 3.5)
+			if r["secondary"] == r["primary"] {
+				r["secondary"] = role(lp2, cs*0.5, hs, 3.5)
+			}
+			if r["secondary"] == r["primary"] {
+				r["secondary"] = role(stepL(lp2, -d, 0.10), cs, hs, 3.0)
+			}
+			if r["tertiary"] == r["primary"] || r["tertiary"] == r["secondary"] {
+				r["tertiary"] = role(lp2, pymin(cp, 0.14)*0.25, hp, 4.5)
+			}
 		} else {
 			r["secondary"] = role(ls, cs, hs, 3.5)
 			if dark {

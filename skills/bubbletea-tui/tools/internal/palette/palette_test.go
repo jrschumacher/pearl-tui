@@ -626,14 +626,14 @@ func TestCheckReportsNeutralsAt16Colours(t *testing.T) {
 	}{
 		{"no pins", `{"dark": {"warning": 11}, "light": {"warning": 3}}`, 0, nil},
 		{"hints on red", `{"dark": {"warning": 11, "fgSubtle": 9}, "light": {"warning": 3, "fgMuted": 1}}`, 1, []string{
-			`palette: ` + "%s" + `: dark: fgSubtle #615D57 draws as ANSI 9 at 16 colours (-profile ansi), error's red, so hints reads as an error there: pin it with "ansi16": {"dark": {"fgSubtle": 8}}`,
+			`palette: ` + "%s" + `: dark: fgSubtle #615D57 draws as ANSI 9 at 16 colours (-profile ansi), error's red, so a hint reads as an error there: pin it with "ansi16": {"dark": {"fgSubtle": 8}}`,
 			`light: fgMuted #73706D draws as ANSI 1 at 16 colours (-profile ansi), error's red, so secondary text reads as an error there: pin it with "ansi16": {"light": {"fgMuted": 8}}`,
 			"FAIL (0 contrast problems, 2 problems at 16 colours)"}},
 		{"page and text on a hue", `{"dark": {"warning": 11}, "light": {"warning": 3, "bg": 11, "fg": 4}}`, 0, []string{
 			`palette: warning: ` + "%s" + `: light: bg #FAF9F6 draws as ANSI 11 at 16 colours (-profile ansi), a hue, so the page reads as a state there; "ansi16": {"light": {"bg": 15}} moves it`,
 			`light: fg #333230 draws as ANSI 4 at 16 colours (-profile ansi), a hue, so body text reads as a state there; "ansi16": {"light": {"fg": 0}} moves it`}},
 		{"two levels on one grey", `{"dark": {"warning": 11, "fgMuted": 8}, "light": {"warning": 3}}`, 0, []string{
-			`palette: warning: ` + "%s" + `: dark: fgSubtle #615D57 draws as ANSI 8 at 16 colours (-profile ansi), as fgMuted #87827D does, so hints read as secondary text there; "ansi16": {"dark": {"fgSubtle": 7}} separates them`}},
+			`palette: warning: ` + "%s" + `: dark: fgSubtle #615D57 draws as ANSI 8 at 16 colours (-profile ansi), as fgMuted #87827D does, so a hint reads as secondary text there; "ansi16": {"dark": {"fgSubtle": 7}} separates them`}},
 		{"a pin on the right grey", `{"dark": {"warning": 11, "fgMuted": 7, "fgSubtle": 8, "bg": 0}, "light": {"warning": 3}}`, 0, nil},
 	} {
 		path := filepath.Join(t.TempDir(), "theme.json")
@@ -655,6 +655,60 @@ func TestCheckReportsNeutralsAt16Colours(t *testing.T) {
 		}
 		if c.stderr == nil && errb.String() != "" {
 			t.Errorf("%s: stderr %q, want nothing", c.name, errb.String())
+		}
+	}
+}
+
+// A yellow brand sits natively on warning's slot (#FFE600 is ANSI 3 on a light page)
+// while its warning lands on red: primary is evicted to the nearest free hue and warning
+// takes its own yellow, rather than warning going to cyan around a primary that stays.
+func TestYellowBrandKeepsWarningYellow(t *testing.T) {
+	f := themeOf(Derive("#FFE600", "#556B2F", "", "", "", 0.012))
+	pins := Pins16(f)
+	for mode, yellow := range map[string]int{"light": 3, "dark": 11} {
+		if got := pins[mode]["warning"]; got != yellow {
+			t.Errorf("%s: warning pinned to %d, want its own %d (pins %v)", mode, got, yellow, pins[mode])
+		}
+		if p, ok := pins[mode]["primary"]; ok && p == yellow {
+			t.Errorf("%s: primary pinned onto warning's %d", mode, yellow)
+		}
+		f.ANSI16 = pins
+		if i := theme.ANSI16Index(f, mode, "primary"); i == yellow || i == 1 || i == 9 {
+			t.Errorf("%s: primary draws as ANSI %d with the pins", mode, i)
+		}
+	}
+	// check on the unpinned roles names the eviction, with the brand's own hex
+	path := filepath.Join(t.TempDir(), "theme.json")
+	b, _ := json.Marshal(f.Roles)
+	if err := os.WriteFile(path, []byte(`{"roles": `+string(b)+`}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out, errb bytes.Buffer
+	Main([]string{"check", path}, "", &out, &errb)
+	evicted := false
+	for _, mode := range []string{"dark", "light"} {
+		hex := f.Roles[mode].Primary
+		native := theme.ANSI16Index(theme.File{Roles: f.Roles}, mode, "primary")
+		if native == 3 || native == 11 {
+			evicted = true
+			if want := fmt.Sprintf(`%s: primary %s draws as ANSI %d at 16 colours (-profile ansi), warning's own slot, which warning needs; "ansi16": {%q: {"primary": `, mode, hex, native, mode); !strings.Contains(errb.String(), want) {
+				t.Errorf("%s: stderr %q, want %q", mode, errb.String(), want)
+			}
+		}
+	}
+	if !evicted {
+		t.Errorf("#FFE600 sits on neither yellow natively (pins %v); the case no longer tests eviction", pins)
+	}
+}
+
+// On a mid-grey page a primary tunes to the end of the ramp, where a lightness step
+// lands on the primary itself: secondary then steps in chroma, and tertiary differs from
+// both (the fails case, #6B50FF on #808080).
+func TestOneHueNeverCollapses(t *testing.T) {
+	for _, m := range Derive("#6B50FF", "", "", "#808080", "", 0.012) {
+		p, s, x := m.Roles["primary"], m.Roles["secondary"], m.Roles["tertiary"]
+		if p == s || p == x || s == x {
+			t.Errorf("%s: primary %s secondary %s tertiary %s: two are one colour", m.Name, p, s, x)
 		}
 	}
 }

@@ -5,7 +5,7 @@
     FAIL fg           on bgSubtle   2.93  (want ≥4.5)  #FFFFFF / #9596A1
     FAIL fgMuted      on bgSubtle   2.93  (want ≥3.0)  #FFFFFF / #9596A1
     ok   primary      on bg         3.55  (want ≥3.5)  #F1F2FF / #808080
-    ok   secondary    on bg         3.55  (want ≥3.0)  #F1F2FF / #808080
+    ok   secondary    on bg         3.05  (want ≥3.0)  #DEE0FF / #808080
     FAIL tertiary     on bg         3.95  (want ≥4.5)  #FFFFFF / #808080
     FAIL accent       on bg         3.95  (want ≥4.5)  #FFFFFF / #808080
     ok   success      on bg         3.95  (want ≥3.5)  #FFFFFF / #808080
@@ -15,7 +15,7 @@
     ok   border       on bg         1.31  (want ≥1.14 ≤1.9)  #9394A1 / #808080
     ok   bgSubtle     on bg         1.35  (want ≥1.1 ≤2.2)  #9596A1 / #808080
     ok   onPrimary    on primary   16.92  (want ≥4.5)  #101119 / #F1F2FF
-    ok   onSecondary  on secondary 16.92  (want ≥3.5)  #101119 / #F1F2FF
+    ok   onSecondary  on secondary 14.52  (want ≥3.5)  #101119 / #DEE0FF
     ok   onWarning    on warning   18.81  (want ≥4.5)  #101119 / #FFFFFF
     ok   onError      on error     18.81  (want ≥3.5)  #101119 / #FFFFFF
     ok   onSuccess    on success   18.81  (want ≥3.5)  #101119 / #FFFFFF

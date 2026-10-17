@@ -110,7 +110,8 @@
  },
  "ansi16": {
   "dark": {
-   "warning": 3
+   "primary": 14,
+   "warning": 11
   },
   "light": {
    "warning": 3
