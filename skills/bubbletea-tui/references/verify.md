@@ -17,11 +17,12 @@ screenshot.
 2. GOLDEN   go run ./cmd/<app> -golden -w 80 -h 24 && … -w 120 -h 40      (exit 0 or stop)
             go test ./...                                                 (footprint at the kit's 5 sizes × themes)
 3. LINT     tuilint frames frames frames/256 frames/16 frames/nocolor --theme themes/<brand>.json --bg <bg>
-            tuilint frames frames/ascii --ascii --theme themes/<brand>.json --bg <bg>
+            tuilint frames frames/ascii --ascii --unicode frames --theme themes/<brand>.json --bg <bg>
             tuilint frames frames/light --theme themes/<brand>.json --bg <light bg>
             (lint every directory you rendered: light, 256, 16, no colour and ASCII break where dark
             truecolour passes, and LOOK at the overlays there: a dialog's edge is the first to go;
-            --ascii fails any glyph that leaked into an ASCII frame [F-ASCII])
+            --ascii fails any glyph that leaked into an ASCII frame, and --unicode a "?" where the
+            unicode frame of the state has a glyph or a letter [F-ASCII])
             tuilint code .                                                (tuivet ./... in go vet or an editor: same rules)
             tuilint spec TUI.md                                           (after any key-table change)
 4. LOOK     cellshot frames/*-80x24.ansi frames/toosmall-*.ansi --sheet sheet-80.png

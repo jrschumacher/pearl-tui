@@ -124,7 +124,7 @@ jobs:
               case $v in
                 dark)    flags=();                  out=$n ;;
                 light)   flags=(-light);            out=$n-light ;;
-                ascii)   flags=(-ascii);            out=$n-ascii; lint=(--ascii) ;;
+                ascii)   flags=(-ascii);            out=$n-ascii; lint=(--ascii --unicode "../../../frames/$n") ;;
                 ansi256) flags=(-profile ansi256);  out=$n-ansi256 ;;
                 ansi)    flags=(-profile ansi);     out=$n-ansi ;;
                 light-ansi) flags=(-light -profile ansi); out=$n-light-ansi ;;

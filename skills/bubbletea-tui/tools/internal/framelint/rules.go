@@ -828,6 +828,16 @@ var (
 
 // lintText lints one frame's text, named by the file's base name. ascii adds F-ASCII.
 func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii bool) []Finding {
+	f := parseText(text)
+	out := LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
+	if ascii {
+		out = append(out, LintASCII(filepath.Base(path), f)...)
+	}
+	return out
+}
+
+// parseText parses one frame's text and notes which colour SGR it uses.
+func parseText(text string) Frame {
 	text = strings.ReplaceAll(text, "\r\n", "\n") // Python's universal newlines
 	text = strings.ReplaceAll(text, "\r", "\n")
 	text = strings.TrimSuffix(text, "\n")
@@ -835,11 +845,47 @@ func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii boo
 	f.Indexed = sgr256.MatchString(text) && !sgrTrue.MatchString(text)
 	f.Basic = !f.Indexed && !sgrTrue.MatchString(text) && sgr16.MatchString(text)
 	f.Plain = !sgr256.MatchString(text) && !sgrTrue.MatchString(text) && !sgr16.MatchString(text)
-	out := LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
-	if ascii {
-		out = append(out, LintASCII(filepath.Base(path), f)...)
+	return f
+}
+
+// LintASCIIQuestion is F-ASCII's second half: a "?" in the ASCII frame where the
+// unicode frame of the same state draws something else. The sweep's fallback for a
+// rune with no twin is "?", which is ASCII, so the first half cannot see it, and a
+// unit or a name then reads as a question (21.5?C). One finding per frame: where the
+// first is, and up to 6 of the runes the unicode frame drew there.
+func LintASCIIQuestion(name string, asc, uni Frame) []Finding {
+	var at [2]int
+	var runes []string
+	seen := map[string]bool{}
+	n := 0
+	for y, row := range asc.Rows {
+		if y >= len(uni.Rows) {
+			break
+		}
+		for x, c := range row {
+			if c.Ch != "?" || x >= len(uni.Rows[y]) {
+				continue
+			}
+			u := uni.Rows[y][x].Ch
+			if u == "?" || u == "" {
+				continue
+			}
+			if n == 0 {
+				at = [2]int{y, x}
+			}
+			n++
+			if !seen[u] && len(runes) < 6 {
+				seen[u] = true
+				runes = append(runes, fmt.Sprintf("%s U+%04X", u, first(u)))
+			}
+		}
 	}
-	return out
+	if n == 0 {
+		return nil
+	}
+	return []Finding{{"F-ASCII", "P1", name, fmt.Sprintf("r%dc%d", at[0], at[1]),
+		fmt.Sprintf("%d cells draw \"?\" where the unicode frame does not (%s): the ASCII sweep has no one-cell twin for them; give a glyph a theme twin, or write the text in ASCII",
+			n, strings.Join(runes, ", "))}}
 }
 
 // LintASCII is F-ASCII: in a frame rendered for ASCII (TERM=linux, --ascii) every cell
