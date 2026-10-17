@@ -200,7 +200,7 @@ checking in with the user after `shape`. An existing app: `init` → `restyle`.
 | Tool | Does |
 |---|---|
 | `cellshot` | ANSI → PNG/GIF/contact sheet, drawn like a modern terminal; reports tofu, emoji, uneven rows |
-| `tuilint` | `frames`: width, emoji, default palette, off-palette, contrast, boxes, rainbow, levels, ASCII leaks… `code`: len(), blocking, hex, emoji, glyph literals, a bare `theme.Ellipsis`, v1, resize, ticks, Print, keys, a Huh form or spinner on its default theme, no NO_COLOR/profile handling. `spec`: TUI.md's keys (indistinguishable, duplicated, eaten by a text box), ambiguous-width glyphs, a footer that doesn't fit 80 columns |
+| `tuilint` | `frames`: width, emoji, default palette, off-palette, contrast, boxes, rainbow, levels, raw tabs, ASCII leaks… `code`: len(), blocking, hex, emoji, glyph literals, a bare `theme.Ellipsis`, v1, resize, ticks, Print, keys, a Huh form or spinner on its default theme, no NO_COLOR/profile handling. `spec`: TUI.md's keys (indistinguishable, duplicated, eaten by a text box), ambiguous-width glyphs, a footer that doesn't fit 80 columns |
 | `palette` | `derive` a dark+light role set from brand hexes (OKLCH, tinted neutrals, contrast-tuned); `check` a theme |
 | `tuivet` | the `tuilint code` rules as a go vet tool (`tuivet ./...`, or `go vet -vettool=$(which tuivet) ./...`; exit 3 on a finding) |
 | `diversity` | how different are these themes from each other and from the default |

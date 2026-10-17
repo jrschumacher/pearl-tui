@@ -830,22 +830,48 @@ var (
 func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii bool) []Finding {
 	f := parseText(text)
 	out := LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
+	out = append(out, LintTab(filepath.Base(path), normText(text))...)
 	if ascii {
 		out = append(out, LintASCII(filepath.Base(path), f)...)
 	}
 	return out
 }
 
+// normText is a frame's text with Python's universal newlines and no final newline.
+func normText(text string) string {
+	text = strings.ReplaceAll(text, "\r\n", "\n")
+	text = strings.ReplaceAll(text, "\r", "\n")
+	return strings.TrimSuffix(text, "\n")
+}
+
 // parseText parses one frame's text and notes which colour SGR it uses.
 func parseText(text string) Frame {
-	text = strings.ReplaceAll(text, "\r\n", "\n") // Python's universal newlines
-	text = strings.ReplaceAll(text, "\r", "\n")
-	text = strings.TrimSuffix(text, "\n")
+	text = normText(text)
 	f := Parse(text)
 	f.Indexed = sgr256.MatchString(text) && !sgrTrue.MatchString(text)
 	f.Basic = !f.Indexed && !sgrTrue.MatchString(text) && sgr16.MatchString(text)
 	f.Plain = !sgr256.MatchString(text) && !sgrTrue.MatchString(text) && !sgr16.MatchString(text)
 	return f
+}
+
+// LintTab is F-TAB: a raw tab in a frame. lipgloss measures a tab as 0 cells and a
+// terminal advances it to the next 8-column stop, so a row fitted with one in it is
+// padded short in the app's maths and pushed past its edge on screen: a panel's right
+// edge tears. (Parse expands it to the stop, so F-WIDTH sees the row as the terminal
+// does and cannot tell.) One finding per frame: where the first is, and how many.
+func LintTab(name, text string) []Finding {
+	i := strings.IndexByte(text, '\t')
+	if i < 0 {
+		return nil
+	}
+	start := strings.LastIndexByte(text[:i], '\n') + 1
+	x := 0
+	if rows := Parse(text[start:i]).Rows; len(rows) > 0 {
+		x = len(rows[0])
+	}
+	return []Finding{{"F-TAB", "P1", name, fmt.Sprintf("r%dc%d", strings.Count(text[:i], "\n"), x),
+		fmt.Sprintf("%d raw tabs in the frame: lipgloss measures a tab as 0 cells and a terminal advances it to the next 8-column stop, so the row tears; expand tabs (ui.ExpandTabs) before fitting",
+			strings.Count(text, "\t"))}}
 }
 
 // LintASCIIQuestion is F-ASCII's second half: a "?" in the ASCII frame where the

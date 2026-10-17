@@ -31,6 +31,8 @@
 //	F-EMPTY     [P2] frame is more than 98.5% blank (not on a splash*, intro* or wordmark* frame:
 //	                 a wordmark on an empty page is what a splash is)
 //	F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
+//	F-TAB       [P1] a raw tab in a frame: lipgloss measures it as 0 cells, a terminal as the
+//	                 run to the next 8-column stop, so the row tears; expand tabs before fitting
 //	F-ASCII     [P1] (with --ascii) a cell outside ASCII in a frame rendered for ASCII; with
 //	                 --unicode, also a "?" where the unicode frame of the same state draws
 //	                 something else (a rune the sweep had no twin for)
@@ -86,6 +88,7 @@ else is a rune the ASCII sweep had no twin for, which reads as a question.
   F-EDGE      [P2] content touching column 0 or the last column on most rows
   F-EMPTY     [P2] frame is more than 98.5% blank (not on a splash*/intro*/wordmark* frame)
   F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
+  F-TAB       [P1] a raw tab: 0 cells to lipgloss, up to 8 to a terminal; expand it before fitting
   F-ASCII     [P1] (with --ascii) a cell outside ASCII: give the glyph an ASCII twin;
                    with --unicode, a "?" where the unicode frame of the state has none
 `

@@ -99,7 +99,7 @@ func TestSyntheticCoversEveryRule(t *testing.T) {
 		seen[f.Rule] = true
 	}
 	for _, r := range []string{"F-WIDTH", "F-EMOJI", "F-DEFAULT", "F-OFFPAL", "F-CONTRAST", "F-BOXES",
-		"F-RAINBOW", "F-LEVELS", "F-BOLD", "F-EDGE", "F-EMPTY", "F-TOFU"} {
+		"F-RAINBOW", "F-LEVELS", "F-BOLD", "F-EDGE", "F-EMPTY", "F-TOFU", "F-TAB"} {
 		if !seen[r] {
 			t.Errorf("no synthetic frame trips %s", r)
 		}
