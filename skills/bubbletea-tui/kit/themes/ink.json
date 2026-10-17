@@ -2,6 +2,14 @@
  "name": "ink",
  "brand": "app",
  "read": "The fallback: monochrome ink with one cold accent, plain rule header, nothing to remember it by. It exists so a partial theme renders. Never ship it; derive a theme from the product's own brand.",
+ "ansi16": {
+  "dark": {
+   "warning": 11
+  },
+  "light": {
+   "warning": 3
+  }
+ },
  "roles": {
   "dark": {
    "primary": "#8FB8DE",

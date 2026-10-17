@@ -113,8 +113,8 @@ func ToolCall(t *theme.Theme, tc Tool, w int, focused bool) []string {
 	switch tc.State {
 	case ToolPending:
 		icon = t.S.Subtle.Render(t.G.Pending)
-	case ToolRunning:
-		icon = t.S.Mark.Render(t.G.Pending)
+	case ToolRunning: // in progress: the partial rung, so it isn't pending in another colour
+		icon = t.S.Mark.Render(t.G.Partial)
 	case ToolDone:
 		icon = t.S.OK.Render(t.G.Done)
 	case ToolError:

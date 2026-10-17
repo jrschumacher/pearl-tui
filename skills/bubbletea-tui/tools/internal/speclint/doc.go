@@ -54,11 +54,11 @@
 //	                  as text entry only when its row has a newline action, says "type to" or
 //	                  "typing", or names textarea, textinput, text input/box/field, input,
 //	                  editor or compose(r). A row that only says filter or search doesn't count.
-//	S-GLYPHWIDTH [P2] a symbol of East Asian Width "ambiguous" (◐ ★ █ ⇒ …: one cell in most
+//	S-GLYPHWIDTH [P2] a symbol of East Asian Width "ambiguous" (◑ ★ ⇒ …: one cell in most
 //	                  terminals, two in CJK locales) in a brand, motif, glyph or identity
 //	                  section or in the key table, with no line anywhere that names its ASCII
 //	                  twin (a line holding the glyph and the word "ascii"). Skipped: glyphs
-//	                  the kit's ASCII map already draws a twin for (─ │ ▌ ● ○ ◆ ▲ ■ → …,
+//	                  the kit's ASCII map already draws a twin for (─ │ ▌ ● ◐ ○ ◆ ▲ ■ → …,
 //	                  theme.ASCIITwin), arrows (U+2190–U+21FF) outside the key table, which
 //	                  are prose, and arrow keys in a key token (↑↓←→), which are key names.
 //	S-FOOTER     [P2] a state's footer keys (all of them, the bold ones, or those before ‖) don't

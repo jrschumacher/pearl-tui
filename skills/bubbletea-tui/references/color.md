@@ -109,6 +109,7 @@ TrueColor is what you design. ANSI256, ANSI16 and none are what many users get. 
 
 ```
 go run ./cmd/<app> -out frames -profile ansi256
+go run ./cmd/<app> -out frames -profile ansi
 go run ./cmd/<app> -out frames -profile ascii
 ```
 
@@ -118,14 +119,43 @@ and look at the PNGs. What usually breaks:
   apart, or add the glyph marker.
 - `fgMuted` and `fgSubtle` collapse to one grey at 16 colours. Acceptable if nothing
   depends on the difference.
+- `border`, a step off `bg`, lands on `bg` itself at 16 colours and every rule vanishes.
+  `theme.ResolveProfile` moves a rule or border colour that isn't `Distinct` from bg to
+  ANSI 8 (dark) or 7 (light); keep the profile from `tea.ColorProfileMsg` and pass it, or
+  the rules go. At 256 colours every kit theme's border stays apart from bg; for a theme
+  whose border does land on bg's index there, the fallback steps it toward fg.
 - at `ascii`, everything is the same colour. Focus, selection, error and disabled must
   still be visible through glyphs, bold, reverse video and words.
+- two state roles land on one of the 16 colours: downsampling takes the nearest of 16,
+  so an amber `#D99A3B` and an error `#EF8482` are both ANSI 9, and most yellows go red.
+  No hex fixes it without leaving amber at 256 colours. Pin the role for 16 colours only:
+
+  ```json
+  "ansi16": { "dark": { "primary": 11 }, "light": { "primary": 3 } }
+  ```
+
+  `palette check` names each problem and the pin that fixes it (stderr). Red is error's:
+
+  | at 16 colours | `palette check` |
+  |---|---|
+  | error off red (not 1 or 9): a grey error beside a red warning reads reversed | fails (exit 1) |
+  | under `focus: fg`, primary on red or on another state role's colour | fails (exit 1) |
+  | under `focus: primary`, primary on red: focus and selection read as errors | warns |
+  | warning, success or info on red, or two of them on one colour | warns |
+
+  A warning is not a pass to ignore: the glyph and word still tell the states apart, but
+  pin it unless the brand accepts it in its read. Pin bright (9-14) on dark, normal (1-6)
+  on light, error to 9/1, a status role to its own slot (warning 3/11, success 2/10, info
+  4/12 or 6/14), never a grey; the user's terminal palette decides the exact colour.
 
 ## DO / DON'T
 
 - **DO** derive every role from 1–3 measured brand colours. **DON'T** start from Lip
   Gloss's example purple or Bubbles' default pink.
 - **DO** tint neutrals toward the brand. **DON'T** use `#888`.
+- **DO** pin a state role with `ansi16` when `palette check` says two states share one
+  of the 16 colours. **DON'T** move the brand's hex to dodge downsampling: it changes
+  every other profile to fix one.
 - **DO** keep hue for state and brand, and lightness for hierarchy. **DON'T** colour
   columns to tell them apart.
 - **DO** check contrast for every text role on every background it sits on (fg on

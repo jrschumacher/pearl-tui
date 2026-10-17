@@ -5,10 +5,13 @@ import (
 	"image/color"
 	"math"
 	"reflect"
+	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // Default is the fallback theme: monochrome ink with a single cold accent.
@@ -34,12 +37,21 @@ func Default() File {
 }
 
 // derive resolves a role set into colours, filling any missing role from the
-// ones present so a theme with only the core roles still renders well.
-func derive(r Roles, dark bool) Palette {
+// ones present so a theme with only the core roles still renders well. pins (the
+// theme's ansi16 at 16 colours, else nil) replace the roles they name with one of the
+// 16 colours, before anything is derived from them.
+func derive(r Roles, dark bool, pins map[string]int) Palette {
 	var p Palette
+	if len(pins) > 0 {
+		r = pinned(r, pins)
+	}
 	c := func(s string, fallback color.Color) color.Color {
 		if s == "" {
 			return fallback
+		}
+		if n, ok := strings.CutPrefix(s, "ansi:"); ok {
+			i, _ := strconv.Atoi(n)
+			return ansi.BasicColor(i)
 		}
 		return lipgloss.Color(s)
 	}
@@ -72,7 +84,7 @@ func derive(r Roles, dark bool) Palette {
 	// floor is the contrast palette check asks of each on-colour on its fill.
 	ink := func(s string, fill color.Color, floor float64) color.Color {
 		if s != "" {
-			return lipgloss.Color(s)
+			return c(s, nil)
 		}
 		if white != nil && Contrast(white, fill) >= 4.5 {
 			return white
@@ -86,6 +98,20 @@ func derive(r Roles, dark bool) Palette {
 	p.OnSuccess = ink(r.OnSuccess, p.Success, 3.5)
 	p.FgSelected = c(r.FgSelected, p.OnPrimary)
 	return p
+}
+
+// pinned writes each pinned role as "ansi:<n>", which derive's c reads as that basic
+// colour: a hex can't name one (the xterm hex of ANSI 8 downsamples to 7), and a role
+// derived from a pinned one then follows it.
+func pinned(r Roles, pins map[string]int) Roles {
+	v, t := reflect.ValueOf(&r).Elem(), reflect.TypeOf(r)
+	for i := range t.NumField() {
+		key, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ",")
+		if n, ok := pins[key]; ok && key != "white" {
+			v.Field(i).SetString("ansi:" + strconv.Itoa(n))
+		}
+	}
+	return r
 }
 
 // Mix blends a toward b by t (0 = a, 1 = b) in CIELAB, the way Crush derives
@@ -206,7 +232,53 @@ func glyphDefaults(g Glyphs) Glyphs {
 	if len(g.Spinner) == 0 {
 		g.Spinner = []string{"◜", "◠", "◝", "◞", "◡", "◟"}
 	}
+	if g.Partial == "" {
+		g = defaultPartial(g)
+	}
 	// HeaderRule and BlurBar may legitimately be "" (no rule / padding only).
+	return g
+}
+
+// defaultPartial gives a theme that leaves glyphs.partial unset the first of ◐ ◑ ◒ ◓ ◔
+// that none of its status marks or spinner frames already is, so the in-progress rung
+// never draws as pending (a ◐ pending) or as a spinner frame. Its twin is the kit's
+// ("~" for ◐), unless one of the theme's own status marks already draws as that: then
+// the first twin no status mark uses, so a default never makes two of the theme's states
+// one mark under ASCII.
+func defaultPartial(g Glyphs) Glyphs {
+	taken := map[string]bool{}
+	for _, s := range append([]string{g.Done, g.Current, g.Todo, g.Pending, g.Warn, g.Fail}, g.Spinner...) {
+		taken[strings.TrimSpace(s)] = true
+	}
+	g.Partial = "◐"
+	for _, c := range []string{"◐", "◑", "◒", "◓", "◔"} {
+		if !taken[c] {
+			g.Partial = c
+			break
+		}
+	}
+	if _, own := g.ASCII[g.Partial]; own {
+		return g
+	}
+	used := map[string]bool{"!": true, "x": true} // warn and fail, as ASCII draws them
+	for _, s := range []string{g.Done, g.Current, g.Todo, g.Pending} {
+		if s != "" && s != g.Partial {
+			used[twin(g.ASCII, s)] = true
+		}
+	}
+	for _, alt := range []string{"~", "%", "=", "&"} {
+		if !used[alt] {
+			if alt != asciiTwins[g.Partial] {
+				own := make(map[string]string, len(g.ASCII)+1)
+				for k, v := range g.ASCII {
+					own[k] = v
+				}
+				own[g.Partial] = alt
+				g.ASCII = own
+			}
+			break
+		}
+	}
 	return g
 }
 
@@ -217,7 +289,7 @@ var asciiTwins = map[string]string{
 	"▌": "|", "┃": "|", "│": "|", "▎": "|", "❯": ">", "›": ">", "▸": ">", "→": "->",
 	"✓": "+", "✔": "+", "●": "*", "◆": "*", "◇": "o", "○": "o", "◉": "(*)", "×": "x", "✗": "x", "✕": "x", "✖": "x",
 	"•": "*", "▪": "*", "…": "...", "■": "[x]", "□": "[ ]", "☑": "[x]", "☐": "[ ]",
-	"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "▲": "^", "△": "o", "◢": "/",
+	"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "◐": "~", "▲": "^", "△": "o", "◢": "/",
 	"◦": "o", "–": "-", "—": "-", "█": "#", "░": ".",
 }
 
@@ -275,7 +347,7 @@ func twin(own map[string]string, s string) string {
 // become one mark (a ◔ reading and a ● new both "*"). warn and fail are in the status
 // set as ASCII draws them, "!" and "x".
 var glyphMeanings = [][]string{
-	{"Done", "Current", "Todo", "Pending", "Warn", "Fail"}, // a step's or an item's state
+	{"Done", "Current", "Todo", "Pending", "Partial", "Warn", "Fail"}, // a step's or an item's state
 	{"RadioOn", "RadioOff"},
 	{"CheckOn", "CheckOff"},
 	{"Thumb", "Track"},
@@ -301,7 +373,7 @@ func CheckGlyphs(g Glyphs) error {
 	var err error
 	src := glyphDefaults(g)
 	glyphFields(&src, func(name, key string, p *string) {
-		if err != nil || asciiForced[name] || twin(g.ASCII, *p) != "?" {
+		if err != nil || asciiForced[name] || twin(src.ASCII, *p) != "?" {
 			return
 		}
 		err = fmt.Errorf("glyphs.%s %q has no ASCII twin: -ascii and TERM=linux would draw it as \"?\"; add \"ascii\": {%q: \"<twin>\"} to glyphs", key, *p, *p)
@@ -315,6 +387,18 @@ func CheckGlyphs(g Glyphs) error {
 		f, _ := t.FieldByName(name)
 		k, _, _ := strings.Cut(f.Tag.Get("json"), ",")
 		return k
+	}
+	sv0 := reflect.ValueOf(src)
+	for _, fr := range src.Spinner {
+		for _, m := range spinnerMarks {
+			if m == "Partial" && g.Partial == "" {
+				continue // the default steps aside (defaultPartial); only a partial the theme wrote counts
+			}
+			if mark := sv0.FieldByName(m).String(); mark != "" && strings.TrimSpace(fr) == mark {
+				return fmt.Errorf("glyphs.spinner frame %q is also glyphs.%s: a working row beside it would read as that mark; pick frames no state or focus mark uses",
+					fr, jsonKey(m))
+			}
+		}
 	}
 	for _, set := range glyphMeanings {
 		for i, a := range set {
@@ -336,7 +420,6 @@ func CheckGlyphs(g Glyphs) error {
 // font without the glyphs. Every glyph the theme defines must survive this.
 func ASCII(g Glyphs) Glyphs {
 	glyphFields(&g, func(_, _ string, p *string) { *p = twin(g.ASCII, *p) })
-	g.Spinner = []string{"|", "/", "-", "\\"}
 	// status glyphs must stay distinct in shape, or ok/warn/error become one mark
 	g.Warn, g.Fail = "!", "x"
 	if g.Todo == g.Current {
@@ -345,6 +428,7 @@ func ASCII(g Glyphs) Glyphs {
 	if g.Current == g.Warn || g.Current == g.Fail {
 		g.Current = "*"
 	}
+	g.Spinner = asciiSpinner(g)
 	// ┃ thumb and │ track both twin to "|": without colour the scrollbar would have no
 	// position, so the thumb becomes the solid block it stands for
 	if g.Thumb == g.Track && g.Thumb != "" {
@@ -353,29 +437,121 @@ func ASCII(g Glyphs) Glyphs {
 	return g
 }
 
-func exprDefaults(x Expressions) Expressions {
-	d := func(p *string, v string) {
-		if *p == "" {
-			*p = v
+// exprValues are the values the kit draws for each string expression, by JSON key; the
+// first is the default. Anything else (unset, a typo, a value from a newer kit) resolves
+// to the default, so a theme always renders; CheckExpressions names it.
+var exprValues = map[string][]string{
+	"header":       {"rule", "bar", "minimal", "stamp", "banner"},
+	"wordmark":     {"gradient", "solid", "inverse", "tracked", "bracket", "upper", "plain"},
+	"sectionTitle": {"accent", "primary", "muted-upper", "fg"},
+	"titleCase":    {"sentence", "upper", "lower"},
+	"labelCase":    {"", "upper", "lower", "as-is"}, // "": each component's own case
+	"selection":    {"bar", "fill", "caret", "inverse"},
+	"button":       {"pill", "bracket", "underline", "inverse"},
+	"tag":          {"filled", "bracket", "bold"},
+	"dialog":       {"rounded", "square", "double", "heavy", "none", "rules"},
+	"dialogTitle":  {"rule", "plain", "bar"},
+	"tabs":         {"underline", "pill", "bracket", "slash"},
+	"footer":       {"keys", "bar", "rule"},
+	"keys":         {"inline", "boxed"},
+	"density":      {"airy", "compact"},
+	"backdrop":     {"none", "field"},
+	"working":      {"spinner", "scramble"},
+	"scrim":        {"dim", "none"},
+	"focus":        {"primary", "fg"},
+}
+
+// ExpressionValues are the values the kit knows for expression key (its JSON name),
+// the default first; nil for a key that takes no word (gutter, measure, paintBg). The
+// one default that isn't a word is labelCase's "": unset, each component keeps its own
+// case (table headers upper, tags as written, summary labels lower).
+func ExpressionValues(key string) []string { return exprValues[key] }
+
+// ExpressionKey reports whether key is an expression the kit reads.
+func ExpressionKey(key string) bool {
+	t := reflect.TypeOf(Expressions{})
+	for i := range t.NumField() {
+		if k, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ","); k == key {
+			return true
 		}
 	}
-	d(&x.Header, "rule")
-	d(&x.Wordmark, "gradient")
-	d(&x.SectionTitle, "accent")
-	d(&x.TitleCase, "sentence")
-	d(&x.Selection, "bar")
-	d(&x.Button, "pill")
-	d(&x.Tag, "filled")
-	d(&x.Dialog, "rounded")
-	d(&x.DialogTitle, "rule")
-	d(&x.Tabs, "underline")
-	d(&x.Footer, "keys")
-	d(&x.Keys, "inline")
-	d(&x.Density, "airy")
-	d(&x.Backdrop, "none")
-	d(&x.Scrim, "dim")
-	d(&x.Working, "spinner")
-	d(&x.Focus, "primary")
+	return false
+}
+
+// exprFields calls fn with every string expression's JSON key and a pointer to it.
+func exprFields(x *Expressions, fn func(key string, p *string)) {
+	v, t := reflect.ValueOf(x).Elem(), reflect.TypeOf(*x)
+	for i := range t.NumField() {
+		if t.Field(i).Type.Kind() != reflect.String {
+			continue
+		}
+		key, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ",")
+		fn(key, v.Field(i).Addr().Interface().(*string))
+	}
+}
+
+// CheckExpressions reports an expression value the kit doesn't know, with the values it
+// does: a typo ("rule" for dialog "rules") or a theme written for a newer kit would
+// otherwise render the default silently. palette check and the kit's tests fail on it;
+// theme.Load doesn't, so an app always starts (Resolve draws the default).
+func CheckExpressions(x Expressions) error {
+	var err error
+	exprFields(&x, func(key string, p *string) {
+		if err != nil || *p == "" || len(exprValues[key]) == 0 || slices.Contains(exprValues[key], *p) {
+			return
+		}
+		known, def := exprValues[key], exprValues[key][0]
+		if def == "" {
+			known, def = known[1:], "as if unset"
+		}
+		err = fmt.Errorf("expressions.%s %q is not a value the kit knows: %s (it would draw %s)",
+			key, *p, strings.Join(known, " | "), def)
+	})
+	return err
+}
+
+// spinnerMarks are the glyphs a working spinner sits beside, in a status column or next
+// to a focus bar: no frame may be one of them, or a working row reads as that mark.
+var spinnerMarks = []string{"FocusBar", "BlurBar", "Done", "Current", "Todo", "Fail", "Warn", "Pending", "Partial"}
+
+// asciiSpinner is the line spinner | / - \ without the frames g's marks already draw
+// as (the "|" of a focus bar twinned from ▌): a turning line still, a frame short. If
+// the marks leave it fewer than two distinct frames, a pulse . : ' :, then a bounce ( ),
+// then any two punctuation marks no mark is.
+func asciiSpinner(g Glyphs) []string {
+	v := reflect.ValueOf(g)
+	taken := map[string]bool{}
+	for _, m := range spinnerMarks {
+		taken[v.FieldByName(m).String()] = true
+	}
+	for _, frames := range [][]string{{"|", "/", "-", "\\"}, {".", ":", "'", ":"}, {"(", ")"}} {
+		var out []string
+		distinct := map[string]bool{}
+		for _, f := range frames {
+			if !taken[f] {
+				out = append(out, f)
+				distinct[f] = true
+			}
+		}
+		if len(distinct) >= 2 {
+			return out
+		}
+	}
+	var out []string
+	for _, r := range "+=#@%&<>^~;,`" {
+		if f := string(r); !taken[f] && len(out) < 2 {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+func exprDefaults(x Expressions) Expressions {
+	exprFields(&x, func(key string, p *string) {
+		if vals := exprValues[key]; len(vals) > 0 && !slices.Contains(vals, *p) {
+			*p = vals[0]
+		}
+	})
 	if x.Gutter == 0 {
 		x.Gutter = 2
 	}

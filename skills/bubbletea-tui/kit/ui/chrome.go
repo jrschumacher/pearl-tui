@@ -252,7 +252,7 @@ func Toast(t *theme.Theme, kind, label, msg string, w int) string {
 	case "info":
 		tag, bar = t.S.TagInfo, t.S.BarInfo
 	}
-	tg := tag.Render(label)
+	tg := tag.Render(t.Label(label, "as-is"))
 	rest := w - 2*g - lipgloss.Width(tg)
 	return strings.Repeat(" ", g) + tg + bar.Width(max(0, rest)).Render(Trunc(t, msg, max(0, rest-2))) + strings.Repeat(" ", g)
 }

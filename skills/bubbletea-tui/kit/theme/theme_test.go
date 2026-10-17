@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -238,6 +239,173 @@ func TestStylesKeepInkOffTheirFill(t *testing.T) {
 					}
 				}
 			}
+		}
+	}
+}
+
+// A state ladder has a rung between current and done: "◐ reading" between "● new" and
+// "✓ reviewed". Glyphs had no slot for it, so a theme's "reading" key was dropped by
+// the struct and the rung drew as whatever the app hard-coded. partial is that slot:
+// ◐ by default, "~" under ASCII from the kit's map, and one of the status marks
+// CheckGlyphs keeps apart.
+func TestPartialSlot(t *testing.T) {
+	f, err := Load(writeTheme(t, `{"glyphs": {"partial": "◑", "ascii": {"◑": "%"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if g := Resolve(f, true, false).G; g.Partial != "◑" {
+		t.Errorf("glyphs.partial is %q, want the theme's ◑", g.Partial)
+	}
+	if g := Resolve(f, true, true).G; g.Partial != "%" {
+		t.Errorf("glyphs.partial draws %q under ASCII, want the theme's twin %%", g.Partial)
+	}
+	d := Resolve(File{}, true, false).G
+	a := Resolve(File{}, true, true).G
+	if d.Partial != "◐" || a.Partial != "~" {
+		t.Errorf("default partial %q (ASCII %q), want ◐ (~)", d.Partial, a.Partial)
+	}
+	if tw, ok := ASCIITwin("◐"); !ok || tw != "~" {
+		t.Errorf("the kit's map twins ◐ as %q (%v), want ~", tw, ok)
+	}
+	// a partial whose twin is another state's is caught like any other status mark
+	for _, c := range []struct{ json, want string }{
+		{`{"glyphs": {"partial": "◑", "ascii": {"◑": "*"}}}`, `glyphs.current "●" and glyphs.partial "◑" both draw as "*"`},
+		{`{"glyphs": {"partial": "◑", "ascii": {"◑": "o"}}}`, `glyphs.todo "○" and glyphs.partial "◑" both draw as "o"`},
+	} {
+		f, err := Load(writeTheme(t, c.json))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := CheckGlyphs(f.Glyphs); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("CheckGlyphs(%s) = %v, want %q", c.json, err, c.want)
+		}
+	}
+}
+
+// A theme written before the partial slot existed, with its own "in progress" mark
+// twinned "~" by brand.md's convention ({"◔": "~"}), still passes CheckGlyphs: the
+// default ◐ takes the next free twin instead of making two states one mark.
+func TestDefaultPartialKeepsOutOfTheThemesWay(t *testing.T) {
+	f, err := Load(writeTheme(t, `{"glyphs": {"pending": "◔", "ascii": {"◔": "~"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CheckGlyphs(f.Glyphs); err != nil {
+		t.Errorf("CheckGlyphs = %v: a default must not collide with the theme's own twins", err)
+	}
+	g := Resolve(f, true, true).G
+	if g.Pending != "~" || g.Partial == "~" || g.Partial == "?" {
+		t.Errorf("ASCII pending %q partial %q, want ~ and another twin", g.Pending, g.Partial)
+	}
+	if f.Glyphs.ASCII["◐"] != "" {
+		t.Errorf("the default wrote into the theme's own map: %v", f.Glyphs.ASCII)
+	}
+}
+
+// A working spinner sits in a status column beside the state marks, and beside focus
+// bars. Under ASCII its frames were | / - \, and "|" is the focus bar's twin: a row with
+// a spinner read as focused. ASCII's frames leave out any frame a focus bar or a state
+// mark draws as, and CheckGlyphs fails a theme spinner frame that is one of those marks.
+func TestSpinnerNeverDrawsAnotherMark(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	test, _ := filepath.Glob(filepath.Join("testdata", "*.json"))
+	for _, path := range append(files, test...) {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, ascii := range []bool{false, true} {
+			g := Resolve(f, true, ascii).G
+			marks := map[string]string{"focusBar": g.FocusBar, "blurBar": g.BlurBar, "done": g.Done, "current": g.Current,
+				"todo": g.Todo, "pending": g.Pending, "partial": g.Partial, "warn": g.Warn, "fail": g.Fail}
+			if len(g.Spinner) < 2 {
+				t.Errorf("%s ascii=%v: spinner %q has no motion", filepath.Base(path), ascii, g.Spinner)
+			}
+			for _, fr := range g.Spinner {
+				for name, m := range marks {
+					if m != "" && strings.TrimSpace(fr) == m {
+						t.Errorf("%s ascii=%v: spinner frame %q is glyphs.%s", filepath.Base(path), ascii, fr, name)
+					}
+				}
+			}
+		}
+	}
+	// a frame that is a mark the theme set is an error; the default partial steps aside
+	f, err := Load(writeTheme(t, `{"glyphs": {"partial": "◐", "spinner": ["◐", "◓", "◑", "◒"]}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CheckGlyphs(f.Glyphs); err == nil || !strings.Contains(err.Error(), `glyphs.spinner frame "◐" is also glyphs.partial`) {
+		t.Errorf("CheckGlyphs(spinner with ◐, partial ◐) = %v", err)
+	}
+	f, err = Load(writeTheme(t, `{"glyphs": {"spinner": ["◐", "◓", "◑", "◒"]}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CheckGlyphs(f.Glyphs); err != nil {
+		t.Errorf("CheckGlyphs(spinner with ◐, partial unset) = %v: the theme never wrote a partial", err)
+	}
+	if g := Resolve(f, true, false).G; slices.Contains(g.Spinner, g.Partial) {
+		t.Errorf("the default partial %q is a spinner frame %q", g.Partial, g.Spinner)
+	}
+}
+
+// The default partial is a glyph no status mark or spinner frame of the theme already
+// is: a theme whose pending is ◐ got ◐ for partial too, so a running and a pending tool
+// call were one mark.
+func TestDefaultPartialIsItsOwnGlyph(t *testing.T) {
+	for _, js := range []string{
+		`{"glyphs": {"pending": "◐"}}`,
+		`{"glyphs": {"pending": "◐", "todo": "◑", "ascii": {"◑": "-"}}}`,
+		`{"glyphs": {"spinner": ["◐", "◓"]}}`,
+	} {
+		f, err := Load(writeTheme(t, js))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := CheckGlyphs(f.Glyphs); err != nil {
+			t.Errorf("%s: CheckGlyphs %v", js, err)
+		}
+		for _, ascii := range []bool{false, true} {
+			g := Resolve(f, true, ascii).G
+			for name, m := range map[string]string{"done": g.Done, "current": g.Current, "todo": g.Todo, "pending": g.Pending, "warn": g.Warn, "fail": g.Fail} {
+				if m == g.Partial {
+					t.Errorf("%s ascii=%v: the default partial %q is glyphs.%s", js, ascii, g.Partial, name)
+				}
+			}
+		}
+	}
+}
+
+// The ASCII spinner turns: at least two distinct frames, none a mark the theme draws,
+// even when the marks take the line spinner's frames and the pulse's.
+func TestASCIISpinnerTurns(t *testing.T) {
+	for _, js := range []string{
+		`{}`,
+		`{"glyphs": {"focusBar": "|", "blurBar": "/", "todo": "-", "done": "\\", "pending": ".", "partial": ":"}}`,
+		`{"glyphs": {"focusBar": "|", "blurBar": "/", "todo": "-", "done": "\\", "pending": ".", "partial": ":", "current": "'"}}`,
+	} {
+		f, err := Load(writeTheme(t, js))
+		if err != nil {
+			t.Fatal(err)
+		}
+		g := Resolve(f, true, true).G
+		distinct := map[string]bool{}
+		for _, fr := range g.Spinner {
+			distinct[fr] = true
+			for _, m := range []string{g.FocusBar, g.BlurBar, g.Done, g.Current, g.Todo, g.Pending, g.Partial, g.Warn, g.Fail} {
+				if fr == m {
+					t.Errorf("%s: ASCII spinner frame %q is a mark", js, fr)
+				}
+			}
+		}
+		if len(distinct) < 2 {
+			t.Errorf("%s: ASCII spinner %q doesn't turn", js, g.Spinner)
 		}
 	}
 }

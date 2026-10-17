@@ -2,6 +2,14 @@
  "name": "cartridge",
  "brand": "cartridge",
  "read": "An asset pipeline for indie game studios (fictional). Loud, playful, 8-bit and proud of it: cyan and cartridge yellow on black, hot pink for headings. A half-block pixel wordmark banner, the screen background owned, inverse selection, double-line dialog, pill buttons and pill tabs, filled tags, a filled status bar, UPPERCASE section titles, compact. ▚ ▞ as the backdrop field. The one thing to remember: the pixel banner.",
+ "ansi16": {
+  "dark": {
+   "warning": 11
+  },
+  "light": {
+   "warning": 3
+  }
+ },
  "roles": {
   "dark": {
    "accent": "#FF4F79",
@@ -65,6 +73,7 @@
   "done": "■",
   "current": "▶",
   "todo": "□",
+  "partial": "◧",
   "fail": "✖",
   "bullet": "▪",
   "sep": "│",
@@ -77,6 +86,7 @@
    "▗"
   ],
   "ascii": {
+   "◧": "~",
    "▚": "\\",
    "▞": "/"
   }

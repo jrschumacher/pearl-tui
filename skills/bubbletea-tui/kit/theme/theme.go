@@ -23,6 +23,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // Roles is the palette by role. Hex strings in the JSON.
@@ -79,6 +80,7 @@ type Glyphs struct {
 	Fail       string   `json:"fail"`       // × ✗ ✕ !
 	Warn       string   `json:"warn"`       // ▲ ! ◬ (status: degraded) — must differ in shape from Current and Fail
 	Pending    string   `json:"pending"`    // ● ◌ ·
+	Partial    string   `json:"partial"`    // ◐ ◑ ◒ (in progress: between current and done; "reading", "rolling", a running tool)
 	Bullet     string   `json:"bullet"`     // • · ▪ -
 	Sep        string   `json:"sep"`        // separator in detail lines: · • │ /
 	Arrow      string   `json:"arrow"`      // → › ▸
@@ -108,6 +110,7 @@ type Expressions struct {
 	Wordmark     string `json:"wordmark"`     // gradient | solid | inverse | tracked | bracket | upper | plain (fg, bold, no hue)
 	SectionTitle string `json:"sectionTitle"` // accent | primary | muted-upper | fg
 	TitleCase    string `json:"titleCase"`    // sentence | upper | lower
+	LabelCase    string `json:"labelCase"`    // upper | lower | as-is: table headers, tags, toast and summary labels (unset: headers upper, the rest as the kit draws them)
 	Selection    string `json:"selection"`    // bar | fill | caret | inverse  (how a selected/focused row is marked)
 	Button       string `json:"button"`       // pill | bracket | underline | inverse
 	Tag          string `json:"tag"`          // filled | bracket | bold
@@ -147,6 +150,12 @@ type File struct {
 	Glyphs      Glyphs           `json:"glyphs"`
 	Expressions Expressions      `json:"expressions"`
 	Wordmark    Wordmark         `json:"wordmark"`
+	// ANSI16 pins roles to one of the 16 colours (0-15) per mode, used only when the
+	// terminal has 16 (ResolveProfile with colorprofile.ANSI): {"dark": {"primary": 11}}.
+	// Downsampling picks the nearest of 16 by distance, which lands an amber on red, the
+	// error's slot; no hex fixes that without leaving amber at 256 colours. A role derived
+	// from a pinned one (secondary from primary) follows it. See ANSI16Clashes.
+	ANSI16 map[string]map[string]int `json:"ansi16,omitempty"`
 }
 
 // Load reads a theme file. Every role colour must be "#RGB" or "#RRGGBB" (see
@@ -171,7 +180,189 @@ func Load(path string) (File, error) {
 			return f, fmt.Errorf("%s: roles.%s.%w", path, m, err)
 		}
 	}
+	if err := CheckANSI16(f); err != nil {
+		return f, fmt.Errorf("%s: %w", path, err)
+	}
 	return f, nil
+}
+
+// CheckANSI16 validates the theme's ansi16 pins: a mode (dark, light), a role the
+// theme contract knows, and an index 0-15. They are colours, so Load fails on them as
+// on a bad hex: a pin that names no role or no colour would silently draw nothing.
+func CheckANSI16(f File) error {
+	for _, m := range sortedKeys(f.ANSI16) {
+		if m != "dark" && m != "light" {
+			return fmt.Errorf("ansi16.%s: not a mode (dark, light)", m)
+		}
+		for _, role := range sortedKeys(f.ANSI16[m]) {
+			if !roleKey(role) {
+				return fmt.Errorf("ansi16.%s.%s: not a role (primary, error, warning, success, info, …)", m, role)
+			}
+			if n := f.ANSI16[m][role]; n < 0 || n > 15 {
+				return fmt.Errorf("ansi16.%s.%s: %d is not one of the 16 colours (0-15)", m, role, n)
+			}
+		}
+	}
+	return nil
+}
+
+func sortedKeys[V any](m map[string]V) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// roleKey reports whether key is a role's JSON key (white, a legacy fallback, isn't one
+// a theme pins).
+func roleKey(key string) bool {
+	t := reflect.TypeOf(Roles{})
+	for i := range t.NumField() {
+		if k, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ","); k == key && k != "white" {
+			return true
+		}
+	}
+	return false
+}
+
+// paletteRole is the resolved colour of the role with JSON key key (nil for none).
+func paletteRole(p Palette, key string) color.Color {
+	v := reflect.ValueOf(p)
+	f := v.FieldByName(strings.ToUpper(key[:1]) + key[1:])
+	if !f.IsValid() || f.IsNil() {
+		return nil
+	}
+	return f.Interface().(color.Color)
+}
+
+// StateRoles are the roles that mark a state: ok, error, warning, info, and primary
+// under focus "fg", where the brand hue is a state and nothing else (under focus
+// "primary" it is the kit's emphasis, which may sit near red by design). Two of them on
+// one colour make two states read as one.
+var StateRoles = []string{"primary", "error", "warning", "success", "info"}
+
+// stateRoles are StateRoles as f uses them.
+func stateRoles(f File) []string {
+	if f.Expressions.Focus == "fg" {
+		return StateRoles
+	}
+	return StateRoles[1:]
+}
+
+// Clash is two state roles that differ in the theme but draw as one of the 16 colours.
+type Clash struct {
+	Mode       string      // dark | light
+	A, B       string      // role keys, in StateRoles order
+	ColA, ColB color.Color // the two as the theme writes them (truecolour)
+	Index      int         // the ANSI colour both land on
+}
+
+func (c Clash) String() string {
+	return fmt.Sprintf("%s: %s and %s both ANSI %d", c.Mode, c.A, c.B, c.Index)
+}
+
+// ANSI16Clashes are the pairs of state roles (StateRoles, primary only under focus "fg")
+// that differ at truecolour but land on one of the 16 colours after the theme's ansi16
+// pins, per mode the theme defines. Roles the theme makes identical (info left to
+// default to primary) are one colour on purpose and aren't reported. palette check
+// warns on each, and fails one with primary; the fix is an ansi16 pin for one of the two.
+func ANSI16Clashes(f File) []Clash {
+	var out []Clash
+	for _, mode := range modes16(f) {
+		dark := mode != "light"
+		tc := ResolveProfile(f, dark, false, colorprofile.TrueColor).P
+		an := ResolveProfile(f, dark, false, colorprofile.ANSI).P
+		roles := stateRoles(f)
+		for i, a := range roles {
+			for _, b := range roles[i+1:] {
+				if sameColor(paletteRole(tc, a), paletteRole(tc, b)) {
+					continue
+				}
+				ia, oka := colorprofile.ANSI.Convert(paletteRole(an, a)).(ansi.BasicColor)
+				ib, okb := colorprofile.ANSI.Convert(paletteRole(an, b)).(ansi.BasicColor)
+				if oka && okb && ia == ib {
+					out = append(out, Clash{mode, a, b, paletteRole(tc, a), paletteRole(tc, b), int(ia)})
+				}
+			}
+		}
+	}
+	return out
+}
+
+// RedSlot is a state role misplaced around red at 16 colours: error off red, or another
+// state on it.
+type RedSlot struct {
+	Mode  string      // dark | light
+	Role  string      // role key
+	Col   color.Color // as the theme writes it (truecolour)
+	Index int         // the ANSI colour it lands on
+}
+
+func (r RedSlot) String() string {
+	if r.Role == "error" {
+		return fmt.Sprintf("%s: error draws as ANSI %d, not red (1 or 9)", r.Mode, r.Index)
+	}
+	return fmt.Sprintf("%s: %s draws as ANSI %d, error's red", r.Mode, r.Role, r.Index)
+}
+
+// ANSI16Red reports, per mode, the state roles a 16-colour terminal would read wrong:
+// error landing anywhere but red (1 or 9), where a grey error beside a red warning
+// reverses the two, and any other state role landing on red, error's slot. primary is
+// reported under every focus: under "fg" it is a state, under "primary" the focus colour,
+// drawn in error's red. A role the theme makes identical to error is skipped. palette
+// check fails error off red and primary on red under focus "fg", and warns on the rest.
+func ANSI16Red(f File) []RedSlot {
+	var out []RedSlot
+	red := func(i int) bool { return i == 1 || i == 9 }
+	for _, mode := range modes16(f) {
+		tc := ResolveProfile(f, mode != "light", false, colorprofile.TrueColor).P
+		for _, role := range StateRoles {
+			i := ANSI16Index(f, mode, role)
+			switch {
+			case i < 0:
+			case role == "error" && !red(i):
+				out = append(out, RedSlot{mode, role, tc.Error, i})
+			case role != "error" && red(i) && !sameColor(paletteRole(tc, role), tc.Error):
+				out = append(out, RedSlot{mode, role, paletteRole(tc, role), i})
+			}
+		}
+	}
+	return out
+}
+
+// modes16 are the theme's modes a 16-colour terminal resolves (dark, light), sorted.
+func modes16(f File) []string {
+	var out []string
+	for _, m := range sortedKeys(f.Roles) {
+		if m == "dark" || m == "light" {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+// ANSI16Index is the 16-colour index role draws as in mode (dark, light), after the
+// theme's ansi16 pins: what a terminal with 16 colours shows. -1 for no such role.
+func ANSI16Index(f File, mode, role string) int {
+	c := paletteRole(ResolveProfile(f, mode != "light", false, colorprofile.ANSI).P, role)
+	if c == nil {
+		return -1
+	}
+	if b, ok := colorprofile.ANSI.Convert(c).(ansi.BasicColor); ok {
+		return int(b)
+	}
+	return -1
+}
+
+func sameColor(a, b color.Color) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	r1, g1, b1, _ := a.RGBA()
+	r2, g2, b2, _ := b.RGBA()
+	return r1 == r2 && g1 == g2 && b1 == b2
 }
 
 // CheckHex reports whether s is a colour Lip Gloss draws as written: "#RGB" or
@@ -245,22 +436,29 @@ func Resolve(f File, dark, ascii bool) *Theme {
 }
 
 // ResolveProfile is Resolve for the colour profile the terminal reports
-// (tea.ColorProfileMsg: 16 colours, 256, or none under NO_COLOR). Where a
+// (tea.ColorProfileMsg: 16 colours, 256, or none under NO_COLOR). At 16 colours the
+// theme's ansi16 pins replace the roles they name. Where a
 // background step the styles separate things with can't be told from the page at
 // that profile (Distinct), they add an edge instead: a borderless dialog gets a rule
-// above and below. Keep the profile and pass it again on every re-resolve.
+// above and below. A rule or border colour that lands on bg moves to the nearest one
+// that doesn't (ANSI 8 or 7 at 16 colours), so rules stay visible. Keep the profile and pass it again on every re-resolve.
 func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *Theme {
+	mode := "dark"
 	r, ok := f.Roles["dark"]
 	if !dark {
 		if l, ok2 := f.Roles["light"]; ok2 {
-			r, ok = l, true
+			r, ok, mode = l, true, "light"
 		}
 	}
 	if !ok {
 		r = Default().Roles["dark"]
 	}
 	t := &Theme{File: f, Dark: dark, ASCII: ascii, Profile: profile}
-	t.P = derive(r, dark)
+	var pins map[string]int
+	if profile == colorprofile.ANSI {
+		pins = f.ANSI16[mode]
+	}
+	t.P = derive(r, dark, pins)
 	t.G = glyphDefaults(f.Glyphs)
 	if ascii {
 		t.G = ASCII(t.G)
@@ -269,6 +467,9 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 	if t.X.Focus == "fg" && r.BorderFocus == "" {
 		t.P.BorderFocus = t.P.FgMuted // the dialog border is chrome too: not the hue
 	}
+	// rules are "barely lighter than bg": downsampled, they can land on bg itself and
+	// every section, table and footer rule vanishes
+	t.P.Border, t.P.BorderFocus = t.edge(t.P.Border), t.edge(t.P.BorderFocus)
 	t.S = build(t)
 	return t
 }
@@ -288,6 +489,35 @@ func (t *Theme) Distinct(a, b color.Color) bool {
 	r1, g1, b1, _ := ca.RGBA()
 	r2, g2, b2, _ := cb.RGBA()
 	return r1 != r2 || g1 != g2 || b1 != b2
+}
+
+// edge is c, a rule or border colour, or where c lands on the page's colour at the
+// theme's profile, the nearest colour that doesn't: at 16 colours the quiet grey (ANSI 8
+// on a dark page, 7 on a light one, whichever is apart from bg), at 256 c stepped toward
+// fg until it leaves bg's slot. Like Ink, a no-op wherever the two stay apart, and under
+// NO_COLOR, where nothing has a colour and a rule is its glyphs.
+func (t *Theme) edge(c color.Color) color.Color {
+	if t.Profile != colorprofile.ANSI && t.Profile != colorprofile.ANSI256 || t.Distinct(c, t.P.Bg) {
+		return c
+	}
+	if t.Profile == colorprofile.ANSI {
+		greys := []int{8, 7}
+		if !t.Dark {
+			greys = []int{7, 8}
+		}
+		for _, n := range greys {
+			if g := ansi.BasicColor(n); t.Distinct(g, t.P.Bg) {
+				return g
+			}
+		}
+		return c
+	}
+	for i := 1; i <= 20; i++ {
+		if m := Mix(c, t.P.Fg, float64(i)/20); t.Distinct(m, t.P.Bg) {
+			return m
+		}
+	}
+	return c
 }
 
 // Ink is the colour to draw text on fill with: c, or when c and fill land on one

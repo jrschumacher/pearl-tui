@@ -199,6 +199,23 @@ func (t *Theme) Case(s string) string {
 	return s
 }
 
+// Label applies the theme's label case (expressions.labelCase) to a table header, tag,
+// toast or summary label; own is the component's case when the theme leaves it unset
+// ("upper" for table headers, "lower" for summary-strip labels, "as-is" for tags).
+func (t *Theme) Label(s, own string) string {
+	c := t.X.LabelCase
+	if c == "" {
+		c = own
+	}
+	switch c {
+	case "upper":
+		return strings.ToUpper(s)
+	case "lower":
+		return strings.ToLower(s)
+	}
+	return s
+}
+
 // Grad renders text with a per-grapheme foreground gradient from a to b.
 // Use it on a handful of cells (a wordmark, a title rule, a spinner), never
 // on prose. Under ASCII/NO_COLOR it degrades to the plain text.

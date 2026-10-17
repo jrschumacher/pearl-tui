@@ -12,7 +12,7 @@ all day in a tmux pane, locally and over SSH.
 palette: deep slate neutrals; amber means unread and nothing else
 focus: the ▌ gutter (ascii |) in fg on a bgSubtle row, so the cursor never reads as unread
 tone: calm, nocturnal, precise
-motif: inbox state dots in a 2-cell column, ● unread, ◐ seen, ○ done (ascii * ~ o)
+motif: inbox state dots in a 2-cell column, ● unread, ◑ seen, ○ done (ascii * ~ o)
 remember: amber is "this needs you", and only that
 
 ### Theme

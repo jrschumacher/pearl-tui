@@ -2,6 +2,14 @@
  "name": "lumen",
  "brand": "lumen",
  "read": "Telehealth triage for clinicians (fictional). Calm, warm, reassuring; never alarming. Light first: soft teal on warm off-white, coral as a gentle second voice, amber (never red) for warnings. Rounded everything and soft dots instead of ticks: a minimal header, ╌ dashed rules, a › caret instead of a bar, underlined text buttons, bold-word alerts instead of filled blocks, pill tabs, airy rhythm, sentence case. Nothing flashes.",
+ "ansi16": {
+  "dark": {
+   "warning": 11
+  },
+  "light": {
+   "warning": 3
+  }
+ },
  "roles": {
   "dark": {
    "primary": "#5FC4B5",

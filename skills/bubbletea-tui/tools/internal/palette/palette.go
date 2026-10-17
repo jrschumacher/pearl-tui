@@ -24,9 +24,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/color"
+	"math"
 	"sort"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
 	"tuitools/internal/oklch"
@@ -294,6 +297,52 @@ var onFills = []struct{ on, fill string }{
 	{"onPrimary", "primary"}, {"onSecondary", "secondary"}, {"onWarning", "warning"},
 	{"onError", "error"}, {"onSuccess", "success"},
 }
+
+// Pin16 is the 16-colour index to pin a state role of colour hex to when it shares one
+// with another state, among the colours no state role draws: a status role's own slot
+// first (warning yellow, success green, error red, info blue or cyan; bright, then
+// normal, on a dark page), since the terminal's palette keeps that meaning; else the nearest in OKLCH
+// hue. Bright (9-14) on
+// a dark page, normal (1-6) on a light one, where terminal palettes put their legible
+// hues. The greys (0, 7, 8, 15) carry no state and are never offered.
+func Pin16(role, hex string, dark bool, used map[int]bool) int {
+	shift := 0
+	if dark {
+		shift = 8
+	}
+	for _, i := range ownSlot[role] {
+		for _, j := range []int{i + shift, i} { // on a light page only the normal one reads
+			if !used[j] {
+				return j
+			}
+		}
+	}
+	_, _, h := oklch.LCH(hex)
+	for _, base := range []int{shift, 8 - shift} {
+		best, bestD := -1, 361.0
+		for i := base + 1; i <= base+6; i++ {
+			if used[i] {
+				continue
+			}
+			_, _, hi := oklch.LCH(hexOf(ansi.BasicColor(i)))
+			d := math.Abs(h - hi)
+			if d > 180 {
+				d = 360 - d
+			}
+			if d < bestD {
+				best, bestD = i, d
+			}
+		}
+		if best >= 0 {
+			return best
+		}
+	}
+	return 3 + shift
+}
+
+// ownSlot is each status role's slot among the normal colours 1-6 (red, green,
+// yellow, blue, magenta, cyan).
+var ownSlot = map[string][]int{"error": {1}, "success": {2}, "warning": {3}, "info": {4, 6}}
 
 func same(a, b color.Color) bool {
 	if a == nil || b == nil {

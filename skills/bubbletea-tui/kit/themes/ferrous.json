@@ -2,6 +2,16 @@
  "name": "ferrous",
  "brand": "ferrous",
  "read": "Industrial IoT for field engineers on rugged laptops in bright light (fictional). Blunt, exact, undecorated: a readout, not a dashboard. Rust #E25317 is the only hue that points; everything else is steel. Square and heavy, 'stencilled on a machine': a FERROUS stamp at the right of the header, ═ and ━ rules, a heavy dialog, inverse block buttons, [BRACKET] tags, full-width rust selection bars, UPPERCASE labels, compact density, a filled status strip, no motion and no gradient.",
+ "ansi16": {
+  "dark": {
+   "primary": 13,
+   "warning": 11
+  },
+  "light": {
+   "primary": 5,
+   "warning": 3
+  }
+ },
  "roles": {
   "dark": {
    "primary": "#E25317",
@@ -53,6 +63,7 @@
   "done": "■",
   "current": "■",
   "todo": "□",
+  "partial": "◧",
   "fail": "✕",
   "bullet": "▪",
   "sep": "│",
@@ -67,7 +78,10 @@
    "▘",
    "▝",
    "▗"
-  ]
+  ],
+  "ascii": {
+   "◧": "~"
+  }
  },
  "expressions": {
   "header": "stamp",

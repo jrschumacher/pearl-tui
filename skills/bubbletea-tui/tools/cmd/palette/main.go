@@ -24,8 +24,23 @@
 // as an ANSI index or no colour, and "#6B50FFAA" as no colour, so those exit 2.
 // It exits 2 on the theme's glyphs too (theme.CheckGlyphs): a glyph with no ASCII twin
 // (in glyphs.ascii or the kit's map), a twin that isn't ASCII, or two marks of one
-// meaning (done/current/todo/pending/warn/fail, radio on/off, check on/off,
-// thumb/track, focus/blur bar) that share a twin under -ascii.
+// meaning (done/current/todo/pending/partial/warn/fail, radio on/off, check on/off,
+// thumb/track, focus/blur bar) that share a twin under -ascii. And on its expressions
+// (theme.CheckExpressions): a key the kit doesn't read or a value it doesn't know, which
+// theme.Load draws as the default silently ("dialog": "rule" for "rules"), named with
+// the values the kit knows.
+//
+// It reports, on stderr, state roles that land on one of the 16 colours (-profile ansi)
+// after the theme's "ansi16" pins, each with the pin that separates them:
+//
+//	"ansi16": {"dark": {"primary": 11}, "light": {"primary": 3}}
+//
+// Red (1 or 9) is error's. It exits 1 on error off red (a grey error beside a red
+// warning reads reversed), and under "focus": "fg", where primary is a state, on primary
+// on red or on another state role's colour (amber = new must not read as error). It warns
+// on primary on red under "focus": "primary" (focus reads as an error), on warning,
+// success or info on red, and on two of those on one colour: their glyphs and words still
+// differ. A pin that names no role, no mode or no colour 0-15 exits 2, as theme.Load does.
 //
 // Thresholds (WCAG 2 contrast ratio against the role's background):
 //
@@ -43,7 +58,8 @@
 // On a mid-tone fill where neither ink clears its floor, derive deepens the ink toward
 // black or white along its hue (the engine does the same), so the brand keeps its hex.
 //
-// Exit status: 0 OK, 1 contrast problems, 2 usage or input errors.
+// Exit status: 0 OK, 1 contrast problems or a state clash under focus "fg", 2 usage or
+// input errors.
 package main
 
 import (

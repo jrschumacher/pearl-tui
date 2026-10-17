@@ -148,7 +148,7 @@ func SummaryStrip(t *theme.Theme, rows []SummaryRow, w int) string {
 		if !r.Set {
 			v = t.S.Subtle.Render(r.Value)
 		}
-		parts[i] = t.S.Muted.Render(strings.ToLower(r.Label)) + " " + v
+		parts[i] = t.S.Muted.Render(t.Label(r.Label, "lower")) + " " + v
 	}
 	line := strings.Join(parts, t.S.Subtle.Render(" "+t.G.Sep+" "))
 	if lipgloss.Width(line) > w {
