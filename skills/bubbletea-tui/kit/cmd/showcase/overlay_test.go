@@ -3,12 +3,14 @@ package main
 import (
 	"image/color"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
 	uv "github.com/charmbracelet/ultraviolet"
+	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
 	"tuikit/ui"
@@ -117,4 +119,51 @@ func sameRGB(a, b color.Color) bool {
 	r1, g1, b1, _ := a.RGBA()
 	r2, g2, b2, _ := b.RGBA()
 	return r1 == r2 && g1 == g2 && b1 == b2
+}
+
+// Help opened over an overlay names that overlay's keys, not the screen's under it
+// (a recreation's help listed the conversation's keys over its permission dialog), and
+// closing it goes back to the overlay. Every overlay's help key opens it, the body holds
+// each of the overlay's bindings and none of the screen's, and esc returns.
+func TestHelpOverAnOverlayNamesItsKeys(t *testing.T) {
+	for _, s := range []string{"palette", "confirm"} {
+		m := fixture(t, s)
+		from := m.ov
+		var own []string
+		for _, a := range m.actions() {
+			own = append(own, a.b.Help().Desc)
+		}
+		var helpKey string
+		for _, a := range m.actions() {
+			if a.b.Help().Desc == "keys" {
+				helpKey = a.b.Keys()[0]
+			}
+		}
+		if helpKey == "" {
+			t.Fatalf("%s: no help key in the overlay's action table", s)
+		}
+		m.key(press(helpKey))
+		if m.ov != ovHelp {
+			t.Fatalf("%s: %q did not open help", s, helpKey)
+		}
+		// each help row is a 12-cell key column, then what the key does
+		var named []string
+		for _, row := range m.helpBody() {
+			named = append(named, strings.TrimSpace(ansi.Strip(ansi.Cut(row, 12, 200))))
+		}
+		for _, d := range own {
+			if !slices.Contains(named, d) {
+				t.Errorf("%s: help over the overlay doesn't name its %q key: %q", s, d, named)
+			}
+		}
+		for _, d := range []string{"deploy", "roll back", "next view"} {
+			if !slices.Contains(own, d) && slices.Contains(named, d) {
+				t.Errorf("%s: help over the overlay names the screen's %q key: %q", s, d, named)
+			}
+		}
+		m.key(press("esc"))
+		if m.ov != from {
+			t.Errorf("%s: esc from help went to overlay %d, want back to %d", s, m.ov, from)
+		}
+	}
 }

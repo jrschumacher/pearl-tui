@@ -613,11 +613,12 @@ func (m *app) confirm(c *ui.Canvas, fy int) {
 	m.ovRect = c.Overlay(d, dialogTop(c, lipgloss.Height(d), fy))
 }
 
-// helpBody is the full help's rows: every binding of the screen underneath, then ctrl+c.
+// helpBody is the full help's rows: every binding of the state underneath (the
+// overlay help was opened from, or the screen), then ctrl+c.
 func (m *app) helpBody() []string {
 	t := m.t
 	ov := m.ov
-	m.ov = ovNone
+	m.ov = m.helpFrom
 	acts := m.actions()
 	m.ov = ov
 	var body []string
@@ -638,6 +639,12 @@ func (m *app) helpTitle() string {
 		name = "Legend"
 	case scrSetup:
 		name = "Setup"
+	}
+	switch m.helpFrom {
+	case ovPalette:
+		name = "Commands"
+	case ovConfirm:
+		name = "Roll back"
 	}
 	return "Keys " + m.t.G.Sep + " " + name
 }

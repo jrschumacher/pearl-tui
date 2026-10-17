@@ -69,9 +69,10 @@ type app struct {
 	// confirm
 	btn int // 0 = the action, 1 = cancel (the default)
 	// help and confirm: a dialog's body scrolls when it doesn't fit (ui.Clip)
-	helpOff int
-	confOff int
-	ovRect  uv.Rectangle // where the last overlay was drawn (tests hold it above the footer)
+	helpOff  int
+	confOff  int
+	helpFrom overlay      // the overlay help was opened over: its keys are the ones help names
+	ovRect   uv.Rectangle // where the last overlay was drawn (tests hold it above the footer)
 	// deploy form
 	focus    int // 0 env, 1 version, 2 strategy, 3 checks, 4 buttons
 	env      int
@@ -320,7 +321,12 @@ func (m *app) actions() []action {
 	if typing {
 		helpKeys, paletteKeys = []string{"ctrl+g"}, []string{"ctrl+p"}
 	}
-	help := action{bind(helpKeys, helpKeys[0], "keys"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.ov = ovHelp; return nil }}
+	// help names the keys of the state it was opened from, an overlay's when one is up,
+	// and closing it goes back there
+	help := action{bind(helpKeys, helpKeys[0], "keys"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
+		m.helpFrom, m.ov = m.ov, ovHelp
+		return nil
+	}}
 	palette := action{bind(paletteKeys, "ctrl+p", "commands"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
 		m.ov, m.query, m.palSel = ovPalette, "", 0
 		return nil
@@ -352,9 +358,10 @@ func (m *app) actions() []action {
 
 	switch m.ov {
 	case ovHelp:
-		return []action{esc("close", func(m *app) { m.ov = ovNone; m.helpOff = 0 }),
+		closeHelp := func(m *app) { m.ov, m.helpFrom, m.helpOff = m.helpFrom, ovNone, 0 }
+		return []action{esc("close", closeHelp),
 			scroll(len(m.helpBody()), m.helpRows(), &m.helpOff),
-			{bind([]string{"?", "ctrl+g"}, "?", "close"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.ov = ovNone; m.helpOff = 0; return nil }}}
+			{bind([]string{"?", "ctrl+g"}, "?", "close"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { closeHelp(m); return nil }}}
 	case ovPalette:
 		return []action{
 			{bind([]string{"enter"}, "enter", "run"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return m.runCommand() }},
@@ -367,7 +374,7 @@ func (m *app) actions() []action {
 				return nil
 			}},
 			esc("close", func(m *app) { m.ov = ovNone }),
-			bs,
+			help, bs,
 		}
 	case ovConfirm:
 		s := m.svcs[m.sel]
@@ -390,6 +397,7 @@ func (m *app) actions() []action {
 			esc("cancel", func(m *app) { m.ov = ovNone; m.confOff = 0 }),
 			// a fallback: the dialog takes the rows it needs down to the footer first
 			scroll(len(confBody), m.confirmRows(), &m.confOff),
+			help,
 		}
 	}
 
