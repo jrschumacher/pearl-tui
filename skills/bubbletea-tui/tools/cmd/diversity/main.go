@@ -19,6 +19,12 @@
 // bar/stamp/minimal header, wordmark under a banner/stamp header, dialogTitle under a rules
 // dialog.
 //
+// Under the table, one advisory line per brand theme names the other brand theme it is
+// nearest to and how many of the axes live for both they share ("nearest to welp: moss
+// (shares 11/21 axes)"): a theme can pass the baselines and still be a kit study with a
+// new palette, which is worth knowing and never a failure. Pass the kit's themes beside
+// yours to be told which.
+//
 // It is a floor, not a target. A plain brand stays plain and spends its differences on the
 // two or three moves it owns; never move an axis just to pass. Learned over three rounds of
 // nine brands: parallel agents given a bigger vocabulary converge on the NEWEST options, so

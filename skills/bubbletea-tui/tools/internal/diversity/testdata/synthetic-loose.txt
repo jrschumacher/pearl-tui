@@ -21,5 +21,9 @@ focusBar     ▌           ▎           │           ┃           ┃
 cursor       ›           ❯           >           ▸           ▸           
 done         ✓           ✔           1           ◆           ■           
 
+nearest to harbourmaster-deluxe: testdata/themes/noname.json (shares 3/19 axes)
+nearest to testdata/themes/noname.json: harbourmaster-deluxe (shares 3/19 axes)
+nearest to twin-a: twin-b (shares 16/19 axes)
+nearest to twin-b: twin-a (shares 16/19 axes)
 FAIL tag=bracket used by 3/4 brand themes (> 50%): a house style
 1 problem(s)

@@ -216,12 +216,58 @@ func Failures(themes []Theme, o Options) []string {
 	return fails
 }
 
-// Report is the full output: the table, a blank line, the failures, and the verdict.
+// Nearest names, for each theme that isn't a baseline, the other non-baseline theme it
+// shares most axes with (first in input order on a tie), as "shared/live" where live
+// counts the axes neither theme has dead. It is advice, never a failure: a brand that
+// passes the baselines can still be the kit's moss with a new palette, and nothing
+// else says so.
+func Nearest(themes []Theme, o Options) []string {
+	var others []Theme
+	for _, t := range themes {
+		if !o.Baseline[t.Name] {
+			others = append(others, t)
+		}
+	}
+	if len(others) < 2 {
+		return nil
+	}
+	var out []string
+	for _, t := range others {
+		best, bestShared, bestLive := "", -1, 0
+		for _, u := range others {
+			if u.Name == t.Name {
+				continue
+			}
+			shared, live := 0, 0
+			for _, a := range Axes {
+				v, uv := t.Choices[a.Key], u.Choices[a.Key]
+				if v == Dead || uv == Dead {
+					continue
+				}
+				live++
+				if v == uv {
+					shared++
+				}
+			}
+			if shared > bestShared {
+				best, bestShared, bestLive = u.Name, shared, live
+			}
+		}
+		out = append(out, fmt.Sprintf("nearest to %s: %s (shares %d/%d axes)", t.Name, best, bestShared, bestLive))
+	}
+	return out
+}
+
+// Report is the full output: the table, a blank line, the nearest-theme notes, the
+// failures, and the verdict.
 func Report(themes []Theme, o Options) (string, int) {
 	fails := Failures(themes, o)
 	var b strings.Builder
 	b.WriteString(Table(themes))
 	b.WriteByte('\n')
+	for _, n := range Nearest(themes, o) {
+		b.WriteString(n + "\n")
+	}
 	for _, f := range fails {
 		b.WriteString("FAIL " + f + "\n")
 	}

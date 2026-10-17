@@ -21,6 +21,12 @@ focusBar     █           ▌           ┃           ▎           ▌        
 cursor       ▶           >           >           ▸           ›           ›           →           
 done         ■           ✓           ■           ◆           ✓           •           ✓           
 
+nearest to cartridge: charm (shares 8/20 axes)
+nearest to charm: cartridge (shares 8/20 axes)
+nearest to ferrous: cartridge (shares 5/19 axes)
+nearest to halyard: cartridge (shares 5/19 axes)
+nearest to lumen: moss (shares 9/20 axes)
+nearest to moss: lumen (shares 9/20 axes)
 FAIL cartridge and charm share 8 axes (> 7): sectionTitle, button, tag, dialogTitle, backdrop, scrim, paintBg, rule
 FAIL lumen and moss share 9 axes (> 7): wordmark, button, tag, dialogTitle, keys, density, backdrop, scrim, paintBg
 FAIL charm differs from baseline ink on only 7 axes (< 12): a default with a new palette
