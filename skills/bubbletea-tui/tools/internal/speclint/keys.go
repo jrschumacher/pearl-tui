@@ -132,21 +132,42 @@ func splitAlts(tok string) []string {
 
 var arrowGlyph = map[rune]bool{'↑': true, '↓': true, '←': true, '→': true}
 
-// expandAlt turns one alternative into keys: "↑↓" is up and down, "jk" is j and k.
+// modPrefix splits the modifiers off a written key as written: "shift+↑↓" is "shift+"
+// and "↑↓"; "/" and "ctrl+" alone keep theirs as the key.
+func modPrefix(a string) (prefix, rest string) {
+	rest = a
+	for {
+		i := strings.Index(rest, "+")
+		if i <= 0 || i == len(rest)-1 {
+			return a[:len(a)-len(rest)], rest
+		}
+		if _, ok := modAlias[strings.ToLower(rest[:i])]; !ok {
+			return a[:len(a)-len(rest)], rest
+		}
+		rest = rest[i+1:]
+	}
+}
+
+// arrows reports whether s is one or more arrow glyphs ("↑", "↑↓", "←→").
+func arrows(s string) bool {
+	for _, r := range s {
+		if !arrowGlyph[r] {
+			return false
+		}
+	}
+	return s != ""
+}
+
+// expandAlt turns one alternative into keys: "↑↓" is up and down, "jk" is j and k,
+// "shift+↑↓" is shift+up and shift+down.
 func expandAlt(a string) []key {
 	runes := []rune(a)
-	if len(runes) > 1 {
-		all := true
-		for _, r := range runes {
-			all = all && arrowGlyph[r]
+	if prefix, rest := modPrefix(a); utf8.RuneCountInString(rest) > 1 && arrows(rest) {
+		var ks []key
+		for _, r := range rest {
+			ks = append(ks, parseKey(prefix+string(r)))
 		}
-		if all {
-			ks := make([]key, len(runes))
-			for i, r := range runes {
-				ks[i] = parseKey(string(r))
-			}
-			return ks
-		}
+		return ks
 	}
 	if len(runes) == 2 && !strings.Contains(a, "+") && !isNamed(a) && unicode.IsLetter(runes[0]) && unicode.IsLetter(runes[1]) {
 		return []key{{base: string(runes[0])}, {base: string(runes[1])}}
@@ -180,9 +201,20 @@ func readToken(tok string) (ks []key, bad string) {
 	if n := len(tok); n > 2 && tok[0] == '<' && tok[n-1] == '>' {
 		tok = tok[1 : n-1] // "<enter>"
 	}
+	carry, kind := "", "" // the last modifiers written, on an arrow or on a character
 	for _, a := range splitAlts(tok) {
 		if a == "" {
 			continue
+		}
+		// "shift+↑/↓" and "ctrl+d/f/t": a bare alternative of the same kind as the last
+		// modified one takes its modifiers; a named key ("ctrl+c/esc") keeps none
+		prefix, rest := modPrefix(a)
+		k := altKind(rest)
+		switch {
+		case prefix != "":
+			carry, kind = prefix, k
+		case carry != "" && k != "" && k == kind:
+			a = carry + a
 		}
 		for _, k := range expandAlt(a) {
 			if utf8.RuneCountInString(k.base) == 1 || isNamed(k.base) {
@@ -193,6 +225,18 @@ func readToken(tok string) (ks []key, bad string) {
 		}
 	}
 	return ks, bad
+}
+
+// altKind is what a carried modifier may land on: "arrow" for arrow glyphs, "char"
+// for one other character, "" for anything else (a named key, a range).
+func altKind(s string) string {
+	switch {
+	case arrows(s):
+		return "arrow"
+	case utf8.RuneCountInString(s) == 1:
+		return "char"
+	}
+	return ""
 }
 
 // looksKey reports whether a field reads as a key token in full ("ctrl+c", "↑/↓,").

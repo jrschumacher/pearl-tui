@@ -85,6 +85,9 @@ func TestRules(t *testing.T) {
 		// S-KEYDUP
 		{"dup in a state", table("| list | list | esc back · esc clear |", ""), map[string]int{"S-KEYDUP": 1}},
 		{"dup across alternatives", table("| list | list | ↑↓/jk move · k kill |", ""), map[string]int{"S-KEYDUP": 1}},
+		{"a modified arrow pair is two keys", table("| chat | chat | **↑↓ line** · **shift+↑↓ message** |", ""), nil},
+		{"the modifier holds across alternatives", table("| chat | chat | ↑/↓ line · shift+↑/↓ by message |", ""), nil},
+		{"a modified pair still duplicates", table("| chat | chat | shift+↑↓ message · shift+↓ jump |", ""), map[string]int{"S-KEYDUP": 1}},
 		{"a state overrides a Global key", table("| list | list | ctrl+k kill line |", "ctrl+k switch"), nil},
 		{"overrides of esc, ? and ctrl+c", table("| confirm | overlay | enter confirm · esc cancel |\n| help | overlay | ? close · esc close |\n| creating | wizard | ctrl+c cancel |", "esc back · ? help · ctrl+c quit"), nil},
 		{"one cell, two actions", table("| status | status | c commit · c comment |", ""), map[string]int{"S-KEYDUP": 1}},
@@ -268,6 +271,12 @@ func TestParseToken(t *testing.T) {
 		"↑↓/jk": "up down j k", "shift+enter/ctrl+j": "shift+enter ctrl+j", "/": "/", "ctrl+/": "ctrl+/",
 		"?": "?", "g/G": "g G", "pgup/pgdn": "pgup pgdown", "⏎": "enter", "Ctrl+Shift+K": "ctrl+shift+k",
 		"^C": "ctrl+c", "shift+a": "A", "Esc": "esc", "opt+enter": "alt+enter", "←→": "left right", "tab/shift+tab": "tab shift+tab",
+		// a modifier on an arrow pair holds for each arrow, and carries to a later bare
+		// alternative of the same kind (an arrow after an arrow, a character after a character)
+		"shift+↑↓": "shift+up shift+down", "shift+↑/↓": "shift+up shift+down", "ctrl+←→": "ctrl+left ctrl+right",
+		"alt+↑↓/←→": "alt+up alt+down alt+left alt+right", "ctrl+d/f/t": "ctrl+d ctrl+f ctrl+t", "shift+a/b": "A B",
+		// a named key, a key with its own modifier, and another kind keep theirs
+		"ctrl+c/esc": "ctrl+c esc", "ctrl+n/ctrl+p": "ctrl+n ctrl+p", "ctrl+j/↑": "ctrl+j up",
 	}
 	for in, want := range cases {
 		var got []string
