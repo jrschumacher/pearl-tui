@@ -40,9 +40,13 @@ func TestASCIIfyKeepsTextRunes(t *testing.T) {
 	th := theme.Resolve(theme.Default(), true, true)
 	for _, c := range []struct{ in, want string }{
 		{"cpu 61.5°C", "cpu 61.5 C"},
-		{"3×4 ± 2 ≥ 1 ≤ 9", "3x4 + 2 > 1 < 9"},
-		{"Zoë Ångström — naïve café, Ø 12 µm ² ©2026 £5 €3", "Zoe Angstrom - naive cafe, O 12 um 2 c2026 L5 E3"},
+		{"3×4 ÷ 2", "3x4 / 2"},
+		{"Zoë Ångström — naïve café, Ø 12 µm ©2026 £5 €3", "Zoe Angstrom - naive cafe, O 12 um c2026 L5 E3"},
 		{"½ cup", "? cup"}, // no one-cell twin: loud, for the lint
+		// a one-cell twin that changes the value is no twin: ±0.5 is not +0.5, x ≥ 1 not
+		// x > 1, 5‰ not 5%, 10³ not 103, ¬a not -a; they stay "?" for the lint, as does ¿,
+		// which F-ASCII --unicode would otherwise report as a "?" with no twin
+		{"±0.5 x≥1 y≤9 5‰ 10¹²³ ¬a † ‡ § ¶ ¿", "?0.5 x?1 y?9 5? 10??? ?a ? ? ? ? ?"},
 	} {
 		cv := NewCanvas(th, 60, 1)
 		cv.Draw(c.in, Rect(0, 0, 60, 1))

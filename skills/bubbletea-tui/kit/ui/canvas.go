@@ -204,10 +204,12 @@ func asciiRune(r rune) string {
 
 // latin1Rune is the one-cell ASCII stand-in for a text rune: a Latin-1 letter's base
 // letter (é → e, Ø → O), a unit or mark a screen prints beside a number (° → a space,
-// so 21.5°C reads 21.5 C; × → x, ± → +, ² → 2, µ → u), currency (£ → L, € → E) and
-// the punctuation of prose (« » ‚ „ † ‰ ′ ″ −). One cell each, so a row keeps its
-// columns: a twin that needs more (½ as 1/2, © as (c)) would tear the row, so those
-// stay "?" and the lint names them; write them in ASCII in the app's own text.
+// so 21.5°C reads 21.5 C; × → x, µ → u, © → c), currency (£ → L, € → E) and the
+// punctuation of prose (« » ‚ „ ′ ″ −). One cell each, so a row keeps its columns: a
+// twin that needs more (½ as 1/2, © as (c)) would tear the row. A rune whose one cell
+// would change the value (± as +, ≥ as >, ‰ as %, ³ as 3, ¬ as -, † as +, § as S) has
+// no stand-in: it stays "?", which the lint names, so write it in ASCII in the app's
+// own text. A silent wrong value is worse than a flagged "?".
 func latin1Rune(r rune) (string, bool) {
 	if 0xC0 <= r && r <= 0xFF {
 		return string(latin1Letters[r-0xC0]), true
@@ -221,11 +223,10 @@ func latin1Rune(r rune) (string, bool) {
 const latin1Letters = "AAAAAAACEEEEIIIIDNOOOOOxOUUUUYTsaaaaaaaceeeeiiiidnooooo/ouuuuyty"
 
 var latin1Map = map[rune]string{
-	'\u00A0': " ", '¡': "!", '¢': "c", '£': "L", '¤': "o", '¥': "Y", '¦': "|", '§': "S", '¨': "\"",
-	'©': "c", 'ª': "a", '«': "<", '\u00AD': "-", '®': "R", '¯': "-", '°': " ", '±': "+", '²': "2",
-	'³': "3", '´': "'", 'µ': "u", '¶': "P", '¸': ",", '¹': "1", 'º': "o", '»': ">", '¿': "?",
-	'€': "E", '‚': ",", '„': "\"", '†': "+", '‡': "+", '‰': "%", '′': "'", '″': "\"", '−': "-",
-	'≤': "<", '≥': ">", 'Œ': "O", 'œ': "o", 'Š': "S", 'š': "s", 'Ž': "Z", 'ž': "z", 'Ÿ': "Y",
+	'\u00A0': " ", '¡': "!", '¢': "c", '£': "L", '¤': "o", '¥': "Y", '¦': "|", '¨': "\"", '©': "c",
+	'ª': "a", '«': "<", '\u00AD': "-", '®': "R", '¯': "-", '°': " ", '´': "'", 'µ': "u", '¸': ",",
+	'º': "o", '»': ">", '€': "E", '‚': ",", '„': "\"", '′': "'", '″': "\"", '−': "-", 'Œ': "O",
+	'œ': "o", 'Š': "S", 'š': "s", 'Ž': "Z", 'ž': "z", 'Ÿ': "Y",
 }
 
 // asciiClasses and asciiMap are the twin tables: the one place outside the theme
@@ -248,7 +249,7 @@ var asciiMap = map[rune]string{
 	'×': "x", '✕': "x", '✗': "x", '✓': "+", '✔': "+", '●': "*", '○': "o", '◆': "*", '◇': "o",
 	'▲': "^", '△': "^", '▶': ">", '▸': ">", '›': ">", '❯': ">", '‹': "<", '“': "\"", '”': "\"",
 	'‘': "'", '’': "'", '▏': "'", '◉': "@", '■': "#", '□': "o", '★': "*", '✦': "*", '◜': "|", '◠': "/",
-	'◝': "-", '◞': "\\", '◡': "|", '◟': "/", '◢': "/", '◣': "\\", '◤': "/", '◥': "\\", '¬': "-",
+	'◝': "-", '◞': "\\", '◡': "|", '◟': "/", '◢': "/", '◣': "\\", '◤': "/", '◥': "\\",
 }
 
 // String renders the canvas as rows joined by "\n" (every row exactly W cells).

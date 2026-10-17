@@ -320,7 +320,7 @@ func (m *app) ladder(c *ui.Canvas, r uv.Rectangle) {
 	}
 	if r.Dy() >= len(rows)+1 {
 		rows = append(rows, t.S.Muted.Render("text")+"  "+t.S.Base.Render("21.5°C")+t.S.Subtle.Render(" "+t.G.Sep+" ")+
-			t.S.Base.Render("3×4 ±1")+t.S.Subtle.Render(" "+t.G.Sep+" ")+t.S.Base.Render("Zoë"))
+			t.S.Base.Render("3×4")+t.S.Subtle.Render(" "+t.G.Sep+" ")+t.S.Base.Render("Zoë"))
 	}
 	c.Draw(strings.Join(rows, "\n"), r)
 }

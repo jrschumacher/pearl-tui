@@ -358,7 +358,7 @@ func TestDialogsStayAboveTheFooter(t *testing.T) {
 // name with an accent (Zoë) keep their letters and digits under -ascii (21.5 C, 3x4,
 // Zoe); the sweep drew every rune outside its twin tables as "?", and a unit read as a
 // question that F-ASCII could not see. No "?" may appear in an ASCII frame where the
-// unicode frame has none.
+// unicode frame has none. The sample holds no ±: its one cell (+) would change the value.
 func TestASCIIKeepsTextRunes(t *testing.T) {
 	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)
@@ -375,7 +375,7 @@ func TestASCIIKeepsTextRunes(t *testing.T) {
 			if !strings.Contains(uni, "21.5°C") {
 				t.Fatalf("%s ladder %dx%d: no reading with a unit on the unicode frame", filepath.Base(f), sz[0], sz[1])
 			}
-			for _, want := range []string{"21.5 C", "3x4 +1", "Zoe"} {
+			for _, want := range []string{"21.5 C", "3x4", "Zoe"} {
 				if !strings.Contains(asc, want) {
 					t.Errorf("%s ladder %dx%d: ASCII frame lacks %q:\n%s", filepath.Base(f), sz[0], sz[1], want, asc)
 				}
