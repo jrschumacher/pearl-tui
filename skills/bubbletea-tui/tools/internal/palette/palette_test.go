@@ -14,8 +14,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/x/ansi"
-
 	"tuikit/theme"
 	"tuitools/internal/oklch"
 )
@@ -820,90 +818,6 @@ func TestDerivePinsPrimaryToItsHueFirst(t *testing.T) {
 	}
 }
 
-// A warm brand (between red and yellow) never draws as magenta at 16 colours. Copper
-// #C2622B is OKLCH 47°: 18° from red (29°), 63° from yellow (110°), past farPinMax, and
-// 79° from magenta (328°). PinOrder gave it keepRank (no slot within 60°, and red within
-// ownHueMax), so the warning kept yellow and the brand took the nearest free slot,
-// magenta 13/5, the pink a copper's read forbids, on the focus bar, the prompt and every
-// button. An orange #FF5A1F (38°) is nearer magenta than yellow by degrees and goes to
-// yellow too. A warning natively on yellow yields it (yield16).
-func TestWarmBrandNeverPinsMagenta(t *testing.T) {
-	_, _, h := oklch.LCH("#C2622B")
-	_, _, red := oklch.LCH(hexOf(ansi.BasicColor(1)))
-	_, _, yellow := oklch.LCH(hexOf(ansi.BasicColor(3)))
-	_, _, magenta := oklch.LCH(hexOf(ansi.BasicColor(5)))
-	for what, c := range map[string]struct{ got, want float64 }{
-		"hue": {h, 47}, "from red": {hueDiff(h, red), 18}, "from yellow": {hueDiff(h, yellow), 63}, "from magenta": {hueDiff(h, magenta), 79},
-	} {
-		if math.Abs(c.got-c.want) > 1 {
-			t.Fatalf("copper %s %.1f°, want %.0f°: the probe no longer sits past farPinMax", what, c.got, c.want)
-		}
-	}
-	magentas := map[int]bool{5: true, 13: true}
-	for _, c := range []struct{ name, primary, secondary, bg, lightBg string }{
-		{"copper", "#C2622B", "", "#1C1917", "#FAF7F2"},
-		{"orange", "#FF5A1F", "#3D7CC9", "#0D1724", "#F4F6F8"},
-	} {
-		f := themeOf(Derive(c.primary, c.secondary, "", c.bg, c.lightBg, 0.012))
-		pins := Pins16(f)
-		for mode, yellow := range map[string]int{"dark": 11, "light": 3} {
-			if got := pins[mode]["primary"]; got != yellow {
-				t.Errorf("%s %s: primary pinned to %d, want yellow %d (pins %v)", c.name, mode, got, yellow, pins[mode])
-			}
-			if w := pins[mode]["warning"]; w == yellow || w == 1 || w == 9 {
-				t.Errorf("%s %s: warning pinned to %d, want a slot off the brand's yellow and red", c.name, mode, w)
-			}
-		}
-		f.ANSI16 = pins
-		for _, mode := range []string{"dark", "light"} {
-			if n := theme.ANSI16Index(f, mode, "primary"); magentas[n] {
-				t.Errorf("%s %s: primary draws as ANSI %d, magenta", c.name, mode, n)
-			}
-		}
-	}
-	// through the command, as the cold run did: pins written, none magenta, no far pin
-	var dOut, dErr bytes.Buffer
-	if code := Main([]string{"derive", "#C2622B", "--bg", "#1C1917", "--light-bg", "#FAF7F2", "--out", filepath.Join(t.TempDir(), "roles.json")}, "", &dOut, &dErr); code != 0 {
-		t.Fatalf("derive: exit %d\n%s", code, dErr.String())
-	}
-	for _, not := range []string{"primary 13", "primary 5", "of hue from its own"} {
-		if strings.Contains(dErr.String(), not) {
-			t.Errorf("derive copper: stderr has %q:\n%s", not, dErr.String())
-		}
-	}
-	// a warning natively on yellow 11 yields it to the copper brand off red, and check
-	// says why; following the pins leaves nothing to report
-	f := theme.File{Roles: map[string]theme.Roles{
-		"dark": {Bg: "#1C1917", Fg: "#E8E2D6", Primary: "#C2622B", Warning: "#FFFF55", Success: "#4EB068", Error: "#E27170", Info: "#2EA2E5"},
-	}}
-	if n := theme.ANSI16Index(f, "dark", "warning"); n != 11 {
-		t.Fatalf("dark warning draws as ANSI %d natively, want 11: the probe no longer tests the yield", n)
-	}
-	var yielded bool
-	for _, x := range Findings16(f) {
-		if x.Role == "warning" && x.kind == yield16 {
-			yielded = true
-			if !strings.Contains(x.What, "magenta") || !strings.Contains(x.What, "hue 47°") {
-				t.Errorf("yield finding %q, want the brand's hue and magenta named", x.What)
-			}
-		}
-	}
-	if !yielded {
-		t.Errorf("no yield finding for the warning on yellow: %+v", Findings16(f))
-	}
-	pins := Pins16(f)
-	if pins["dark"]["primary"] != 11 || pins["dark"]["warning"] == 11 {
-		t.Errorf("dark pins %v, want primary 11 and warning off it", pins["dark"])
-	}
-	f.ANSI16 = pins
-	if left := Findings16(f); len(left) != 0 {
-		t.Errorf("findings after the pins: %+v", left)
-	}
-	if far := FarPins(f); len(far) != 0 {
-		t.Errorf("far pins after the pins: %+v", far)
-	}
-}
-
 // The yellow brand's eviction is per mode: a dark lime natively on 11 yields the yellow
 // to its warning there, and that must not send the light amber primary, natively on
 // red, back to the status-first order and onto magenta 5 (the K12 miss again); and
@@ -948,9 +862,9 @@ func TestEvictionIsPerMode(t *testing.T) {
 
 // A pin that moves a role far from its own hue (an amber primary on green 10, 67° off)
 // while the tool itself would pin it nearer reads as another state: check warns, naming
-// the hex, its hue, the slot and the nearer pin. A pin under 60° (an amber warning on
-// yellow) or one that is the nearest free hue (halyard's light warning #906B00 on cyan
-// 6, with yellow its orange brand's and red error's) is not reported; nor is a neutral's.
+// the hex, its hue, the slot and the nearer pin. A pin under 60° (ferrous's warning
+// #CFA24E on yellow 11, 29°) or one that is the nearest free hue (ferrous's orange on
+// magenta, with red error's and yellow warning's) is not reported; nor is a neutral's.
 func TestCheckWarnsOnAFarPin(t *testing.T) {
 	roles := `{"dark": {"bg": "#17140F", "fg": "#E8E2D6", "primary": "#D99A3B", "warning": "#F2C35C", "success": "#6ACB82", "error": "#EF8482", "info": "#56BDFF"}, "light": {"bg": "#F6F1E6", "fg": "#2B2620", "primary": "#AF7400", "warning": "#8C6800", "success": "#007835", "error": "#A13E40", "info": "#006A9D"}}`
 	for _, c := range []struct {
