@@ -342,48 +342,37 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 	if m.expand {
 		shown = len(logLines)
 	}
-	var s []string
-	s = append(s, ui.UserMessage(t, chatUser, w, false)...)
-	s = append(s, "")
-	s = append(s, ui.Thinking(t, thinkingLines, 2, "6.1s", w)...)
-	s = append(s, "")
-	s = append(s, ui.ToolCall(t, ui.Tool{Name: "Logs", Param: "checkout-api", Opts: [][2]string{{"since", "14:00"}, {"tail", "200"}},
-		State: ui.ToolDone, Body: logLines, Shown: shown, Expand: m.expand}, w, false)...)
-	s = append(s, "")
-	s = append(s, ui.ToolCall(t, ui.Tool{Name: "Grep", Param: "PAYMENTS_TIMEOUT", Opts: [][2]string{{"path", "deploy/"}},
-		State: ui.ToolError, Err: "deploy/: no such directory (did you mean config/?)"}, w, false)...)
-	s = append(s, "")
-	s = append(s, ui.ToolCall(t, ui.Tool{Name: "Edit", Param: "config/timeouts.go", State: ui.ToolDone, Body: diff, Expand: true}, w, false)...)
-	s = append(s, "")
-	s = append(s, ui.AssistantMessage(t, chatAnswer, w, false)...)
-	s = append(s, "")
-	s = append(s, ui.TurnFooter(t, "opus", "anthropic", "41s", w))
+	// the stream is blocks (a turn, a tool call, a thinking panel), so the tail cut can
+	// keep every block's head on screen (ui.Transcript)
+	blocks := [][]string{
+		ui.UserMessage(t, chatUser, w, false),
+		ui.Thinking(t, thinkingLines, 2, "6.1s", w),
+		ui.ToolCall(t, ui.Tool{Name: "Logs", Param: "checkout-api", Opts: [][2]string{{"since", "14:00"}, {"tail", "200"}},
+			State: ui.ToolDone, Body: logLines, Shown: shown, Expand: m.expand}, w, false),
+		ui.ToolCall(t, ui.Tool{Name: "Grep", Param: "PAYMENTS_TIMEOUT", Opts: [][2]string{{"path", "deploy/"}},
+			State: ui.ToolError, Err: "deploy/: no such directory (did you mean config/?)"}, w, false),
+		ui.ToolCall(t, ui.Tool{Name: "Edit", Param: "config/timeouts.go", State: ui.ToolDone, Body: diff, Expand: true}, w, false),
+		ui.AssistantMessage(t, chatAnswer, w, false),
+		{ui.TurnFooter(t, "opus", "anthropic", "41s", w)},
+	}
 	for _, msg := range m.sent {
 		switch msg {
 		case "\x00done":
-			s = append(s, "")
-			s = append(s, ui.ToolCall(t, ui.Tool{Name: "Deploy", Param: "checkout-api v2.4.1", Opts: [][2]string{{"strategy", "rolling"}},
-				State: ui.ToolDone, Body: []string{"3/3 pods healthy " + t.G.Sep + " error rate 0.02% " + t.G.Sep + " p99 124ms"}}, w, false)...)
+			blocks = append(blocks, ui.ToolCall(t, ui.Tool{Name: "Deploy", Param: "checkout-api v2.4.1", Opts: [][2]string{{"strategy", "rolling"}},
+				State: ui.ToolDone, Body: []string{"3/3 pods healthy " + t.G.Sep + " error rate 0.02% " + t.G.Sep + " p99 124ms"}}, w, false))
 		case "\x00canceled":
-			s = append(s, "", "  "+t.S.Subtle.Render(t.Copy("Canceled")+"."))
+			blocks = append(blocks, []string{"  " + t.S.Subtle.Render(t.Copy("Canceled")+".")})
 		default:
-			s = append(s, "")
-			s = append(s, ui.UserMessage(t, msg, w, false)...)
+			blocks = append(blocks, ui.UserMessage(t, msg, w, false))
 		}
 	}
 	editorH := 3
 	streamH := main.Dy() - editorH - 1
 	if m.busy {
-		s = append(s, "", "  "+ui.NewAnim(t, 10, "Deploying checkout-api v2.4.1", "deploy").Frame(m.frame, elapsed(m.frame-m.busySince)))
+		blocks = append(blocks, []string{"  " + ui.NewAnim(t, 10, "Deploying checkout-api v2.4.1", "deploy").Frame(m.frame, elapsed(m.frame-m.busySince))})
 	}
 	// follow mode: the tail of the stream, minus how far the user scrolled up
-	end := max(0, len(s)-m.scroll)
-	if end > streamH {
-		hidden := end - streamH + 1
-		s = append([]string{"  " + t.S.Subtle.Render(t.G.More+" "+itoa(hidden)+" more lines  ") + t.S.Key.Render("pgup")}, s[hidden:end]...)
-	} else {
-		s = s[:end]
-	}
+	s := ui.Transcript(t, blocks, w, streamH, m.scroll, t.S.Key.Render("pgup"))
 	c.Draw(strings.Join(s, "\n"), uv.Rect(main.Min.X, main.Min.Y, w, streamH))
 	ey := main.Max.Y - editorH
 	prompt := t.S.Prompt.Bold(true).Render(t.G.Prompt) + " "

@@ -158,7 +158,7 @@ An optional left badge (mode, `PROD`, `PLAN`), the help packed from `key.Binding
 importance, and right status text (`synced 4s ago`). Per `expressions.footer`: bare,
 on a filled strip, or under a rule. Full help (`?`) expands into columns, grouped.
 
-## Stream (chat, logs, events) — `ui.UserMessage`, `ui.AssistantMessage`, `ui.ToolCall`, `ui.Thinking`, `ui.TurnFooter`
+## Stream (chat, logs, events) — `ui.Transcript`, `ui.UserMessage`, `ui.AssistantMessage`, `ui.ToolCall`, `ui.Thinking`, `ui.TurnFooter`
 
 - The user's voice carries a bar: the focus bar while the turn is focused, the turn bar
   in muted when it isn't (a bold or coloured bar means focus, and a sent turn has none);
@@ -166,7 +166,10 @@ on a filled strip, or under a rule. Full help (`?`) expands into columns, groupe
 - Actions use the tool-call grammar (`idiom.md` §6). Collapsed output gets an honest
   "N lines hidden" affordance.
 - Follow mode pins to the bottom. When scrolled up, show "↑ N more lines" at the top and
-  a "new below" hint.
+  a "new below" hint. The cut falls on a block boundary: where it would split a block, the
+  marker row carries that block's head with the count right-aligned
+  (`✓ Edit config/timeouts.go        ↑ 25 more  pgup`), so no output shows with its head
+  off-screen (`ui.Transcript`).
 - A turn ends with a section-rule footer (model, provider, duration).
 
 ## Editor / Prompt

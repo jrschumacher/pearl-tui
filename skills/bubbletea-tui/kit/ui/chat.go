@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
 )
@@ -225,4 +226,75 @@ func Tree(t *theme.Theme, items []string) []string {
 		}
 	}
 	return out
+}
+
+// Transcript is a stream's visible rows: blocks (each a component's rows: a turn, a
+// tool call, a thinking panel) joined by a row of air, following the tail, scrolled up
+// by scroll rows (clamped, so the first block can reach the top and no further). The
+// tail is cut at the top under a marker row that says how much is above; the cut never
+// falls inside a block: when it would, the marker row carries the cut block's head,
+// truncated to make room, so the first visible row is always a block head or the
+// marker, and a tool's output is never shown with its head off-screen. hint is a key
+// after the marker (the one that scrolls up). A page draws the result into its stream
+// rectangle; a block cut at the bottom (scrolled up) is cut on a row:
+//
+//	● Logs checkout-api (since=14:00)              ↑ 24 more  pgup
+//	  14:02:40  WARN   upstream timeout
+func Transcript(t *theme.Theme, blocks [][]string, w, h, scroll int, hint string) []string {
+	if h <= 0 {
+		return nil
+	}
+	var rows []string
+	var heads []int // the row each block starts on
+	for _, b := range blocks {
+		if len(b) == 0 {
+			continue
+		}
+		if len(rows) > 0 {
+			rows = append(rows, Fit("", w)) // air between blocks
+		}
+		heads = append(heads, len(rows))
+		rows = append(rows, b...)
+	}
+	end := len(rows) - min(max(0, scroll), max(0, len(rows)-h))
+	if end <= h {
+		return rows[:end]
+	}
+	hidden := end - h + 1 // the marker takes a row
+	// the block the cut falls in: its head is the last one at or before the cut, and
+	// the cut is inside it when it is past the head and short of the air after it
+	head, next := -1, len(rows)
+	for _, hd := range heads {
+		if hd <= hidden {
+			head = hd
+		} else {
+			next = hd
+			break
+		}
+	}
+	more := func(n int) string { return t.S.Subtle.Render(t.G.More + " " + strconv.Itoa(n) + " more") }
+	tail := ""
+	if hint != "" {
+		tail = "  " + hint
+	}
+	if head >= 0 && hidden > head && hidden < next-1 {
+		right := more(hidden-1) + tail
+		room := w - lipgloss.Width(right) - 2
+		return append([]string{Fit(cutRow(t, rows[head], room)+"  "+right, w)}, rows[hidden:end]...)
+	}
+	marker := "  " + t.S.Subtle.Render(t.G.More+" "+strconv.Itoa(hidden)+" more lines") + tail
+	return append([]string{Fit(marker, w)}, rows[hidden:end]...)
+}
+
+// cutRow truncates a padded row to w cells: with the theme's ellipsis when text is
+// lost, plainly when only its padding is.
+func cutRow(t *theme.Theme, s string, w int) string {
+	w = max(0, w)
+	if lipgloss.Width(s) <= w {
+		return Fit(s, w)
+	}
+	if strings.TrimSpace(ansi.Strip(ansi.TruncateLeft(s, w, ""))) == "" {
+		return ansi.Truncate(s, w, "")
+	}
+	return ansi.Truncate(s, w, t.G.Ellipsis)
 }
