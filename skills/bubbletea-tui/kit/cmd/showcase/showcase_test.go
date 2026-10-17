@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
+	"tuikit/ui"
 )
 
 // testThemes finds the theme JSONs two levels up: kit/themes here, and the project's
@@ -293,5 +294,62 @@ func TestRenderProfile(t *testing.T) {
 	}
 	if _, err := renderProfile("sixteen", true, ""); err == nil {
 		t.Error("renderProfile(sixteen) accepted")
+	}
+}
+
+// A dialog never reaches the footer: the help dialog was 20 rows, so at 80×24 its
+// bottom edge landed on the footer rule (a double rule) and at 60×18 both were
+// clipped. Every overlay state, every theme, both sizes: the dialog ends above the
+// footer, a row of air between while it fits; a body that doesn't fit scrolls (↑↓),
+// and a dialog whose keys don't scroll (confirm, palette) is never cut at the kit's own
+// minimum size, where a rollback confirmation hid its consequences ("… 2 more").
+func TestDialogsStayAboveTheFooter(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, sz := range [][2]int{{80, 24}, {60, 18}} {
+			w, h := sz[0], sz[1]
+			for _, s := range []string{"help", "confirm", "palette"} {
+				m := newApp(tf, true, false)
+				m.setState(s)
+				frame := ansi.Strip(m.render(w, h).String())
+				fy := h - len(ui.Footer(m.t, w, "", nil, ""))
+				if m.ovRect.Max.Y > fy {
+					t.Errorf("%s %s %dx%d: the dialog's last row is %d, the footer starts at %d", filepath.Base(f), s, w, h, m.ovRect.Max.Y-1, fy)
+				}
+				if m.ovRect.Dy() <= fy-5 && m.ovRect.Max.Y > fy-1 {
+					t.Errorf("%s %s %dx%d: the dialog fits with air (%d rows) but ends on row %d, against the footer at %d", filepath.Base(f), s, w, h, m.ovRect.Dy(), m.ovRect.Max.Y-1, fy)
+				}
+				if m.ovRect.Dy() == 0 {
+					t.Errorf("%s %s %dx%d: no dialog drawn", filepath.Base(f), s, w, h)
+				}
+				if cut := strings.Contains(frame, m.t.G.Ellipsis+" ") && strings.Contains(frame, " more"); cut && !strings.Contains(frame, "scroll") {
+					t.Errorf("%s %s %dx%d: the body is cut (\"%s n more\") with no scroll key in the footer", filepath.Base(f), s, w, h, m.t.G.Ellipsis)
+				}
+				if s != "help" && strings.Contains(frame, m.t.G.Ellipsis+" ") && strings.Contains(frame, " more") {
+					t.Errorf("%s %s %dx%d: a dialog that fits the kit's minimum size is cut:\n%s", filepath.Base(f), s, w, h, frame)
+				}
+			}
+			// the help body scrolls when cut: a "more" row at the bottom, then one above
+			m := newApp(tf, true, false)
+			m.setState("help")
+			frame := ansi.Strip(m.render(w, h).String())
+			if more := m.t.G.Ellipsis + " "; len(m.helpBody()) > m.helpRows() && !strings.Contains(frame, more) {
+				t.Errorf("%s help %dx%d: %d rows of keys in %d: want a %q row", filepath.Base(f), w, h, len(m.helpBody()), m.helpRows(), more)
+			}
+			if len(m.helpBody()) > m.helpRows() {
+				m.key(press("down"))
+				if f2 := ansi.Strip(m.render(w, h).String()); !strings.Contains(f2, m.t.G.More+" 1 more") {
+					t.Errorf("%s help %dx%d: after down, no %q row", filepath.Base(f), w, h, m.t.G.More+" 1 more")
+				}
+				if !strings.Contains(frame, "scroll") {
+					t.Errorf("%s help %dx%d: the body scrolls but the footer doesn't say so", filepath.Base(f), w, h)
+				}
+			} else if strings.Contains(frame, "scroll") {
+				t.Errorf("%s help %dx%d: the body fits but the footer offers scroll", filepath.Base(f), w, h)
+			}
+		}
 	}
 }

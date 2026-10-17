@@ -72,10 +72,10 @@ func TestOverlaysPaintThePanel(t *testing.T) {
 			}
 		}{
 			{"overlay", func(c *Canvas) uv.Rectangle {
-				return c.Overlay(Dialog(th, 40, "Roll back?", []string{"It goes back."}, "", ""), nil)
+				return c.Overlay(Dialog(th, 40, 0, "Roll back?", []string{"It goes back."}, "", ""), nil)
 			}, th.P.BgPanel},
 			{"popover", func(c *Canvas) uv.Rectangle {
-				return c.Popover(Popover(th, 40, "Commands", []string{"> ro"}, "", ""), nil)
+				return c.Popover(Popover(th, 40, 0, "Commands", []string{"> ro"}, "", ""), nil)
 			}, th.P.BgOverlay},
 		} {
 			cv := NewCanvas(th, 70, 20)
@@ -164,7 +164,7 @@ func TestDialogLiftsHintsOnThePanel(t *testing.T) {
 		t.Fatal("charm's fgSubtle now holds on its bgPanel: pick another theme for this test")
 	}
 	hint := th.S.Subtle.Render("deployed 12m ago")
-	rows := strings.Split(Dialog(th, 40, "Roll back?", []string{hint}, "", ""), "\n")
+	rows := strings.Split(Dialog(th, 40, 0, "Roll back?", []string{hint}, "", ""), "\n")
 	var row string
 	for _, r := range rows {
 		if strings.Contains(ansi.Strip(r), "deployed") {
@@ -188,5 +188,17 @@ func TestDialogLiftsHintsOnThePanel(t *testing.T) {
 	// a bold hint is a hint: lifted with its weight kept
 	if c := cellAt(OnPanel(th, th.S.Subtle.Bold(true).Render("hint"), th.P.BgPanel), "hint"); !same8(c.Style.Fg, th.P.FgMuted) || c.Style.Attrs&uv.AttrBold == 0 {
 		t.Errorf("a bold subtle hint draws %v bold=%v, want fgMuted and bold", c.Style.Fg, c.Style.Attrs&uv.AttrBold != 0)
+	}
+}
+
+// The canvas's twin table (ASCIIfy, the last pass over a frame) agrees with the theme's
+// on the caret: a leaked ▏ becomes ', never the focus bar's |.
+func TestASCIIfyCaret(t *testing.T) {
+	th := theme.Resolve(theme.Default(), true, true)
+	c := NewCanvas(th, 4, 1)
+	c.Draw("ro▏▌", c.Bounds())
+	c.ASCIIfy()
+	if got := strings.TrimRight(ansi.Strip(c.String()), " "); got != "ro'|" {
+		t.Errorf("ASCIIfy(ro▏▌) = %q, want ro'|", got)
 	}
 }

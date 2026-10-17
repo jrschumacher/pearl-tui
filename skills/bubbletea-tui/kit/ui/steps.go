@@ -119,10 +119,10 @@ func Summary(t *theme.Theme, title, tag string, rows []SummaryRow, w int) []stri
 	out := []string{head, ""}
 	def := t.S.Subtle.Render("default")
 	for i, r := range rows {
-		label := t.S.Muted.Render(Trunc(t, r.Label, w))
+		label := t.S.Muted.Render(Trunc(t, t.Label(r.Label, "as-is"), w))
 		val := t.S.Base.Render(Trunc(t, r.Value, w))
 		if !r.Set {
-			label = t.S.Muted.Render(Trunc(t, r.Label, max(1, w-9)))
+			label = t.S.Muted.Render(Trunc(t, t.Label(r.Label, "as-is"), max(1, w-9)))
 			label += strings.Repeat(" ", max(1, w-lipgloss.Width(label)-7)) + def
 			val = t.S.Subtle.Render(Trunc(t, r.Value, w))
 		}

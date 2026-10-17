@@ -88,14 +88,27 @@ func Spinner(t *theme.Theme, n int) string {
 	return t.S.Working.Render(t.G.Spinner[n%len(t.G.Spinner)])
 }
 
+// BusyAnimates reports whether Busy changes between frames for this theme: true when
+// the theme's own spinner frames are one cell (ASCII twins included, since the ASCII
+// spinner is one cell whenever the theme's is). A clock driven for a busy row ticks
+// only when it does (Law 8: tick while something visible moves).
+func BusyAnimates(t *theme.Theme) bool {
+	for _, f := range t.Unicode.Spinner {
+		if lipgloss.Width(f) != 1 {
+			return false
+		}
+	}
+	return len(t.Unicode.Spinner) > 1 && len(t.G.Spinner) > 1
+}
+
 // Busy is the working mark for a status column, one cell like the Dot beside it: the
 // theme's spinner at frame n when its frames are one cell, else Dot's busy mark (the
-// partial glyph, still), so a row in progress never pushes its name out of line.
+// partial glyph, still), so a row in progress never pushes its name out of line. The
+// theme's own frames decide (BusyAnimates), so unicode and ASCII agree: a three-cell
+// spinner holds the partial mark in both, never a still ◐ here and a turning / there.
 func Busy(t *theme.Theme, n int) string {
-	for _, f := range t.G.Spinner {
-		if lipgloss.Width(f) != 1 {
-			return Dot(t, "busy")
-		}
+	if !BusyAnimates(t) {
+		return Dot(t, "busy")
 	}
 	return Spinner(t, n)
 }

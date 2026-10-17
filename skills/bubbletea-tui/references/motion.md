@@ -31,7 +31,9 @@ case tickMsg:
 
 Every animated thing renders from `(frame, seed)` only: `Anim.Frame(n, elapsed)`,
 `ui.Spinner(t, n)` (beside a label), `ui.Busy(t, n)` (in a status column: one cell like
-the dots beside it, the partial glyph when the theme's frames are wider),
+the dots beside it, the still partial glyph when the theme's own frames are wider, in
+unicode and ASCII alike; gate the clock on `ui.BusyAnimates(t)`, since a still mark
+re-rendered is a tick nobody sees),
 `Field{Drift: n/3}`. So the harness can render frame 24 in a
 golden, frames 0..40 into a GIF, and the live program shows the same thing. Phase from
 wall-clock (`time.Since(start)`) only for things that must stay in sync with real time

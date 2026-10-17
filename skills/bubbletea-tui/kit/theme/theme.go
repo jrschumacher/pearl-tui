@@ -99,7 +99,7 @@ type Glyphs struct {
 	FieldA     string   `json:"fieldA"`     // backdrop field bright glyph ◆ ▲ ╱
 	FieldB     string   `json:"fieldB"`     // backdrop field subtle glyph ◇ △
 
-	Caret         string `json:"caret"`         // input caret after the typed text: ▏ ▌ _ |
+	Caret         string `json:"caret"`         // input caret after the typed text: ▏ _ (ASCII '; never a bar glyph or its twin |, the focus bar's: CheckGlyphs fails it)
 	More          string `json:"more"`          // marks lines scrolled off ("↑ 12 more lines"): ↑ ▲ ^
 	UpDown        string `json:"upDown"`        // the arrow-key pair as footers name it: ↑↓ (ascii ^v)
 	LeftRight     string `json:"leftRight"`     // ←→ (ascii <>)
@@ -122,7 +122,7 @@ type Expressions struct {
 	Wordmark     string `json:"wordmark"`     // gradient | solid | inverse | tracked | bracket | upper | plain (fg, bold, no hue)
 	SectionTitle string `json:"sectionTitle"` // accent | primary | muted-upper | fg
 	TitleCase    string `json:"titleCase"`    // sentence | upper | lower
-	LabelCase    string `json:"labelCase"`    // upper | lower | as-is: table headers, tags, toast and summary labels (unset: headers upper, the rest as the kit draws them)
+	LabelCase    string `json:"labelCase"`    // upper | lower | as-is: table headers, tags, toast and summary labels, and the kit's fixed copy (tabs, "Terminal too small", "Canceled."; unset: headers upper, the fixed copy in titleCase, the rest as the kit draws them)
 	Selection    string `json:"selection"`    // bar | fill | caret | inverse  (how a selected/focused row is marked)
 	Button       string `json:"button"`       // pill | bracket | underline | inverse
 	Tag          string `json:"tag"`          // filled | bracket | bold
@@ -162,16 +162,27 @@ const (
 const Ellipsis = "…"
 
 // SparkRamp is the eight heights of a sparkline, lowest first, and SparkRampASCII what
-// an ASCII terminal draws in their place (controls.go Sparkline).
+// an ASCII terminal draws in their place (controls.go Sparkline): no "*" or "+", the
+// current and done twins, so a peak never reads as a status mark beside the dots.
 const (
 	SparkRamp      = "▁▂▃▄▅▆▇█"
-	SparkRampASCII = "_.-=+*#@"
+	SparkRampASCII = "_.-=:;%#@"
 )
 
 // Wordmark is an optional multi-row wordmark (scripts/wordmark.py output).
 type Wordmark struct {
 	Rows  []string `json:"rows"`
 	Style string   `json:"style"` // half | shade | ascii | tracked: the style wordmark.py drew the rows with. Metadata: the kit reads the rows, whose glyphs (█ ▓ ▒) carry the tones
+}
+
+// LadderRung is one rung of the product's own status ladder (File.Ladder): a glyph,
+// what it means to the product, and the role it draws in. ui.Mark(t, meaning) draws it,
+// ui.Rungs lists it and the showcase's ladder state shows it, so a sheet can judge the
+// product's states and not only the kit's slots.
+type LadderRung struct {
+	Glyph   string `json:"glyph"`   // a status slot (StatusSlots: that glyph, and its twin under ASCII) or a one-cell literal with a twin in glyphs.ascii or the kit's map
+	Meaning string `json:"meaning"` // the name the product gives the state (new, reading, reviewed): what ui.Mark takes; never a kit slot's name (KitSlots), whose ink is the kit's
+	Role    string `json:"role"`    // the ink: any colour role (primary, fgSubtle, success, …), or focus / working, the inks expressions.focus and expressions.spinner resolve to
 }
 
 // File is the theme JSON.
@@ -189,6 +200,13 @@ type File struct {
 	// error's slot; no hex fixes that without leaving amber at 256 colours. A role derived
 	// from a pinned one (secondary from primary) follows it. See ANSI16Clashes.
 	ANSI16 map[string]map[string]int `json:"ansi16,omitempty"`
+	// Ladder is the product's own status ladder, in the order a thing moves through it:
+	// [{"glyph": "current", "meaning": "new", "role": "primary"}, …]. Set, ui.Rungs and
+	// the ladder state draw these rungs instead of the kit's default ones, and
+	// ui.Mark(t, "new") draws the rung so named; the kit's slots (done, current, …) keep
+	// their own inks. See CheckLadder (palette check fails a role or glyph the kit
+	// doesn't know); Load keeps loading.
+	Ladder []LadderRung `json:"ladder,omitempty"`
 }
 
 // Load reads a theme file: Parse on its bytes, errors named by the path.
@@ -306,7 +324,90 @@ func CheckKeys(data []byte) error {
 			return fmt.Errorf("wordmark.style %q is not a style wordmark.py writes: %s", w.Style, strings.Join(wordmarkStyles, " | "))
 		}
 	}
+	if raw, ok := top["ladder"]; ok {
+		var rungs []json.RawMessage
+		if err := json.Unmarshal(raw, &rungs); err != nil {
+			return fmt.Errorf("ladder: not an array of rungs [{\"glyph\": …, \"meaning\": …, \"role\": …}]")
+		}
+		for i, r := range rungs {
+			if err := exact(r, fmt.Sprintf("ladder[%d]", i), jsonKeys(reflect.TypeOf(LadderRung{}))); err != nil {
+				return err
+			}
+		}
+		var f File
+		if err := json.Unmarshal(data, &f); err == nil {
+			return CheckLadder(f)
+		}
+	}
 	return nil
+}
+
+// ladderInks are the two inks a rung may name beside the colour roles: what
+// expressions.focus and expressions.spinner resolve to (ui.RoleInk).
+var ladderInks = []string{"focus", "working"}
+
+// StatusSlots are the glyph keys a ladder rung may name instead of a literal: the status
+// marks, each with its twin. Not the chrome glyphs (focusBar, caret), whose twins are
+// bars a rung must never be.
+var StatusSlots = []string{"done", "current", "todo", "pending", "partial", "warn", "fail"}
+
+// KitSlots are the names the kit's own components draw by (ui.Mark, ui.Dot): a rung's
+// meaning can't be one, or the rung would recolour the kit's slot.
+var KitSlots = []string{"done", "current", "todo", "pending", "partial", "busy", "warn", "fail"}
+
+// CheckLadder reports a rung of the theme's ladder the kit can't draw: a role that is
+// neither a colour role nor focus / working, a meaning that is a kit slot's name (the
+// kit's slots keep their inks), a glyph that is neither a status slot nor a one-cell
+// literal with an ASCII twin, two rungs with one meaning, or two rungs that draw as
+// one mark under ASCII. palette check fails on it (through CheckKeys); Load doesn't,
+// so an app still starts, drawing the rung in fg.
+func CheckLadder(f File) error {
+	g := ASCII(glyphDefaults(f.Glyphs))
+	seen, twins := map[string]int{}, map[string]int{}
+	for i, r := range f.Ladder {
+		where := fmt.Sprintf("ladder[%d]", i)
+		if r.Meaning == "" {
+			return fmt.Errorf("%s.meaning is empty: name the state (new, reading, reviewed)", where)
+		}
+		if slices.Contains(KitSlots, r.Meaning) {
+			return fmt.Errorf("%s.meaning %q is a kit slot, whose ink is the kit's: name the product's state (new, reading, reviewed)", where, r.Meaning)
+		}
+		if j, dup := seen[r.Meaning]; dup {
+			return fmt.Errorf("%s.meaning %q is also ladder[%d]'s: one name per state", where, r.Meaning, j)
+		}
+		seen[r.Meaning] = i
+		if !roleKey(r.Role) && !slices.Contains(ladderInks, r.Role) {
+			return fmt.Errorf("%s.role %q is not a colour role (primary, fgSubtle, success, …) or focus / working", where, r.Role)
+		}
+		tw, ok := GlyphSlot(g, r.Glyph)
+		if !ok {
+			tw = twin(f.Glyphs.ASCII, r.Glyph)
+		}
+		if r.Glyph == "" || tw == "?" || !ok && (lipgloss.Width(r.Glyph) != 1 || lipgloss.Width(tw) != 1) {
+			return fmt.Errorf("%s.glyph %q is neither a status slot (%s) nor a one-cell glyph with a one-cell ASCII twin: add \"ascii\": {%q: \"<twin>\"} to glyphs", where, r.Glyph, strings.Join(StatusSlots, ", "), r.Glyph)
+		}
+		if j, dup := twins[tw]; dup {
+			return fmt.Errorf("%s.glyph %q and ladder[%d].glyph %q both draw as %q under ASCII, so two states read as one", where, r.Glyph, j, f.Ladder[j].Glyph, tw)
+		}
+		twins[tw] = i
+	}
+	return nil
+}
+
+// GlyphSlot is the status glyph in g with JSON key key (StatusSlots: done, current, …)
+// and whether key names one. A ladder rung's glyph may be a slot's name instead of a
+// literal; any other string, a chrome glyph's key included, is a literal.
+func GlyphSlot(g Glyphs, key string) (string, bool) {
+	if !slices.Contains(StatusSlots, key) {
+		return "", false
+	}
+	v, t := reflect.ValueOf(g), reflect.TypeOf(g)
+	for i := range t.NumField() {
+		if k, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ","); k == key {
+			return v.Field(i).String(), true
+		}
+	}
+	return "", false
 }
 
 // jsonKeys are t's fields' JSON keys, in the contract's order.
@@ -599,6 +700,10 @@ type Theme struct {
 	G       Glyphs
 	X       Expressions
 	S       Styles
+	// Unicode is the glyph set as the theme wrote it (defaults filled), before any ASCII
+	// twin: G itself unless ASCII. What a component reads to decide by the theme's own
+	// glyphs rather than their twins (ui.BusyAnimates judges the spinner frames' width).
+	Unicode Glyphs
 }
 
 // Resolve picks the dark or light roles, fills gaps, and builds every style, for a
@@ -634,7 +739,8 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 		pins = pins16(f, mode, dark)
 	}
 	t.P = derive(r, dark, pins)
-	t.G = glyphDefaults(f.Glyphs)
+	t.Unicode = glyphDefaults(f.Glyphs)
+	t.G = t.Unicode
 	if ascii {
 		t.G = ASCII(t.G)
 	}
@@ -708,6 +814,27 @@ func (t *Theme) Ink(c, fill color.Color) color.Color {
 		}
 	}
 	return c
+}
+
+// Role is the resolved colour of the role with JSON key key (primary, fgSubtle, …), or
+// nil when key names none: what a ladder rung's role draws in.
+func (t *Theme) Role(key string) color.Color {
+	if !roleKey(key) {
+		return nil
+	}
+	return paletteRole(t.P, key)
+}
+
+// LadderGlyph is the glyph rung r draws in this theme: the slot's glyph when r.Glyph
+// names a status slot, else the literal; under ASCII, its twin either way.
+func (t *Theme) LadderGlyph(r LadderRung) string {
+	if g, ok := GlyphSlot(t.G, r.Glyph); ok {
+		return g
+	}
+	if t.ASCII {
+		return twin(t.File.Glyphs.ASCII, r.Glyph)
+	}
+	return r.Glyph
 }
 
 // AppName is the brand name the theme declares.

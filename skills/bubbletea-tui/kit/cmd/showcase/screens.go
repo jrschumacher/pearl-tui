@@ -20,6 +20,7 @@ const (
 // View and the golden harness share it, so what the PNG shows is what the
 // terminal shows.
 func (m *app) render(w, h int) *ui.Canvas {
+	m.w, m.h = w, h
 	c := m.draw(w, h)
 	if m.t.ASCII {
 		c.ASCIIfy() // nothing outside tier 0 survives, whatever a screen typed
@@ -42,7 +43,7 @@ func (m *app) draw(w, h int) *ui.Canvas {
 	s := m.svcs[m.sel]
 	details := ui.Details(t, "prod", "us-east-1", s.Name)
 	if m.screen == scrSetup {
-		details = ui.Details(t, "setup", m.setup.steps().Count())
+		details = ui.Details(t, "setup", m.setup.steps(t).Count())
 	}
 	head := ui.Header(t, w, h, t.AppName(), details)
 	y := 0
@@ -56,7 +57,7 @@ func (m *app) draw(w, h int) *ui.Canvas {
 
 	if m.screen == scrSetup {
 		// the wizard's step row stands where the tabs stand
-		c.Draw(m.setup.steps().Row(t, w-2*g), ui.Rect(g, y, w-2*g, 1))
+		c.Draw(m.setup.steps(t).Row(t, w-2*g), ui.Rect(g, y, w-2*g, 1))
 		y += 2
 	} else if m.screen != scrDeploy && m.screen != scrLadder {
 		counts := []string{t.S.Subtle.Render(itoa(len(m.svcs))), "", "", ""}
@@ -84,13 +85,15 @@ func (m *app) draw(w, h int) *ui.Canvas {
 	case scrSetup:
 		m.setupView(c, body)
 	}
+	// a dialog takes the rows it needs between the tabs and the footer (dialogTop keeps
+	// a row of air above the footer while it fits) and scrolls its body past that
 	switch m.ov {
 	case ovPalette:
-		m.palette(c)
+		m.palette(c, fy)
 	case ovConfirm:
-		m.confirm(c)
+		m.confirm(c, fy)
 	case ovHelp:
-		m.keysOverlay(c)
+		m.keysOverlay(c, fy)
 	}
 	if m.ov != ovNone {
 		// the footer now describes the dialog's keys: it sits above the scrim
@@ -362,7 +365,7 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 			s = append(s, ui.ToolCall(t, ui.Tool{Name: "Deploy", Param: "checkout-api v2.4.1", Opts: [][2]string{{"strategy", "rolling"}},
 				State: ui.ToolDone, Body: []string{"3/3 pods healthy " + t.G.Sep + " error rate 0.02% " + t.G.Sep + " p99 124ms"}}, w, false)...)
 		case "\x00canceled":
-			s = append(s, "", "  "+t.S.Subtle.Render("Canceled."))
+			s = append(s, "", "  "+t.S.Subtle.Render(t.Copy("Canceled")+"."))
 		default:
 			s = append(s, "")
 			s = append(s, ui.UserMessage(t, msg, w, false)...)
@@ -536,15 +539,22 @@ func (m *app) filtered() []hit {
 	return out
 }
 
-// dialogTop keeps dialogs below the header and tabs.
-func dialogTop(c *ui.Canvas, dh int) *uv.Position {
+// dialogRoom is the rows a dialog may take on a screen whose footer starts at fy: from
+// row 3 (under the header) to the row above the footer. A dialog that needs fewer sits a
+// row lower with a row of air above the footer (dialogTop); one that needs more scrolls.
+func dialogRoom(fy int) int { return fy - 3 }
+
+// dialogTop keeps a dialog below the header and tabs (row 4, or 3 when it needs the
+// row) and above the footer, which starts at fy.
+func dialogTop(c *ui.Canvas, dh, fy int) *uv.Position {
 	h := c.Bounds().Dy()
 	y := max(4, (h-dh)/2-1)
-	y = min(y, max(0, h-dh-1))
+	y = min(y, max(0, fy-dh))
 	return &uv.Position{X: -1, Y: y} // X < 0: centre horizontally
 }
 
-func (m *app) palette(c *ui.Canvas) {
+func (m *app) palette(c *ui.Canvas, fy int) {
+	room := dialogRoom(fy)
 	t := m.t
 	w := min(64, c.Bounds().Dx()-6)
 	inner := w - t.S.Dialog.GetHorizontalFrameSize()
@@ -557,8 +567,9 @@ func (m *app) palette(c *ui.Canvas) {
 	if m.query == "" {
 		input = t.S.Prompt.Render(t.G.Prompt) + " " + t.S.Prompt.Render(t.G.Caret) + t.S.Subtle.Render("type to filter")
 	}
-	// the list fits its results (min 3); the top edge stays put while typing
-	listH := min(max(3, len(hits)), len(commands), max(3, c.Bounds().Dy()-12))
+	// the list fits its results (min 3) and the room the dialog has (the input row and
+	// its gap taken off); the top edge stays put while typing
+	listH := min(max(3, len(hits)), len(commands), max(3, ui.DialogBodyRows(t, room, "Commands", "", "")-2))
 	body := []string{input, ""}
 	if len(items) == 0 {
 		body = append(body, t.S.Muted.Render("  no command matches \""+m.query+"\""))
@@ -571,16 +582,19 @@ func (m *app) palette(c *ui.Canvas) {
 		body = append(body, ui.List(t, items, sel, m.palOff, inner, listH, true)...)
 	}
 	// no help line inside: the footer above the scrim carries the dialog's keys
-	d := ui.Popover(t, w, "Commands", body, "", "")
-	c.Popover(d, &uv.Position{X: -1, Y: min(4, max(0, c.Bounds().Dy()-lipgloss.Height(d)-1))})
+	d := ui.Popover(t, w, room, "Commands", body, "", "")
+	m.ovRect = c.Popover(d, &uv.Position{X: -1, Y: min(4, max(0, fy-lipgloss.Height(d)))})
 }
 
-func (m *app) confirm(c *ui.Canvas) {
+// confirmWidth is the confirm dialog's outer width at the model's size.
+func (m *app) confirmWidth() int { return min(58, m.w-6) }
+
+// confirmBody is the confirm dialog's title, body rows and button row.
+func (m *app) confirmBody() (title string, body []string, btns string) {
 	t := m.t
 	s := m.svcs[m.sel]
-	w := min(58, c.Bounds().Dx()-6)
-	inner := w - t.S.Dialog.GetHorizontalFrameSize()
-	body := []string{t.S.Soft.Render(s.Env + " returns to the last healthy version."), ""}
+	inner := m.confirmWidth() - t.S.Dialog.GetHorizontalFrameSize()
+	body = []string{t.S.Soft.Render(s.Env + " returns to the last healthy version."), ""}
 	now := t.S.Base.Render(s.Version) + t.S.Subtle.Render("  deployed "+s.Deployed)
 	if s.State == "error" {
 		now = t.S.Err.Render(s.Version) + t.S.Subtle.Render("  failing 12 min")
@@ -590,27 +604,42 @@ func (m *app) confirm(c *ui.Canvas) {
 		{"after", t.S.OK.Render(s.Prev) + t.S.Subtle.Render("  the previous release")},
 		{"impact", t.S.Base.Render("3 pods restart, one at a time (~90s)")},
 	}, 7)...)
-	btns := ui.Buttons(t, inner, lipgloss.Right,
+	btns = ui.Buttons(t, inner, lipgloss.Right,
 		ui.Button(t, "Roll back", m.btn == 0, true, 0),
 		ui.Button(t, "Cancel", m.btn == 1, false, 0))
-	d := ui.Dialog(t, w, "Roll back "+s.Name+"?", body, btns, "")
-	c.Overlay(d, dialogTop(c, lipgloss.Height(d)))
+	return "Roll back " + s.Name + "?", body, btns
 }
 
-// keysOverlay is the full help: every binding of the screen underneath.
-func (m *app) keysOverlay(c *ui.Canvas) {
+// confirmRows is how many rows of the confirm body the dialog shows at the model's size.
+func (m *app) confirmRows() int {
+	title, _, btns := m.confirmBody()
+	return ui.DialogBodyRows(m.t, dialogRoom(m.footerY()), title, btns, "")
+}
+
+func (m *app) confirm(c *ui.Canvas, fy int) {
+	title, body, btns := m.confirmBody()
+	m.confOff = min(m.confOff, ui.ClipMax(len(body), m.confirmRows()))
+	d := ui.DialogScrolled(m.t, m.confirmWidth(), dialogRoom(fy), title, body, m.confOff, btns, "")
+	m.ovRect = c.Overlay(d, dialogTop(c, lipgloss.Height(d), fy))
+}
+
+// helpBody is the full help's rows: every binding of the screen underneath, then ctrl+c.
+func (m *app) helpBody() []string {
 	t := m.t
 	ov := m.ov
 	m.ov = ovNone
 	acts := m.actions()
 	m.ov = ov
-	w := min(56, c.Bounds().Dx()-6)
 	var body []string
 	for _, a := range acts {
 		h := a.b.Help()
 		body = append(body, t.S.Key.Render(ui.Fit(h.Key, 12))+t.S.Soft.Render(h.Desc))
 	}
-	body = append(body, t.S.Key.Render(ui.Fit("ctrl+c", 12))+t.S.Soft.Render("quit from anywhere"))
+	return append(body, t.S.Key.Render(ui.Fit("ctrl+c", 12))+t.S.Soft.Render("quit from anywhere"))
+}
+
+// helpTitle names the screen the help is for.
+func (m *app) helpTitle() string {
 	name := tabNames[min(int(m.screen), len(tabNames)-1)]
 	switch m.screen {
 	case scrDeploy:
@@ -620,8 +649,30 @@ func (m *app) keysOverlay(c *ui.Canvas) {
 	case scrSetup:
 		name = "Setup"
 	}
-	d := ui.Dialog(t, w, "Keys "+t.G.Sep+" "+name, body, "", "")
-	c.Overlay(d, dialogTop(c, lipgloss.Height(d)))
+	return "Keys " + m.t.G.Sep + " " + name
+}
+
+// footerY is the row the footer starts on at the model's size (draw's fy), computed
+// here so the action table can tell whether a dialog's body scrolls before anything is
+// drawn.
+func (m *app) footerY() int {
+	return m.h - len(ui.Footer(m.t, m.w, "", nil, ""))
+}
+
+// helpRows is how many rows of the help body the dialog shows at the model's size.
+func (m *app) helpRows() int {
+	return ui.DialogBodyRows(m.t, dialogRoom(m.footerY()), m.helpTitle(), "", "")
+}
+
+// keysOverlay is the full help: every binding of the screen underneath, scrolled
+// (helpOff) when the screen's keys outnumber the rows the dialog has.
+func (m *app) keysOverlay(c *ui.Canvas, fy int) {
+	t := m.t
+	w := min(56, c.Bounds().Dx()-6)
+	body := m.helpBody()
+	m.helpOff = min(m.helpOff, ui.ClipMax(len(body), m.helpRows()))
+	d := ui.DialogScrolled(t, w, dialogRoom(fy), m.helpTitle(), body, m.helpOff, "", "")
+	m.ovRect = c.Overlay(d, dialogTop(c, lipgloss.Height(d), fy))
 }
 
 // ---------------------------------------------------------------- splash

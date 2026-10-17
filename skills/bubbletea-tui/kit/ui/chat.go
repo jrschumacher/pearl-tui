@@ -31,18 +31,21 @@ func prefix(rows []string, g string, w int) []string {
 	return out
 }
 
-// UserMessage: the user's turn carries a bar in the primary colour even when
-// blurred (it is the user's voice), plain text, wrapped to the measure.
+// UserMessage: the user's turn carries a bar (it is the user's voice), plain text,
+// wrapped to the measure. Focused, the bar is the focus bar in the focus ink; blurred,
+// the turn bar (or the blur bar when the theme has one) in muted: a bold or coloured
+// bar means focus, and a turn the user isn't editing has none.
 func UserMessage(t *theme.Theme, text string, w int, focused bool) []string {
 	m := min(w-2, t.X.Measure)
 	body := lipgloss.NewStyle().Width(m).Render(t.S.Base.Render(text))
-	bar := t.G.FocusBar
-	if !focused && t.G.BlurBar != "" {
-		bar = t.G.BlurBar
-	} else if !focused {
-		bar = t.G.TurnBar
+	g := t.S.FocusBar.Render(t.G.FocusBar) + " "
+	if !focused {
+		bar := t.G.TurnBar
+		if t.G.BlurBar != "" {
+			bar = t.G.BlurBar
+		}
+		g = t.S.Muted.Render(bar) + " "
 	}
-	g := t.S.Focus.Render(bar) + " "
 	return prefix(strings.Split(body, "\n"), g, w)
 }
 
@@ -98,7 +101,8 @@ type Tool struct {
 	Expand bool
 }
 
-// ToolCall renders the Crush grammar:
+// ToolCall renders the Crush grammar (its fixed copy, "Canceled." and "Waiting for
+// permission", in the theme's case):
 //
 //	● Name main-param (k=v, k=v)
 //
@@ -144,9 +148,9 @@ func ToolCall(t *theme.Theme, tc Tool, w int, focused bool) []string {
 	case tc.State == ToolError:
 		rows = append(rows, "", Tag(t, "error", "ERROR")+" "+t.S.Muted.Render(Trunc(t, tc.Err, inner-8)))
 	case tc.State == ToolCanceled:
-		rows = append(rows, "", t.S.Subtle.Render("Canceled."))
+		rows = append(rows, "", t.S.Subtle.Render(t.Copy("Canceled")+"."))
 	case tc.State == ToolPending:
-		rows = append(rows, "", t.S.Subtle.Render("Waiting for permission"+t.G.Ellipsis))
+		rows = append(rows, "", t.S.Subtle.Render(t.Copy("Waiting for permission")+t.G.Ellipsis))
 	case len(tc.Body) > 0:
 		rows = append(rows, "")
 		shown := tc.Shown
@@ -174,7 +178,7 @@ func ToolCall(t *theme.Theme, tc Tool, w int, focused bool) []string {
 }
 
 // Thinking is demoted reasoning: subtle text on the panel colour, only the
-// last n lines, with a footer of how long it took.
+// last n lines, with a footer of how long it took ("Thought for" in the theme's case).
 func Thinking(t *theme.Theme, lines []string, n int, took string, w int) []string {
 	inner := w - 2
 	st := lipgloss.NewStyle().Background(t.P.BgPanel).Foreground(t.P.FgMuted).Italic(true)
@@ -187,7 +191,7 @@ func Thinking(t *theme.Theme, lines []string, n int, took string, w int) []strin
 		rows = append(rows, st.Render(Fit("  "+Trunc(t, l, inner-4), inner)))
 	}
 	if took != "" {
-		rows = append(rows, t.S.Subtle.Render("Thought for "+took))
+		rows = append(rows, t.S.Subtle.Render(t.Copy("Thought for")+" "+took))
 	}
 	return prefix(rows, "  ", w)
 }

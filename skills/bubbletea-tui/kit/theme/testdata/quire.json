@@ -1,7 +1,7 @@
 {
  "name": "quire",
  "brand": "quire",
- "read": "A reader for long-form newsletters (fictional; a kit test theme). Quiet, grey, typographic: the only hue is amber, and amber means one thing, new. Focus is weight and the caret, never the hue (focus fg): a minimal header with the name plain and bold, muted small-caps section titles, slash tabs, underlined text buttons in fg, lowercase labels, tags and table headers, like its name. Dialogs are ruled panels, like a pull quote. A ◐ for reading (the partial rung) beside ● new and ○ read, its ASCII twin ~ in the theme.",
+ "read": "A reader for long-form newsletters (fictional; a kit test theme). Quiet, grey, typographic: the only hue is amber, and amber means one thing, new. Focus is weight and the caret, never the hue (focus fg): a minimal header with the name plain and bold, muted small-caps section titles, slash tabs, underlined text buttons in fg, lowercase labels, tags and table headers, like its name. Dialogs are ruled panels, like a pull quote. A ◐ for reading (the partial rung) beside ● new and ○ read, its ASCII twin ~ in the theme; the ladder names them: new in amber, reading, read, reviewed in subtle.",
  "ansi16": {
   "dark": {
    "primary": 11,
@@ -101,5 +101,27 @@
   "density": "compact",
   "focus": "fg",
   "measure": 72
- }
+ },
+ "ladder": [
+  {
+   "glyph": "current",
+   "meaning": "new",
+   "role": "primary"
+  },
+  {
+   "glyph": "partial",
+   "meaning": "reading",
+   "role": "working"
+  },
+  {
+   "glyph": "todo",
+   "meaning": "read",
+   "role": "fgMuted"
+  },
+  {
+   "glyph": "done",
+   "meaning": "reviewed",
+   "role": "fgSubtle"
+  }
+ ]
 }

@@ -257,7 +257,8 @@ func Toast(t *theme.Theme, kind, label, msg string, w int) string {
 	return strings.Repeat(" ", g) + tg + bar.Width(max(0, rest)).Render(Trunc(t, msg, max(0, rest-2))) + strings.Repeat(" ", g)
 }
 
-// Tabs renders text tabs per expressions.tabs. Never boxes.
+// Tabs renders text tabs per expressions.tabs, the names in the theme's case (Copy).
+// Never boxes.
 //
 //	underline  Services   Deploys   Incidents      (active bold, ▔ under it on a second row)
 //	pill       the active tab on a filled pill
@@ -266,7 +267,7 @@ func Toast(t *theme.Theme, kind, label, msg string, w int) string {
 func Tabs(t *theme.Theme, names []string, active int, counts []string) []string {
 	var top, under []string
 	for i, n := range names {
-		label := n
+		label := t.Copy(n)
 		if i < len(counts) && counts[i] != "" {
 			c := counts[i]
 			if t.X.Tabs == "pill" && i == active {
@@ -322,9 +323,10 @@ func Tabs(t *theme.Theme, names []string, active int, counts []string) []string 
 	return rows
 }
 
-// TooSmall is the whole screen when the terminal is below the minimum.
+// TooSmall is the whole screen when the terminal is below the minimum: the wordmark,
+// "Terminal too small" in the theme's case, the sizes, the one key.
 func TooSmall(t *theme.Theme, w, h, minW, minH int) string {
-	msg := Wordmark(t, t.AppName()) + "\n\n" + t.S.Soft.Render("Terminal too small") + "\n" + t.S.Muted.Render(
+	msg := Wordmark(t, t.AppName()) + "\n\n" + t.S.Soft.Render(t.Copy("Terminal too small")) + "\n" + t.S.Muted.Render(
 		strconv.Itoa(w)+"x"+strconv.Itoa(h)+", needs "+strconv.Itoa(minW)+"x"+strconv.Itoa(minH)) + "\n\n" +
 		t.S.Key.Render("q") + " " + t.S.KeyDesc.Render("quit")
 	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, lipgloss.JoinVertical(lipgloss.Center, strings.Split(msg, "\n")...))

@@ -8,6 +8,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/colorprofile"
+	uv "github.com/charmbracelet/ultraviolet"
 
 	"tuikit/theme"
 	"tuikit/ui"
@@ -67,6 +68,10 @@ type app struct {
 	palOff int // the list's scroll offset (ui.Follow keeps palSel on screen)
 	// confirm
 	btn int // 0 = the action, 1 = cancel (the default)
+	// help and confirm: a dialog's body scrolls when it doesn't fit (ui.Clip)
+	helpOff int
+	confOff int
+	ovRect  uv.Rectangle // where the last overlay was drawn (tests hold it above the footer)
 	// deploy form
 	focus    int // 0 env, 1 version, 2 strategy, 3 checks, 4 buttons
 	env      int
@@ -141,11 +146,19 @@ func (m *app) animating() bool {
 	if m.screen == scrSetup && m.setup.step == stSignin && !m.setup.failed {
 		return true // the spinner and the elapsed time
 	}
-	if m.ov == ovNone && (m.screen == scrServices || m.screen == scrDeploys) {
-		for _, s := range m.svcs {
-			if s.State == "deploying" {
-				return true
-			}
+	// a deploying row moves only where Busy does: a theme whose spinner is wider than
+	// one cell draws the still partial mark, and re-rendering it would be the same frame
+	if m.ov == ovNone && (m.screen == scrServices || m.screen == scrDeploys) && ui.BusyAnimates(m.t) {
+		return m.hasDeploying()
+	}
+	return false
+}
+
+// hasDeploying reports whether a service is mid-deploy (a busy row in the list).
+func (m *app) hasDeploying() bool {
+	for _, s := range m.svcs {
+		if s.State == "deploying" {
+			return true
 		}
 	}
 	return false
@@ -325,10 +338,23 @@ func (m *app) actions() []action {
 		return action{bind([]string{"esc"}, "esc", desc), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { f(m); return nil }}
 	}
 
+	// a dialog's body scrolls only when it overflows, and the footer says so only then
+	scroll := func(rows, shown int, off *int) action {
+		return action{bind([]string{"up", "k", "down", "j"}, m.t.G.UpDown, "scroll"), rows > shown, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
+			if msg.String() == "up" || msg.String() == "k" {
+				*off = max(0, *off-1)
+			} else {
+				*off = min(ui.ClipMax(rows, shown), *off+1)
+			}
+			return nil
+		}}
+	}
+
 	switch m.ov {
 	case ovHelp:
-		return []action{esc("close", func(m *app) { m.ov = ovNone }),
-			{bind([]string{"?", "ctrl+g"}, "?", "close"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.ov = ovNone; return nil }}}
+		return []action{esc("close", func(m *app) { m.ov = ovNone; m.helpOff = 0 }),
+			scroll(len(m.helpBody()), m.helpRows(), &m.helpOff),
+			{bind([]string{"?", "ctrl+g"}, "?", "close"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.ov = ovNone; m.helpOff = 0; return nil }}}
 	case ovPalette:
 		return []action{
 			{bind([]string{"enter"}, "enter", "run"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return m.runCommand() }},
@@ -345,6 +371,7 @@ func (m *app) actions() []action {
 		}
 	case ovConfirm:
 		s := m.svcs[m.sel]
+		_, confBody, _ := m.confirmBody()
 		enterDesc := "cancel"
 		if m.btn == 0 {
 			enterDesc = "roll back"
@@ -360,7 +387,9 @@ func (m *app) actions() []action {
 			{bind([]string{"left", "right", "tab", "h", "l"}, m.t.G.LeftRight, "switch"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.btn = 1 - m.btn; return nil }},
 			{bind([]string{"r"}, "r", "roll back to "+s.Prev), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.rollback(); m.ov = ovNone; return nil }},
 			{bind([]string{"c"}, "c", "cancel"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.ov = ovNone; return nil }},
-			esc("cancel", func(m *app) { m.ov = ovNone }),
+			esc("cancel", func(m *app) { m.ov = ovNone; m.confOff = 0 }),
+			// a fallback: the dialog takes the rows it needs down to the footer first
+			scroll(len(confBody), m.confirmRows(), &m.confOff),
 		}
 	}
 

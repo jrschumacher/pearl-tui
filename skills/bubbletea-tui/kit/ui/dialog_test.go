@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"image/color"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -47,7 +48,7 @@ func dialogStandsOut(t *testing.T, th *theme.Theme, p colorprofile.Profile) (boo
 	c := NewCanvas(th, W, H)
 	page := strings.Repeat(th.S.Soft.Render(strings.Repeat("lorem ipsum ", 6))+"\n", H)
 	c.Draw(page, c.Bounds())
-	r := c.Overlay(Dialog(th, 44, "Roll back checkout-api?", []string{"It goes back to v2.3.0."}, "", ""), nil)
+	r := c.Overlay(Dialog(th, 44, 0, "Roll back checkout-api?", []string{"It goes back to v2.3.0."}, "", ""), nil)
 	c.PaintBackground()
 	out := downsample(c.String(), p)
 	read := uv.NewScreenBuffer(W, H)
@@ -142,7 +143,7 @@ func TestRulesDialog(t *testing.T) {
 			t.Errorf("%s: the rules dialog blends into the page: %s", mode.name, why)
 		}
 		const w = 46 // a 44-cell panel and a cell of page on each side
-		d := Dialog(th, w, "Send reply", []string{"To: ops@example.com"}, "", "")
+		d := Dialog(th, w, 0, "Send reply", []string{"To: ops@example.com"}, "", "")
 		rows := strings.Split(ansi.Strip(d), "\n")
 		blank := strings.Repeat(" ", w)
 		if rows[0] != blank || rows[len(rows)-1] != blank {
@@ -175,8 +176,56 @@ func TestRulesDialog(t *testing.T) {
 func TestUnknownDialogFallsBackToRounded(t *testing.T) {
 	f := theme.Default()
 	f.Expressions.Dialog = "ruled"
-	d := ansi.Strip(Dialog(theme.Resolve(f, true, false), 30, "Title", []string{"body"}, "", ""))
+	d := ansi.Strip(Dialog(theme.Resolve(f, true, false), 30, 0, "Title", []string{"body"}, "", ""))
 	if !strings.HasPrefix(d, "╭") {
 		t.Errorf("unknown dialog value draws %q, want the rounded default", strings.Split(d, "\n")[0])
+	}
+}
+
+// A dialog takes at most the height it is given and scrolls its body: the help dialog
+// was 20 rows, so at 80×24 its bottom edge sat on the footer rule (a double rule) and at
+// 60×18 both were clipped. Dialog(h) cuts the body with Clip ("… n more" below, "↑ n
+// more" above when scrolled), in a bordered style and a rules one; h 0 is no limit.
+func TestDialogScrolls(t *testing.T) {
+	body := make([]string, 20)
+	for i := range body {
+		body[i] = "row " + strconv.Itoa(i)
+	}
+	for _, dialog := range []string{"rounded", "rules"} {
+		f := theme.Default()
+		f.Expressions.Dialog = dialog
+		th := theme.Resolve(f, true, false)
+		if n := lipgloss.Height(Dialog(th, 40, 0, "Keys", body, "", "")); n < 20 {
+			t.Errorf("%s: with no limit the dialog is %d rows, want the whole body", dialog, n)
+		}
+		const h = 12
+		d := Dialog(th, 40, h, "Keys", body, "", "")
+		plain := ansi.Strip(d)
+		if n := lipgloss.Height(d); n > h {
+			t.Errorf("%s: Dialog(h=%d) is %d rows:\n%s", dialog, h, n, plain)
+		}
+		shown := DialogBodyRows(th, h, "Keys", "", "")
+		if shown < 3 || shown > h-2 {
+			t.Errorf("%s: DialogBodyRows = %d at h=%d", dialog, shown, h)
+		}
+		if !strings.Contains(plain, th.G.Ellipsis+" "+strconv.Itoa(20-(shown-1))+" more") || strings.Contains(plain, "row "+strconv.Itoa(shown-1)) {
+			t.Errorf("%s: the cut body doesn't end in a \"%s n more\" row after row %d:\n%s", dialog, th.G.Ellipsis, shown-2, plain)
+		}
+		// scrolled: a row above says how many are hidden, and the last page has no "more" below
+		s := ansi.Strip(DialogScrolled(th, 40, h, "Keys", body, 5, "", ""))
+		if !strings.Contains(s, th.G.More+" 5 more") || !strings.Contains(s, "row 5") || strings.Contains(s, "row 4") {
+			t.Errorf("%s: scrolled by 5:\n%s", dialog, s)
+		}
+		last := ClipMax(len(body), shown)
+		if s := ansi.Strip(DialogScrolled(th, 40, h, "Keys", body, last+9, "", "")); !strings.Contains(s, "row 19") || strings.Contains(s, th.G.Ellipsis+" ") {
+			t.Errorf("%s: the last page (offset clamped to %d) should end on row 19 with nothing hidden below:\n%s", dialog, last, s)
+		}
+	}
+	th := theme.Resolve(theme.Default(), true, false)
+	if got := Clip(th, []string{"a", "b"}, 5, 3); len(got) != 2 {
+		t.Errorf("Clip of rows that fit = %v, want them unchanged", got)
+	}
+	if got := ClipMax(2, 5); got != 0 {
+		t.Errorf("ClipMax(2, 5) = %d, want 0", got)
 	}
 }

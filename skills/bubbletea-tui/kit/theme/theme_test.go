@@ -109,6 +109,21 @@ func TestCheckKeys(t *testing.T) {
 		{`{"wordmark": {"rows": [], "styl": "half"}}`, `wordmark.styl is not a key the kit reads (rows, style)`},
 		{`{"roles": {"dark": {"primary": "#6B50FF", "white": "#fff"}}, "glyphs": {"focusBar": "▌", "ascii": {"▌": "|"}}, "wordmark": {"rows": ["x"], "style": "shade"}, "contrastAccept": {}, "unknownTop": 1}`, ""},
 		{`{"roles": {"dark": {"primary": 12}}}`, ""}, // not a key problem: Load reports the colour
+		// the product's own ladder: keys the kit reads, a role it can draw, a glyph it can twin
+		{`{"ladder": [{"glyph": "current", "meaning": "new", "colour": "primary"}]}`, `ladder[0].colour is not a key the kit reads (glyph, meaning, role)`},
+		{`{"ladder": [{"glyph": "current", "meaning": "new", "role": "amber"}]}`, `ladder[0].role "amber" is not a colour role`},
+		{`{"ladder": [{"glyph": "◔", "meaning": "queued", "role": "info"}]}`, `ladder[0].glyph "◔" is neither a status slot`},
+		{`{"ladder": [{"glyph": "●", "meaning": "new", "role": "primary"}, {"glyph": "◆", "meaning": "finished", "role": "success"}]}`, `ladder[1].glyph "◆" and ladder[0].glyph "●" both draw as "*" under ASCII`},
+		{`{"ladder": [{"glyph": "current", "meaning": "new", "role": "primary"}, {"glyph": "done", "meaning": "new", "role": "success"}]}`, `ladder[1].meaning "new" is also ladder[0]'s`},
+		{`{"ladder": [{"glyph": "current", "meaning": "", "role": "primary"}]}`, `ladder[0].meaning is empty`},
+		{`{"ladder": {"glyph": "current"}}`, `ladder: not an array of rungs`},
+		// a meaning that is a kit slot would recolour the kit's own mark (Dot ok, a step)
+		{`{"ladder": [{"glyph": "✔", "meaning": "done", "role": "fgSubtle"}]}`, `ladder[0].meaning "done" is a kit slot`},
+		{`{"ladder": [{"glyph": "partial", "meaning": "busy", "role": "info"}]}`, `ladder[0].meaning "busy" is a kit slot`},
+		// only the status slots are slot names: a chrome glyph's key is a literal, and no literal is a word
+		{`{"ladder": [{"glyph": "focusBar", "meaning": "new", "role": "primary"}]}`, `ladder[0].glyph "focusBar" is neither a status slot`},
+		{`{"ladder": [{"glyph": "▌", "meaning": "new", "role": "primary"}, {"glyph": "caret", "meaning": "typing", "role": "info"}]}`, `ladder[1].glyph "caret" is neither a status slot`},
+		{`{"ladder": [{"glyph": "current", "meaning": "new", "role": "primary"}, {"glyph": "◔", "meaning": "queued", "role": "working"}, {"glyph": "✔", "meaning": "reviewed", "role": "fgSubtle"}], "glyphs": {"ascii": {"◔": "%"}}}`, ""},
 	} {
 		err := CheckKeys([]byte(c.json))
 		if c.want == "" && err != nil || c.want != "" && (err == nil || !strings.Contains(err.Error(), c.want)) {
@@ -170,6 +185,10 @@ func TestCheckGlyphs(t *testing.T) {
 		{`{"glyphs": {"done": "◆", "current": "▲", "todo": "△"}}`, `glyphs.done "◆" and glyphs.pending "●" both draw as "*"`, ""},
 		{`{"glyphs": {"done": "•", "current": "●", "todo": "○"}}`, `glyphs.done "•" and glyphs.current "●" both draw as "*"`, ""},
 		{`{"glyphs": {"checkOn": "◼", "checkOff": "◻", "ascii": {"◼": "#", "◻": "#"}}}`, `glyphs.checkOn "◼" and glyphs.checkOff "◻" both draw as "#"`, ""},
+		// the caret sits after typed text: as the focus bar, or its twin, "> ro|" reads as focus
+		{`{"glyphs": {"focusBar": "▌", "caret": "▌"}}`, `glyphs.caret "▌" draws as "|", the focusBar's`, ""},
+		{`{"glyphs": {"focusBar": "┃", "caret": "│"}}`, `glyphs.caret "│" draws as "|", the focusBar's`, ""},
+		{`{"glyphs": {"focusBar": "▌", "blurBar": "┆", "caret": "┆", "ascii": {"┆": ":"}}}`, `glyphs.caret "┆" draws as ":", the blurBar's`, ""},
 	} {
 		path := writeTheme(t, c.json)
 		f, err := Load(path)
@@ -478,5 +497,46 @@ func TestInkIsTheDefault(t *testing.T) {
 				t.Errorf("dark=%v %v: expressions differ:\n%+v\n%+v", dark, p, a.X, b.X)
 			}
 		}
+	}
+}
+
+// Twins never collide across meanings: the caret ▏ drew as "|", the focus bar's twin, so
+// an ASCII input ("> ro|") read as a focused block; and SparkRampASCII "_.-=+*#@" held
+// "*" and "+", the current and done twins, so a sparkline's peaks read as status marks.
+// Every theme, under ASCII: the caret is neither bar, and the ramp holds no twin of a
+// mark that means a state at a glance (done, current, warn, fail); the quiet marks' "."
+// (pending, a todo) is a low bar in a run, which reads as what it is.
+func TestTwinsStayApartAcrossMeanings(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	test, _ := filepath.Glob(filepath.Join("testdata", "*.json"))
+	themes := []File{Default()}
+	for _, path := range append(files, test...) {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		themes = append(themes, f)
+	}
+	for _, f := range themes {
+		g := Resolve(f, true, true).G
+		if g.Caret == g.FocusBar || g.Caret == g.BlurBar || g.Caret == "|" {
+			t.Errorf("%s: the ASCII caret %q is a bar (focus %q, blur %q)", f.Name, g.Caret, g.FocusBar, g.BlurBar)
+		}
+		for name, m := range map[string]string{"done": g.Done, "current": g.Current, "warn": g.Warn, "fail": g.Fail, "caret": g.Caret} {
+			if m != "" && strings.Contains(SparkRampASCII, m) {
+				t.Errorf("%s: SparkRampASCII %q holds the %s twin %q", f.Name, SparkRampASCII, name, m)
+			}
+		}
+	}
+	if len([]rune(SparkRampASCII)) < len([]rune(SparkRamp)) {
+		t.Errorf("SparkRampASCII has %d steps, fewer than SparkRamp's %d", len([]rune(SparkRampASCII)), len([]rune(SparkRamp)))
+	}
+	if tw, _ := ASCIITwin("▏"); tw != "'" {
+		t.Errorf("▏ twins as %q, want ' (not the focus bar's |)", tw)
 	}
 }
