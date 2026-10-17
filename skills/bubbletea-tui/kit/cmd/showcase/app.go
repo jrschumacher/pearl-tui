@@ -141,11 +141,19 @@ func (m *app) animating() bool {
 	if m.screen == scrSetup && m.setup.step == stSignin && !m.setup.failed {
 		return true // the spinner and the elapsed time
 	}
-	if m.ov == ovNone && (m.screen == scrServices || m.screen == scrDeploys) {
-		for _, s := range m.svcs {
-			if s.State == "deploying" {
-				return true
-			}
+	// a deploying row moves only where Busy does: a theme whose spinner is wider than
+	// one cell draws the still partial mark, and re-rendering it would be the same frame
+	if m.ov == ovNone && (m.screen == scrServices || m.screen == scrDeploys) && ui.BusyAnimates(m.t) {
+		return m.hasDeploying()
+	}
+	return false
+}
+
+// hasDeploying reports whether a service is mid-deploy (a busy row in the list).
+func (m *app) hasDeploying() bool {
+	for _, s := range m.svcs {
+		if s.State == "deploying" {
+			return true
 		}
 	}
 	return false

@@ -682,6 +682,10 @@ type Theme struct {
 	G       Glyphs
 	X       Expressions
 	S       Styles
+	// Unicode is the glyph set as the theme wrote it (defaults filled), before any ASCII
+	// twin: G itself unless ASCII. What a component reads to decide by the theme's own
+	// glyphs rather than their twins (ui.BusyAnimates judges the spinner frames' width).
+	Unicode Glyphs
 }
 
 // Resolve picks the dark or light roles, fills gaps, and builds every style, for a
@@ -717,7 +721,8 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 		pins = pins16(f, mode, dark)
 	}
 	t.P = derive(r, dark, pins)
-	t.G = glyphDefaults(f.Glyphs)
+	t.Unicode = glyphDefaults(f.Glyphs)
+	t.G = t.Unicode
 	if ascii {
 		t.G = ASCII(t.G)
 	}

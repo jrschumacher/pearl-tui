@@ -176,9 +176,10 @@ and role colour: ok `done`, busy `partial`, warning `warn`, error `fail`, idle `
 so the shape says it under NO_COLOR too, and `●` (`current`) keeps one meaning: now. A
 state of the product's own (`new`, `reviewed`) is a rung of the theme's `ladder`, drawn
 with `ui.Mark(t, "new")` (brand.md §4). A row in progress takes `ui.Busy(t, frame)`: the
-theme's spinner when its frames are one cell, else the still partial glyph, never a
-multi-cell spinner that pushes the name out of line. The label or a tag beside it says
-the state in words.
+theme's spinner when its frames are one cell, else the still partial glyph (in unicode
+and ASCII alike), never a multi-cell spinner that pushes the name out of line; the
+clock for such a row runs only when `ui.BusyAnimates(t)`. The label or a tag beside it
+says the state in words.
 
 ## Progress, Sparkline, Meter — `ui.Progress`, `ui.Sparkline`
 

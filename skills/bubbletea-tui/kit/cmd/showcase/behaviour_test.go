@@ -137,6 +137,26 @@ func TestOneClock(t *testing.T) {
 	if _, cmd := stale.Update(tickMsg{gen: 999}); cmd != nil {
 		t.Fatal("a stale tick must die")
 	}
+	// a deploying row animates only where Busy does (Law 8: tick while something visible
+	// moves): with a spinner wider than one cell the row holds the still partial mark,
+	// in unicode and under ASCII alike, and the clock stays off
+	for _, ascii := range []bool{false, true} {
+		one := newApp(testTheme(t, "charm.json"), true, ascii)
+		one.setState("services")
+		if !one.hasDeploying() {
+			t.Fatal("the services fixture has no deploying row")
+		}
+		if one.startClock() == nil {
+			t.Errorf("ascii=%v: a deploying row with a one-cell spinner should tick", ascii)
+		}
+		f := testTheme(t, "charm.json")
+		f.Glyphs.Spinner = []string{"·  ", " · ", "  ·"}
+		wide := newApp(f, true, ascii)
+		wide.setState("services")
+		if wide.startClock() != nil {
+			t.Errorf("ascii=%v: a deploying row with a three-cell spinner draws a still mark, and ticked anyway", ascii)
+		}
+	}
 }
 
 // ASCII mode emits ASCII, whatever a screen or a fixture typed.
