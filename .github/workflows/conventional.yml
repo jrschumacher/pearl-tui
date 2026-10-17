@@ -53,7 +53,8 @@ jobs:
                   if (!scopes.includes(s)) out.push(`scope "${s}" is not one of: ${scopes.join(' ')}`);
                 }
               }
-              const length = [...subject].length;
+              // GitHub appends " (#N)" to a squash-merge subject; the limit is for the title.
+              const length = [...subject.replace(/ \(#\d+\)$/, '')].length;
               if (length > max) out.push(`header is ${length} chars; the limit is ${max}`);
               return out;
             }
