@@ -135,19 +135,12 @@ and look at the PNGs. What usually breaks:
   "ansi16": { "dark": { "primary": 11 }, "light": { "primary": 3 } }
   ```
 
-  `palette check` names each problem and the pin that fixes it (stderr). Red is error's:
-
-  | at 16 colours | `palette check` |
-  |---|---|
-  | error off red (not 1 or 9): a grey error beside a red warning reads reversed | fails (exit 1) |
-  | under `focus: fg`, primary on red or on another state role's colour | fails (exit 1) |
-  | under `focus: primary`, primary on red: focus and selection read as errors | warns |
-  | warning, success or info on red, or two of them on one colour | warns |
-
-  A warning is not a pass to ignore: the glyph and word still tell the states apart, but
-  pin it unless the brand accepts it in its read. Pin bright (9-14) on dark, normal (1-6)
-  on light, error to 9/1, a status role to its own slot (warning 3/11, success 2/10, info
-  4/12 or 6/14), never a grey; the user's terminal palette decides the exact colour.
+  `palette check` names each clash and the pin that fixes it (stderr): it fails error
+  off red and, under `focus: fg`, primary on red or on another state's colour, and warns
+  on the rest (`palette -h` lists them). A warning is not a pass to ignore: pin it unless
+  the brand accepts it in its read. Pin bright (9-14) on dark, normal (1-6) on light,
+  error to 9/1, a status role to its own slot (warning 3/11, success 2/10, info 4/12 or
+  6/14), never a grey; the user's terminal palette decides the exact colour.
 
 ## DO / DON'T
 
