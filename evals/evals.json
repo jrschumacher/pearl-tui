@@ -52,7 +52,15 @@
         "the clock ticks only while a visible cell changes (Law 8): a theme whose spinner frames are wider than one cell draws a deploying row as the still partial mark and the clock stops (ui.BusyAnimates), and -ascii agrees with unicode for that theme (both animate a one-cell spinner, or both hold the partial mark)",
         "the kit's fixed copy follows the theme's case: tab names, 'Terminal too small', a tool call's 'Canceled.' and 'Waiting for permission', Thinking's 'Thought for' take labelCase when set, else titleCase (quire: `services / deploys`, `canceled.`); Huh field titles are the app's own text, written in the brand's case by the app",
         "a dialog never reaches the footer: ui.Dialog takes the rows it may use and scrolls its body (an ↑ n more row above, a … n more row below) when it doesn't fit, so the help dialog at 80×24 and 60×18 ends at least one row above the footer rule in every theme, with ↑↓ in its footer only when there is more to see",
-        "ASCII twins never collide across meanings: the input caret's twin (▏ → ') is not the focus bar's |, and the ASCII sparkline ramp holds no status twin (no * or +), so a caret never reads as a focused block and a peak never as a done or current mark"
+        "ASCII twins never collide across meanings: the input caret's twin (▏ → ') is not the focus bar's |, and the ASCII sparkline ramp holds no status twin (no * or +), so a caret never reads as a focused block and a peak never as a done or current mark",
+        "the footprint test renders every ordinary state at the floor TUI.md § Size floor names (60×18 unless the product raised it) and the four sizes above it, and one size below the floor asserts the too-small screen; a product with an 80×24 floor does not keep the kit's 60×18 list, where toosmall renders and passes as a layout",
+        "with themes/<brand>.json already written by brand, craft's copy skipped the `<closest>.json` line of the README block (the derived roles were not overwritten by a kit donor's), and once its screens were in it deleted what the README names as the showcase's alone (data.go; setup.go and setup_test.go with their scrSetup, m.setup and setup-* wiring; every behaviour test but TestHelpIsHandled, TestASCIIIsASCII and TestASCIIStatusDistinct) and kept the harness and showcase_test.go, its overlay lists naming the app's own overlay states; go vet, go test ./... and tuilint code pass after the delete",
+        "every expression axis moved after a diversity failure carries its product reason in the brand read and TUI.md § Decisions, and none reads 'to pass diversity' or 'for the distance' as its only reason: an axis the lint alone moved (a scrim dropped, a dialog edge swapped) was moved back and the distance found in a move the read asked for",
+        "the brand read's remember move is visible on the main screen's default frame as rendered (the queue list with nothing pressed), not only in the sketch or in a state the user has to reach, and the screen's § Screens block names the frame its identity shows on",
+        "a stacked pair at 80×24 (the queue list over its detail, or a summary over a log) shares rows by content, the upper taking what it fills and the lower the rest: no region holds five or more blank rows while the one under it cuts content",
+        "at 80×24 the queue list (the surface the user acts on) keeps at least half the body rows; the throughput and failure readings above or beside it fold onto shared rows before taking rows from the list",
+        "a throughput or failure sparkline drawn taller than one row grows upward from its label's row: the label, the current value and the bar's base share the bottom row and the peaks rise above it; the label is never on one row with the bar alone on the next",
+        "a reading past its warning level (a failure rate or retry ratio in the amber band) carries the theme's warn mark beside its value and a reading in the error band the fail mark, so the band survives NO_COLOR and 16 colours where amber is the text colour or red's slot; the ladder frame shows both marks"
       ]
     },
     {
@@ -93,7 +101,8 @@
         "prose is capped at a measure (<= 100 cells) at 200 columns",
         "editor uses a real cursor via tea.View.Cursor",
         "the brand read ties 'warm' and 'editorial' each to a named expression axis and its value (e.g. editorial → titleCase lower, measure 72; warm → a tinted neutral, a soft motif), not to a colour alone",
-        "if the brand read makes the type lowercase, the theme says so for labels too (expressions.labelCase \"lower\"): table headers, tags and toast labels follow it, and no kit-forced SERVICE or SETUP is left on screen"
+        "if the brand read makes the type lowercase, the theme says so for labels too (expressions.labelCase \"lower\"): table headers, tags and toast labels follow it, and no kit-forced SERVICE or SETUP is left on screen",
+        "a body viewer (tool output, code, JSON, a response) draws its text at two lightnesses, names or keys in fg and punctuation or values in muted, not at one flat level and not as a rainbow of per-token colours"
       ]
     },
     {
@@ -195,7 +204,9 @@
         "the ● ◐ ○ ✓ state ladder keeps ◐: it has an ASCII twin and sits in a 2-cell column, and is not dropped or replaced by plain text for being ambiguous-width",
         "no state's footer keys overflow the 80-column footer: a state with more actions than fit (the inbox) marks its footer (bold keys, or ‖ after them), keeping its main actions and its way out in it and the rest reachable from ? help; tuilint spec reports no S-FOOTER",
         "TUI.md's colour line says what separates dialogs and overlays from the page where the background step is gone (16 colours, NO_COLOR, -profile ascii), e.g. a hairline rule or border, although SPEC.md asks for borderless filled panels",
-        "tuilint spec reports no S-ACCENT on TUI.md: once the accents: line gives the hue its one meaning (amber = new), no other line puts 'the accent' or 'the primary hue' on the wordmark, a spinner, a ramp or anything else; a brief that does trips S-ACCENT and is fixed before the hand-off"
+        "tuilint spec reports no S-ACCENT on TUI.md: once the accents: line gives the hue its one meaning (amber = new), no other line puts 'the accent' or 'the primary hue' on the wordmark, a spinner, a ramp or anything else; a brief that does trips S-ACCENT and is fixed before the hand-off",
+        "every overlay state's harness name in the key table carries one of dialog, palette, confirm, modal, overlay, popup, help or keys (confirm-sending, not sending; quick-switcher-palette, not switcher), because tuilint frames finds a ruled, ASCII or borderless dialog only by its name and otherwise lints the scrimmed page behind it, failing F-CONTRAST on every dimmed cell",
+        "every marked row with help-only keys shows its own help key: `? help`, or `ctrl+g help` in the Reply and Note rows, whose text boxes type `?`; Global binds no ctrl+g, which a focused textarea takes as select-all (no S-KEYSHADOW), and a confirm row with `y yes` either shows every key or ends `? help` (no S-FOOTER); each key cell is `key action` items, one binding per item with the key first (`ctrl+c twice quit now`)"
       ]
     },
     {
@@ -217,7 +228,9 @@
         "round 2 confirmed the screen list, each screen with its job, in a question's default, although the Grainline conflict also needed a question: the conflict got its own short round or replaced a lower-value question, never the screens one, and the flows SPEC.md describes outside § Screens (morning triage with bulk mark-done and snooze, acknowledging a Beacon page from anywhere) appear in that list or are deferred by name",
         "the brand read's remember line names a move the TUI draws on every screen (the state-dot column, a rule, a gutter, a layout move), not a quality of the content such as 'reads like a well-set page'",
         "the First slice is the main loop's 2–3 screens (inbox, thread, reply) with every state of those on fixtures, not every state of every screen; note, the quick switcher and the rest come after it",
-        "TUI.md § Screens holds one block per screen in the template's shape, not one line: the job, regions with x,y w×h at 80×24 and at 120×40, what collapses below 110 columns and 30 rows, the kit components that draw it, the fixture notes (longest name, failing row, empty list) and an 80-wide sketch in a code fence; a filled TUI.md still passes tuilint spec"
+        "TUI.md § Screens holds one block per screen in the template's shape, not one line: the job, regions with x,y w×h at 80×24 and at 120×40, what collapses below 110 columns and 30 rows, the kit components that draw it, the fixture notes (longest name, failing row, empty list) and an 80-wide sketch in a code fence; a filled TUI.md still passes tuilint spec",
+        "TUI.md's architecture half puts the root model, render(w,h), the fixtures and the harness in cmd/<app>/ (where the kit's README copy block puts the showcase and its tests), not in internal/app/; internal/ holds only the copied theme/ and ui/",
+        "each § Screens region line gives the footer the height the theme's footer draws, 80×1 at 0,23 bare or on a bar and 80×2 at 0,22 under footer: rule (a rule row then the keys), with the body budget above it one row shorter in the rule case; no region line writes footer 0,23 80×1 under a rule footer"
       ]
     }
   ]

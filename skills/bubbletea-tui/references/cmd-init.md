@@ -125,6 +125,7 @@ One block per screen: `shape` fills it, `craft` builds it in § First slice orde
 #### <screen> — <its job in one line, and what the eye lands on first>
 80×24:  <region> <x,y w×h> · <region> <x,y w×h> · footer 0,23 80×1     (outer widths; text width = outer − gutters)
 120×40: <region> <x,y w×h> · <the pane that exists only here> · footer 0,39 120×1
+        (under footer: rule the footer is 0,22 80×2: layout.md § Write The Budget)
 collapse: < 110 cols <what becomes what>; < 30 rows <what goes>
 components: <ui.Table, ui.Dot, …>; new: <none | name, and why no kit component draws it>
 fixtures: <count, the longest name, the failing row, the empty list>
@@ -147,10 +148,11 @@ rows: <spinners for row-level work>; idle: nothing moves
 ### Stack
 Go 1.26.7; charm.land/bubbletea/v2 v2.1.0, lipgloss/v2 v2.0.6, bubbles/v2 v2.2.1,
 huh/v2 v2.0.3; ultraviolet v0.0.0-20261008173134-6b8d4baf91b4.
-theme/ and ui/ copied from the kit into internal/.
+theme/ and ui/ copied from the kit into internal/; the showcase into cmd/<app>.
 
 ### Root model and regions
-One *model in internal/app; regions are structs drawn into rectangles (x,y w×h at 80×24):
+One *model in cmd/<app> (where the kit's copy block puts the harness and its tests);
+regions are structs drawn into rectangles (x,y w×h at 80×24):
 
     header   0,0    80×1
     list     0,2    32×20
@@ -169,19 +171,20 @@ Bubbles: <textarea, viewport, …>. Kit ui: <List, Table, Dialog, Footer, …>.
 ### States and keys
 One action table per state; footer and dispatcher both read it. Every screen that
 loads data has its empty, loading, error and partial (some sources failed) rows.
-Footer keys are **bold** (in a long cell, ‖ after the last of them does the same): main actions first, then the way out and ? help. The rest are help-only.
+Footer keys are **bold** (in a long cell, ‖ after the last of them does the same): main actions first, then the way out and ? help (ctrl+g help where a text box types ?). The rest are help-only.
 
 | state (harness name) | screen / overlay | keys |
 |---|---|---|
 | services             | services         | **↑↓ move** · **enter open** · **d deploy** · **r roll back** · **/ filter** · **q quit** · **? help** · l logs · c copy id · s sort by status |
 | services-empty       | services         | r refresh · ? help · q quit |
+| reply                | reply (textarea) | **ctrl+s send** · **esc cancel** · **ctrl+g help** · shift+enter/ctrl+j newline |
 | confirm              | overlay          | ←→ choose · enter confirm · esc cancel |
 | toosmall             | any              | q quit |
 
 Global: ctrl+c quit
 
 ### Harness and fixtures
-internal/app/fixtures.go feeds setState for the harness (-state, -out) and every test.
+cmd/<app>/fixtures.go feeds setState for the harness (-state, -out) and every test.
 fakes: <service> → <fake>, one per external CLI or API; no render or test touches the network.
 
 ### Async and the clock
@@ -190,7 +193,7 @@ One gen-stamped tick, armed only while <what> animates.
 largest: <realistic worst case, e.g. 50k log lines, 5k rows> → <virtual list | render cache keyed by …>
 
 ### Size floor
-Below 60×18: ui.TooSmall. Below 110 columns: <what collapses>. Below 30 rows: <what>.
+Below <floor; 60×18 unless the product raises it>: ui.TooSmall. Below 110 columns: <what collapses>. Below 30 rows: <what>.
 
 ### Accessible and non-TTY
 ACCESSIBLE=1 or --accessible: no alt screen, Huh WithAccessible(true), status as new
@@ -246,7 +249,8 @@ checks:
 
 - **State names equal harness names.** `-state services-empty` must render the row
   called `services-empty`, so the critic, the harness and this file talk about the same
-  frame. The kit's too-small state is `toosmall`, one row for the whole app.
+  frame. The kit's too-small state is `toosmall`, one row for the whole app. Overlays
+  are named as `cmd-shape.md` step 3 says.
 - **Keys here are the action tables.** If the table and `actions()` disagree, the code
   wins and this file is fixed in the same change; `TestHelpIsHandled` holds the code.
   The help-only keys (not bold, or after ‖) are the actions with `show: false`.
@@ -255,7 +259,10 @@ checks:
 
 ## 4. Lint It Before Handing Off
 
-`tuilint spec TUI.md` must exit 0. It fails a table not in the template's format
+`tuilint spec TUI.md` must exit 0. A cell is `key action` items joined by `·`, one binding
+per item (alternates joined by `/`) with the key first (`ctrl+c twice quit now`, not a sentence), because `ui.Help`
+draws the cell as written and the lint reads the first token as the key. It fails a
+table not in the template's format
 [S-TABLE], because nothing else can be checked without one; a key that terminals without key
 disambiguation deliver as another, with no fallback in the cell (`shift+enter` arrives
 as `enter` in tmux: write `shift+enter/ctrl+j newline`) [S-KEYAMBIG], and one key with
@@ -265,7 +272,10 @@ because the state's table is dispatched first. Fix its warnings or justify each 
 § Decisions: a Global key a text box eats (`ctrl+k` deletes to end of line in a Bubbles
 textarea) [S-KEYSHADOW], an ambiguous-width glyph with no ASCII twin [S-GLYPHWIDTH], and
 a state whose footer keys overflow the 76 columns an 80-column footer has inside the
-kit's gutters, where `ui.Help` drops the tail behind `…` [S-FOOTER], and a line that
+kit's gutters, where `ui.Help` drops the tail behind `…` [S-FOOTER], a marked footer with
+help-only keys and no help key in it (end it with `? help`, or `ctrl+g help` in a row
+with a text box, as the template's `reply` does: a Global ctrl+g is the textarea's
+select-all [S-KEYSHADOW]) [S-FOOTER], and a line that
 puts "the accent" or "primary" on something the `accents:` line didn't give it
 [S-ACCENT]. Fix that one by
 marking the footer, bold or ‖: the state's main actions and its way out, then `? help`,
