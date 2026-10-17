@@ -174,9 +174,16 @@ func TestDeriveCorpusMatchesPython(t *testing.T) {
 					pyHex[j], pyIdx[j] = hexes[j], idx[j]
 				}
 				// the border now lands at 1.5:1 (TestBorderFloor), not palette.py's step of
-				// 0.07 L that read at 1.2; the rest of the set still matches
+				// 0.07 L that read at 1.2, so it is held to the band instead of the row, on
+				// every page that lies on its mode's side (a dark --light-bg, where every
+				// role tunes toward the wrong end and clamps, is the brand's call, as
+				// TestDeriveAlwaysPassesCheck says of a background of the brand's own)
 				if k == "border" {
 					pyHex[j], pyIdx[j] = hexes[j], idx[j]
+					lb, _, _ := oklch.LCH(m.Roles["bg"])
+					if cr := oklch.Contrast(m.Roles[k], m.Roles["bg"]); (lb < 0.5) == (m.Name == "dark") && (cr < 1.5 || cr > 1.9) {
+						t.Errorf("derive %v %s: border %s on bg %s is %.2f:1, want 1.5–1.9", in, m.Name, m.Roles[k], m.Roles["bg"], cr)
+					}
 				}
 			}
 			if got := strings.Join(hexes, " "); got != strings.Join(pyHex, " ") {
@@ -808,6 +815,48 @@ func TestDerivePinsPrimaryToItsHueFirst(t *testing.T) {
 	}
 	if strings.Contains(dErr.String(), "of hue from its own") {
 		t.Errorf("derive warns on its own pins:\n%s", dErr.String())
+	}
+}
+
+// The yellow brand's eviction is per mode: a dark lime natively on 11 yields the yellow
+// to its warning there, and that must not send the light amber primary, natively on
+// red, back to the status-first order and onto magenta 5 (the K12 miss again); and
+// derive's own pins for the evicted yellow brand (#FFE600, light primary 6, warning 3)
+// draw no far-pin warning, since the lifted theme pins primary nowhere, so there is no
+// nearer pin to name (naming warning's 3 put both on one slot).
+func TestEvictionIsPerMode(t *testing.T) {
+	f := theme.File{Roles: map[string]theme.Roles{
+		"dark":  {Bg: "#17140F", Fg: "#E8E2D6", Primary: "#C8D43A", Warning: "#F2C35C", Success: "#6ACB82", Error: "#EF8482", Info: "#56BDFF"},
+		"light": {Bg: "#F6F1E6", Fg: "#2B2620", Primary: "#AF7400", Warning: "#8C6800", Success: "#007835", Error: "#A13E40", Info: "#006A9D"},
+	}}
+	if n := theme.ANSI16Index(f, "dark", "primary"); n != 11 {
+		t.Fatalf("dark lime draws as ANSI %d natively, want 11: the probe no longer tests an eviction", n)
+	}
+	pins := Pins16(f)
+	if got := pins["dark"]["warning"]; got != 11 {
+		t.Errorf("dark: warning pinned to %d, want its own 11 (the lime yields it)", got)
+	}
+	if got := pins["light"]["primary"]; got != 3 {
+		t.Errorf("light: primary pinned to %d, want yellow 3 (pins %v)", got, pins["light"])
+	}
+	yellow := themeOf(Derive("#FFE600", "#556B2F", "", "", "", 0.012))
+	yellow.ANSI16 = Pins16(yellow)
+	if far := FarPins(yellow); len(far) != 0 {
+		t.Errorf("derive's own pins for the yellow brand warn: %+v", far)
+	}
+	// through the command too: derive's stderr and check's on its output carry no far
+	// pin (the brand's warning beside its yellow is a warning on purpose, so this brand
+	// is not in TestDeriveOutputPassesCheckSilently)
+	out := filepath.Join(t.TempDir(), "roles.json")
+	var dOut, dErr, cOut, cErr bytes.Buffer
+	if code := Main([]string{"derive", "#FFE600", "#556B2F", "--out", out}, "", &dOut, &dErr); code != 0 {
+		t.Fatalf("derive: exit %d\n%s", code, dErr.String())
+	}
+	Main([]string{"check", out}, "", &cOut, &cErr)
+	for what, text := range map[string]string{"derive": dErr.String(), "check": cErr.String()} {
+		if strings.Contains(text, "of hue from its own") {
+			t.Errorf("%s warns on derive's own pins for the yellow brand:\n%s", what, text)
+		}
 	}
 }
 

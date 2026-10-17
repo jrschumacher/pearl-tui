@@ -49,7 +49,8 @@ palette check theme.json   # on any existing theme
   `ansi16` pins its own `check` would ask for (most brands' warning lands on error's red
   at 16 colours), so the first `palette check` of the theme prints no 16-colour pin.
   The brand takes the slot nearest its hue first (an amber on yellow 11/3) and a
-  displaced warning moves; only a brand natively on a status role's own slot yields it
+  displaced warning moves; only a brand that is a status role's own colour (a yellow,
+  within 25° of the slot's hue) yields it
 - warns when `warning` sits beside `primary` in hue and chroma (an amber brand's warning
   a shade brighter than its amber): a warning row then reads as a focused one
 
