@@ -74,6 +74,7 @@ jobs:
                   -e 's#<your/module>#example.com/brandapp#g' > "$RUNNER_TEMP/copy.sh"
           cat "$RUNNER_TEMP/copy.sh"
           sh -e "$RUNNER_TEMP/copy.sh"
+          test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
           go vet ./...
           test "$(ls themes/*.json)" = themes/brand.json
           go test ./...

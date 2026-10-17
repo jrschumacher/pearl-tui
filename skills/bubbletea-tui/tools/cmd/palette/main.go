@@ -29,7 +29,9 @@
 // It exits 2 on the theme's glyphs too (theme.CheckGlyphs): a glyph with no ASCII twin
 // (in glyphs.ascii or the kit's map), a twin that isn't ASCII, or two marks of one
 // meaning (done/current/todo/pending/partial/warn/fail, radio on/off, check on/off,
-// thumb/track, focus/blur bar) that share a twin under -ascii. And on its expressions
+// thumb/track, focus/blur bar) that share a twin under -ascii, or a spinner frame that
+// is, or whose cells hold, a status mark, a bar or the caret (a "···" spinner beside a
+// "·" pending). And on its expressions
 // (theme.CheckExpressions): a key the kit doesn't read or a value it doesn't know, which
 // theme.Load draws as the default silently ("dialog": "rule" for "rules"), named with
 // the values the kit knows. A key under roles.<mode>, glyphs or wordmark the kit doesn't
@@ -50,20 +52,39 @@
 // on red or on another state role's colour (amber = new must not read as error). It warns
 // on primary on red under "focus": "primary" (focus reads as an error), on warning,
 // success or info on red, and on two of those on one colour: their glyphs and words still
-// differ. The neutrals (bg, fg, fgMuted, fgSubtle, their steps, border) draw on the four
-// greys there (the kit assigns them: page 0 or 15, text the opposite; a dark page keeps
-// three text levels, fgMuted 7 and fgSubtle 8; a light page keeps two, fgMuted and
-// fgSubtle both 8, since ANSI 7 on a white page is below every floor and fgSubtle is
-// never the only carrier of meaning), so only a pin moves one: a neutral on red exits 1 (hints read as
-// errors), on another hue or two text levels on one grey it warns, each with the grey to
-// pin instead. A pin that names no role, no mode or no colour 0-15 exits 2, as
+// differ. The neutrals (bg, fg, fgMuted, fgSubtle, their steps, border, and borderFocus,
+// the dialog's edge) draw on the four greys there (the kit assigns them: page 0 or 15,
+// text the opposite; a dark page keeps three text levels, fgMuted 7 and fgSubtle 8; a
+// light page keeps two, fgMuted and fgSubtle both 8, since ANSI 7 on a white page is
+// below every floor and fgSubtle is never the only carrier of meaning; a rule on 8 or 7
+// beside the page, the dialog's edge a step up on 7 or 8), so only a pin moves one: a
+// neutral on red exits 1 (hints read as errors, a ruled dialog's edge as an error's), on
+// another hue or two text levels on one grey it warns, each with the grey to pin
+// instead; borderFocus pinned onto primary's own slot, the kit's truecolour default, is
+// not reported. A pin that names no role, no mode or no colour 0-15 exits 2, as
 // theme.Load does.
+//
+// A suggested pin is a status role's own slot, else the nearest free hue, never red and
+// never the other brightness of a slot another state draws (10 beside success's 2 reads
+// as success). When the brand and a status role are both displaced (an amber and its
+// warning, both on red), the brand takes the slot nearest its hue first (yellow 11/3)
+// and the status role moves, when a slot within 60° of the brand's hue exists; an
+// orange, as far from yellow as from magenta, lets the status roles keep their own and
+// takes the nearest free. A brand that is a status role's own colour (a yellow on 3, or
+// within 25° of yellow's hue) yields the slot, each mode for itself. It warns on a pin,
+// the theme's or derive's, that moves a role
+// more than 60° of OKLCH hue from its truecolour value while the tool would pin it
+// nearer (an amber pinned to green 10 while yellow is its warning's), naming the hex, its
+// hue, the slot and the nearer pin; a pin that is the nearest free hue, however far, is
+// not reported.
 //
 // Thresholds (WCAG 2 contrast ratio against the role's background):
 //
 //	fg ≥ 7      fgMuted ≥ 4.5     fgSubtle ≥ 2.6 (hints only, never the only carrier of meaning)
 //	primary, success, error, warning ≥ 3.5    secondary, info ≥ 3.0    tertiary, accent ≥ 4.5
-//	border 1.14–1.9 and bgSubtle 1.1–2.2 (barely there, but there)
+//	border 1.3–1.9, and a warning under 1.5 (a rule nobody sees is half the idiom gone;
+//	  the same numbers on a light page, where 1.5:1 is the same step in L*)
+//	bgSubtle 1.1–2.2 (barely there, but there)
 //	fg ≥ 4.5 and fgMuted ≥ 3.0 on bgSubtle too
 //	onPrimary, onWarning ≥ 4.5 on their fill; onSecondary, onError, onSuccess, fgSelected ≥ 3.5
 //	plus the pairs a theme's expressions put on screen: "footer": "bar" draws the key
@@ -71,7 +92,8 @@
 //	the ones they take off: under "focus": "fg" no selection is a primary fill, so
 //	fgSelected on primary isn't checked (primary on bg and onPrimary still are)
 //
-// derive aims higher than these floors (fgMuted 4.6, fg 11–12, accent and status 4.5).
+// derive aims higher than these floors (fgMuted 4.6, fg 11–12, accent and status 4.5,
+// border 1.5).
 // On a mid-tone fill where neither ink clears its floor, derive deepens the ink toward
 // black or white along its hue (the engine does the same), so the brand keeps its hex.
 //

@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"unicode"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
@@ -381,10 +382,16 @@ func TestSpinnerNeverDrawsAnotherMark(t *testing.T) {
 			if len(g.Spinner) < 2 {
 				t.Errorf("%s ascii=%v: spinner %q has no motion", filepath.Base(path), ascii, g.Spinner)
 			}
+			marks["caret"] = g.Caret
 			for _, fr := range g.Spinner {
 				for name, m := range marks {
 					if m != "" && strings.TrimSpace(fr) == m {
 						t.Errorf("%s ascii=%v: spinner frame %q is glyphs.%s", filepath.Base(path), ascii, fr, name)
+					}
+					for _, r := range fr { // a multi-cell frame's cells, each beside a status column or a bar
+						if m != "" && !unicode.IsSpace(r) && string(r) == m {
+							t.Errorf("%s ascii=%v: spinner frame %q contains glyphs.%s %q", filepath.Base(path), ascii, fr, name, m)
+						}
 					}
 				}
 			}
@@ -407,6 +414,30 @@ func TestSpinnerNeverDrawsAnotherMark(t *testing.T) {
 	}
 	if g := Resolve(f, true, false).G; slices.Contains(g.Spinner, g.Partial) {
 		t.Errorf("the default partial %q is a spinner frame %q", g.Partial, g.Spinner)
+	}
+	// every rune of a multi-cell frame counts, not only a one-cell frame as a whole: a
+	// dots spinner beside a "·" pending (welp's) draws the pending mark three times in a
+	// working row, and a frame holding the caret or the focus bar draws a focus
+	for _, c := range []struct{ json, want string }{
+		{`{"glyphs": {"pending": "·", "spinner": ["···", "•··", "••·", "•••"]}}`, `glyphs.spinner frame "···" contains glyphs.pending "·"`},
+		{`{"glyphs": {"spinner": ["▏·", "·▏"]}}`, `glyphs.spinner frame "▏·" contains glyphs.caret "▏"`},
+		{`{"glyphs": {"focusBar": "┃", "spinner": ["┃·", "·┃"]}}`, `glyphs.spinner frame "┃·" contains glyphs.focusBar "┃"`},
+	} {
+		f, err := Load(writeTheme(t, c.json))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := CheckGlyphs(f.Glyphs); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("CheckGlyphs(%s) = %v, want %q", c.json, err, c.want)
+		}
+	}
+	// the same dots beside a "◌" pending are fine: no cell is a mark
+	f, err = Load(writeTheme(t, `{"glyphs": {"pending": "◌", "spinner": ["···", "•··", "••·", "•••"]}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CheckGlyphs(f.Glyphs); err != nil {
+		t.Errorf("CheckGlyphs(dots spinner, pending ◌) = %v", err)
 	}
 }
 
@@ -538,5 +569,42 @@ func TestTwinsStayApartAcrossMeanings(t *testing.T) {
 	}
 	if tw, _ := ASCIITwin("▏"); tw != "'" {
 		t.Errorf("▏ twins as %q, want ' (not the focus bar's |)", tw)
+	}
+}
+
+// A rule is half the idiom (Law 2), and a border at 1.18:1 on its page is a rule nobody
+// sees: welp's #2A231A on #17140F passed palette check's 1.14 floor with its section,
+// table and footer rules invisible on both sheets. Every kit theme's border, set or
+// derived (ink's), now reads at 1.5:1 or more in both modes and stays under 1.9, where
+// palette check warns and fails respectively; the engine's own derived border lands in
+// the same band on any page.
+func TestBordersAreVisibleButQuiet(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	test, _ := filepath.Glob(filepath.Join("testdata", "*.json"))
+	for _, path := range append(files, test...) {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dark := range []bool{true, false} {
+			p := Resolve(f, dark, false).P
+			if cr := Contrast(p.Border, p.Bg); cr < 1.5 || cr > 1.9 {
+				t.Errorf("%s dark=%v: border %v on bg %v is %.2f:1, want 1.5–1.9", filepath.Base(path), dark, p.Border, p.Bg, cr)
+			}
+		}
+	}
+	for _, c := range []struct {
+		bg, fg string
+	}{{"#17140F", "#E8E2D6"}, {"#F6F1E6", "#2B2620"}, {"#000000", "#FFFFFF"}, {"#808080", "#FFFFFF"}, {"#FAFAF9", "#1D232D"}} {
+		dark := Luminance(Hex(c.bg)) < 0.5
+		p := derive(Roles{Bg: c.bg, Fg: c.fg}, dark, nil)
+		if cr := Contrast(p.Border, p.Bg); cr < 1.5 || cr > 1.9 {
+			t.Errorf("derived border on %s is %.2f:1, want 1.5–1.9", c.bg, cr)
+		}
 	}
 }

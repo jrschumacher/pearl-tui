@@ -53,8 +53,11 @@ it. Either commit whatever `npx skills add` created under `.claude/skills/bubble
 `.agents/skills/`, which you then commit too), or commit `skills-lock.json` plus a
 `.claude/skills/bubbletea-tui -> ../../.agents/skills/bubbletea-tui` link and run
 `npx skills experimental_install` after cloning (it restores `.agents/skills/` only).
-The lock pins no commit, only a content hash, so `experimental_install` restores the
-current `main`, not the version the project was built with: to pin, commit the copy.
+In that layout, reinstall with `npx skills experimental_install` too, never
+`npx skills add`, which replaces the link with a copy and leaves `.agents/skills/` at
+the old version. The lock pins no commit, only a content hash, so `experimental_install`
+restores the current `main`, not the version the project was built with: to pin, commit
+the copy.
 Pick one with the user. Installed as the Claude Code plugin instead, the skill lives with
 the user, not the repo.
 

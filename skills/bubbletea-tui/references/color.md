@@ -15,7 +15,7 @@ literal.
 | `accent` | section titles: reads "heading", never "alert" | 4.5 |
 | `bg › bgPanel › bgSubtle › bgOverlay` | the background ramp | bgSubtle 1.1–2.2 |
 | `fg › fgSoft › fgMuted › fgSubtle` | the text ramp | 7 › (unchecked) › 4.5 › 2.6; on bgSubtle fg 4.5, fgMuted 3.0 |
-| `border` / `borderFocus` | rules: barely there, but there / the one dialog's border | 1.14–1.9 / unchecked |
+| `border` / `borderFocus` | rules: quiet, but seen / the one dialog's border | 1.3–1.9, a warning under 1.5 (light pages the same: 1.5:1 is ~15 L* on either) / unchecked |
 | `success error warning` / `info` | state only | 3.5 / 3.0 |
 | `onPrimary onWarning` / `onSecondary onError onSuccess` | text on a filled role | 4.5 / 3.5 |
 | `fgSelected` | text on the primary selection fill | 3.5 (not under `focus: fg`) |
@@ -31,7 +31,9 @@ palette check theme.json   # on any existing theme
 `derive` works in OKLCH so lightness steps are perceptual. It:
 
 - keeps the brand's hue and chroma for `primary`/`secondary` and moves only lightness
-  until the colour clears its floor
+  until the colour clears its floor; puts `border` at 1.5:1, where a rule is seen
+  without being a line (`#2A231A` on `#17140F`, 1.18:1, passed the old floor with every
+  rule invisible on the sheet)
 - **tints every neutral toward the background's hue** (or the primary's, on a neutral
   bg). This is the single biggest difference between a palette that reads "designed" and
   one that reads "default grey".
@@ -45,7 +47,10 @@ palette check theme.json   # on any existing theme
   two hues the second is the brand's and the tertiary a complement
 - writes both a dark and a light set, the nearest xterm-256 index per role, and the
   `ansi16` pins its own `check` would ask for (most brands' warning lands on error's red
-  at 16 colours), so the first `palette check` of the theme prints no 16-colour pin
+  at 16 colours), so the first `palette check` of the theme prints no 16-colour pin.
+  The brand takes the slot nearest its hue first (an amber on yellow 11/3) and a
+  displaced warning moves; only a brand that is a status role's own colour (a yellow,
+  within 25° of the slot's hue) yields it
 - warns when `warning` sits beside `primary` in hue and chroma (an amber brand's warning
   a shade brighter than its amber): a warning row then reads as a focused one
 
@@ -126,9 +131,11 @@ and look at the PNGs. What usually breaks:
 - the `bg`/`bgSubtle` step merges at 256 colours, so selection disappears. Move it further
   apart, or add the glyph marker.
 - a tinted neutral downsamples by distance onto a hue at 16 colours: a warm page lands on
-  yellow, warm hints on red, and three cool text levels on one blue. The kit puts every
-  neutral on a grey there (`bg` 0/15, `fg` the opposite, `bgSubtle` and `border` beside
-  the page). Dark keeps three text levels at 16 colours (`fgMuted` 7, `fgSubtle` 8);
+  yellow, warm hints on red, and three cool text levels on one blue; a warm `borderFocus`
+  one notch lighter than its neighbour draws a ruled dialog's edge in error's red. The
+  kit puts every neutral on a grey there (`bg` 0/15, `fg` the opposite, `bgSubtle` and
+  `border` beside the page, `borderFocus` a step up on `fgMuted`'s grey), the roles a
+  dialog draws included. Dark keeps three text levels at 16 colours (`fgMuted` 7, `fgSubtle` 8);
   light keeps two (`fgMuted` and `fgSubtle` both 8), because ANSI 7 on a white page is
   below every floor; `fgSubtle` is never the only carrier of meaning. `palette check`
   fails a pin that puts a neutral back on red and warns on any other hue or two text
@@ -150,12 +157,16 @@ and look at the PNGs. What usually breaks:
 
   `palette check` names each clash and the pin that fixes it (stderr): it fails error
   off red, under `focus: fg` primary on red or on another state's colour, and a neutral
-  (`bg`, `fg`, `fgMuted`, `fgSubtle`, their steps, `border`) pinned onto red; it warns
+  (`bg`, `fg`, `fgMuted`, `fgSubtle`, their steps, `border`, `borderFocus`) pinned onto
+  red; it warns
   on the rest, two of `fg`/`fgMuted`/`fgSubtle` pinned onto one grey included
   (`palette -h` lists them). A warning is not a pass to ignore: pin it unless
   the brand accepts it in its read. Pin bright (9-14) on dark, normal (1-6) on light,
   error to 9/1, a status role to its own slot (warning 3/11, success 2/10, info 4/12 or
-  6/14), never a grey; the user's terminal palette decides the exact colour.
+  6/14), never a grey; the user's terminal palette decides the exact colour. A pin
+  that moves a role more than 60° of hue while a nearer slot is free (an amber brand on
+  green 10, with yellow 11 its warning's) warns with the hex, the slot and the nearer
+  pin: the brand reads as a success there.
 
 ## DO / DON'T
 

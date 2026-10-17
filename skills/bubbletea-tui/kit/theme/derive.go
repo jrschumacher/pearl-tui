@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -85,7 +86,7 @@ func derive(r Roles, dark bool, pins map[string]int) Palette {
 	p.FgMuted = c(r.FgMuted, Mix(p.Fg, p.Bg, 0.45))
 	p.FgSubtle = c(r.FgSubtle, Mix(p.Fg, p.Bg, 0.62))
 	p.FgSoft = c(r.FgSoft, Mix(p.Fg, p.FgMuted, 0.3))
-	p.Border = c(r.Border, Mix(p.Bg, p.Fg, 0.1))
+	p.Border = c(r.Border, edgeTint(p.Bg, p.Fg, 1.5))
 	p.BorderFocus = c(r.BorderFocus, p.Primary)
 	p.Success = c(r.Success, lipgloss.Color("#3DBE7F"))
 	p.Error = c(r.Error, lipgloss.Color("#E5484D"))
@@ -118,8 +119,10 @@ func derive(r Roles, dark bool, pins map[string]int) Palette {
 // 1.8:1 on VGA's, below every floor, so a light page keeps two levels (fgSubtle is never
 // the only carrier of meaning). bgSubtle takes the grey nearer bg (8 dark, 7 light);
 // bgPanel sits on the page (Distinct then gives a panel an edge), bgOverlay and border on
-// bgSubtle's grey, the one edge picks for a rule that lands on the page. -1 for a role
-// that isn't a neutral.
+// bgSubtle's grey, the one edge picks for a rule that lands on the page; borderFocus,
+// the one dialog's edge, on fgMuted's grey (7 dark, 8 light), a step up from a rule. A
+// theme that wants its hue on the dialog's edge at 16 colours pins borderFocus to
+// primary's slot. -1 for a role that isn't a neutral.
 // Downsampling by distance puts a tinted neutral on a hue instead (a warm grey on red, a
 // cool one on blue): hints then read as errors and the page turns yellow. palette check
 // reports a pin that undoes this (NeutralRoles, ANSI16Neutrals).
@@ -133,8 +136,8 @@ func GreySlot16(role string, dark bool) int {
 
 // greys16 is GreySlot16's table, by dark.
 var greys16 = map[bool]map[string]int{
-	true:  {"bg": 0, "bgPanel": 0, "bgSubtle": 8, "bgOverlay": 8, "border": 8, "fg": 15, "fgSoft": 15, "fgMuted": 7, "fgSubtle": 8},
-	false: {"bg": 15, "bgPanel": 15, "bgSubtle": 7, "bgOverlay": 7, "border": 7, "fg": 0, "fgSoft": 0, "fgMuted": 8, "fgSubtle": 8},
+	true:  {"bg": 0, "bgPanel": 0, "bgSubtle": 8, "bgOverlay": 8, "border": 8, "borderFocus": 7, "fg": 15, "fgSoft": 15, "fgMuted": 7, "fgSubtle": 8},
+	false: {"bg": 15, "bgPanel": 15, "bgSubtle": 7, "bgOverlay": 7, "border": 7, "borderFocus": 8, "fg": 0, "fgSoft": 0, "fgMuted": 8, "fgSubtle": 8},
 }
 
 // pins16 are the roles derive replaces at 16 colours in mode: every neutral on its grey
@@ -162,6 +165,18 @@ func pinned(r Roles, pins map[string]int) Roles {
 		}
 	}
 	return r
+}
+
+// edgeTint is the first step of the ramp from bg toward fg that reads at floor against
+// bg (1.5:1 for a border: visible but quiet, palette check's warning floor; bg one step
+// off, 1.2:1, was a rule nobody saw), or fg when none does.
+func edgeTint(bg, fg color.Color, floor float64) color.Color {
+	for _, step := range lipgloss.Blend1D(101, bg, fg)[1:] {
+		if c := rgb8(step); Contrast(c, bg) >= floor {
+			return c
+		}
+	}
+	return fg
 }
 
 // Mix blends a toward b by t (0 = a, 1 = b) in CIELAB, the way Crush derives
@@ -418,8 +433,10 @@ var glyphMeanings = [][]string{
 // CheckGlyphs reports a theme whose glyphs ASCII can't draw faithfully: a twin in
 // glyphs.ascii that isn't ASCII itself, a glyph outside ASCII with no twin in the
 // theme's map or the kit's (it would draw as "?"), or two glyphs of one meaning set
-// (glyphMeanings) that differ but share a twin. palette check and the kit's tests
-// fail on it; theme.Load doesn't, so an app never refuses to start over a glyph.
+// (glyphMeanings) that differ but share a twin; and a spinner frame that is, or whose
+// cells hold, a status mark, a bar or the caret (spinnerMarks), which a working row
+// beside them would read as. palette check and the kit's tests fail on it; theme.Load
+// doesn't, so an app never refuses to start over a glyph.
 func CheckGlyphs(g Glyphs) error {
 	keys := make([]string, 0, len(g.ASCII))
 	for k := range g.ASCII {
@@ -458,6 +475,22 @@ func CheckGlyphs(g Glyphs) error {
 			if mark := sv0.FieldByName(m).String(); mark != "" && strings.TrimSpace(fr) == mark {
 				return fmt.Errorf("glyphs.spinner frame %q is also glyphs.%s: a working row beside it would read as that mark; pick frames no state or focus mark uses",
 					fr, jsonKey(m))
+			}
+		}
+		// a multi-cell frame draws each of its cells beside a status column or a bar:
+		// a dots spinner "···" beside a "·" pending draws the pending mark three times
+		for _, r := range fr {
+			if unicode.IsSpace(r) {
+				continue
+			}
+			for _, m := range spinnerMarks {
+				if m == "Partial" && g.Partial == "" {
+					continue
+				}
+				if mark := sv0.FieldByName(m).String(); mark != "" && string(r) == mark {
+					return fmt.Errorf("glyphs.spinner frame %q contains glyphs.%s %q: a working row beside a status column or the caret would read as that mark; pick frames whose cells are no state or focus mark",
+						fr, jsonKey(m), mark)
+				}
 			}
 		}
 	}
@@ -579,9 +612,11 @@ func CheckExpressions(x Expressions) error {
 	return err
 }
 
-// spinnerMarks are the glyphs a working spinner sits beside, in a status column or next
-// to a focus bar: no frame may be one of them, or a working row reads as that mark.
-var spinnerMarks = []string{"FocusBar", "BlurBar", "Done", "Current", "Todo", "Fail", "Warn", "Pending", "Partial"}
+// spinnerMarks are the glyphs a working spinner sits beside, in a status column, next
+// to a focus bar or at the end of an input: no frame, nor a cell of one, may be one of
+// them, or a working row reads as that mark (the ASCII caret "|" is the line spinner's
+// first frame, so asciiSpinner drops it).
+var spinnerMarks = []string{"FocusBar", "BlurBar", "Done", "Current", "Todo", "Fail", "Warn", "Pending", "Partial", "Caret"}
 
 // asciiSpinner is the line spinner | / - \ without the frames g's marks already draw
 // as (the "|" of a focus bar twinned from ▌): a turning line still, a frame short. If

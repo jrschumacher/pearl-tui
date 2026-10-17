@@ -261,3 +261,51 @@ func TestRulesStayVisibleInReducedProfiles(t *testing.T) {
 		}
 	}
 }
+
+// borderFocus is a neutral too: every role a dialog draws (border, borderFocus,
+// bgPanel, bgOverlay) joins the grey snap, or a ruled dialog's edge downsamples by
+// distance and one notch of lightness decides between grey and error's red (#716857 on
+// #17140F landed on 8, #746B5A on 1, with check saying OK). A pin still moves it, and
+// ANSI16Neutrals reports a pin onto a hue.
+func TestDialogRolesSnapToGreysAt16Colours(t *testing.T) {
+	f := File{Roles: map[string]Roles{
+		"dark":  {Bg: "#17140F", Fg: "#E8E2D6", FgMuted: "#9A9183", FgSubtle: "#746B5A", Border: "#2A231A", BorderFocus: "#746B5A", BgPanel: "#1F1A14", BgOverlay: "#2E2720", Primary: "#D99A3B"},
+		"light": {Bg: "#F6F1E6", Fg: "#2B2620", FgMuted: "#6E655A", FgSubtle: "#9A9183", Border: "#D9D2C4", BorderFocus: "#9A9183", BgPanel: "#EFE9DC", BgOverlay: "#E3DCCD", Primary: "#9A6A1A"},
+	}}
+	for _, role := range []string{"border", "borderFocus", "bgPanel", "bgOverlay"} {
+		if !slices.Contains(NeutralRoles, role) {
+			t.Errorf("%s is not in NeutralRoles", role)
+		}
+	}
+	for _, mode := range []string{"dark", "light"} {
+		dark := mode == "dark"
+		for _, role := range []string{"border", "borderFocus", "bgPanel", "bgOverlay"} {
+			got, want := ANSI16Index(f, mode, role), GreySlot16(role, dark)
+			if want < 0 || got != want {
+				t.Errorf("%s %s: ANSI %d, want its grey %d", mode, role, got, want)
+			}
+		}
+		// the dialog's edge is told apart from the page and from a plain rule
+		if b, bf := ANSI16Index(f, mode, "border"), ANSI16Index(f, mode, "borderFocus"); b == bf {
+			t.Errorf("%s: border and borderFocus both ANSI %d", mode, b)
+		}
+		th := ResolveProfile(f, dark, false, colorprofile.ANSI)
+		if !th.Distinct(th.P.BorderFocus, th.P.Bg) {
+			t.Errorf("%s: borderFocus draws in the page's colour", mode)
+		}
+	}
+	if n := ANSI16Neutrals(f); len(n) != 0 {
+		t.Errorf("ANSI16Neutrals = %v, want none", n)
+	}
+	f.ANSI16 = map[string]map[string]int{"dark": {"borderFocus": 9}}
+	if got := ANSI16Index(f, "dark", "borderFocus"); got != 9 {
+		t.Errorf("a pinned borderFocus is ANSI %d, want its pin 9", got)
+	}
+	var got []string
+	for _, n := range ANSI16Neutrals(f) {
+		got = append(got, n.String())
+	}
+	if want := []string{"dark: borderFocus draws as ANSI 9, a hue"}; !slices.Equal(got, want) {
+		t.Errorf("ANSI16Neutrals = %q, want %q", got, want)
+	}
+}

@@ -37,7 +37,12 @@ import (
 // floor (palette.py shipped the failure), the ink is now theme.OnInk's deepened one.
 // That changed derive/tint and derive/tint-zero (exit 1 → 0), 14 corpus rows'
 // onPrimary/fgSelected, and check/failing's light onPrimary (the engine now draws
-// #444444, not #555555, on #7FB3FF).
+// #444444, not #555555, on #7FB3FF). The border floor moved from 1.14 to 1.3 with a
+// warning under 1.5, and derive's border from a 0.07 L step (1.2:1) to 1.5:1
+// (TestBorderFloor): every check/*.txt border line, every derive/* border (its .out,
+// .err and the swatch's rule row) and the kit themes' own borders were regenerated for
+// that alone; corpus.txt keeps palette.py's rows, with border compared against the new
+// rule instead.
 
 const kitThemes = "../../../kit/themes"
 
@@ -167,6 +172,18 @@ func TestDeriveCorpusMatchesPython(t *testing.T) {
 				// rest of the set still matches
 				if in[1] == "" && (k == "secondary" || k == "tertiary" || k == "onSecondary") {
 					pyHex[j], pyIdx[j] = hexes[j], idx[j]
+				}
+				// the border now lands at 1.5:1 (TestBorderFloor), not palette.py's step of
+				// 0.07 L that read at 1.2, so it is held to the band instead of the row, on
+				// every page that lies on its mode's side (a dark --light-bg, where every
+				// role tunes toward the wrong end and clamps, is the brand's call, as
+				// TestDeriveAlwaysPassesCheck says of a background of the brand's own)
+				if k == "border" {
+					pyHex[j], pyIdx[j] = hexes[j], idx[j]
+					lb, _, _ := oklch.LCH(m.Roles["bg"])
+					if cr := oklch.Contrast(m.Roles[k], m.Roles["bg"]); (lb < 0.5) == (m.Name == "dark") && (cr < 1.5 || cr > 1.9) {
+						t.Errorf("derive %v %s: border %s on bg %s is %.2f:1, want 1.5–1.9", in, m.Name, m.Roles[k], m.Roles["bg"], cr)
+					}
 				}
 			}
 			if got := strings.Join(hexes, " "); got != strings.Join(pyHex, " ") {
@@ -383,10 +400,11 @@ func TestCheckFailsStateClashesAt16Colours(t *testing.T) {
 			`warning: `, `dark: warning #F28C6B draws as ANSI 9 at 16 colours (-profile ansi), error's red, so it reads as an error there; "ansi16": {"dark": {"warning": 3}} moves it`}},
 		{"focus fg, pinned", `, "expressions": {"focus": "fg"}, "ansi16": {"dark": {"primary": 11, "warning": 3}, "light": {"primary": 3, "warning": 5}}`, 0, nil},
 		// under focus "primary" the hue is the kit's emphasis: on error's red it is a
-		// warning (focus reads as an error there), not a failure; warning, also on red,
-		// takes its own yellow first and primary the nearest free hue
-		{"focus primary", ``, 0, []string{`warning: `, `dark: primary #D99A3B draws as ANSI 9 at 16 colours (-profile ansi), error's red, so focus and selection read as errors there; "ansi16": {"dark": {"primary": 13}} moves it`,
-			`dark: warning #F28C6B draws as ANSI 9 at 16 colours (-profile ansi), error's red, so it reads as an error there; "ansi16": {"dark": {"warning": 11}} moves it`}},
+		// warning (focus reads as an error there), not a failure; the amber, also on red
+		// with the warning, takes the yellow nearest its hue first (PinOrder) and the
+		// warning its own slot's other brightness
+		{"focus primary", ``, 0, []string{`warning: `, `dark: primary #D99A3B draws as ANSI 9 at 16 colours (-profile ansi), error's red, so focus and selection read as errors there; "ansi16": {"dark": {"primary": 11}} moves it`,
+			`dark: warning #F28C6B draws as ANSI 9 at 16 colours (-profile ansi), error's red, so it reads as an error there; "ansi16": {"dark": {"warning": 3}} moves it`}},
 		// a clash between two status roles off red: a warning
 		{"status clash", `, "ansi16": {"dark": {"primary": 11, "warning": 10}, "light": {"primary": 3, "warning": 3}}`, 0, []string{`warning: `, `dark: warning #F28C6B draws as ANSI 10 at 16 colours (-profile ansi), as success #6ACB82 does, so those states differ there only by glyph and word`}},
 	} {
@@ -709,6 +727,233 @@ func TestOneHueNeverCollapses(t *testing.T) {
 		p, s, x := m.Roles["primary"], m.Roles["secondary"], m.Roles["tertiary"]
 		if p == s || p == x || s == x {
 			t.Errorf("%s: primary %s secondary %s tertiary %s: two are one colour", m.Name, p, s, x)
+		}
+	}
+}
+
+// A spinner whose multi-cell frames contain a status or focus mark exits 2, as a
+// one-cell frame that is one did: welp's dots beside a "·" pending (#29 P7).
+func TestCheckRejectsSpinnerFramesHoldingAMark(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "theme.json")
+	if err := os.WriteFile(path, []byte(`{"roles": {"dark": {"bg": "#17140F", "fg": "#E8E2D6", "primary": "#D99A3B"}}, "ansi16": {"dark": {"primary": 11, "warning": 3}}, "glyphs": {"pending": "·", "spinner": ["···", "•··", "••·", "•••"]}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out, errb bytes.Buffer
+	if code := Main([]string{"check", path}, "", &out, &errb); code != 2 || !strings.Contains(errb.String(), `glyphs.spinner frame "···" contains glyphs.pending "·"`) {
+		t.Errorf("exit %d, stderr %q", code, errb.String())
+	}
+}
+
+// A dialog's roles (border, borderFocus, bgPanel, bgOverlay) are neutrals at 16 colours:
+// the engine puts them on a grey, so only a pin moves one. check fails a dialog role
+// pinned onto red (a ruled dialog's edge then reads as an error's) and warns on another
+// hue, each with the grey that puts it back; borderFocus on primary's own slot is the
+// kit's truecolour default, not a stray hue, so that pin is not reported.
+func TestCheckFailsDialogRolesOnRedAt16Colours(t *testing.T) {
+	roles := `{"dark": {"bg": "#17140F", "fg": "#E8E2D6", "fgMuted": "#9A9183", "fgSubtle": "#746B5A", "border": "#40372B", "borderFocus": "#746B5A", "bgOverlay": "#2E2720", "primary": "#D99A3B"}}`
+	for _, c := range []struct {
+		name, pins string
+		code       int
+		stderr     []string
+	}{
+		{"no pins", `{"dark": {"primary": 11, "warning": 3}}`, 0, nil},
+		{"edge on red", `{"dark": {"primary": 11, "warning": 3, "borderFocus": 9}}`, 1, []string{
+			`palette: ` + "%s" + `: dark: borderFocus #746B5A draws as ANSI 9 at 16 colours (-profile ansi), error's red, so the dialog's edge reads as an error there: pin it with "ansi16": {"dark": {"borderFocus": 7}}`,
+			"FAIL (0 contrast problems, 1 problems at 16 colours)"}},
+		{"overlay on a hue", `{"dark": {"primary": 11, "warning": 3, "bgOverlay": 4}}`, 0, []string{
+			`palette: warning: ` + "%s" + `: dark: bgOverlay #2E2720 draws as ANSI 4 at 16 colours (-profile ansi), a hue, so an overlay reads as a state there; "ansi16": {"dark": {"bgOverlay": 8}} moves it`}},
+		{"edge on the brand", `{"dark": {"primary": 11, "warning": 3, "borderFocus": 11}}`, 0, nil},
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		if err := os.WriteFile(path, []byte(`{"roles": `+roles+`, "ansi16": `+c.pins+`}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		if code != c.code {
+			t.Errorf("%s: exit %d, want %d\n%s%s", c.name, code, c.code, out.String(), errb.String())
+		}
+		for _, want := range c.stderr {
+			if strings.Contains(want, "%s") {
+				want = fmt.Sprintf(want, path)
+			}
+			if !strings.Contains(out.String()+errb.String(), want) {
+				t.Errorf("%s: output %q, want %q", c.name, errb.String()+out.String(), want)
+			}
+		}
+		if c.stderr == nil && errb.String() != "" {
+			t.Errorf("%s: stderr %q, want nothing", c.name, errb.String())
+		}
+	}
+}
+
+// An amber brand and its warning both land on red at 16 colours. derive pins primary to
+// the slot nearest its hue first (yellow, 11 dark and 3 light) and moves warning off it,
+// never primary to green 10 or magenta 5 with warning on the yellow: the brand amber
+// drew as bright green on a dark page and magenta on a light one, beside success's
+// green, and check proposed 11/3 for the same theme unpinned. A yellow brand that sits
+// natively on warning's slot still yields it (TestYellowBrandKeepsWarningYellow).
+func TestDerivePinsPrimaryToItsHueFirst(t *testing.T) {
+	f := themeOf(Derive("#D99A3B", "", "", "#17140F", "#F6F1E6", 0.012))
+	pins := Pins16(f)
+	for mode, yellow := range map[string]int{"dark": 11, "light": 3} {
+		if got := pins[mode]["primary"]; got != yellow {
+			t.Errorf("%s: primary pinned to %d, want yellow %d (pins %v)", mode, got, yellow, pins[mode])
+		}
+		if w, ok := pins[mode]["warning"]; !ok || w == yellow || w == 1 || w == 9 {
+			t.Errorf("%s: warning pinned to %d (ok %v), want a slot off yellow and red", mode, w, ok)
+		}
+	}
+	// the same brand through the command: pins written, no pin for primary off yellow
+	out := filepath.Join(t.TempDir(), "roles.json")
+	var dOut, dErr bytes.Buffer
+	if code := Main([]string{"derive", "#D99A3B", "--bg", "#17140F", "--light-bg", "#F6F1E6", "--out", out}, "", &dOut, &dErr); code != 0 {
+		t.Fatalf("derive: exit %d\n%s", code, dErr.String())
+	}
+	if !strings.Contains(dErr.String(), "dark primary 11") || !strings.Contains(dErr.String(), "light primary 3") {
+		t.Errorf("derive pinned %q", dErr.String())
+	}
+	if strings.Contains(dErr.String(), "of hue from its own") {
+		t.Errorf("derive warns on its own pins:\n%s", dErr.String())
+	}
+}
+
+// The yellow brand's eviction is per mode: a dark lime natively on 11 yields the yellow
+// to its warning there, and that must not send the light amber primary, natively on
+// red, back to the status-first order and onto magenta 5 (the K12 miss again); and
+// derive's own pins for the evicted yellow brand (#FFE600, light primary 6, warning 3)
+// draw no far-pin warning, since the lifted theme pins primary nowhere, so there is no
+// nearer pin to name (naming warning's 3 put both on one slot).
+func TestEvictionIsPerMode(t *testing.T) {
+	f := theme.File{Roles: map[string]theme.Roles{
+		"dark":  {Bg: "#17140F", Fg: "#E8E2D6", Primary: "#C8D43A", Warning: "#F2C35C", Success: "#6ACB82", Error: "#EF8482", Info: "#56BDFF"},
+		"light": {Bg: "#F6F1E6", Fg: "#2B2620", Primary: "#AF7400", Warning: "#8C6800", Success: "#007835", Error: "#A13E40", Info: "#006A9D"},
+	}}
+	if n := theme.ANSI16Index(f, "dark", "primary"); n != 11 {
+		t.Fatalf("dark lime draws as ANSI %d natively, want 11: the probe no longer tests an eviction", n)
+	}
+	pins := Pins16(f)
+	if got := pins["dark"]["warning"]; got != 11 {
+		t.Errorf("dark: warning pinned to %d, want its own 11 (the lime yields it)", got)
+	}
+	if got := pins["light"]["primary"]; got != 3 {
+		t.Errorf("light: primary pinned to %d, want yellow 3 (pins %v)", got, pins["light"])
+	}
+	yellow := themeOf(Derive("#FFE600", "#556B2F", "", "", "", 0.012))
+	yellow.ANSI16 = Pins16(yellow)
+	if far := FarPins(yellow); len(far) != 0 {
+		t.Errorf("derive's own pins for the yellow brand warn: %+v", far)
+	}
+	// through the command too: derive's stderr and check's on its output carry no far
+	// pin (the brand's warning beside its yellow is a warning on purpose, so this brand
+	// is not in TestDeriveOutputPassesCheckSilently)
+	out := filepath.Join(t.TempDir(), "roles.json")
+	var dOut, dErr, cOut, cErr bytes.Buffer
+	if code := Main([]string{"derive", "#FFE600", "#556B2F", "--out", out}, "", &dOut, &dErr); code != 0 {
+		t.Fatalf("derive: exit %d\n%s", code, dErr.String())
+	}
+	Main([]string{"check", out}, "", &cOut, &cErr)
+	for what, text := range map[string]string{"derive": dErr.String(), "check": cErr.String()} {
+		if strings.Contains(text, "of hue from its own") {
+			t.Errorf("%s warns on derive's own pins for the yellow brand:\n%s", what, text)
+		}
+	}
+}
+
+// A pin that moves a role far from its own hue (an amber primary on green 10, 67° off)
+// while the tool itself would pin it nearer reads as another state: check warns, naming
+// the hex, its hue, the slot and the nearer pin. A pin under 60° (ferrous's warning
+// #CFA24E on yellow 11, 29°) or one that is the nearest free hue (ferrous's orange on
+// magenta, with red error's and yellow warning's) is not reported; nor is a neutral's.
+func TestCheckWarnsOnAFarPin(t *testing.T) {
+	roles := `{"dark": {"bg": "#17140F", "fg": "#E8E2D6", "primary": "#D99A3B", "warning": "#F2C35C", "success": "#6ACB82", "error": "#EF8482", "info": "#56BDFF"}, "light": {"bg": "#F6F1E6", "fg": "#2B2620", "primary": "#AF7400", "warning": "#8C6800", "success": "#007835", "error": "#A13E40", "info": "#006A9D"}}`
+	for _, c := range []struct {
+		name, pins string
+		want, not  []string
+	}{
+		{"derive's old pins", `{"dark": {"primary": 10, "warning": 11}, "light": {"primary": 5, "warning": 3}}`, []string{
+			`dark: primary #D99A3B is pinned to ANSI 10 at 16 colours (-profile ansi), bright green, 69° of hue from its own 74°, so the brand reads as green there; "ansi16": {"dark": {"primary": 11}} is nearer its hue (yellow, 36° off), with warning moved off it`,
+			`light: primary #AF7400 is pinned to ANSI 5 at 16 colours (-profile ansi), magenta, 105° of hue from its own 74°, so the brand reads as magenta there; "ansi16": {"light": {"primary": 3}} is nearer its hue (yellow, 36° off), with warning moved off it`,
+		}, nil},
+		{"the nearest free hue", `{"dark": {"primary": 11, "warning": 3}, "light": {"primary": 3, "warning": 6}}`, nil, []string{"of hue from its own"}},
+		{"a hand pin far off", `{"dark": {"primary": 12, "warning": 3}, "light": {"primary": 3, "warning": 6}}`, []string{
+			`dark: primary #D99A3B is pinned to ANSI 12 at 16 colours (-profile ansi), bright blue, 170° of hue from its own 74°, so the brand reads as blue there; "ansi16": {"dark": {"primary": 11}} is nearer its hue (yellow, 36° off)`,
+		}, nil},
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		if err := os.WriteFile(path, []byte(`{"roles": `+roles+`, "ansi16": `+c.pins+`}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		Main([]string{"check", path}, "", &out, &errb)
+		for _, want := range c.want {
+			if !strings.Contains(errb.String(), want) {
+				t.Errorf("%s: stderr %q, want %q", c.name, errb.String(), want)
+			}
+		}
+		for _, not := range c.not {
+			if strings.Contains(errb.String(), not) {
+				t.Errorf("%s: stderr %q, want no %q", c.name, errb.String(), not)
+			}
+		}
+	}
+	// no kit theme's own pins are far: each is the nearest free hue, or under 60°
+	kit, _ := filepath.Glob(kitThemes + "/*.json")
+	for _, path := range append(kit, kitThemes+"/../theme/testdata/quire.json") {
+		var out, errb bytes.Buffer
+		Main([]string{"check", path}, "", &out, &errb)
+		if strings.Contains(errb.String(), "of hue from its own") {
+			t.Errorf("%s: %s", filepath.Base(path), errb.String())
+		}
+	}
+}
+
+// The border floor matches what a reader can see: check fails a border under 1.3:1 on
+// its page and warns under 1.5:1 (welp's #2A231A on #17140F, 1.18:1, passed the old 1.14
+// floor with every rule invisible on the sheet); 1.9 stays the ceiling. derive puts its
+// border at 1.5–1.9 on any page, so its output never warns; light pages get the same
+// numbers, since a 1.5:1 step is about 15 L* on a dark page and on a light one alike.
+func TestBorderFloor(t *testing.T) {
+	for _, c := range []struct {
+		name, border string
+		code         int
+		stdout       string
+		stderr       []string
+	}{
+		{"invisible", "#2A231A", 1, "FAIL border       on bg         1.18  (want ≥1.3 ≤1.9)", []string{"FAIL (1 contrast problems)"}},
+		{"faint", "#383026", 0, "warn border       on bg         1.42  (want ≥1.3 ≤1.9)", []string{
+			`palette: warning: ` + "%s" + `: dark: border #383026 on bg #17140F is 1.42:1, under 1.5: the section, table and footer rules are barely there; a rule reads at 1.5–1.9`}},
+		{"visible", "#40372B", 0, "ok   border       on bg         1.57  (want ≥1.3 ≤1.9)", nil},
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		if err := os.WriteFile(path, []byte(`{"roles": {"dark": {"bg": "#17140F", "fg": "#E8E2D6", "border": "`+c.border+`", "primary": "#D99A3B"}}, "ansi16": {"dark": {"primary": 11, "warning": 3}}}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		if code != c.code {
+			t.Errorf("%s: exit %d, want %d\n%s%s", c.name, code, c.code, out.String(), errb.String())
+		}
+		if !strings.Contains(out.String(), c.stdout) {
+			t.Errorf("%s: stdout %q, want %q", c.name, out.String(), c.stdout)
+		}
+		for _, want := range c.stderr {
+			if strings.Contains(want, "%s") {
+				want = fmt.Sprintf(want, path)
+			}
+			if !strings.Contains(out.String()+errb.String(), want) {
+				t.Errorf("%s: output %q, want %q", c.name, errb.String()+out.String(), want)
+			}
+		}
+		if c.stderr == nil && errb.String() != "" {
+			t.Errorf("%s: stderr %q, want nothing", c.name, errb.String())
+		}
+	}
+	for _, args := range [][]string{{"#D99A3B", "", "", "#17140F", "#F6F1E6"}, {"#6B50FF", "", "", "", ""}, {"#6B50FF", "", "", "#808080", ""}, {"#0F5257", "#FF6F59", "", "", ""}, {"#F5F0E1", "", "", "", ""}} {
+		for _, m := range Derive(args[0], args[1], args[2], args[3], args[4], 0.012) {
+			if cr := oklch.Contrast(m.Roles["border"], m.Roles["bg"]); cr < 1.5 || cr > 1.9 {
+				t.Errorf("derive %v %s: border %s on bg %s is %.2f:1, want 1.5–1.9", args, m.Name, m.Roles["border"], m.Roles["bg"], cr)
+			}
 		}
 	}
 }

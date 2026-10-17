@@ -781,3 +781,40 @@ func TestRainbowSkipsIndexedFrames(t *testing.T) {
 		t.Errorf("the same frame in 256 colours: %d F-RAINBOW, want 0", n)
 	}
 }
+
+// A rule drawn in ASCII twins is decoration the way its glyph is: a rules dialog's
+// titled top edge "-- Commands -----" (the two-cell lead before the title, which a
+// 3+ run rule missed), a "======-----" progress bar and a tab underline, in the
+// dialog's edge colour at 2.29:1 on the panel, are no F-CONTRAST; the same cells as
+// letters are. A lone "--" in prose, with no rule run of the same ink in the row, is
+// still text. welp darkened its overlay to get the lead past the 2.3 text floor.
+func TestContrastExemptsASCIIRuleTwins(t *testing.T) {
+	dir := t.TempDir()
+	const edge = "\x1b[48;2;46;39;32m\x1b[38;2;102;93;80m" // #665D50 on #2E2720: 2.27:1
+	const ink = "\x1b[48;2;46;39;32m\x1b[38;2;207;205;202m"
+	write := func(name, text string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	for _, c := range []struct {
+		name, text string
+		hits       int
+	}{
+		{"lead-30x1.ansi", edge + "--" + ink + " Commands " + edge + "------------------\x1b[0m", 0},
+		{"letters-30x1.ansi", edge + "ab" + ink + " Commands " + edge + "cdefghijklmnopqrst\x1b[0m", 1},
+		{"progress-30x1.ansi", edge + "=============-----------------\x1b[0m", 0},
+		{"underline-30x1.ansi", edge + "  ---------                   \x1b[0m", 0},
+		{"dash-30x1.ansi", edge + "--" + ink + " one, then " + edge + "--" + ink + " two      \x1b[0m", 1},
+	} {
+		hits := contrastHits(t, write(c.name, c.text), "--ascii")
+		if len(hits) != c.hits {
+			t.Errorf("%s: %d F-CONTRAST, want %d: %+v", c.name, len(hits), c.hits, hits)
+		}
+	}
+	if hits := contrastHits(t, filepath.Join(dir, "dash-30x1.ansi"), "--ascii"); len(hits) == 1 && !strings.HasPrefix(hits[0].Msg, "4 text cells") {
+		t.Errorf("prose dashes: %s", hits[0].Msg)
+	}
+}
