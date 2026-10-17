@@ -22,7 +22,8 @@ No Go yet.
    moves.
 5. **Content**: realistic fixture data, including the longest name, the failing row and
    the empty list. No lorem ipsum. Each column's budget fits its longest fixture: more
-   than 3 rows cut to `…` in one column is a budget too narrow [F-TRUNC].
+   than 3 rows cut to `…` in one column is a budget too narrow [F-TRUNC]. A column of
+   paths, URLs or code has no longest: cut it and say so in § Decisions.
 6. **Components**: which kit component draws each region (`components.md`), and any new
    component you'll need. A new component is a reason to stop and think: is it a real
    need, or a box you're reaching for?

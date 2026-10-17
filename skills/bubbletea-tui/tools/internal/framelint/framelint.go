@@ -34,6 +34,7 @@
 //	F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
 //	F-TRUNC     [P2] more than 3 rows ending in an ellipsis (…, the theme's glyphs.ellipsis, or
 //	                 ... with --ascii) at one column: a column budgeted narrower than its content
+//	                 (not a table's last column headed path, file, command or url)
 //	F-ASCII     [P1] (with --ascii) a cell outside ASCII in a frame rendered for ASCII
 package framelint
 
@@ -85,8 +86,8 @@ every cell must be ASCII: a glyph that leaks through is tofu on a console font.
   F-EDGE      [P2] content touching column 0 or the last column on most rows
   F-EMPTY     [P2] frame is more than 98.5% blank (not on a splash*/intro*/wordmark* frame)
   F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
-  F-TRUNC     [P2] more than 3 rows ending in an ellipsis at one column: budget the column
-                   from the longest fixture
+  F-TRUNC     [P2] more than 3 rows ending in an ellipsis at one column: widen it from the
+                   longest fixture, or say in TUI.md that it cuts (paths, URLs, code)
   F-ASCII     [P1] (with --ascii) a cell outside ASCII: give the glyph an ASCII twin
 `
 

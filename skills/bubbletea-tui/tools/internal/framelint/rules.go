@@ -867,7 +867,8 @@ const truncMax = 3
 // the same place; the budget comes from the longest fixture (layout.md), so the column
 // is too narrow. An ellipsis ends text when a non-blank cell precedes it and a blank
 // cell, a rule or box glyph, or the row's end follows. One finding per frame, at the
-// column with the most.
+// column with the most. A table's last column headed path, file, command or url is
+// skipped (unboundedColumn): no budget fits a path, so cutting it is the design.
 func LintTrunc(name string, f Frame, ellipses []string) []Finding {
 	rowsAt := map[int][]int{} // end column -> rows
 	for y, row := range f.Rows {
@@ -912,8 +913,49 @@ func LintTrunc(name string, f Frame, ellipses []string) []Finding {
 	}
 	ys := rowsAt[best]
 	slices.Sort(ys)
+	if unboundedColumn(f, ys, best) {
+		return nil
+	}
 	return []Finding{{"F-TRUNC", "P2", name, fmt.Sprintf("r%dc%d", ys[0], best),
-		fmt.Sprintf("%d rows end in an ellipsis at column %d: the column is narrower than its content; budget it from the longest fixture (layout.md), or wrap", len(ys), best)}}
+		fmt.Sprintf("%d rows end in an ellipsis at column %d: widen the column from the longest fixture (layout.md), or, when its content has no bound (paths, URLs, code), say in TUI.md § Decisions that this column cuts", len(ys), best)}}
+}
+
+// unboundedHeaders name a column whose content has no length to budget from.
+var unboundedHeaders = map[string]bool{"path": true, "file": true, "command": true, "cmd": true, "url": true, "uri": true}
+
+// unboundedColumn reports whether the column cut at x on rows ys is a table's last column
+// under a header in unboundedHeaders: nothing follows x on any cut row, and a row above
+// the first cut ends in that header, starting at or left of x ("pid  program  command").
+func unboundedColumn(f Frame, ys []int, x int) bool {
+	for _, y := range ys {
+		for _, c := range f.Rows[y][x+1:] {
+			if !cutsNothing(c.Ch) {
+				return false
+			}
+		}
+	}
+	for y := ys[0] - 1; y >= 0; y-- {
+		row := f.Rows[y]
+		end := len(row) - 1
+		for end >= 0 && cutsNothing(row[end].Ch) {
+			end--
+		}
+		start := end
+		for start > 0 && !cutsNothing(row[start-1].Ch) {
+			start--
+		}
+		if end < 0 || start > x {
+			continue
+		}
+		var word strings.Builder
+		for _, c := range row[start : end+1] {
+			word.WriteString(c.Ch)
+		}
+		if unboundedHeaders[strings.TrimSuffix(strings.ToLower(word.String()), "s")] {
+			return true
+		}
+	}
+	return false
 }
 
 // cutsNothing is a cell an ellipsis can't have cut: blank, or a rule or box glyph.

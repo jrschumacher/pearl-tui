@@ -610,6 +610,33 @@ func TestTruncatedColumn(t *testing.T) {
 	if got := truncs(frame("own-34x9.ansi", 5, "⋯"), "--theme", theme); len(got) != 1 {
 		t.Errorf("five rows cut with the theme's ⋯: %+v, want one", got)
 	}
+	// a table's last column headed command, path, file or url cuts by design (a process
+	// list's command line); the message says to widen the column or say so in TUI.md
+	table := func(name, header, after string) string {
+		var b strings.Builder
+		b.WriteString("  pid    " + header + strings.Repeat(" ", 16-len(header)) + after + "\n")
+		b.WriteString("  " + strings.Repeat("─", 24) + "\n")
+		for y := range 6 {
+			b.WriteString(fmt.Sprintf("  %-5d  /usr/local/bin/s…%s\n", 100+y, after))
+		}
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	if got := truncs(table("procs-34x9.ansi", "command", "")); len(got) != 0 {
+		t.Errorf("a last column headed command: %+v, want none", got)
+	}
+	if got := truncs(table("paths-34x9.ansi", "Paths", "")); len(got) != 0 {
+		t.Errorf("a last column headed Paths: %+v, want none", got)
+	}
+	if got := truncs(table("titles-34x9.ansi", "title", "")); len(got) != 1 || !strings.Contains(got[0].Msg, "widen the column") || !strings.Contains(got[0].Msg, "§ Decisions") {
+		t.Errorf("a last column headed title: %+v, want one that says widen it or say so in § Decisions", got)
+	}
+	if got := truncs(table("mid-40x9.ansi", "command", "  ok")); len(got) != 1 {
+		t.Errorf("a command column with a column after it: %+v, want one", got)
+	}
 }
 
 // F-LEVELS isn't judged on a frame with no colour (NO_COLOR): it has one text level by
