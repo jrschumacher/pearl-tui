@@ -32,9 +32,7 @@
   opens.
 - Focus is shown by the gutter bar, the label weight, and the prompt colour. It never
   changes layout.
-- Unfocused-but-selected stays visible in a quieter tone, and in its own glyph: the
-  theme's `blurBar` (`╎` or `▏`, ascii `:`), never the focus bar `▌` in a quieter colour,
-  because under NO_COLOR and `-ascii` the colour is gone and two `│` are two focuses.
+- Unfocused-but-selected stays visible in a quieter tone.
 - Overlays trap focus. Keys go to the front overlay only, and `esc` closes it and
   restores the previous focus.
 
