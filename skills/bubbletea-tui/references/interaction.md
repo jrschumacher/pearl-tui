@@ -19,6 +19,10 @@
 - **Help changes with context.** In a dialog, the footer shows the dialog's keys. Pressing
   `esc` once with typed content shows "esc again to discard". Capability matters too:
   only advertise `shift+enter` if `SupportsKeyDisambiguation()`.
+- **A toggle's help names what the key does now:** `f pause` while following, `f follow`
+  while paused, as the kit's `enter` reads `deploy` or `cancel` from the focused button.
+  `TestHelpIsHandled` proves the key fires, not that the label is true, so render both
+  states and read the footer against the header: `following` beside `f follow` is a lie.
 - Key order in the help: the primary action, navigation, secondary actions, then
   `? help`/`q quit` last. It truncates from the right with `…`.
 

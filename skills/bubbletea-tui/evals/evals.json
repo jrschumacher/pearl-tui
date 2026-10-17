@@ -32,7 +32,9 @@
         "the state ladder (queued, running, retrying, failed, done) draws its marks from the theme's status slots, never literals: in progress is t.G.Partial (◐, ascii ~), not current's ● in another colour, so under NO_COLOR and -ascii every rung keeps its own shape",
         "a theme whose state roles collide at 16 colours carries an ansi16 pin: palette check on the shipped theme prints no 16-colour clash (stderr), e.g. a warning #E9B949 and an error #E0665C that both downsample to ANSI 9 at -profile ansi get \"ansi16\": {\"dark\": {\"warning\": 11}}, and a brand whose hue is a state (focus fg) never shares primary's slot with error; the brand hexes stay as derived",
         "palette check passes the shipped theme with no unknown expression key or value (it exits 2 on \"dialog\": \"rule\" for \"rules\" and lists what the kit knows): every expression the brand read chooses is one the kit draws, none silently falls back to a default",
-        "a running job's working mark in the status column is one cell like the dots beside it (ui.Busy, not a multi-cell spinner), and under -ascii it is never the focus bar's | or another state's mark"
+        "a running job's working mark in the status column is one cell like the dots beside it (ui.Busy, not a multi-cell spinner), and under -ascii it is never the focus bar's | or another state's mark",
+        "every toggle's help names what the key does now: a key that pauses while following reads `f pause`, not `f follow`, in the state where the header or status says following (render both states; the footer and the status word never show the same verb)",
+        "the critic round was a fresh subagent given the PNGs and goldens, or, with no subagent tool, a fresh message that re-read only the PNGs and goldens with verify.md's prompt, and the hand-off says which; a self-review with the code in context is not a critic"
       ]
     },
     {

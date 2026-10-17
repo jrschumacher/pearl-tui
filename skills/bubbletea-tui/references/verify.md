@@ -60,7 +60,9 @@ room. That's the critic's job, and yours.
 ## The Critic
 
 Spawn a fresh subagent. It has not seen your reasoning, so it judges the screen, not the
-intent. Give it the files, not a description.
+intent. Give it the files, not a description. No subagent tool: re-read only the PNGs
+and goldens (not your code) in a fresh message with the prompt below, and say so in the
+hand-off, because a self-review that has the code in context grades the intent.
 
 ```
 You are reviewing a terminal UI built with Bubble Tea. Be adversarial: your job is to
