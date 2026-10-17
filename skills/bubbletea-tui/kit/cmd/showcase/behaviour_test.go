@@ -161,6 +161,43 @@ func TestOneClock(t *testing.T) {
 	}
 }
 
+// The product clock survives a setting change. The frame clock may let a stale tick
+// die (TestOneClock): the next key press re-arms it. The list's refresh has no second
+// chance, so a handler that changes its interval or pauses and resumes it returns the
+// new arm cmd itself; a copied app whose bumper only bumps the generation fails here.
+func TestClockSurvivesSettingChange(t *testing.T) {
+	m := fixture(t, "services")
+	if m.armRefresh() == nil {
+		t.Fatal("a live list should arm its refresh")
+	}
+	for range refreshRates {
+		pending := m.refresh.gen
+		if m.command("Refresh rate") == nil {
+			t.Fatalf("a rate change (now %s) returned no arm cmd: the pending tick dies and the list never syncs again", refreshRates[m.refresh.rate])
+		}
+		if _, cmd := m.Update(refreshMsg{gen: pending}); cmd != nil {
+			t.Fatal("the old interval's tick ran as well as the new one")
+		}
+		if n := m.refresh.syncs; n != 0 {
+			t.Fatalf("the old interval's tick synced (%d)", n)
+		}
+	}
+	if _, cmd := m.Update(refreshMsg{gen: m.refresh.gen}); cmd == nil || m.refresh.syncs != 1 {
+		t.Fatalf("the current tick should sync and re-arm (synced %d, re-armed %v)", m.refresh.syncs, cmd != nil)
+	}
+	// pause stops the clock; resume is a setting change too, and arms it again
+	pending := m.refresh.gen
+	if m.key(press("p")) != nil || !m.paused {
+		t.Fatal("pause should stop the refresh")
+	}
+	if _, cmd := m.Update(refreshMsg{gen: pending}); cmd != nil || m.refresh.syncs != 1 {
+		t.Fatal("a paused list synced or re-armed")
+	}
+	if m.key(press("p")) == nil || m.paused {
+		t.Fatal("resume should arm the refresh again")
+	}
+}
+
 // ASCII mode emits ASCII, whatever a screen or a fixture typed.
 func TestASCIIIsASCII(t *testing.T) {
 	m := newApp(testTheme(t, "halyard.json"), true, true)

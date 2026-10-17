@@ -89,8 +89,9 @@ type app struct {
 	scroll    int
 	// incidents
 	declared bool
-	// services: the list refreshes itself unless paused
-	paused bool
+	// services: the list refreshes itself unless paused (the product clock)
+	paused  bool
+	refresh refreshState
 	// deploys log: newest first; depSel is a row, resolved to a service by name
 	events []event
 	depSel int
@@ -113,6 +114,21 @@ type tickState struct {
 }
 
 type tickMsg struct{ gen int }
+
+// refreshState is the product clock: the services list syncs every refreshRates[rate]
+// while it is live. It differs from the frame clock in one rule: a stale refresh tick
+// must not die with nothing in its place, or the list never syncs again. So every
+// setting that touches it (pause, resume, a new rate) returns armRefresh(), which
+// retires the pending tick and arms a fresh one (TestClockSurvivesSettingChange).
+type refreshState struct {
+	gen   int
+	rate  int // index into refreshRates
+	syncs int // syncs so far (for tests)
+}
+
+var refreshRates = []time.Duration{time.Second, 2 * time.Second, 5 * time.Second, 15 * time.Second, time.Minute}
+
+type refreshMsg struct{ gen int }
 type connectedMsg struct{}
 type workDoneMsg struct{ gen int }
 type deployDoneMsg struct{ svc string }
@@ -124,6 +140,7 @@ func newApp(f theme.File, dark, ascii bool) *app {
 	m.feed = slices.Clone(activity)
 	m.version, m.checks = "v2.4.1", [2]bool{true, false}
 	m.btn = 1
+	m.refresh.rate = 2 // every 5 s
 	m.setup = newSetup()
 	return m
 }
@@ -134,7 +151,7 @@ func (m *app) Init() tea.Cmd {
 	// ask the terminal what its background is; the reply re-resolves the theme
 	// the fixture's in-flight deploy finishes like any other: by a message
 	done := tea.Tick(6*time.Second, func(time.Time) tea.Msg { return deployDoneMsg{"search-indexer"} })
-	return tea.Batch(tea.RequestBackgroundColor, connect, done, m.startClock())
+	return tea.Batch(tea.RequestBackgroundColor, connect, done, m.startClock(), m.armRefresh())
 }
 
 // animating reports whether anything visible moves. When nothing does, the
@@ -173,6 +190,28 @@ func (m *app) startClock() tea.Cmd {
 	m.tick.gen++
 	gen := m.tick.gen
 	return tea.Tick(ui.FrameInterval, func(time.Time) tea.Msg { return tickMsg{gen} })
+}
+
+// armRefresh retires the pending refresh tick and arms one at the current rate, or
+// none while paused. Every setting change returns it: a gen bump alone would orphan
+// the pending tick and stop the clock for good.
+func (m *app) armRefresh() tea.Cmd {
+	m.refresh.gen++
+	if m.paused {
+		return nil
+	}
+	gen := m.refresh.gen
+	return tea.Tick(refreshRates[m.refresh.rate], func(time.Time) tea.Msg { return refreshMsg{gen} })
+}
+
+// sync is one refresh of the live list: each sparkline takes its next sample.
+func (m *app) sync() {
+	m.refresh.syncs++
+	for i := range m.svcs {
+		if p := m.svcs[i].P99; len(p) > 1 {
+			m.svcs[i].P99 = append(p[1:], p[0])
+		}
+	}
 }
 
 func (m *app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -224,6 +263,12 @@ func (m *app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		gen := m.tick.gen
 		return m, tea.Tick(ui.FrameInterval, func(time.Time) tea.Msg { return tickMsg{gen} })
+	case refreshMsg:
+		if msg.gen != m.refresh.gen {
+			return m, nil // retired by a setting change, which armed the new tick
+		}
+		m.sync()
+		return m, m.armRefresh()
 	case deployDoneMsg:
 		m.finishDeploy(msg.svc)
 		return m, m.startClock()
@@ -511,9 +556,10 @@ func (m *app) actions() []action {
 		return []action{move, palette, tabs, tabsBack, quit, help}
 	}
 	// a toggle's help names what the key does now (TestToggleHelpIsTruthful): "pause"
-	// while the list is live, "resume" while it is paused
+	// while the list is live, "resume" while it is paused. Pause changes the product
+	// clock, so it returns the new arm cmd ("Refresh rate" in command() does too)
 	pause := action{bind([]string{"p"}, "p", map[bool]string{false: "pause", true: "resume"}[m.paused]), true,
-		func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.paused = !m.paused; return nil }}
+		func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.paused = !m.paused; return m.armRefresh() }}
 	acts := []action{
 		move,
 		{bind([]string{"d"}, "d", "deploy"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.openDeploy(); return nil }},
@@ -636,6 +682,10 @@ func (m *app) command(title string) tea.Cmd {
 	case "Copy service URL":
 		m.say("ok", "COPIED", "https://"+s.Name+".prod.internal")
 		return tea.SetClipboard("https://" + s.Name + ".prod.internal")
+	case "Refresh rate":
+		m.refresh.rate = (m.refresh.rate + 1) % len(refreshRates)
+		m.say("info", "REFRESH", "every "+refreshRates[m.refresh.rate].String())
+		return m.armRefresh() // a changed interval re-arms the product clock
 	case "Toggle theme":
 		m.resolve(!m.t.Dark)
 	case "Status legend":
