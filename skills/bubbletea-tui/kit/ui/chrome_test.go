@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"image/color"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -114,17 +113,6 @@ func TestListEmphasisesTheSelectedRow(t *testing.T) {
 	}
 }
 
-// same8 compares two colours as a terminal holds them, 8 bits a channel: a derived role is
-// a blend with fractional channels, and the cell read back is its 8-bit rendering.
-func same8(a, b color.Color) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-	r1, g1, b1, _ := a.RGBA()
-	r2, g2, b2, _ := b.RGBA()
-	return r1>>8 == r2>>8 && g1>>8 == g2>>8 && b1>>8 == b2>>8
-}
-
 // Tree continues a multi-line item under the rail (glyphs.treeRail) while items follow,
 // and under air after the last one, each continuation starting where the item's text does.
 func TestTreeRail(t *testing.T) {
@@ -160,5 +148,37 @@ func TestBulletIsDrawn(t *testing.T) {
 	}
 	if got := ansi.Strip(Alert(th, "warning", "PROD", "customer traffic", 40)); !strings.HasPrefix(got, "PROD ▪ customer traffic") {
 		t.Errorf("Alert = %q, want the bullet between tag and message", got)
+	}
+}
+
+// A dialog's rows are re-inked for its fill: charm's fgSubtle holds 2.21:1 on its bgPanel,
+// under the 2.3 floor, so a subtle hint inside its dialog draws muted; on a page it stays
+// subtle, and a level that holds is left alone.
+func TestDialogLiftsHintsOnThePanel(t *testing.T) {
+	tf, err := theme.Load(filepath.Join("..", "themes", "charm.json"))
+	if err != nil {
+		t.Skip("charm.json is the kit's; a copied project has its own themes")
+	}
+	th := theme.Resolve(tf, true, false)
+	if theme.Contrast(th.P.FgSubtle, th.P.BgPanel) >= panelFloor {
+		t.Fatal("charm's fgSubtle now holds on its bgPanel: pick another theme for this test")
+	}
+	hint := th.S.Subtle.Render("deployed 12m ago")
+	rows := strings.Split(Dialog(th, 40, "Roll back?", []string{hint}, "", ""), "\n")
+	var row string
+	for _, r := range rows {
+		if strings.Contains(ansi.Strip(r), "deployed") {
+			row = r
+		}
+	}
+	c := cellAt(row, "deployed")
+	if c == nil || !same8(c.Style.Fg, th.P.FgMuted) {
+		t.Errorf("a subtle hint in a dialog draws %v, want fgMuted %v", c.Style.Fg, th.P.FgMuted)
+	}
+	if c := cellAt(OnPanel(th, hint, th.P.Bg), "deployed"); !same8(c.Style.Fg, th.P.FgSubtle) {
+		t.Errorf("on the page a subtle hint draws %v, want fgSubtle", c.Style.Fg)
+	}
+	if c := cellAt(OnPanel(th, th.S.Base.Render("deployed"), th.P.BgPanel), "deployed"); !same8(c.Style.Fg, th.P.Fg) {
+		t.Errorf("fg on the panel draws %v, want fg", c.Style.Fg)
 	}
 }

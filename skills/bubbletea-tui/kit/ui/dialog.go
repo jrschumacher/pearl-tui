@@ -80,13 +80,15 @@ func dialog(t *theme.Theme, st lipgloss.Style, fill color.Color, w int, title st
 	if help != "" {
 		rows = append(rows, "", Fit(help, inner))
 	}
+	// the panel is a fill: a hint level that can't hold on it moves up a level
+	block := OnPanel(t, strings.Join(rows, "\n"), fill)
 	if t.X.Dialog == "rules" {
 		pw := w - st.GetHorizontalMargins()
 		top, bottom := dialogRules(t, title, pw, fill)
-		panel := top + "\n" + st.UnsetMargins().Render(strings.Join(rows, "\n")) + "\n" + bottom
+		panel := top + "\n" + st.UnsetMargins().Render(block) + "\n" + bottom
 		return lipgloss.NewStyle().Margin(st.GetMargin()).MarginBackground(t.P.Bg).Render(panel)
 	}
-	return st.Render(strings.Join(rows, "\n"))
+	return st.Render(block)
 }
 
 // dialogRules are a rules dialog's top and bottom edges, w cells each: the theme's

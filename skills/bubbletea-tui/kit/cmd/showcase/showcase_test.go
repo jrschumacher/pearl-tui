@@ -140,6 +140,12 @@ func TestContrast(t *testing.T) {
 				{"fg/bg", p.Fg, p.Bg, 7}, {"fgMuted/bg", p.FgMuted, p.Bg, 4.0}, {"fgSubtle/bg", p.FgSubtle, p.Bg, 2.2},
 				{"primary/bg", p.Primary, p.Bg, 3}, {"onPrimary/primary", p.OnPrimary, p.Primary, 3.5},
 				{"error/bg", p.Error, p.Bg, 3},
+				{"bgOverlay/bg", p.BgOverlay, p.Bg, 1.0},
+			}
+			// the overlay step (the palette's fill) is a step from bg toward fg, never past the
+			// text or on bg's other side: a light theme's dark overlay hid the palette's text
+			if lo, lb, lf := theme.Luminance(p.BgOverlay), theme.Luminance(p.Bg), theme.Luminance(p.Fg); (lo-lb)*(lf-lb) < 0 || theme.Contrast(p.BgOverlay, p.Bg) > 3 {
+				t.Errorf("%s dark=%v: bgOverlay %.2f:1 from bg is not a step toward fg", filepath.Base(f), dark, theme.Contrast(p.BgOverlay, p.Bg))
 			}
 			// a bar footer draws the key hints (KeyDesc, fgSubtle) on bgSubtle: tuilint's 2.3 floor
 			if th.X.Footer == "bar" {
