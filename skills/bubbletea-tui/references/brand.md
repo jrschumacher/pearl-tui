@@ -100,7 +100,8 @@ read it too.
     "paintBg": false,           // own the terminal background
     "gutter": 2, "measure": 100
   },
-  "wordmark": { "rows": ["…"], "style": "half" }    // optional, from wordmark.py
+  "wordmark": { "rows": ["…"], "style": "half" },   // optional, from wordmark.py
+  "ansi16": { "dark": { "warning": 11 }, "light": { "warning": 3 } }  // optional, color.md
 }
 ```
 
@@ -115,7 +116,10 @@ primary, because the brand chose it: a bar or stamp header, a banner, a gradient
 solid, inverse or tracked wordmark (`plain` is the name in fg), `sectionTitle: primary`,
 `dialogTitle: bar` (the title on a primary strip), filled tags, the field backdrop, the
 scramble. So does what the app asks for
-(`t.S.Primary`, `ui.Tag(t, "primary", …)`): that is the state.
+(`t.S.Primary`, `ui.Tag(t, "primary", …)`): that is the state. At 16 colours the state
+must survive downsampling too: an amber lands on red, error's slot, so pin it with
+`ansi16` (color.md § The Four Palettes); `palette check` fails a focus-fg theme whose
+primary shares a 16-colour slot with error, warning, success or info.
 
 **A state ladder takes the status slots, by meaning.** `● new · ◐ reading · ○ waiting ·
 ✓ reviewed` is `current · partial · todo · done`: the app draws `t.G.Current`,

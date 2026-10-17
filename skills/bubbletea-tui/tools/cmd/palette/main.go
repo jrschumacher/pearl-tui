@@ -27,6 +27,16 @@
 // meaning (done/current/todo/pending/partial/warn/fail, radio on/off, check on/off,
 // thumb/track, focus/blur bar) that share a twin under -ascii.
 //
+// It reports, on stderr, state roles that land on one of the 16 colours (-profile ansi)
+// after the theme's "ansi16" pins, each with the pin that separates them:
+//
+//	"ansi16": {"dark": {"primary": 11}, "light": {"primary": 3}}
+//
+// Under "focus": "fg" primary is a state, and a clash with it exits 1: the brand's one
+// promise (amber = new) breaks where amber downsamples to error's red. A clash among
+// error, warning, success and info is a warning: their glyphs and words still differ.
+// A pin that names no role, no mode or no colour 0-15 exits 2, as theme.Load fails it.
+//
 // Thresholds (WCAG 2 contrast ratio against the role's background):
 //
 //	fg ≥ 7      fgMuted ≥ 4.5     fgSubtle ≥ 2.6 (hints only, never the only carrier of meaning)
@@ -43,7 +53,8 @@
 // On a mid-tone fill where neither ink clears its floor, derive deepens the ink toward
 // black or white along its hue (the engine does the same), so the brand keeps its hex.
 //
-// Exit status: 0 OK, 1 contrast problems, 2 usage or input errors.
+// Exit status: 0 OK, 1 contrast problems or a state clash under focus "fg", 2 usage or
+// input errors.
 package main
 
 import (

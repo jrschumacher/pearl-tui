@@ -64,6 +64,16 @@ func check(path string, stdout, stderr io.Writer) int {
 			return fail(stderr, fmt.Errorf("%s: %w", path, err))
 		}
 	}
+	// the theme as the engine reads it, for its ansi16 pins and the 16-colour clashes
+	var tf theme.File
+	_ = json.Unmarshal(data, &tf) // a shape error surfaces below, with the role that has it
+	if _, ok := top["roles"]; !ok {
+		tf.Roles = nil
+		_ = json.Unmarshal(data, &tf.Roles)
+	}
+	if err := theme.CheckANSI16(tf); err != nil {
+		return fail(stderr, fmt.Errorf("%s: %w", path, err))
+	}
 	accept := map[string]string{}
 	if raw, ok := top["contrastAccept"]; ok {
 		if v, err := pyfmt.Decode(raw); err == nil {
@@ -137,12 +147,79 @@ func check(path string, stdout, stderr io.Writer) int {
 		bad += b
 		fmt.Fprintln(stdout, txt)
 	}
+	clashes := Clashes16(tf, path, stderr)
+	if clashes > 0 {
+		fmt.Fprintf(stdout, "FAIL (%d contrast problems, %d state colour clashes at 16 colours)\n", bad, clashes)
+		return 1
+	}
 	fmt.Fprintln(stdout, verdict(bad))
 	if bad > 0 {
 		return 1
 	}
 	return 0
 }
+
+// Clashes16 reports on stderr each state role that lands on one of the 16 colours with
+// others (theme.ANSI16Clashes), with the ansi16 pin that separates it, and returns how
+// many fail: under focus "fg" the hue is a state, so primary sharing a colour with
+// another state breaks the theme's one promise (amber = new, never error) and fails.
+// Every other clash is a warning: ok, warning and error keep their own glyph and word
+// at 16 colours, and which slot reads well on the page is the terminal's palette.
+func Clashes16(f theme.File, path string, stderr io.Writer) int {
+	type key struct{ mode, role string }
+	var order []key
+	with := map[key][]string{}
+	col := map[key]string{}
+	for _, c := range theme.ANSI16Clashes(f) {
+		move, keep, colMove, colKeep := c.B, c.A, c.ColB, c.ColA
+		if keepRank[c.B] < keepRank[c.A] {
+			move, keep, colMove, colKeep = c.A, c.B, c.ColA, c.ColB
+		}
+		k := key{c.Mode, move}
+		if _, seen := with[k]; !seen {
+			order = append(order, k)
+			col[k] = hexOf(colMove)
+		}
+		with[k] = append(with[k], keep+" "+hexOf(colKeep))
+	}
+	fails := func(k key) bool {
+		return f.Expressions.Focus == "fg" && (k.role == "primary" || strings.HasPrefix(with[k][0], "primary "))
+	}
+	// failures first, and each suggestion taken before the next, so following them all
+	// never makes a new clash
+	sort.SliceStable(order, func(i, j int) bool { return fails(order[i]) && !fails(order[j]) })
+	used := map[string]map[int]bool{}
+	failed := 0
+	for _, k := range order {
+		if used[k.mode] == nil {
+			used[k.mode] = map[int]bool{}
+			for _, r := range theme.StateRoles {
+				used[k.mode][theme.ANSI16Index(f, k.mode, r)] = true
+			}
+		}
+		idx := theme.ANSI16Index(f, k.mode, k.role)
+		n := Pin16(k.role, col[k], k.mode != "light", used[k.mode])
+		used[k.mode][n] = true
+		pin := fmt.Sprintf(`"ansi16": {%q: {%q: %d}}`, k.mode, k.role, n)
+		others, verb := strings.Join(with[k], " and "), "do"
+		if len(with[k]) == 1 {
+			verb = "does"
+		}
+		what := fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), as %s %s", k.mode, k.role, col[k], idx, others, verb)
+		if fails(k) {
+			failed++
+			fmt.Fprintf(stderr, "palette: %s: %s; under focus \"fg\" primary is a state, so they read as one: pin %s with %s\n", path, what, k.role, pin)
+			continue
+		}
+		fmt.Fprintf(stderr, "palette: warning: %s: %s, so those states differ there only by glyph and word; %s separates them\n", path, what, pin)
+	}
+	return failed
+}
+
+// keepRank orders the state roles by how firmly the 16 colours own them: error is red
+// everywhere, success green, warning yellow; primary and info are the brand's and
+// move first.
+var keepRank = map[string]int{"error": 0, "success": 1, "warning": 2, "primary": 3, "info": 4}
 
 // roleKeys are the role names the engine reads (theme.Roles' JSON keys). check
 // validates each of them, not only the ones a contrast check reads, so it fails

@@ -6,9 +6,11 @@ import (
 	"math"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // Default is the fallback theme: monochrome ink with a single cold accent.
@@ -34,12 +36,21 @@ func Default() File {
 }
 
 // derive resolves a role set into colours, filling any missing role from the
-// ones present so a theme with only the core roles still renders well.
-func derive(r Roles, dark bool) Palette {
+// ones present so a theme with only the core roles still renders well. pins (the
+// theme's ansi16 at 16 colours, else nil) replace the roles they name with one of the
+// 16 colours, before anything is derived from them.
+func derive(r Roles, dark bool, pins map[string]int) Palette {
 	var p Palette
+	if len(pins) > 0 {
+		r = pinned(r, pins)
+	}
 	c := func(s string, fallback color.Color) color.Color {
 		if s == "" {
 			return fallback
+		}
+		if n, ok := strings.CutPrefix(s, "ansi:"); ok {
+			i, _ := strconv.Atoi(n)
+			return ansi.BasicColor(i)
 		}
 		return lipgloss.Color(s)
 	}
@@ -72,7 +83,7 @@ func derive(r Roles, dark bool) Palette {
 	// floor is the contrast palette check asks of each on-colour on its fill.
 	ink := func(s string, fill color.Color, floor float64) color.Color {
 		if s != "" {
-			return lipgloss.Color(s)
+			return c(s, nil)
 		}
 		if white != nil && Contrast(white, fill) >= 4.5 {
 			return white
@@ -86,6 +97,20 @@ func derive(r Roles, dark bool) Palette {
 	p.OnSuccess = ink(r.OnSuccess, p.Success, 3.5)
 	p.FgSelected = c(r.FgSelected, p.OnPrimary)
 	return p
+}
+
+// pinned writes each pinned role as "ansi:<n>", which derive's c reads as that basic
+// colour: a hex can't name one (the xterm hex of ANSI 8 downsamples to 7), and a role
+// derived from a pinned one then follows it.
+func pinned(r Roles, pins map[string]int) Roles {
+	v, t := reflect.ValueOf(&r).Elem(), reflect.TypeOf(r)
+	for i := range t.NumField() {
+		key, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ",")
+		if n, ok := pins[key]; ok && key != "white" {
+			v.Field(i).SetString("ansi:" + strconv.Itoa(n))
+		}
+	}
+	return r
 }
 
 // Mix blends a toward b by t (0 = a, 1 = b) in CIELAB, the way Crush derives

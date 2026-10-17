@@ -333,7 +333,9 @@ func TestFocusFgDropsTheSelectedFillCheck(t *testing.T) {
 		selChecked bool
 	}{{"primary", 1, true}, {"fg", 0, false}} {
 		path := filepath.Join(t.TempDir(), "theme.json")
-		js := `{"roles": ` + roles + `, "expressions": {"focus": "` + c.focus + `"}}`
+		// the pin keeps this test on its subject: under focus "fg" the amber would
+		// otherwise share ANSI 9 with the default error and fail as a 16-colour clash
+		js := `{"roles": ` + roles + `, "expressions": {"focus": "` + c.focus + `"}, "ansi16": {"dark": {"primary": 11}}}`
 		if err := os.WriteFile(path, []byte(js), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -343,5 +345,61 @@ func TestFocusFgDropsTheSelectedFillCheck(t *testing.T) {
 			!strings.Contains(out.String(), "primary      on bg") || !strings.Contains(out.String(), "onPrimary    on primary") {
 			t.Errorf("focus %s: exit %d, want %d\n%s%s", c.focus, code, c.code, out.String(), errb.String())
 		}
+	}
+}
+
+// At 16 colours colorprofile maps welp's amber and its error to one ANSI colour (issue
+// #12: #D99A3B and #EF8482 both 9 on dark, #AF7400 and #A13E40 both 1 on light). Under
+// focus "fg" the amber is a state, so check fails the clash and names the fix, an
+// ansi16 pin; with the pin it passes. A clash between the status roles is a warning on
+// stderr: the glyph and the word still tell the states apart, and which of the 16
+// colours reads is the terminal's palette, not the theme's.
+func TestCheckFailsStateClashesAt16Colours(t *testing.T) {
+	roles := `{"dark": {"bg": "#17181B", "fg": "#CFCDCA", "primary": "#D99A3B", "error": "#EF8482", "warning": "#F28C6B", "success": "#6ACB82", "info": "#56BDFF"},
+	 "light": {"bg": "#FAF9F6", "fg": "#333230", "primary": "#AF7400", "error": "#A13E40", "warning": "#A8481F", "success": "#007835", "info": "#006A9D"}}`
+	for _, c := range []struct {
+		name, extra string
+		code        int
+		stderr      []string
+	}{
+		{"focus fg, no pin", `, "expressions": {"focus": "fg"}`, 1, []string{
+			`dark: primary #D99A3B draws as ANSI 9 at 16 colours (-profile ansi), as error #EF8482 and warning #F28C6B do; under focus "fg"`,
+			`light: primary #AF7400 draws as ANSI 1 at 16 colours (-profile ansi), as error #A13E40 and warning #A8481F do; under focus "fg"`,
+			`pin primary with "ansi16": {"dark": {"primary": 11}}`, `pin primary with "ansi16": {"light": {"primary": 3}}`,
+			`warning: `, `dark: warning #F28C6B draws as ANSI 9 at 16 colours (-profile ansi), as error #EF8482 does, so those states differ there only by glyph and word; "ansi16": {"dark": {"warning": 3}} separates them`}},
+		{"focus fg, pinned", `, "expressions": {"focus": "fg"}, "ansi16": {"dark": {"primary": 11}, "light": {"primary": 3}}`, 0, nil},
+		// under focus "primary" the hue is the kit's emphasis, not a state: only the
+		// status roles are compared
+		{"focus primary", ``, 0, []string{`warning: `, `dark: warning #F28C6B draws as ANSI 9 at 16 colours (-profile ansi), as error #EF8482 does, so`}},
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		if err := os.WriteFile(path, []byte(`{"roles": `+roles+c.extra+`}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		if code != c.code {
+			t.Errorf("%s: exit %d, want %d\n%s%s", c.name, code, c.code, out.String(), errb.String())
+		}
+		for _, want := range c.stderr {
+			if !strings.Contains(errb.String(), want) {
+				t.Errorf("%s: stderr %q, want %q", c.name, errb.String(), want)
+			}
+		}
+		if (c.stderr == nil || c.extra == ``) && strings.Contains(errb.String(), "primary") {
+			t.Errorf("%s: stderr %q, want no clash with primary", c.name, errb.String())
+		}
+		if c.code == 1 && !strings.Contains(out.String(), "FAIL (0 contrast problems, 2 state colour clashes at 16 colours)") {
+			t.Errorf("%s: verdict %q", c.name, out.String())
+		}
+	}
+	// an ansi16 pin that names no role or no colour is an input error, as in theme.Load
+	path := filepath.Join(t.TempDir(), "theme.json")
+	if err := os.WriteFile(path, []byte(`{"roles": `+roles+`, "ansi16": {"dark": {"primary": 16}}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out, errb bytes.Buffer
+	if code := Main([]string{"check", path}, "", &out, &errb); code != 2 || !strings.Contains(errb.String(), "ansi16.dark.primary: 16 is not one of the 16 colours") {
+		t.Errorf("bad pin: exit %d %q", code, errb.String())
 	}
 }
