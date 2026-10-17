@@ -606,6 +606,16 @@ func TestOverlayDialogsAreFound(t *testing.T) {
 	if hits := contrastHits(t, outside); len(hits) != 0 {
 		t.Errorf("low contrast in the scrim beside a rules dialog: %+v, want none", hits)
 	}
+	// a rules panel whose rows carry a second background (terrarium's boxed keys on
+	// bgSubtle inside the help panel) is still found: a planted 1.1:1 label inside fails
+	if hits := contrastHits(t, "testdata/overlays/rules-boxed-help-80x24.ansi", "--theme", "testdata/themes/terrarium.json"); len(hits) != 0 {
+		t.Errorf("terrarium help: %+v, want no F-CONTRAST", hits)
+	}
+	boxedKeys := mutate("testdata/overlays/rules-boxed-help-80x24.ansi", "help-boxed-80x24.ansi",
+		"\x1b[38;2;167;177;174;48;2;25;35;32mdeploy", "\x1b[38;2;28;38;35;48;2;25;35;32mdeploy")
+	if hits := contrastHits(t, boxedKeys, "--theme", "testdata/themes/terrarium.json"); len(hits) != 1 || hits[0].Sev != "P1" || !strings.Contains(hits[0].Msg, "6 text cells") {
+		t.Errorf("low contrast inside a rules dialog with boxed keys: %+v, want one P1 on the 6 letters", hits)
+	}
 	// the same inside an ASCII +--+ box (halyard ascii confirm: box bg #142030)
 	boxed := mutate("testdata/overlays/box-ascii-confirm-80x24.ansi", "confirm-box-80x24.ansi",
 		"prod returns to the last healthy version.", "\x1b[38;2;24;34;48mprod returns to the last healthy version.")

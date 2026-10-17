@@ -219,6 +219,7 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 	if pal != nil && f.Indexed {
 		indexed = pal.Indexed()
 	}
+	boxCells := asciiBoxCells(grid)
 	for y, row := range grid {
 		rules := asciiRuleCells(row)
 		field := fieldRow(row)
@@ -271,8 +272,8 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 			if ch >= 0 && strings.ContainsRune(corners, ch) {
 				cornersSeen = append(cornersSeen, corner{y, x, ch})
 			}
-			if ch < 0 || isSpace(ch) || strings.ContainsRune(ruleChars, ch) {
-				continue
+			if ch < 0 || isSpace(ch) || strings.ContainsRune(ruleChars, ch) || rules[x] || boxCells[[2]int{y, x}] {
+				continue // decoration: not a text cell for bold, levels or contrast
 			}
 			o := ch
 			if (0xE000 <= o && o <= 0xF8FF) || 0xF0000 <= o {
@@ -652,9 +653,11 @@ func title(row []Cell, a, b int, ch string) bool {
 	return text > 0
 }
 
-// filled reports whether the rows strictly inside r share one background across r's
-// columns that differs from the cell left of r on the same row, on at least 80% of
-// those rows; a frame with no background anywhere inside r passes (no colour to judge).
+// filled reports whether the panel inside r is painted: on at least 80% of the rows
+// strictly inside it, one of the panel's first two cells carries a background that
+// differs from the cell left of the panel. Only the edge is read, because a panel's
+// rows carry other backgrounds too (boxed keys on bgSubtle in a help dialog, a selected
+// row's fill). A frame with no background anywhere inside r passes (no colour to judge).
 func filled(grid [][]Cell, r region) bool {
 	same := func(a, b *RGB) bool { return (a == nil) == (b == nil) && (a == nil || *a == *b) }
 	painted, ok := 0, 0
@@ -663,23 +666,55 @@ func filled(grid [][]Cell, r region) bool {
 		if r.x1 >= len(row) {
 			return false
 		}
-		bg := row[r.x0].BG
-		if bg == nil {
-			continue
+		var left *RGB
+		if r.x0 > 0 {
+			left = row[r.x0-1].BG
 		}
-		painted++
-		uniform := true
-		for x := r.x0; x <= r.x1; x++ {
-			if !same(row[x].BG, bg) {
-				uniform = false
-				break
+		edge := false
+		for x := r.x0; x <= r.x0+1; x++ {
+			if bg := row[x].BG; bg != nil {
+				edge = true
+				if !same(bg, left) {
+					ok++
+					break
+				}
 			}
 		}
-		if uniform && (r.x0 == 0 || !same(row[r.x0-1].BG, bg)) {
-			ok++
+		if edge {
+			painted++
 		}
 	}
 	return painted == 0 || float64(ok) >= 0.8*float64(painted)
+}
+
+// asciiBoxCells are the cells of a frame that draw an ASCII box or table edge: a | with
+// a | or + above and below it (a vertical run of 3+), and a + joined to a - beside it
+// or a | above or below it. Under --ascii these are what ─ │ ╭ became, so they are
+// decoration as those are, and not text for F-CONTRAST or F-LEVELS.
+func asciiBoxCells(grid [][]Cell) map[[2]int]bool {
+	at := func(y, x int) string {
+		if y < 0 || y >= len(grid) || x < 0 || x >= len(grid[y]) {
+			return ""
+		}
+		return grid[y][x].Ch
+	}
+	vert := func(y, x int) bool { c := at(y, x); return c == "|" || c == "+" }
+	out := map[[2]int]bool{}
+	for y := range grid {
+		for x := range grid[y] {
+			switch at(y, x) {
+			case "|":
+				if vert(y-1, x) && vert(y+1, x) || vert(y-1, x) && vert(y-2, x) || vert(y+1, x) && vert(y+2, x) {
+					out[[2]int{y, x}] = true
+				}
+			case "+":
+				if at(y, x-1) == "-" || at(y, x+1) == "-" || at(y-1, x) == "|" || at(y+1, x) == "|" {
+					out[[2]int{y, x}] = true
+				}
+			}
+		}
+	}
+	return out
 }
 
 // closesBox is tuilint.py's top-right test, `ch[:1] in "╮┐╗┓"`, which a

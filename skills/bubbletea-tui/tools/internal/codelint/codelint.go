@@ -8,11 +8,14 @@
 //	C-SLEEP     [P0] time.Sleep or blocking I/O reachable from Update (or Sleep from View): return a tea.Cmd
 //	C-HEX       [P1] lipgloss.Color literal or "#rrggbb" outside the theme package
 //	C-EMOJI     [P1] emoji in string or rune literals
-//	C-GLYPH     [P1] a glyph (a non-ASCII symbol or punctuation: · → ▏ … ×) in a string or rune
-//	                 literal outside the theme package and the file that declares the ASCII twin
-//	                 table (a package-level map named *ascii*, the kit's ui/canvas.go): screens
-//	                 take glyphs from the theme, so a brand can change them and ASCII gets a twin.
-//	                 Letters and digits of other scripts are text, not glyphs
+//	C-GLYPH     [P1] a drawn mark in a string or rune literal outside the theme package and the
+//	                 ASCII twin table (a composite literal initializing a package-level var named
+//	                 *ascii*, the kit's ui/canvas.go): arrows, box drawing, blocks, geometric
+//	                 shapes, misc symbols and technical, dingbats, braille, the marks · • …, and
+//	                 any rune the kit's twin table maps. Screens take those from the theme, so a
+//	                 brand can change them and ASCII gets a twin. Text is not a glyph: letters
+//	                 and digits of any script, quotation marks and dashes (it’s, «q», a — b),
+//	                 currency (£5) and units, marks and maths (72°F © ® ™ × ÷ ± ≥ ≤ ≠ ¹ ² ³ ½ µ)
 //	C-V1        [P1] Bubble Tea / Lip Gloss / Bubbles / Huh v1 import paths
 //	C-SIZE      [P1] a program whose code never handles tea.WindowSizeMsg
 //	C-VIEWIO    [P1] os, net/http or os/exec I/O reachable from View
@@ -73,9 +76,12 @@ files are analysed syntax-only and stderr says so.
   C-SLEEP     [P0] time.Sleep or blocking I/O reachable from Update (or Sleep from View)
   C-HEX       [P1] lipgloss.Color literal or "#rrggbb" outside the theme package
   C-EMOJI     [P1] emoji in string or rune literals
-  C-GLYPH     [P1] a glyph (non-ASCII symbol or punctuation: · → ▏ … ×) in a string or rune
-                   literal outside the theme package and the ASCII twin table's file
-                   (a package-level map named *ascii*): screens take glyphs from the theme
+  C-GLYPH     [P1] a drawn mark (arrows, box drawing, blocks, shapes, symbols, dingbats,
+                   braille, · • …, or any rune the kit's twin table maps) in a string or rune
+                   literal outside the theme package and the ASCII twin table (a composite
+                   literal of a package-level var named *ascii*): screens take glyphs from
+                   the theme. Text is not a glyph: other scripts, quotes and dashes (it’s,
+                   «q», a — b), currency (£5), units and maths (72°F © ™ × ± ≥ ½ µ)
   C-V1        [P1] Bubble Tea / Lip Gloss / Bubbles / Huh v1 import paths
   C-SIZE      [P1] a program whose code never handles tea.WindowSizeMsg
   C-VIEWIO    [P1] os, net/http or os/exec I/O reachable from View

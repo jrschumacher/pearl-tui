@@ -15,6 +15,8 @@ import (
 
 	"golang.org/x/text/width"
 	"golang.org/x/tools/go/analysis"
+
+	"tuikit/theme"
 )
 
 func program(pass *analysis.Pass) *Program { return pass.ResultOf[ModelAnalyzer].(*Program) }
@@ -465,11 +467,36 @@ var GlyphAnalyzer = newAnalyzer("tuiglyph",
 	"C-GLYPH: a non-ASCII symbol in a string or rune literal outside the theme package; screens take glyphs from the theme (t.G.Sep, t.G.Caret)",
 	runGlyph)
 
-// glyphRune is a rune a screen draws as a mark rather than reads as text: outside ASCII
-// and not a letter, digit, combining mark or space (é, 日本 and ١ are text in another
-// script, whose width is C-LEN's business; an en space is a separator, not a mark).
+// glyphExempt are symbols that are text in prose and data, whatever script: units,
+// marks and maths a screen prints, not draws.
+var glyphExempt = map[rune]bool{}
+
+// glyphMarks are the explicit marks a screen draws between and beside words, which the
+// theme holds as sep, bullet and ellipsis.
+var glyphMarks = map[rune]bool{'·': true, '•': true, '…': true}
+
+func init() {
+	for _, r := range "°©®™×÷±≥≤≠¹²³½µ" {
+		glyphExempt[r] = true
+	}
+}
+
+// glyphRune reports a rune a screen draws as a mark: one of the drawn blocks (arrows,
+// miscellaneous technical, box drawing, block elements, geometric shapes, miscellaneous
+// symbols, dingbats, braille), an explicit mark (· • …), or a rune the kit's ASCII twin
+// table maps. Letters, digits and combining marks of any script, spaces, quotation
+// marks and dashes (Pi, Pf, Pd: it’s, «q», a — b), currency (Sc: £5) and the units,
+// marks and maths in glyphExempt (72°F, ©, ≥) are text, not glyphs.
 func glyphRune(r rune) bool {
-	return r > 127 && !unicode.IsLetter(r) && !unicode.IsNumber(r) && !unicode.IsMark(r) && !unicode.IsSpace(r)
+	if r <= 127 || glyphExempt[r] || unicode.In(r, unicode.Pi, unicode.Pf, unicode.Pd, unicode.Sc) {
+		return false
+	}
+	if glyphMarks[r] || (0x2190 <= r && r <= 0x21FF) || (0x2300 <= r && r <= 0x23FF) ||
+		(0x2500 <= r && r <= 0x27BF) || (0x2800 <= r && r <= 0x28FF) {
+		return true
+	}
+	_, twin := theme.ASCIITwin(string(r))
+	return twin
 }
 
 // firstGlyph returns the first glyph rune of s.
@@ -482,11 +509,13 @@ func firstGlyph(s string) (rune, bool) {
 	return 0, false
 }
 
-// declaresTwinTable reports a file that holds an ASCII twin table: a package-level map
-// variable whose name says ascii (the kit's ui/canvas.go asciiMap). Its literals are the
-// glyphs the table maps, so the whole file is the one place outside the theme that may
-// spell them.
-func declaresTwinTable(f *ast.File) bool {
+// twinTableLits are the positions of the string and rune literals inside an ASCII twin
+// table: a composite literal (map or slice) that initializes a package-level variable
+// whose name says ascii (the kit's ui/canvas.go asciiMap and asciiClasses). Those
+// literals are the glyphs the table maps, so they are the one place outside the theme
+// that may spell them.
+func twinTableLits(f *ast.File) map[token.Pos]bool {
+	out := map[token.Pos]bool{}
 	for _, d := range f.Decls {
 		gd, ok := d.(*ast.GenDecl)
 		if !ok || gd.Tok != token.VAR {
@@ -501,30 +530,36 @@ func declaresTwinTable(f *ast.File) bool {
 				if i >= len(vs.Values) || !strings.Contains(strings.ToLower(n.Name), "ascii") {
 					continue
 				}
-				if cl, ok := vs.Values[i].(*ast.CompositeLit); ok {
-					if _, ok := cl.Type.(*ast.MapType); ok {
-						return true
-					}
+				cl, ok := vs.Values[i].(*ast.CompositeLit)
+				if !ok {
+					continue
 				}
+				ast.Inspect(cl, func(n ast.Node) bool {
+					if lit, ok := n.(*ast.BasicLit); ok {
+						out[lit.Pos()] = true
+					}
+					return true
+				})
 			}
 		}
 	}
-	return false
+	return out
 }
 
 func runGlyph(pass *analysis.Pass) (any, error) {
 	p := program(pass)
 	once := lineOnce{}
 	for _, f := range p.Files {
-		if isTheme(pass, f) || declaresTwinTable(f) {
+		if isTheme(pass, f) {
 			continue
 		}
+		table := twinTableLits(f)
 		ast.Inspect(f, func(n ast.Node) bool {
 			if _, ok := n.(*ast.ImportSpec); ok {
 				return false
 			}
 			lit, ok := n.(*ast.BasicLit)
-			if !ok || lit.Kind != token.STRING && lit.Kind != token.CHAR {
+			if !ok || lit.Kind != token.STRING && lit.Kind != token.CHAR || table[lit.Pos()] {
 				return true
 			}
 			v, kind := literalValue(lit)

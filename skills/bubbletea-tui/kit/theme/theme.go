@@ -156,6 +156,10 @@ const (
 	ShadeMid  = "▒"
 )
 
+// Ellipsis is the kit's default ellipsis, for a cut made where no theme is at hand
+// (ui.Fit); ui.Trunc cuts with the theme's own glyphs.ellipsis.
+const Ellipsis = "…"
+
 // SparkRamp is the eight heights of a sparkline, lowest first, and SparkRampASCII what
 // an ASCII terminal draws in their place (controls.go Sparkline).
 const (

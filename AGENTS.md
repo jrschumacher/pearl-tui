@@ -62,7 +62,8 @@ colours and no colour are where footers, rules, background steps and downsampled
 break first, so lint the variant you touched before pushing, not only dark. Each render
 is held to `.github/tuilint-baseline.json` (`"<theme>-<variant>": warnings`; a missing
 entry means 0) through `tuilint frames --max-warnings`, so a new warning class fails CI;
-to raise an entry on purpose, justify the warning in the PR and edit the number. It also runs
+to raise an entry on purpose, justify the warning in the PR and edit the number (today only
+moss's `dialog: none` overlays, which have no edge for the linter to find). It also runs
 `kit/README.md`'s copy block, as written, in a fresh module, because a kit test that
 names a kit path passes here and fails in every project that copied the kit; checks that
 every tool invocation in SKILL.md and `references/` names a real mode and flag (the

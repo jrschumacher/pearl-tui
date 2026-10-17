@@ -75,9 +75,10 @@
 //	             [P2] a state with a marked footer and help-only keys whose footer shows no key
 //	                  that opens help (`?`, ctrl+g, an action that says help), when Global doesn't
 //	                  bind one: nobody finds the help-only keys.
-//	S-ACCENT     [P2] the `accents:` line gives the primary hue one meaning (`accents: amber = new,
-//	                  nothing else`) and another line puts "the accent" or "primary" on something
-//	                  else (the wordmark, the spinner's dots, a refresh ramp), quoting both. A line
-//	                  that names the hue or a word of its meaning is the same meaning. Table rows
-//	                  and fenced sketches are not read. A warning: the critic stays the judge.
+//	S-ACCENT     [P2] the `accents:` lines give each hue one meaning (`accents: amber = new,
+//	                  nothing else; teal = running`) and another line puts "the accent" or "the
+//	                  primary hue/colour" on something else (the wordmark, the spinner's dots, a
+//	                  refresh ramp), quoting both. A line that names a hue or a word of a meaning
+//	                  is the same meaning; "primary pane", "primary key" are not the hue. Table
+//	                  rows and fenced sketches are not read. A warning: the critic stays the judge.
 package speclint

@@ -683,39 +683,46 @@ func asciiHint(gs []string) string {
 
 var (
 	accentsLine = regexp.MustCompile(`(?i)^\s*(?:[-*+]\s+)?accents?\s*:\s*(.+)$`)
-	accentPair  = regexp.MustCompile(`^\s*([^=;,]+?)\s*=\s*([^;]+)`)
-	accentWord  = regexp.MustCompile(`(?i)\b(accent|primary)\b`)
-	wordRe      = regexp.MustCompile(`[\p{L}\p{N}]+`)
+	accentPair  = regexp.MustCompile(`^\s*([^=]+?)\s*=\s*(.+)$`)
+	// "the accent", "primary hue/colour/accent": the hue. "primary pane", "primary key"
+	// and "primary button" are not.
+	accentWord = regexp.MustCompile(`(?i)\baccent\b|\bprimary\s+(?:hue|colou?r|accent)\b`)
+	wordRe     = regexp.MustCompile(`[\p{L}\p{N}]+`)
 )
 
-// accentDrift is S-ACCENT: once an `accents:` line gives the primary hue one meaning
-// ("amber = new, nothing else"), a later line that puts "the accent" or "primary" on
-// something else (the wordmark, the spinner's dots, a progress ramp) breaks the
-// promise; only the critic used to catch it. A line passes when it names the hue, a
-// word of the meaning, or sits in the accents line itself. Lines of the States-and-keys
-// table and fenced sketches are not read.
+// accentDrift is S-ACCENT: once the `accents:` lines give each hue one meaning
+// ("amber = new, nothing else"), a later line that puts "the accent" or "the primary
+// hue" on something else (the wordmark, the spinner's dots, a progress ramp) breaks the
+// promise; only the critic used to catch it. Every `hue = meaning` pair of every
+// accents line (pairs separated by ;) joins one set of words; a line passes when it
+// holds a hue or a word of a meaning. Lines of the States-and-keys table, fenced
+// sketches and the accents lines themselves are not read.
 func (s *spec) accentDrift(add func(string, int, string, ...any)) {
-	hueLine, hue, meaning := 0, "", ""
+	same, isAccents := map[string]bool{}, map[int]bool{}
+	firstLine := 0
 	for i, l := range s.lines {
 		m := accentsLine.FindStringSubmatch(clean(l))
 		if m == nil {
 			continue
 		}
-		p := accentPair.FindStringSubmatch(m[1])
-		if p == nil || strings.HasPrefix(p[1], "<") || strings.HasPrefix(p[2], "<") {
-			continue // the template's placeholders, or no "hue = meaning"
+		for _, seg := range strings.Split(m[1], ";") {
+			p := accentPair.FindStringSubmatch(seg)
+			if p == nil || strings.HasPrefix(p[1], "<") || strings.HasPrefix(p[2], "<") {
+				continue // the template's placeholders, or no "hue = meaning"
+			}
+			if firstLine == 0 {
+				firstLine = i + 1
+			}
+			isAccents[i+1] = true
+			for _, w := range wordRe.FindAllString(strings.ToLower(p[1]+" "+p[2]), -1) {
+				if len(w) >= 3 && !accentStop[w] {
+					same[w] = true
+				}
+			}
 		}
-		hueLine, hue, meaning = i+1, strings.ToLower(strings.TrimSpace(p[1])), strings.ToLower(strings.TrimSpace(p[2]))
-		break
 	}
-	if hueLine == 0 {
+	if firstLine == 0 {
 		return
-	}
-	same := map[string]bool{}
-	for _, w := range wordRe.FindAllString(hue+" "+meaning, -1) {
-		if len(w) >= 3 && !accentStop[w] {
-			same[w] = true
-		}
 	}
 	fenced := false
 	for i, l := range s.lines {
@@ -724,7 +731,7 @@ func (s *spec) accentDrift(add func(string, int, string, ...any)) {
 			fenced = !fenced
 			continue
 		}
-		if fenced || i+1 == hueLine || strings.HasPrefix(t, "|") || !accentWord.MatchString(t) {
+		if fenced || isAccents[i+1] || strings.HasPrefix(t, "|") || !accentWord.MatchString(t) {
 			continue
 		}
 		drift := true
@@ -738,7 +745,7 @@ func (s *spec) accentDrift(add func(string, int, string, ...any)) {
 			continue
 		}
 		add("S-ACCENT", i+1, "puts the accent on something else: `%s`, but line %d says `%s`. One hue, one meaning: give this the role you mean (fg, fgMuted, secondary) or the hue's own meaning",
-			t, hueLine, strings.TrimSpace(s.lines[hueLine-1]))
+			t, firstLine, strings.TrimSpace(s.lines[firstLine-1]))
 	}
 }
 

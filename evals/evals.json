@@ -35,7 +35,9 @@
         "a running job's working mark in the status column is one cell like the dots beside it (ui.Busy, not a multi-cell spinner), and under -ascii it is never the focus bar's | or another state's mark",
         "every toggle's help names what the key does now: a key that pauses while following reads `f pause`, not `f follow`, in the state where the header or status says following (render both states; the footer and the status word never show the same verb)",
         "the critic round was a fresh subagent given the PNGs and goldens, or, with no subagent tool, a fresh message that re-read only the PNGs and goldens with verify.md's prompt, and the hand-off says which; a self-review with the code in context is not a critic",
-        "go vet -vettool=$(which tuivet) ./... (or tuivet ./...) exits 0 in the app's module: the tuilint code rules hold as go/analysis analyzers too, so an editor or CI run finds nothing tuilint code didn't"
+        "go vet -vettool=$(which tuivet) ./... (or tuivet ./...) exits 0 in the app's module: the tuilint code rules hold as go/analysis analyzers too, so an editor or CI run finds nothing tuilint code didn't",
+        "tuilint code on the project reports no C-GLYPH: every mark the screens draw (the input caret, the scrolled-off marker, separators, arrows, progress and status glyphs) is a theme glyph (t.G.Caret, t.G.Sep, t.G.More, t.G.Arrow), not a string literal; text (quotes, dashes, units) is left alone",
+        "tuilint frames judges the inside of the retry confirmation, whatever the dialog style: under a bordered, +--+ (ascii) or rules dialog the frames carry no 'checked only by eye' note, and a low-contrast cell inside the panel would fail F-CONTRAST; a dialog: none theme justifies the note in one line"
       ]
     },
     {
@@ -177,7 +179,8 @@
         "the key table has a partial state for the inbox (one of Forge, Beacon or mail failed while the others loaded), besides its empty, loading and error states",
         "the ● ◐ ○ ✓ state ladder keeps ◐: it has an ASCII twin and sits in a 2-cell column, and is not dropped or replaced by plain text for being ambiguous-width",
         "no state's footer keys overflow the 80-column footer: a state with more actions than fit (the inbox) marks its footer (bold keys, or ‖ after them), keeping its main actions and its way out in it and the rest reachable from ? help; tuilint spec reports no S-FOOTER",
-        "TUI.md's colour line says what separates dialogs and overlays from the page where the background step is gone (16 colours, NO_COLOR, -profile ascii), e.g. a hairline rule or border, although SPEC.md asks for borderless filled panels"
+        "TUI.md's colour line says what separates dialogs and overlays from the page where the background step is gone (16 colours, NO_COLOR, -profile ascii), e.g. a hairline rule or border, although SPEC.md asks for borderless filled panels",
+        "tuilint spec reports no S-ACCENT on TUI.md: once the accents: line gives the hue its one meaning (amber = new), no other line puts 'the accent' or 'the primary hue' on the wordmark, a spinner, a ramp or anything else; a brief that does trips S-ACCENT and is fixed before the hand-off"
       ]
     },
     {

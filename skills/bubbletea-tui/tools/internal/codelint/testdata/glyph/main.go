@@ -21,5 +21,9 @@ func view() string {
 	more := "↑ 3 more" + " ×" // want "C-GLYPH: glyph '↑'"
 	// a comment may hold ▏ · → freely: nothing draws it
 	prose := "café, 日本語, naïve, ١٢٣"
-	return sep + string(arrow) + caret + more + prose + theme.Caret + ui.Twin(theme.Caret)
+	// punctuation, currency, units and maths are text a screen prints, not marks it draws
+	text := "it’s «quoted» — a dash – and “curly” quotes; £5, €3, 72°F, ©2026 ™, 3×4 ÷ 2 ± 1 ≥ ½ µs ²"
+	marks := "✓ done" // want "C-GLYPH: glyph '✓'"
+	spark := "⣀⣤⣿"    // want "C-GLYPH: glyph '⣀'"
+	return sep + string(arrow) + caret + more + prose + text + marks + spark + theme.Caret + ui.Twin(theme.Caret)
 }

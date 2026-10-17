@@ -107,7 +107,10 @@ One glyph per meaning, from the theme.
 **G7 A glyph typed in a screen** [C-GLYPH]. `"▏"` as the caret, `" · "` between details,
 `"↑ 3 more"`: the brand can't change it, ASCII mode has no twin for it, and the next
 screen types a different one. *Instead:* `t.G.Caret`, `t.G.Sep`, `t.G.More`; a glyph
-the theme lacks becomes a `Glyphs` field with a twin.
+the theme lacks becomes a `Glyphs` field with a twin. The rule is for drawn marks
+(arrows, box drawing, blocks, shapes, symbols, dingbats, braille, `· • …`, anything
+the kit's twin table maps); text stays text: other scripts, quotes and dashes
+(`it’s`, `«q»`, `a — b`), currency (`£5`), units and maths (`72°F`, `©`, `×`, `≥`, `½`).
 
 ## Motion
 

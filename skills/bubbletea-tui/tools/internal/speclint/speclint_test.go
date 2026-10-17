@@ -513,7 +513,7 @@ func TestAccentDrift(t *testing.T) {
 			table("| inbox | inbox | enter open · q quit |", "")
 	}
 	drift := brand("accents: amber = new, nothing else; focus = weight", "remember: the wordmark in the accent",
-		"", "### Motion", "hero: refresh → dots in the accent, 20 cells")
+		"", "### Motion", "hero: refresh → dots in the primary hue, 20 cells")
 	fs := Lint("TUI.md", drift)
 	var hits []Finding
 	for _, f := range fs {
@@ -530,6 +530,14 @@ func TestAccentDrift(t *testing.T) {
 		"the hue named":         brand("accents: amber = new", "remember: amber on the unread count, the primary accent of the screen is amber"),
 		"no accents line":       brand("palette: slate and amber", "remember: the wordmark in the accent"),
 		"placeholder":           brand("accents: <hue> = <its one meaning>, one line per hue", "remember: the wordmark in the accent"),
+		// two hues on one line, ;-separated: the second pair's meaning counts too
+		"two hues, one line": brand("accents: amber = new, nothing else; teal = running", "motion: the dots spin in the accent while a fetch is running"),
+		// a second accents line adds its pair
+		"two accents lines": brand("accents: amber = new", "accents: teal = running", "motion: running rows pulse in the accent"),
+		// primary as a word for something that isn't the hue
+		"primary pane":   brand("accents: amber = new", "focus: the primary pane keeps the cursor; the secondary pane is dim"),
+		"primary key":    brand("accents: amber = new", "the primary key of a row is its id, shown in fgMuted"),
+		"primary button": brand("accents: amber = new", "buttons: the primary button is bold fg, the rest fgMuted"),
 	} {
 		if n := rules(Lint("TUI.md", doc))["S-ACCENT"]; n != 0 {
 			t.Errorf("%s: %d S-ACCENT, want 0:\n%s", name, n, dump(Lint("TUI.md", doc)))

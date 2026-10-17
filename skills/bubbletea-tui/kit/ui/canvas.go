@@ -148,30 +148,32 @@ func (c *Canvas) ASCIIfy() {
 }
 
 func asciiRune(r rune) string {
+	for _, c := range asciiClasses {
+		if strings.ContainsRune(c.glyphs, r) {
+			return c.twin
+		}
+	}
 	switch {
-	case strings.ContainsRune("─━═╌┄┈╍┅┉▔▁╴╶╸╺", r):
-		return "-"
-	case strings.ContainsRune("│┃║╎┆┊╏┇┋▏▎▍▌▐▕", r):
-		return "|"
 	case r >= 0x2500 && r <= 0x257F: // other box drawing: corners, tees, crosses
-		if strings.ContainsRune("╱", r) {
-			return "/"
-		}
-		if strings.ContainsRune("╲", r) {
-			return "\\"
-		}
 		return "+"
-	case strings.ContainsRune("█▓▒▆▇▅▄▀▙▛▜▟", r):
-		return "#"
-	case strings.ContainsRune("░▂▃▖▗▘▝▚▞", r):
-		return "."
-	case r >= 0x2800 && r <= 0x28FF:
+	case r >= 0x2800 && r <= 0x28FF: // braille
 		return "."
 	}
 	if s, ok := asciiMap[r]; ok {
 		return s
 	}
 	return "?"
+}
+
+// asciiClasses and asciiMap are the twin tables: the one place outside the theme
+// package that spells glyphs (tuilint code C-GLYPH skips their literals). A class maps
+// a run of glyphs to one twin; the map, single glyphs.
+var asciiClasses = []struct{ glyphs, twin string }{
+	{"─━═╌┄┈╍┅┉▔▁╴╶╸╺", "-"},
+	{"│┃║╎┆┊╏┇┋▏▎▍▌▐▕", "|"},
+	{"╱", "/"}, {"╲", "\\"},
+	{"█▓▒▆▇▅▄▀▙▛▜▟", "#"},
+	{"░▂▃▖▗▘▝▚▞", "."},
 }
 
 var asciiMap = map[rune]string{
@@ -206,7 +208,7 @@ func Fit(s string, w int) string {
 	}
 	n := lipgloss.Width(s)
 	if n > w {
-		return ansi.Truncate(s, w, "…")
+		return ansi.Truncate(s, w, theme.Ellipsis)
 	}
 	return s + strings.Repeat(" ", w-n)
 }
