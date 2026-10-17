@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"golang.org/x/text/width"
 	"golang.org/x/tools/go/analysis"
@@ -455,6 +456,100 @@ func runEmoji(pass *analysis.Pass) (any, error) {
 		})
 	}
 	return nil, nil
+}
+
+// C-GLYPH
+
+// GlyphAnalyzer reports glyph literals outside the theme package (C-GLYPH).
+var GlyphAnalyzer = newAnalyzer("tuiglyph",
+	"C-GLYPH: a non-ASCII symbol in a string or rune literal outside the theme package; screens take glyphs from the theme (t.G.Sep, t.G.Caret)",
+	runGlyph)
+
+// glyphRune is a rune a screen draws as a mark rather than reads as text: outside ASCII
+// and not a letter, digit, combining mark or space (é, 日本 and ١ are text in another
+// script, whose width is C-LEN's business; an en space is a separator, not a mark).
+func glyphRune(r rune) bool {
+	return r > 127 && !unicode.IsLetter(r) && !unicode.IsNumber(r) && !unicode.IsMark(r) && !unicode.IsSpace(r)
+}
+
+// firstGlyph returns the first glyph rune of s.
+func firstGlyph(s string) (rune, bool) {
+	for _, r := range s {
+		if glyphRune(r) {
+			return r, true
+		}
+	}
+	return 0, false
+}
+
+// declaresTwinTable reports a file that holds an ASCII twin table: a package-level map
+// variable whose name says ascii (the kit's ui/canvas.go asciiMap). Its literals are the
+// glyphs the table maps, so the whole file is the one place outside the theme that may
+// spell them.
+func declaresTwinTable(f *ast.File) bool {
+	for _, d := range f.Decls {
+		gd, ok := d.(*ast.GenDecl)
+		if !ok || gd.Tok != token.VAR {
+			continue
+		}
+		for _, s := range gd.Specs {
+			vs, ok := s.(*ast.ValueSpec)
+			if !ok {
+				continue
+			}
+			for i, n := range vs.Names {
+				if i >= len(vs.Values) || !strings.Contains(strings.ToLower(n.Name), "ascii") {
+					continue
+				}
+				if cl, ok := vs.Values[i].(*ast.CompositeLit); ok {
+					if _, ok := cl.Type.(*ast.MapType); ok {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+func runGlyph(pass *analysis.Pass) (any, error) {
+	p := program(pass)
+	once := lineOnce{}
+	for _, f := range p.Files {
+		if isTheme(pass, f) || declaresTwinTable(f) {
+			continue
+		}
+		ast.Inspect(f, func(n ast.Node) bool {
+			if _, ok := n.(*ast.ImportSpec); ok {
+				return false
+			}
+			lit, ok := n.(*ast.BasicLit)
+			if !ok || lit.Kind != token.STRING && lit.Kind != token.CHAR {
+				return true
+			}
+			v, kind := literalValue(lit)
+			if _, emoji := firstEmoji(v); emoji {
+				return true // C-EMOJI's, with the same fix
+			}
+			if r, ok := firstGlyph(v); ok && once.first(pass.Fset, "C-GLYPH", lit.Pos()) {
+				report(pass, lit.Pos(), "C-GLYPH", fmt.Sprintf("glyph '%c' (U+%04X) in a %s literal: screens take glyphs from the theme (t.G.Sep, t.G.Caret, t.G.Arrow); a new one is a Glyphs field with an ASCII twin", r, r, kind))
+			}
+			return true
+		})
+	}
+	return nil, nil
+}
+
+// literalValue is the text of a string or rune literal and which it is.
+func literalValue(lit *ast.BasicLit) (string, string) {
+	if lit.Kind == token.STRING {
+		v, _ := strconv.Unquote(lit.Value)
+		return v, "string"
+	}
+	if r, _, _, err := strconv.UnquoteChar(strings.Trim(lit.Value, "'"), '\''); err == nil {
+		return string(r), "rune"
+	}
+	return "", "rune"
 }
 
 // C-V1

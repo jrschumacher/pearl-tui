@@ -97,20 +97,20 @@ func (m model) View() tea.View {
 	s.WriteString(strings.Repeat(" ", m.width-len(m.status)))                      // want `C-LEN: len\(m.status\)`
 	gap := m.width - len([]rune(m.name))                                           // want `C-LEN: len\(\[\]rune\(m.name\)\).*counts runes`
 	w := len(m.name)                                                               // want "C-LEN"
-	s.WriteString(strings.Repeat("─", m.width-utf8.RuneCountInString(m.name)))     // want `C-LEN: utf8.RuneCountInString\(m.name\)`
+	s.WriteString(strings.Repeat("─", m.width-utf8.RuneCountInString(m.name)))     // want `C-LEN: utf8.RuneCountInString\(m.name\)` "C-GLYPH"
 	if len(m.row) > 0 && lipgloss.Width(m.row[0]) < m.width {
 		s.WriteString(m.row[0])
 	}
 	if lipgloss.Width(m.name) > m.width && len(m.name) > 3 {
-		s.WriteString("…")
+		s.WriteString("…") // want "C-GLYPH: glyph '…'"
 	}
 	n := len(m.name)
 	_ = gap + w
-	s.WriteRune('🚀')           // want "C-EMOJI: emoji '🚀'"
-	s.WriteString(`🎉 shipped`) // want "C-EMOJI: emoji '🎉'"
-	s.WriteString("⏳ waiting") // want "C-EMOJI: emoji '⏳'"
-	s.WriteString("❤️ thanks") // want "C-EMOJI: emoji '❤️'"
-	s.WriteString("✓ ok ⚠ careful" + fmt.Sprint(n, accent, pink, links, v1path))
+	s.WriteRune('🚀')                                                             // want "C-EMOJI: emoji '🚀'"
+	s.WriteString(`🎉 shipped`)                                                   // want "C-EMOJI: emoji '🎉'"
+	s.WriteString("⏳ waiting")                                                   // want "C-EMOJI: emoji '⏳'"
+	s.WriteString("❤️ thanks")                                                   // want "C-EMOJI: emoji '❤️'"
+	s.WriteString("✓ ok ⚠ careful" + fmt.Sprint(n, accent, pink, links, v1path)) // want "C-GLYPH: glyph '✓'"
 	return tea.NewView(s.String())
 }
 
