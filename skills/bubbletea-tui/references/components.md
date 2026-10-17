@@ -63,7 +63,11 @@ collapses to one summary line under the list.
   offset, `DialogBodyRows` and `ClipMax` to clamp it), so no dialog reaches the footer.
 - Palette: a prompt input with a caret, then a fixed-height list (it doesn't jump while
   typing), with fuzzy matches underlined and shortcuts right-aligned.
-- Only the front dialog takes input. `esc` closes it. The scrim dims the rest.
+- Only the front dialog takes input. `esc` closes it. The scrim dims the rest, and
+  `Canvas.Overlay` clears what would still read as live beside it: the page's focus
+  marks (one focus per frame), a phrase the dialog cuts, to its column gap (no `igh` or
+  `1s` fragment at the edge), a page rule on the dialog's edge rows, and, where no scrim
+  is drawn (16 colours, NO_COLOR, ASCII, `scrim: none`), the rows the dialog spans.
 - Max ~64–70 cols wide; fullscreen below the minimum size.
 
 ## Confirm — destructive actions

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/colorprofile"
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 
@@ -184,9 +183,12 @@ func dialogRules(t *theme.Theme, title string, w int, fill color.Color) (string,
 
 // Overlay draws a dialog centred on the canvas (or at anchor when non-nil),
 // dimming what is under it when the theme asks for a scrim. Draw it last:
-// draw order is z-order. There is no scrim under ASCII or at 16 colours: with the page
-// on ANSI 0 or 15, dimming toward it sends every text level to the page's own slot and
-// the scrim's text vanishes instead of fading.
+// draw order is z-order. There is no scrim under ASCII, at 16 colours or with no colour:
+// with the page on ANSI 0 or 15, dimming toward it sends every text level to the page's
+// own slot and the scrim's text vanishes instead of fading. Where no scrim is drawn
+// (those, and scrim: none) the rows the dialog spans are cleared across instead; under
+// a scrim, a phrase the dialog cuts is cleared to its column gap. Either way the page's
+// focus marks go and no page rule runs on beside the dialog's edges (overlay.go).
 func (c *Canvas) Overlay(dialog string, anchor *uv.Position) uv.Rectangle {
 	return c.overlay(dialog, anchor, c.T.P.BgPanel)
 }
@@ -200,9 +202,6 @@ func (c *Canvas) Popover(dialog string, anchor *uv.Position) uv.Rectangle {
 // filled panel whatever its edge, and whether or not the app paints the terminal
 // (paintBg), or the page's colour would show through it.
 func (c *Canvas) overlay(dialog string, anchor *uv.Position, fill color.Color) uv.Rectangle {
-	if c.T.X.Scrim == "dim" && !c.T.ASCII && c.T.Profile != colorprofile.ANSI {
-		c.Scrim(0.55)
-	}
 	dw, dh := lipgloss.Width(dialog), lipgloss.Height(dialog)
 	b := c.Bounds()
 	x := (b.Dx() - dw) / 2
@@ -214,6 +213,11 @@ func (c *Canvas) overlay(dialog string, anchor *uv.Position, fill color.Color) u
 		}
 	}
 	r := uv.Rect(x, y, dw, dh)
+	scrim := c.scrims()
+	c.clearPage(r, dialog, !scrim)
+	if scrim {
+		c.Scrim(0.55)
+	}
 	c.Draw(dialog, r)
 	// cells the dialog left without a background would show the scrim through (a rules
 	// dialog's margin carries the page's bg, so it stays a clean gap)

@@ -190,7 +190,9 @@ func TestNoUnstyledText(t *testing.T) {
 
 // Every theme's overlay states render under 16 colours and NO_COLOR as the harness
 // writes them (-profile ansi, NO_COLOR=1): exactly W×H, with the theme resolved for
-// that profile (a borderless dialog's edge depends on it, ui TestEveryDialog…).
+// that profile (a borderless dialog's edge depends on it, ui TestEveryDialog…). No scrim
+// is drawn there, so the rows the dialog spans are cleared across: a help dialog sat
+// between live list rows ("● acme/w ── keys · inbox ── mitri · 5h"), read as a collage.
 func TestOverlaysInReducedProfiles(t *testing.T) {
 	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)
@@ -218,6 +220,9 @@ func TestOverlaysInReducedProfiles(t *testing.T) {
 					c.PaintBackground()
 					if err := checkSize(ansi.Strip(downsample(c.String(), prof)), s, 80, 24); err != nil {
 						t.Errorf("%s %s dark=%v: %v", filepath.Base(f), pr.name, dark, err)
+					}
+					if x, y, ok := pageBeside(c, m.ovRect, 80); ok {
+						t.Errorf("%s %s %s dark=%v: no scrim, and the page shows %q at %d,%d beside the dialog", filepath.Base(f), s, pr.name, dark, c.CellAt(x, y).Content, x, y)
 					}
 				}
 			}
