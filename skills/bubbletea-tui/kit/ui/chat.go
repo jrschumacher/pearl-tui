@@ -93,7 +93,9 @@ const (
 type Tool struct {
 	Name   string
 	Param  string      // the main parameter (a command, a path, a pattern)
-	Opts   [][2]string // secondary k=v params, dropped first when narrow
+	Opts   [][2]string // secondary k=v params, dropped first when narrow; a flag has an empty value and draws bare
+	Desc   string      // what the call is for ("Run import tests"), muted under the head
+	Meta   string      // a note right-aligned on the head (elapsed, "allowed for session"); Opts go before it, it goes before Param is cut
 	State  ToolState
 	Body   []string // output lines (pre-styled or plain)
 	Err    string
@@ -105,7 +107,8 @@ type Tool struct {
 // ToolCall renders the Crush grammar (its fixed copy, "Canceled." and "Waiting for
 // permission", in the theme's case):
 //
-//	● Name main-param (k=v, k=v)
+//	● Name main-param (k=v, flag)              allowed for session · 6s
+//	  what the call is for
 //
 //	  output line on the panel colour, full width
 //	  … (12 lines hidden) [space to expand]
@@ -132,9 +135,20 @@ func ToolCall(t *theme.Theme, tc Tool, w int, focused bool) []string {
 	if len(tc.Opts) > 0 {
 		var kv []string
 		for _, o := range tc.Opts {
-			kv = append(kv, o[0]+"="+o[1])
+			if o[1] == "" {
+				kv = append(kv, o[0]) // a flag
+			} else {
+				kv = append(kv, o[0]+"="+o[1])
+			}
 		}
 		opts = " (" + strings.Join(kv, ", ") + ")"
+	}
+	// the note keeps its place while the whole parameter and two cells of air fit
+	// beside it, and goes before the parameter is cut for it; the k=v group goes first
+	meta := ""
+	if tc.Meta != "" && lipgloss.Width(param)+2+lipgloss.Width(tc.Meta) <= avail {
+		meta = tc.Meta
+		avail -= 2 + lipgloss.Width(meta)
 	}
 	// drop the k=v group before the main param gets cramped (< 30 cells)
 	if lipgloss.Width(param)+lipgloss.Width(opts) > avail && avail-lipgloss.Width(opts) < 30 {
@@ -144,7 +158,13 @@ func ToolCall(t *theme.Theme, tc Tool, w int, focused bool) []string {
 	if tc.State == ToolRunning && tc.Spin != "" {
 		head += " " + tc.Spin
 	}
+	if meta != "" {
+		head += strings.Repeat(" ", max(2, inner-lipgloss.Width(head)-lipgloss.Width(meta))) + t.S.Subtle.Render(meta)
+	}
 	rows := []string{head}
+	if tc.Desc != "" {
+		rows = append(rows, t.S.Muted.Render(Trunc(t, tc.Desc, inner)))
+	}
 	switch {
 	case tc.State == ToolError:
 		rows = append(rows, "", Tag(t, "error", "ERROR")+" "+t.S.Muted.Render(Trunc(t, tc.Err, inner-8)))
@@ -286,8 +306,9 @@ func Transcript(t *theme.Theme, blocks [][]string, w, h, scroll int, hint string
 	return append([]string{Fit(marker, w)}, rows[hidden:end]...)
 }
 
-// cutRow truncates a padded row to w cells: with the theme's ellipsis when text is
-// lost, plainly when only its padding is.
+// cutRow truncates a padded row to w cells: plainly when only its padding is lost;
+// at the gap before a right-aligned note (two blanks or more) when the cut falls in
+// the note, so no "allowed …" fragment is left; else with the theme's ellipsis.
 func cutRow(t *theme.Theme, s string, w int) string {
 	w = max(0, w)
 	if lipgloss.Width(s) <= w {
@@ -296,5 +317,16 @@ func cutRow(t *theme.Theme, s string, w int) string {
 	if strings.TrimSpace(ansi.Strip(ansi.TruncateLeft(s, w, ""))) == "" {
 		return ansi.Truncate(s, w, "")
 	}
-	return ansi.Truncate(s, w, t.G.Ellipsis)
+	kept := []rune(ansi.Strip(ansi.Truncate(s, w, "")))
+	for x := len(kept) - 1; x > 0; x-- {
+		if kept[x] == ' ' && kept[x-1] == ' ' {
+			if strings.TrimSpace(string(kept[:x])) != "" {
+				return Fit(ansi.Truncate(s, lipgloss.Width(string(kept[:x])), ""), w)
+			}
+			break
+		}
+	}
+	// the row is pre-styled: the ellipsis gets its own ink, or it would be unstyled
+	ell := t.S.Subtle.Render(t.G.Ellipsis)
+	return Fit(ansi.Truncate(s, w-lipgloss.Width(ell), "")+ell, w)
 }

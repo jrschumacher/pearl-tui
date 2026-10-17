@@ -116,3 +116,77 @@ func fmtSscan(row, marker string, n *int) (int, error) {
 	*n = v
 	return 1, err
 }
+
+// A tool call carries what the spec of an agent gives it: a description under the head
+// (muted, cut with the head by Transcript), a note right-aligned on the head row (how
+// long it took, how it was allowed), and options that are flags (an empty value) drawn
+// bare, not as "k=". When the row is short, the k=v group goes first, then the note,
+// and the parameter is cut last. Two recreations added Meta by hand and one drew the
+// description as output.
+func TestToolCallDescMetaAndBareOpts(t *testing.T) {
+	th := theme.Resolve(theme.Default(), true, false)
+	tc := Tool{Name: "shell", Param: "go test ./internal/import/...", Desc: "Run import tests",
+		Opts: [][2]string{{"timeout", "60s"}, {"verbose", ""}}, Meta: "allowed for session " + th.G.Sep + " 6s",
+		State: ToolDone, Body: []string{"ok  ledger/internal/import  0.412s"}}
+	rows := ToolCall(th, tc, 100, false)
+	plain := make([]string, len(rows))
+	for i, r := range rows {
+		plain[i] = ansi.Strip(r)
+	}
+	head := strings.TrimRight(plain[0], " ")
+	if !strings.HasSuffix(head, tc.Meta) {
+		t.Errorf("the note is not right-aligned on the head: %q", head)
+	}
+	if !strings.Contains(head, "(timeout=60s, verbose)") {
+		t.Errorf("a flag option is not drawn bare: %q", head)
+	}
+	if got := strings.TrimSpace(plain[1]); got != tc.Desc {
+		t.Errorf("row 1 is %q, want the description %q under the head", got, tc.Desc)
+	}
+	if strings.TrimSpace(plain[2]) != "" || !strings.Contains(plain[3], "ok  ledger") {
+		t.Errorf("want air then the output after the description, got %q / %q", plain[2], plain[3])
+	}
+	for i, r := range rows {
+		if lipgloss.Width(r) != 100 {
+			t.Errorf("row %d is %d cells, want 100", i, lipgloss.Width(r))
+		}
+	}
+	// at 80 the three don't fit: the k=v group goes, the note stays
+	if head := strings.TrimRight(ansi.Strip(ToolCall(th, tc, 80, false)[0]), " "); strings.Contains(head, "timeout=") || !strings.HasSuffix(head, tc.Meta) {
+		t.Errorf("at 80 cells want the options dropped and the note kept: %q", head)
+	}
+	// narrow: the note goes before the parameter is cut for it
+	narrow := ansi.Strip(ToolCall(th, tc, 46, false)[0])
+	if strings.Contains(narrow, "6s") {
+		t.Errorf("at 46 cells the note still draws: %q", narrow)
+	}
+	if !strings.Contains(narrow, "go test") {
+		t.Errorf("at 46 cells the parameter is gone: %q", narrow)
+	}
+	// no description: the head's air row follows it, as before
+	tc.Desc = ""
+	if rows := ToolCall(th, tc, 100, false); strings.TrimSpace(ansi.Strip(rows[1])) != "" {
+		t.Errorf("without a description row 1 is %q, want air", ansi.Strip(rows[1]))
+	}
+}
+
+// A lifted head with a right-aligned note is cut at the gap before the note, not
+// through it: the showcase's marker row read "✓ Edit config/timeouts.go  allowed …".
+func TestTranscriptLiftsAHeadWithoutItsNote(t *testing.T) {
+	th := theme.Resolve(theme.Default(), true, false)
+	tc := Tool{Name: "Edit", Param: "config/timeouts.go", Meta: "allowed for session " + th.G.Sep + " 0.3s",
+		State: ToolDone, Body: []string{"a", "b", "c", "d", "e", "f"}, Expand: true}
+	for _, w := range []int{60, 70, 80} {
+		rows := Transcript(th, [][]string{ToolCall(th, tc, w, false)}, w, 4, 0, "pgup")
+		first := ansi.Strip(rows[0])
+		if !strings.Contains(first, "config/timeouts.go") || !strings.Contains(first, th.G.More+" ") {
+			t.Fatalf("w=%d: want the head lifted onto the marker row, got %q", w, first)
+		}
+		if strings.Contains(first, "allowed") && !strings.Contains(first, tc.Meta) {
+			t.Errorf("w=%d: the lifted head carries a fragment of its note: %q", w, first)
+		}
+		if lipgloss.Width(rows[0]) != w {
+			t.Errorf("w=%d: the marker row is %d cells", w, lipgloss.Width(rows[0]))
+		}
+	}
+}
