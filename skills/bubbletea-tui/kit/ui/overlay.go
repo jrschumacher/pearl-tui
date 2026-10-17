@@ -3,6 +3,7 @@ package ui
 import (
 	"image/color"
 	"strings"
+	"unicode"
 
 	"github.com/charmbracelet/colorprofile"
 	uv "github.com/charmbracelet/ultraviolet"
@@ -55,8 +56,9 @@ func (c *Canvas) clearPage(r uv.Rectangle, dialog string, band bool) {
 // "…latency". No "1s" or "igh" fragment is left at the edge, and every row keeps what
 // it had up to the cut word. A word ends at a blank or after a - or /; a run of rules,
 // blocks or braille (a sparkline, a section rule) has no words, so only the halo cell
-// goes (shape). When the cut word follows a column gap, its column's phrase is gone
-// whole and no ellipsis is drawn.
+// goes (shape). When the cut word follows a column gap, or what is kept before it is
+// only a mark (a status dot), its phrase is gone whole and no ellipsis is drawn: a
+// column of "✕…" says nothing the dialog doesn't.
 func (c *Canvas) clearCut(h, y, dx int) {
 	b := c.Bounds()
 	if h < b.Min.X || h >= b.Max.X {
@@ -77,6 +79,17 @@ func (c *Canvas) clearCut(h, y, dx int) {
 	in := func(x int) bool { return x >= b.Min.X && x < b.Max.X }
 	word := func(x int) bool { return in(x) && !c.isBlank(x, y) && !c.shape(x, y) }
 	joint := func(x int) bool { s := c.text(x, y); return s == "-" || s == "/" }
+	// textual reports a word at x, read away from the dialog, with a letter or a digit
+	textual := func(x int) bool {
+		for ; word(x); x += dx {
+			for _, r := range c.text(x, y) {
+				if unicode.IsLetter(r) || unicode.IsDigit(r) {
+					return true
+				}
+			}
+		}
+		return false
+	}
 	// far is the word's last cell away from the dialog: going left, the cell after a
 	// joint or a gap; going right, a joint itself or the cell before a gap
 	far := func(x int) int {
@@ -112,6 +125,8 @@ func (c *Canvas) clearCut(h, y, dx int) {
 				c.blank(x, y)
 			}
 			return
+		case !textual(next + dx):
+			return // what is kept is a mark (a status dot), not words: nothing was cut
 		default:
 			at = next
 		}

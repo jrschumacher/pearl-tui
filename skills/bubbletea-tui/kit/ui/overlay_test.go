@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"unicode"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
@@ -137,6 +138,19 @@ func checkCut(t *testing.T, name string, orig []rune, got []string, halo, dx int
 			t.Errorf("%s: %q is left in part: %q", name, string(orig[lo:hi]), strings.Join(got, ""))
 		}
 	}
+	// kept text that is only a mark (a status dot) takes no ellipsis: no words were cut
+	// short, and a column of "✕…" beside a dialog says nothing
+	textual := func(x int) bool {
+		for ; in(x) && orig[x] != ' ' && !shape(orig[x]); x += dx {
+			if unicode.IsLetter(orig[x]) || unicode.IsDigit(orig[x]) {
+				return true
+			}
+		}
+		return false
+	}
+	if ellAt >= 0 && !textual(ellAt+dx) {
+		t.Errorf("%s: an ellipsis at %d after a mark, not words: %q", name, ellAt, strings.Join(got, ""))
+	}
 	// the phrase goes on past the cleared run: the ellipsis says so
 	end := halo
 	for in(end+dx) && changed(end+dx) {
@@ -150,7 +164,7 @@ func checkCut(t *testing.T, name string, orig []rune, got []string, halo, dx int
 		t.Errorf("%s: a cut word's phrase goes on at %d but no ellipsis marks it: %q", name, k, strings.Join(got, ""))
 		return
 	}
-	if in(k) && orig[k] == ' ' && in(k+dx) && orig[k+dx] != ' ' && !shape(orig[k+dx]) {
+	if in(k) && orig[k] == ' ' && in(k+dx) && orig[k+dx] != ' ' && !shape(orig[k+dx]) && textual(k+dx) {
 		t.Errorf("%s: a cut word's phrase goes on at %d but no ellipsis marks it: %q", name, k+dx, strings.Join(got, ""))
 	}
 }
