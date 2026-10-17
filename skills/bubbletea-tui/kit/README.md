@@ -68,6 +68,7 @@ cp -r <skill>/kit/theme internal/theme && cp -r <skill>/kit/ui internal/ui
 cp -r <skill>/kit/cmd/showcase cmd/<app>
 cp <skill>/kit/themes/embed.go themes/ && cp <skill>/kit/themes/<closest>.json themes/<brand>.json
 perl -pi -e 's#"tuikit/themes"#"<your/module>/themes"#; s#"tuikit/#"<your/module>/internal/#' $(grep -rl '"tuikit/' internal cmd)
+gofmt -w internal cmd
 go mod edit -go=1.26.7
 go get charm.land/bubbletea/v2@v2.1.0 charm.land/lipgloss/v2@v2.0.6 \
   charm.land/bubbles/v2@v2.2.1 charm.land/huh/v2@v2.0.3 \
@@ -78,7 +79,9 @@ go mod tidy && go test ./...
 Huh is pinned too: `ui/form.go` works around v2.0.3's quirks, each with a test, and a
 newer Huh can change them. CI runs this block in a fresh module on every change.
 
-`perl -pi` because `sed -i` takes different arguments on macOS. The tests find
+`perl -pi` because `sed -i` takes different arguments on macOS, and `gofmt -w` after it
+because the rewrite moves `<your/module>/themes` below `<your/module>/internal/ui` in
+the import order, which `gofmt -l` would flag in CI. The tests find
 `themes/*.json` from `internal/ui` and `cmd/<app>` as they do from the kit, and use your
 theme where they name one of the kit's, so they pass in your project as they do here.
 
