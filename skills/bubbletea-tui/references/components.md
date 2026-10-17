@@ -34,6 +34,9 @@ the border colour, and right info is subtle. This is how regions separate.
   `blurBar` that is the `focusBar`.
 - Title in fg, description muted after it (dropped first when tight), right-aligned
   hint in subtle, fuzzy matches underlined.
+- Before the title, a status column (`Item.Mark`, a rung of the theme's ladder by its
+  meaning, else `Item.State`'s Dot) and a muted `Item.Lead` column (a repo#n, an id) as
+  wide as the widest lead, so titles line up. Don't hand-write a row for either.
 - The scrollbar column appears only when the list overflows.
 - Empty list: an empty state, never a blank area.
 

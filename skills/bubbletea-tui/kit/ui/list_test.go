@@ -91,3 +91,41 @@ func TestBlurredSelectionIsItsOwnGlyph(t *testing.T) {
 		}
 	}
 }
+
+// A row's status column takes a rung of the theme's ladder (Item.Mark, drawn with
+// ui.Mark) beside Dot's states, and a Lead column (a repo#n, an id) as wide as the
+// widest lead, so titles line up: an inbox drew its own rows because List had neither.
+func TestItemMarkAndLead(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		tf.Ladder = append(tf.Ladder, theme.LadderRung{Glyph: "current", Meaning: "new", Role: "accent"})
+		th := theme.Resolve(tf, true, false)
+		items := []Item{{Mark: "new", Lead: "acme/web#128", Title: "Fix the login", Right: "5h"}, {Lead: "ops#7", Title: "Bump deps"}}
+		for _, focused := range []bool{true, false} {
+			for _, sel := range []int{0, 1} {
+				rows := List(th, items, sel, 0, 60, 2, focused)
+				var col []int
+				for i, r := range rows {
+					plain := ansi.Strip(r)
+					if n := ansi.StringWidth(plain); n != 60 {
+						t.Errorf("%s sel=%d focused=%v: row %d is %d cells: %q", filepath.Base(f), sel, focused, i, n, plain)
+					}
+					col = append(col, ansi.StringWidth(plain[:strings.Index(plain, items[i].Title)]))
+					lead := strings.Index(plain, items[i].Lead)
+					if lead < 0 {
+						t.Errorf("%s sel=%d focused=%v: row %d drops its lead: %q", filepath.Base(f), sel, focused, i, plain)
+					}
+				}
+				if col[0] != col[1] {
+					t.Errorf("%s sel=%d focused=%v: titles start at %v, want one column", filepath.Base(f), sel, focused, col)
+				}
+				if mark := ansi.Strip(Mark(th, "new")); !strings.Contains(ansi.Strip(rows[0]), mark+" acme/web#128") {
+					t.Errorf("%s sel=%d focused=%v: the new rung %q is not before the lead: %q", filepath.Base(f), sel, focused, mark, ansi.Strip(rows[0]))
+				}
+			}
+		}
+	}
+}
