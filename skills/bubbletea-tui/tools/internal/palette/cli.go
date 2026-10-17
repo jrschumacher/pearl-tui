@@ -52,6 +52,18 @@ func check(path string, stdout, stderr io.Writer) int {
 	if err := json.Unmarshal(data, &top); err != nil {
 		return fail(stderr, fmt.Errorf("%s: %w", path, err))
 	}
+	// theme.CheckGlyphs: a glyph -ascii can't draw, a twin that isn't ASCII, or two
+	// states that share a twin. theme.Load lets them through so an app always starts;
+	// this is the gate
+	if raw, ok := top["glyphs"]; ok {
+		var g theme.Glyphs
+		if err := json.Unmarshal(raw, &g); err != nil {
+			return fail(stderr, fmt.Errorf("%s: glyphs: %w", path, err))
+		}
+		if err := theme.CheckGlyphs(g); err != nil {
+			return fail(stderr, fmt.Errorf("%s: %w", path, err))
+		}
+	}
 	accept := map[string]string{}
 	if raw, ok := top["contrastAccept"]; ok {
 		if v, err := pyfmt.Decode(raw); err == nil {
@@ -65,10 +77,11 @@ func check(path string, stdout, stderr io.Writer) int {
 		}
 	}
 	var extra []Check
+	var skip map[[2]string]bool
 	if raw, ok := top["expressions"]; ok {
 		if v, err := pyfmt.Decode(raw); err == nil {
 			if m, ok := v.(map[string]any); ok {
-				extra = ExpressionChecks(m)
+				extra, skip = ExpressionChecks(m), ExpressionSkips(m)
 			}
 		}
 	}
@@ -120,7 +133,7 @@ func check(path string, stdout, stderr io.Writer) int {
 		if err := FillOnColours(r, mode != "light"); err != nil {
 			return fail(stderr, err)
 		}
-		b, txt := Report(r, mode, accept, extra...)
+		b, txt := ReportSkipping(r, mode, accept, skip, extra...)
 		bad += b
 		fmt.Fprintln(stdout, txt)
 	}

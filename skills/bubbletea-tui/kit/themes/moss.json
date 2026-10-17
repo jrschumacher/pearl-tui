@@ -75,7 +75,10 @@
    "⠂",
    "⠄",
    "⠂"
-  ]
+  ],
+  "ascii": {
+   "✎": ">"
+  }
  },
  "expressions": {
   "header": "rule",

@@ -290,3 +290,58 @@ func TestCheckRejectsWhatTheEngineRejects(t *testing.T) {
 		}
 	}
 }
+
+// check fails a glyph -ascii can't draw, and two states that share a twin (CheckGlyphs).
+func TestCheckRejectsGlyphsWithNoASCIITwin(t *testing.T) {
+	for _, c := range []struct{ glyphs, err string }{
+		{`{"pending": "◔"}`, `glyphs.pending "◔" has no ASCII twin`},
+		{`{"pending": "◔", "ascii": {"◔": "◑"}}`, `glyphs.ascii: "◔" → "◑" is not ASCII`},
+		{`{"pending": "◔", "ascii": {"◔": "*"}}`, `glyphs.current "●" and glyphs.pending "◔" both draw as "*"`},
+		{`{"pending": "◔", "ascii": {"◔": "~"}}`, ""},
+		{`{"todo": "◦"}`, ""}, // the kit's map has it
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		js := `{"roles": {"dark": {"bg": "#201F26", "fg": "#DFDBDD"}}, "glyphs": ` + c.glyphs + `}`
+		if err := os.WriteFile(path, []byte(js), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		// theme.Load never fails on a glyph: an app must start; palette check is the gate
+		if _, err := theme.Load(path); err != nil {
+			t.Errorf("%s: theme.Load %v, want it to load", c.glyphs, err)
+		}
+		if c.err == "" {
+			if code == 2 {
+				t.Errorf("%s: check exit 2 (%q), want it to accept", c.glyphs, errb.String())
+			}
+			continue
+		}
+		if code != 2 || !strings.Contains(errb.String(), c.err) {
+			t.Errorf("%s: check exit %d (%q), want exit 2 with %q", c.glyphs, code, errb.String(), c.err)
+		}
+	}
+}
+
+// Under "focus": "fg" the selection is never a primary fill, so check doesn't ask
+// fgSelected to read on primary; primary on bg and onPrimary on primary still count.
+func TestFocusFgDropsTheSelectedFillCheck(t *testing.T) {
+	roles := `{"dark": {"bg": "#17181B", "fg": "#CFCDCA", "primary": "#E8A33D", "fgSelected": "#E0B060"}}`
+	for _, c := range []struct {
+		focus      string
+		code       int
+		selChecked bool
+	}{{"primary", 1, true}, {"fg", 0, false}} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		js := `{"roles": ` + roles + `, "expressions": {"focus": "` + c.focus + `"}}`
+		if err := os.WriteFile(path, []byte(js), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		if code != c.code || strings.Contains(out.String(), "fgSelected   on primary") != c.selChecked ||
+			!strings.Contains(out.String(), "primary      on bg") || !strings.Contains(out.String(), "onPrimary    on primary") {
+			t.Errorf("focus %s: exit %d, want %d\n%s%s", c.focus, code, c.code, out.String(), errb.String())
+		}
+	}
+}

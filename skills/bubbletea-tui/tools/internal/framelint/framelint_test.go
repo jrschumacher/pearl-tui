@@ -437,3 +437,106 @@ func TestLiveParity(t *testing.T) {
 		}
 	}
 }
+
+// F-ASCII: with --ascii, any cell outside ASCII fails, once per frame; without the flag
+// the rule doesn't run, so the Python-era goldens are untouched.
+func TestASCIIRule(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, text string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	clean := write("clean-20x2.ansi", "  > inbox  * new    \n  ... more           \n")
+	leaky := write("leaky-20x2.ansi", "  > inbox  ◐ read   \n  ... more  ◐ ●      \n")
+	count := func(args ...string) (int, []Finding) {
+		fs, _, _ := run(t, args...)
+		var hits []Finding
+		for _, f := range fs {
+			if f.Rule == "F-ASCII" {
+				hits = append(hits, f)
+			}
+		}
+		return len(hits), hits
+	}
+	if n, _ := count(clean, leaky); n != 0 {
+		t.Errorf("without --ascii: %d F-ASCII findings, want 0", n)
+	}
+	if n, _ := count(clean, "--ascii"); n != 0 {
+		t.Errorf("an ASCII frame: %d F-ASCII findings, want 0", n)
+	}
+	n, hits := count(leaky, "--ascii")
+	if n != 1 || hits[0].Sev != "P1" || hits[0].Where != "r0c11" || !strings.Contains(hits[0].Msg, "3 cells") ||
+		!strings.Contains(hits[0].Msg, "◐ U+25D0, ● U+25CF") {
+		t.Errorf("a leaky frame: %+v", hits)
+	}
+	if _, _, code := run(t, leaky, "--ascii"); code != 1 {
+		t.Errorf("a leaky ASCII frame exits %d, want 1", code)
+	}
+}
+
+// A 16-colour frame (-profile ansi) holds slots of the terminal's own palette: it is
+// not judged for off-palette colours or for contrast under an assumed palette, only
+// for text drawn in the same slot as its background, which no palette can show.
+func TestBasicFrames(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, text string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	pad := strings.Repeat(" ", 12)
+	// bright cyan on blue: 2.08:1 under cellshot's palette, readable on most terminals
+	ok := write("ok-20x2.ansi", "\x1b[96;44m  header bar        \x1b[0m\n\x1b[31m  error text\x1b[0m"+pad[:8]+"\n")
+	same := write("same-20x2.ansi", "\x1b[34;44m  hidden text       \x1b[0m\n\x1b[7;31;41m  reversed, hidden  \x1b[0m\n")
+	rules := func(path string) map[string]int {
+		fs, _, _ := run(t, path, "--theme", "testdata/themes/halyard.json")
+		n := map[string]int{}
+		for _, f := range fs {
+			n[f.Rule]++
+		}
+		return n
+	}
+	if got := rules(ok); got["F-OFFPAL"] != 0 || got["F-CONTRAST"] != 0 {
+		t.Errorf("readable 16-colour frame: %v, want no F-OFFPAL or F-CONTRAST", got)
+	}
+	if got := rules(same); got["F-CONTRAST"] != 1 {
+		t.Errorf("text in its background's slot: %v, want one F-CONTRAST", got)
+	}
+}
+
+// F-LEVELS isn't judged on a frame with no colour (NO_COLOR): it has one text level by
+// construction, its levels are weight and glyphs. The same frame in colour still is.
+func TestLevelsSkipsColourlessFrames(t *testing.T) {
+	dir := t.TempDir()
+	var plain, grey strings.Builder
+	for range 12 {
+		row := strings.Repeat("lorem ipsum ", 6) + "dolor si"
+		plain.WriteString(row + "\n")
+		grey.WriteString("\x1b[38;2;200;200;200m" + row + "\x1b[0m\n")
+	}
+	levels := func(name, text string) int {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		fs, _, _ := run(t, p)
+		n := 0
+		for _, f := range fs {
+			if f.Rule == "F-LEVELS" {
+				n++
+			}
+		}
+		return n
+	}
+	if n := levels("plain-80x12.ansi", plain.String()); n != 0 {
+		t.Errorf("no-colour frame: %d F-LEVELS, want 0", n)
+	}
+	if n := levels("grey-80x12.ansi", grey.String()); n != 1 {
+		t.Errorf("one-grey colour frame: %d F-LEVELS, want 1", n)
+	}
+}

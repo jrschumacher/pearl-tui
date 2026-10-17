@@ -22,11 +22,12 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 )
 
 // Roles is the palette by role. Hex strings in the JSON.
 type Roles struct {
-	Primary   string `json:"primary"`   // the brand hue: focus, current, selected rows, header rule
+	Primary   string `json:"primary"`   // the brand hue: focus, current, selected rows, header rule (under expressions.focus "fg": only what the theme or app asks for)
 	Secondary string `json:"secondary"` // second hue: primary buttons, gradient end, subtitles
 	Tertiary  string `json:"tertiary"`  // prompts, cursors, input carets
 	Accent    string `json:"accent"`    // section titles, headings; reads as "heading", never "alert"
@@ -59,8 +60,12 @@ type Roles struct {
 	White string `json:"white,omitempty"` // legacy themes: used as OnPrimary/OnSecondary when those are missing
 }
 
-// Glyphs is the brand's glyph vocabulary. Every glyph has an ASCII fallback
-// (see ASCII) used when the theme is resolved with ascii=true.
+// Glyphs is the brand's glyph vocabulary. Every glyph has an ASCII twin (see ASCII)
+// drawn when the theme is resolved with ascii=true: from the theme's own ascii map,
+// else the kit's. CheckGlyphs (palette check, the kit's tests) fails a glyph with
+// neither, and two marks of one meaning set that share a twin. Load doesn't: at run
+// time an unmapped glyph draws as "?", which tuilint frames --ascii fails. A project
+// that adds a glyph field here gets it mapped and checked too.
 type Glyphs struct {
 	HeaderRule string   `json:"headerRule"` // fills the header after the wordmark: ╱ ─ ═ · ━ ╌ ~ (or "")
 	Rule       string   `json:"rule"`       // section rules: ─ ━ ╌ ┄ ═ ·
@@ -90,20 +95,24 @@ type Glyphs struct {
 	Spinner    []string `json:"spinner"`    // frames
 	FieldA     string   `json:"fieldA"`     // backdrop field bright glyph ◆ ▲ ╱
 	FieldB     string   `json:"fieldB"`     // backdrop field subtle glyph ◇ △
+
+	// ASCII is the theme's own twins, glyph → ASCII, for glyphs the kit's map lacks
+	// or draws differently: {"✎": ">", "◔": "~"}. It wins over the kit's map.
+	ASCII map[string]string `json:"ascii,omitempty"`
 }
 
 // Expressions are the brand's choices for how each element is drawn. These are
 // the axes that make two themes read as two products, not one app recoloured.
 type Expressions struct {
 	Header       string `json:"header"`       // rule | bar | minimal | stamp | banner
-	Wordmark     string `json:"wordmark"`     // gradient | solid | inverse | tracked | bracket | upper
+	Wordmark     string `json:"wordmark"`     // gradient | solid | inverse | tracked | bracket | upper | plain (fg, bold, no hue)
 	SectionTitle string `json:"sectionTitle"` // accent | primary | muted-upper | fg
 	TitleCase    string `json:"titleCase"`    // sentence | upper | lower
 	Selection    string `json:"selection"`    // bar | fill | caret | inverse  (how a selected/focused row is marked)
 	Button       string `json:"button"`       // pill | bracket | underline | inverse
 	Tag          string `json:"tag"`          // filled | bracket | bold
-	Dialog       string `json:"dialog"`       // rounded | square | double | heavy | none (none = filled panel)
-	DialogTitle  string `json:"dialogTitle"`  // rule | plain | bar   (rule = title + headerRule glyph run in a gradient)
+	Dialog       string `json:"dialog"`       // rounded | square | double | heavy | none (filled panel) | rules (filled panel, rule above and below, title in the top rule)
+	DialogTitle  string `json:"dialogTitle"`  // rule | plain | bar   (rule = title + headerRule glyph run in a gradient; unused under dialog rules)
 	Tabs         string `json:"tabs"`         // underline | pill | bracket | slash
 	Footer       string `json:"footer"`       // keys | bar | rule
 	Keys         string `json:"keys"`         // inline | boxed
@@ -111,9 +120,16 @@ type Expressions struct {
 	Backdrop     string `json:"backdrop"`     // none | field
 	Working      string `json:"working"`      // spinner | scramble   (the hero "working" indicator; scramble is Crush's)
 	Scrim        string `json:"scrim"`        // dim | none   (dim the screen under a dialog)
-	PaintBg      bool   `json:"paintBg"`      // own the terminal background (tea.View.BackgroundColor)
-	Gutter       int    `json:"gutter"`       // side margin in cells (default 2)
-	Measure      int    `json:"measure"`      // max prose width (default 100)
+	// Focus is the ink of the kit's own emphasis: primary (default), or fg, where the
+	// focus bar, cursor, prompt, current step, active tab, selection and focused button
+	// are fg and bold, and the kit's marks (spinner, progress, busy dot, header and
+	// dialog-title rules, the dialog border unless borderFocus is set) are neutral.
+	// For a brand whose hue is reserved for a state. Fills the theme opts into (a bar
+	// header, a bar dialog title, a filled tag, an inverse wordmark) keep primary.
+	Focus   string `json:"focus"`   // primary | fg
+	PaintBg bool   `json:"paintBg"` // own the terminal background (tea.View.BackgroundColor)
+	Gutter  int    `json:"gutter"`  // side margin in cells (default 2)
+	Measure int    `json:"measure"` // max prose width (default 100)
 }
 
 // Wordmark is an optional multi-row wordmark (scripts/wordmark.py output).
@@ -212,15 +228,28 @@ type Theme struct {
 	File
 	Dark  bool
 	ASCII bool
-	P     Palette
-	G     Glyphs
-	X     Expressions
-	S     Styles
+	// Profile is the terminal's colour profile the styles were built for (see
+	// ResolveProfile); Unknown means truecolour, the colours as written.
+	Profile colorprofile.Profile
+	P       Palette
+	G       Glyphs
+	X       Expressions
+	S       Styles
 }
 
-// Resolve picks the dark or light roles, fills gaps, and builds every style.
-// Call it on startup and again when tea.BackgroundColorMsg arrives.
+// Resolve picks the dark or light roles, fills gaps, and builds every style, for a
+// truecolour terminal. Call it on startup and again when tea.BackgroundColorMsg
+// arrives; an app that renders to other terminals calls ResolveProfile.
 func Resolve(f File, dark, ascii bool) *Theme {
+	return ResolveProfile(f, dark, ascii, colorprofile.TrueColor)
+}
+
+// ResolveProfile is Resolve for the colour profile the terminal reports
+// (tea.ColorProfileMsg: 16 colours, 256, or none under NO_COLOR). Where a
+// background step the styles separate things with can't be told from the page at
+// that profile (Distinct), they add an edge instead: a borderless dialog gets a rule
+// above and below. Keep the profile and pass it again on every re-resolve.
+func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *Theme {
 	r, ok := f.Roles["dark"]
 	if !dark {
 		if l, ok2 := f.Roles["light"]; ok2 {
@@ -230,15 +259,50 @@ func Resolve(f File, dark, ascii bool) *Theme {
 	if !ok {
 		r = Default().Roles["dark"]
 	}
-	t := &Theme{File: f, Dark: dark, ASCII: ascii}
+	t := &Theme{File: f, Dark: dark, ASCII: ascii, Profile: profile}
 	t.P = derive(r, dark)
 	t.G = glyphDefaults(f.Glyphs)
 	if ascii {
 		t.G = ASCII(t.G)
 	}
 	t.X = exprDefaults(f.Expressions)
+	if t.X.Focus == "fg" && r.BorderFocus == "" {
+		t.P.BorderFocus = t.P.FgMuted // the dialog border is chrome too: not the hue
+	}
 	t.S = build(t)
 	return t
+}
+
+// Distinct reports whether a and b draw as different colours at the theme's profile:
+// under 16 or 256 colours two hexes can land on one index, and under NO_COLOR (or
+// no TTY) nothing has a colour at all.
+func (t *Theme) Distinct(a, b color.Color) bool {
+	p := t.Profile
+	if p == colorprofile.Unknown {
+		p = colorprofile.TrueColor
+	}
+	ca, cb := p.Convert(a), p.Convert(b)
+	if ca == nil || cb == nil {
+		return ca != cb
+	}
+	r1, g1, b1, _ := ca.RGBA()
+	r2, g2, b2, _ := cb.RGBA()
+	return r1 != r2 || g1 != g2 || b1 != b2
+}
+
+// Ink is the colour to draw text on fill with: c, or when c and fill land on one
+// colour at the theme's profile, fg or bg, whichever stays apart from the fill. At
+// truecolour, and wherever the two stay apart, it is c.
+func (t *Theme) Ink(c, fill color.Color) color.Color {
+	if t.Distinct(c, fill) {
+		return c
+	}
+	for _, alt := range []color.Color{t.P.Fg, t.P.Bg} {
+		if t.Distinct(alt, fill) {
+			return alt
+		}
+	}
+	return c
 }
 
 // AppName is the brand name the theme declares.

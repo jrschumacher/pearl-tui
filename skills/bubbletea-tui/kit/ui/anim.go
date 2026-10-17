@@ -89,5 +89,5 @@ func (a *Anim) Frame(n int, elapsed string) string {
 
 // Spinner is the small inline spinner (the theme's frames) at frame n.
 func Spinner(t *theme.Theme, n int) string {
-	return t.S.Primary.Render(t.G.Spinner[n%len(t.G.Spinner)])
+	return t.S.Mark.Render(t.G.Spinner[n%len(t.G.Spinner)])
 }

@@ -22,6 +22,11 @@ type Styles struct {
 	Panel   lipgloss.Style // a recessed block: bgPanel, no border
 	Key     lipgloss.Style // help: the key
 	KeyDesc lipgloss.Style // help: what it does
+	// emphasis, per expressions.focus: primary, or fg and bold
+	Focus  lipgloss.Style // focus, current and selection marks: cursor, current step, active tab, chosen option
+	Prompt lipgloss.Style // input prompts and carets (tertiary, or fg and bold)
+	Mark   lipgloss.Style // the kit's own marks: spinner, progress fill, busy dot (primary, or fg)
+	Motif  lipgloss.Style // the header rule and dialog-title rule runs (primary, or the rule role)
 	// selection
 	SelRow   lipgloss.Style // a selected row (per expressions.selection)
 	FocusBar lipgloss.Style // ▌ beside the focused block
@@ -39,6 +44,9 @@ type Styles struct {
 func build(t *Theme) Styles {
 	p, x := t.P, t.X
 	var s Styles
+	// ink on a fill: under 16 colours a muted grey and a tinted fill can land on one
+	// slot and the text vanishes, so take fg or bg instead, whichever stays apart
+	ink := func(c, fill color.Color) color.Color { return t.Ink(c, fill) }
 	s.Base = lipgloss.NewStyle().Foreground(p.Fg)
 	s.Soft = s.Base.Foreground(p.FgSoft)
 	s.Muted = s.Base.Foreground(p.FgMuted)
@@ -49,6 +57,13 @@ func build(t *Theme) Styles {
 	s.Tertiary = s.Base.Foreground(p.Tertiary)
 	s.Accent = s.Base.Foreground(p.Accent)
 	s.OK, s.Err, s.Warn, s.Info = s.Base.Foreground(p.Success), s.Base.Foreground(p.Error), s.Base.Foreground(p.Warning), s.Base.Foreground(p.Info)
+	s.Rule = lipgloss.NewStyle().Foreground(p.Border)
+	// focus "fg": the hue is the brand's state colour, so the kit's emphasis is weight
+	fgFocus := x.Focus == "fg"
+	s.Focus, s.Prompt, s.Mark, s.Motif = s.Primary, s.Tertiary, s.Primary, s.Primary
+	if fgFocus {
+		s.Focus, s.Prompt, s.Mark, s.Motif = s.Bold, s.Bold, s.Base, s.Rule
+	}
 
 	switch x.SectionTitle {
 	case "primary":
@@ -60,47 +75,56 @@ func build(t *Theme) Styles {
 	default:
 		s.Title = s.Accent.Bold(true)
 	}
-	s.Rule = lipgloss.NewStyle().Foreground(p.Border)
 	s.Panel = lipgloss.NewStyle().Background(p.BgPanel).Foreground(p.FgSoft)
 	s.Key = s.Muted
 	s.KeyDesc = s.Subtle
 	if x.Keys == "boxed" {
-		s.Key = s.Base.Background(p.BgSubtle).Padding(0, 1)
+		s.Key = s.Base.Foreground(ink(p.Fg, p.BgSubtle)).Background(p.BgSubtle).Padding(0, 1)
 	}
 
 	switch x.Selection {
 	// filled selections are drawn as reverse video of (fill, ink): the same
 	// pixels in colour, and still a visible bar when colour is stripped
 	case "fill": // a full-width primary bar, like Crush's dialogs
-		s.SelRow = lipgloss.NewStyle().Foreground(p.Primary).Background(p.FgSelected).Reverse(true).Bold(true)
+		s.SelRow = lipgloss.NewStyle().Foreground(p.Primary).Background(ink(p.FgSelected, p.Primary)).Reverse(true).Bold(true)
+		if fgFocus { // an fg bar: inverse
+			s.SelRow = lipgloss.NewStyle().Foreground(p.Fg).Background(p.Bg).Reverse(true).Bold(true)
+		}
 	case "inverse":
 		s.SelRow = lipgloss.NewStyle().Foreground(p.Fg).Background(p.Bg).Reverse(true).Bold(true)
 	case "caret":
-		s.SelRow = s.Primary.Bold(true)
+		s.SelRow = s.Focus.Bold(true)
 	default: // bar: bold text beside a focus bar
 		s.SelRow = s.Bold
 	}
 	s.FocusBar = lipgloss.NewStyle().Foreground(p.Primary)
+	if fgFocus {
+		s.FocusBar = s.Bold
+	}
 	s.BlurBar = lipgloss.NewStyle().Foreground(p.BgSubtle)
 	s.Match = lipgloss.NewStyle().Underline(true)
 
 	switch x.Button {
 	case "bracket":
 		s.Button = s.Muted
-		s.ButtonFocus = s.Primary.Bold(true)
+		s.ButtonFocus = s.Focus.Bold(true)
 		s.ButtonDanger = s.Err.Bold(true)
 	case "underline":
 		s.Button = s.Muted
-		s.ButtonFocus = s.Primary.Bold(true).Underline(true)
+		s.ButtonFocus = s.Focus.Bold(true).Underline(true)
 		s.ButtonDanger = s.Err.Bold(true).Underline(true)
 	case "inverse":
-		s.Button = lipgloss.NewStyle().Foreground(p.Fg).Background(p.BgSubtle).Padding(0, 2)
+		s.Button = lipgloss.NewStyle().Foreground(ink(p.Fg, p.BgSubtle)).Background(p.BgSubtle).Padding(0, 2)
 		s.ButtonFocus = lipgloss.NewStyle().Foreground(p.Bg).Background(p.Fg).Bold(true).Padding(0, 2)
-		s.ButtonDanger = lipgloss.NewStyle().Foreground(p.OnError).Background(p.Error).Bold(true).Padding(0, 2)
+		s.ButtonDanger = lipgloss.NewStyle().Foreground(ink(p.OnError, p.Error)).Background(p.Error).Bold(true).Padding(0, 2)
 	default: // pill
-		s.Button = lipgloss.NewStyle().Foreground(p.FgMuted).Background(p.BgSubtle).Padding(0, 2)
-		s.ButtonFocus = lipgloss.NewStyle().Foreground(p.OnSecondary).Background(p.Secondary).Bold(true).Padding(0, 2)
-		s.ButtonDanger = lipgloss.NewStyle().Foreground(p.OnError).Background(p.Error).Bold(true).Padding(0, 2)
+		s.Button = lipgloss.NewStyle().Foreground(ink(p.FgMuted, p.BgSubtle)).Background(p.BgSubtle).Padding(0, 2)
+		fill, on := p.Secondary, p.OnSecondary
+		if fgFocus || !t.Distinct(fill, p.BgSubtle) {
+			fill, on = p.Fg, p.Bg // the focused pill must not look like the rest: fg, as inverse draws it
+		}
+		s.ButtonFocus = lipgloss.NewStyle().Foreground(ink(on, fill)).Background(fill).Bold(true).Padding(0, 2)
+		s.ButtonDanger = lipgloss.NewStyle().Foreground(ink(p.OnError, p.Error)).Background(p.Error).Bold(true).Padding(0, 2)
 	}
 
 	var b lipgloss.Border
@@ -118,15 +142,27 @@ func build(t *Theme) Styles {
 	}
 	if t.ASCII {
 		b = lipgloss.ASCIIBorder()
+	} else if x.Dialog == "none" && !t.Distinct(p.Bg, p.BgPanel) {
+		// the panel step is the dialog's only edge, and at this profile (16 colours,
+		// NO_COLOR) it lands on the page's colour: draw a rule above and below instead,
+		// in the cells the hidden border kept, so the layout doesn't move
+		b = RuleEdge(t.G.Rule)
 	}
 	s.Dialog = lipgloss.NewStyle().Border(b).BorderForeground(p.BorderFocus).Padding(1, 2)
-	if x.Dialog == "none" {
+	switch x.Dialog {
+	case "none":
 		s.Dialog = s.Dialog.Background(p.BgPanel).BorderBackground(p.BgPanel)
+	case "rules":
+		// the editorial dialog: a filled panel, one cell of padding inside and one cell
+		// of page around it, so the page's text never runs into its open sides. ui.Dialog
+		// draws its rules above and below (the title in the top one): its edge is glyphs,
+		// which need no colour and hold at every profile
+		s.Dialog = lipgloss.NewStyle().Background(p.BgPanel).Padding(1, 1).Margin(1, 1).MarginBackground(p.Bg)
 	}
 
 	tag := func(bg, fg color.Color, text lipgloss.Style) lipgloss.Style {
 		if x.Tag == "filled" {
-			return lipgloss.NewStyle().Background(bg).Foreground(fg).Bold(true).Padding(0, 1)
+			return lipgloss.NewStyle().Background(bg).Foreground(ink(fg, bg)).Bold(true).Padding(0, 1)
 		}
 		return text.Bold(true)
 	}
@@ -137,10 +173,19 @@ func build(t *Theme) Styles {
 	s.TagInfo = tag(p.Info, OnColor(p.Info, p.Bg, p.Fg), s.Info)
 	s.TagMuted = tag(p.BgSubtle, p.Fg, s.Muted)
 	bar := func(c color.Color) lipgloss.Style {
-		return lipgloss.NewStyle().Background(Mix(p.Bg, c, 0.18)).Foreground(p.Fg).Padding(0, 1)
+		fill := Mix(p.Bg, c, 0.18)
+		return lipgloss.NewStyle().Background(fill).Foreground(ink(p.Fg, fill)).Padding(0, 1)
 	}
 	s.BarOK, s.BarErr, s.BarWarn, s.BarInfo = bar(p.Success), bar(p.Error), bar(p.Warning), bar(p.Info)
 	return s
+}
+
+// RuleEdge is a border of hairline rules above and below, blank cells at the sides
+// and blank corners: an edge for a filled panel that keeps the panel's footprint and
+// leaves a cell of space between its rules and the page's text beside them.
+func RuleEdge(rule string) lipgloss.Border {
+	return lipgloss.Border{Top: rule, Bottom: rule, TopLeft: " ", TopRight: " ", BottomLeft: " ", BottomRight: " ",
+		Left: " ", Right: " "}
 }
 
 // Case applies the theme's title case.

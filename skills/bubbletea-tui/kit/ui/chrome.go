@@ -25,6 +25,8 @@ func Wordmark(t *theme.Theme, name string) string {
 		return t.S.Subtle.Render("[") + t.S.Bold.Render(name) + t.S.Subtle.Render("]")
 	case "upper":
 		return t.S.Primary.Bold(true).Render(strings.ToUpper(name))
+	case "plain": // the name in fg, bold, no hue
+		return t.S.Bold.Render(name)
 	}
 	if t.ASCII {
 		return t.S.Bold.Render(name)
@@ -83,7 +85,7 @@ func Header(t *theme.Theme, w, h int, brand, details string) []string {
 	n := inner - used
 	fill := strings.Repeat(" ", max(0, n))
 	if t.G.HeaderRule != "" && n > 0 {
-		fill = t.S.Primary.Render(strings.Repeat(t.G.HeaderRule, n))
+		fill = t.S.Motif.Render(strings.Repeat(t.G.HeaderRule, n))
 	}
 	if n < 3 { // too narrow for the rule: drop details first, keep the brand
 		return []string{Fit(pad+b+" "+details, w)}
@@ -164,6 +166,9 @@ func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 	var parts []string
 	used := 0
 	more := t.S.Subtle.Render(t.G.Ellipsis)
+	// room for the separator and the ellipsis as the theme draws it: "  …" is 3 cells,
+	// the ASCII "  ..." is 5
+	reserveMore := 2 + lipgloss.Width(more)
 	for i, b := range bindings {
 		if !b.Enabled() {
 			continue
@@ -177,7 +182,7 @@ func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 		}
 		reserve := 0
 		if i < len(bindings)-1 {
-			reserve = 3
+			reserve = reserveMore
 		}
 		if used+need+reserve > w && len(parts) > 0 {
 			parts = append(parts, more)
@@ -187,10 +192,12 @@ func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 		used += need
 	}
 	line := strings.Join(parts, sep)
+	// a single hint wider than w is cut with the theme's ellipsis, so ASCII stays ASCII
+	line = Fit(Trunc(t, line, max(0, w)), w)
 	if pinned != "" {
-		return Fit(line, w) + sep + pinned
+		return line + sep + pinned
 	}
-	return Fit(line, w)
+	return line
 }
 
 // Footer is the bottom row(s) per expressions.footer: bare keys, keys on a
@@ -220,6 +227,11 @@ func Footer(t *theme.Theme, w int, left string, bindings []key.Binding, right st
 	row = Fit(row+pad, w)
 	switch t.X.Footer {
 	case "bar":
+		// the keys are fgMuted and fgSubtle on the strip; where either lands on the
+		// strip's colour (16 colours), the strip would hide them: draw the keys bare
+		if !t.Distinct(t.P.FgMuted, t.P.BgSubtle) || !t.Distinct(t.P.FgSubtle, t.P.BgSubtle) {
+			return []string{row}
+		}
 		return []string{OnBg(row, t.P.BgSubtle)}
 	case "rule":
 		return []string{pad + Rule(t, inner) + pad, row}
@@ -265,7 +277,11 @@ func Tabs(t *theme.Theme, names []string, active int, counts []string) []string 
 		var s string
 		switch {
 		case t.X.Tabs == "pill" && i == active:
-			s = lipgloss.NewStyle().Background(t.P.Primary).Foreground(t.P.OnPrimary).Bold(true).Padding(0, 1).Render(label)
+			fill, on := t.P.Primary, t.P.OnPrimary
+			if t.X.Focus == "fg" { // the active tab is focus chrome
+				fill, on = t.P.Fg, t.P.Bg
+			}
+			s = lipgloss.NewStyle().Background(fill).Foreground(on).Bold(true).Padding(0, 1).Render(label)
 		case t.X.Tabs == "pill":
 			s = t.S.Muted.Padding(0, 1).Render(label)
 		case t.X.Tabs == "bracket" && i == active:
@@ -287,7 +303,7 @@ func Tabs(t *theme.Theme, names []string, active int, counts []string) []string 
 		}
 		u := strings.Repeat(" ", lipgloss.Width(s))
 		if i == active {
-			u = t.S.Primary.Render(strings.Repeat(mark, lipgloss.Width(s)))
+			u = t.S.Focus.Render(strings.Repeat(mark, lipgloss.Width(s)))
 		}
 		under = append(under, u)
 	}

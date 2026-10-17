@@ -39,7 +39,7 @@ everything'" is.
 | industrial, blunt, exact | `━`/`═` heavy rules, a stamp header, `fill` selection, inverse block buttons, `[BRACKET]` tags, heavy dialog, UPPERCASE labels, compact, quadrant spinner, no gradients |
 | precise, technical, nautical | a bar header, `┄` chart rules, slash tabs, `[ bracket ]` buttons, boxed keys, `▲ △` motifs, compact |
 | playful, loud, retro | a half-block banner, `inverse` selection, double dialog, pill tabs, owned background, a gradient motif rule, field backdrop |
-| editorial, bookish, quiet | lowercase titles, `·` dotted leaders, a thin `│` bar, filled-panel dialogs (no border), underline buttons, measure 72 |
+| editorial, bookish, quiet | lowercase titles, `·` dotted leaders, a thin `│` bar, filled-panel dialogs (no border, or `dialog: rules`: a rule above and below), underline buttons, measure 72; when the one hue is a state, `focus: fg` and `wordmark: plain` |
 | a developer tool with personality (Crush) | a `╱` motif in the header and every dialog title, a gradient wordmark, `▌` bars, pill buttons, filled tags, playful copy (`Yep!`) |
 
 These are starting points. Two brands with the same trait still differ on palette, motif,
@@ -75,30 +75,46 @@ read it too.
     "bullet": "▸", "sep": "/", "arrow": "→", "ellipsis": "…",
     "radioOn": "◉", "radioOff": "○", "checkOn": "■", "checkOff": "□",
     "treeMid": "├─", "treeEnd": "╰─", "thumb": "┃", "track": "│",
-    "spinner": ["◢","◣","◤","◥"], "fieldA": "▲", "fieldB": "△"
+    "spinner": ["◢","◣","◤","◥"], "fieldA": "▲", "fieldB": "△",
+    "ascii": { "◔": "~" }         // twins for glyphs the kit's map lacks (theme.ASCIITwin)
   },
   "expressions": {
     "header": "bar",            // rule | bar | minimal | stamp | banner
-    "wordmark": "tracked",      // gradient | solid | inverse | tracked | bracket | upper
+    "wordmark": "tracked",      // gradient | solid | inverse | tracked | bracket | upper | plain (fg, bold)
     "sectionTitle": "primary",  // accent | primary | muted-upper | fg
     "titleCase": "sentence",    // sentence | upper | lower
     "selection": "fill",        // bar | fill | caret | inverse
     "button": "bracket",        // pill | bracket | underline | inverse
     "tag": "filled",            // filled | bracket | bold
     "dialog": "square",         // rounded | square | double | heavy | none (a filled panel)
-    "dialogTitle": "bar",       // rule (motif in a gradient) | plain | bar
+                                //   | rules (a filled panel between two rules, title in the top one)
+    "dialogTitle": "bar",       // rule (motif in a gradient) | plain | bar (unused under rules)
     "tabs": "slash",            // underline | pill | bracket | slash
     "footer": "rule",           // keys | bar | rule
     "keys": "boxed",            // inline | boxed
     "density": "compact",       // airy | compact
     "backdrop": "field",        // none | field
     "scrim": "dim",             // dim | none
+    "focus": "primary",         // primary | fg (focus, cursor, prompt, selection in fg + bold)
     "paintBg": false,           // own the terminal background
     "gutter": 2, "measure": 100
   },
   "wordmark": { "rows": ["…"], "style": "half" }    // optional, from wordmark.py
 }
 ```
+
+**`focus: fg` is for a brand whose hue means a state** (amber = new, and nothing else).
+One meaning per hue means focus can't be that hue, so the kit's own emphasis moves to
+fg and weight: the focus bar, cursor, prompt and caret, current step, active tab, chosen
+option and focused button (every button style) in fg + bold, the fill selection inverse,
+and the kit's marks neutral (spinner, progress fill and busy dot in fg; the header rule
+and dialog-title rule in the rule role, a hairline like the section rules; the dialog
+border fgMuted unless `borderFocus` says otherwise). What the theme opts into keeps
+primary, because the brand chose it: a bar or stamp header, a banner, a gradient,
+solid, inverse or tracked wordmark (`plain` is the name in fg), `sectionTitle: primary`,
+`dialogTitle: bar` (the title on a primary strip), filled tags, the field backdrop, the
+scramble. So does what the app asks for
+(`t.S.Primary`, `ui.Tag(t, "primary", …)`): that is the state.
 
 Missing roles are derived, and missing glyphs and expressions default, so a theme can
 start small. Write every role as `#RRGGBB` or `#RGB`, `#` included: Lip Gloss reads
@@ -109,9 +125,17 @@ as ACCEPT instead of FAIL:
 ```json
 "contrastAccept": { "dark.primary": "Charple #6B50FF exactly as Crush ships it; used for fills and bars" }
 ```
- Every glyph maps to an ASCII fallback (`theme.ASCII`). If you add a key:
+ Every glyph maps to an ASCII twin (`theme.ASCII`): the theme's own in `glyphs.ascii`,
+else the kit's map. `palette check` (and the kit's theme tests) fail on a glyph with
+neither, and on two marks of one meaning that share a twin (done/current/todo/pending/
+warn/fail, radio on/off, check on/off, thumb/track, focus/blur bar): a guessed fallback
+lands on another mark's twin (`◔` reading and `●` new both as `*`). `theme.Load` doesn't,
+so an app always starts; at run time an unmapped glyph draws as `?`, which
+`tuilint frames --ascii` fails [F-ASCII]. Half-filled circles take `~` by convention
+(`"ascii": {"◐": "~"}`). If you add a key:
 add it to the Go structs, default it, document it here, probe-render it at 80×24 and
-120×40, and decide whether `diversity` should count it.
+120×40, and decide whether `diversity` should count it. A new glyph field needs nothing
+more for ASCII: `theme.ASCII` maps, and `theme.CheckGlyphs` checks, every string in `Glyphs`.
 
 **What never changes, whatever the brand:** whitespace and rules instead of boxes, one
 box for the floating thing, three to four text levels, exactly one visible focus that

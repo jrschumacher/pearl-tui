@@ -32,6 +32,8 @@ type Cell struct {
 type Frame struct {
 	Rows     [][]Cell
 	Indexed  bool     // only 256-colour SGR (38;5 / 48;5), no truecolour: -profile ansi256
+	Basic    bool     // only 16-colour SGR (30–37, 90–97, 40–47, 100–107): -profile ansi
+	Plain    bool     // no colour SGR at all: NO_COLOR, -profile ascii
 	Emoji    bool     // an emoji codepoint was drawn
 	Warnings []string // sorted, as cellshot.py reports them
 }

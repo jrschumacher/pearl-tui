@@ -101,13 +101,13 @@ Read before any UI change. Update it when a decision changes.
 ### Users and terminals
 <who; sizes (80×24 design floor); light/dark; SSH/tmux; NO_COLOR; screen readers>
 colour: truecolor → 256 → 16 → none; under -profile ascii, focus, selection and errors stay visible by <glyph, weight>
-dialogs and overlays: where the background step is gone (16 colours, NO_COLOR, ascii), the edge is <border | ─ rule above and below>
+dialogs and overlays: where the background step is gone (16 colours, NO_COLOR, ascii), the edge is <border | ─ rule above and below (dialog: rules)>
 
 ### Brand read
 palette / tone / geometry / density / type / motif   (references/brand.md §1)
 remember: <a move every screen draws: a title motif, a header rule, a layout move>, not a quality of the content
-accents: <hue> = <its one meaning>, one line per hue; focus = <gutter, weight>, never a state hue
-glyphs: <glyph> <meaning> (ascii <twin>), one line each; width-safe: <narrow glyph | 2-cell column>
+accents: <hue> = <its one meaning>, one line per hue; focus = <gutter, weight>, never a state hue ("focus": "fg" in the theme when the brand's hue is a state)
+glyphs: <glyph> <meaning> (ascii <twin>), one line each; twins the kit lacks go in the theme's glyphs.ascii; width-safe: <narrow glyph | 2-cell column>
 
 ### Theme
 themes/<brand>.json   (palette derive from <measured hexes, source>)
@@ -195,18 +195,23 @@ wrong. Write them this way:
   product, and no later command can draw it, so the screens go generic.
 - **One meaning per accent hue.** One hue for "new" *and* for focus makes the cursor
   row and a new row look the same. Focus is the gutter and the weight (`interaction.md`
-  § Focus); a hue is a state.
+  § Focus); a hue is a state. The kit draws focus in primary unless the theme says
+  `"focus": "fg"` (`brand.md` §4), so a brand whose only hue is a state sets it.
 - **Keep a meaningful glyph, with an ASCII twin and a width.** `◆ ◇ ▲ ★ ■` are East
   Asian "ambiguous": two cells in CJK locales, and the kit's ASCII map covers only its
-  own glyphs. Keep the glyph, name its twin (`◆ ◇ ▲ (ascii * o ^)`), and set it in a
+  own glyphs. Keep the glyph, name its twin (`◆ ◇ ▲ (ascii * o ^)`), write the twin into
+  the theme's `glyphs.ascii` (`palette check` fails a glyph with no twin, or one that
+  shares another state's twin), and set it in a
   2-cell column, which the other ambiguous glyphs in that column need anyway. Swap it
   only for a narrow glyph with the same meaning (`✓ ❯ ▸`), never for a word: a set of
   marks read at a glance is part of the signature, and dropping one for width merges
   two meanings into one mark.
 - **A dialog edge that survives without colour.** A filled panel one background step
   up, with no border, sits on the page in the same colour under 16 colours and
-  NO_COLOR, so the dialog's edge vanishes. The kit's `dialog: none` gets an ASCII
-  border under -ascii only; name the edge for the other profiles too.
+  NO_COLOR, so the dialog's edge vanishes. The kit's `dialog: none` gets a rule above
+  and below wherever that happens (`theme.ResolveProfile` with the terminal's profile)
+  and an ASCII border under -ascii; `dialog: rules` (a rule above and below, the title
+  in the top one) keeps its edge in every profile. Name the edge the brand wants.
 - **A fake for every external service.** The harness renders every state offline and
   the tests run in CI; a state that needs a live CLI or API is a state nobody reviews.
 - **A first slice.** The smallest milestone that renders the main loop on fixtures: the

@@ -51,6 +51,11 @@ collapses to one summary line under the list.
 
 - The title row per `expressions.dialogTitle` (the motif rule in a gradient, plain, or a
   filled bar), then a blank row, the body, buttons, and one help line.
+- The edge per `expressions.dialog`: a border (rounded, square, double, heavy), a filled
+  panel (`none`, which gains a rule above and below where 16 colours or NO_COLOR drop the
+  fill), or `rules`, the editorial one: a filled panel between two hairline rules
+  (`── Send reply ──────`), a one-cell margin inside, no sides, the title in the top rule.
+  Its edge is glyphs, so it holds in every profile.
 - Palette: a prompt input with a caret, then a fixed-height list (it doesn't jump while
   typing), with fuzzy matches underlined and shortcuts right-aligned.
 - Only the front dialog takes input. `esc` closes it. The scrim dims the rest.

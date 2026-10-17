@@ -57,7 +57,7 @@ func listRow(t *theme.Theme, it Item, selected, focused bool, w int) string {
 			marker = t.S.BlurBar.Render(t.G.FocusBar) + " "
 		}
 	case selected && mode == "caret":
-		st := t.S.Primary
+		st := t.S.Focus
 		if !focused {
 			st = t.S.Muted
 		}
@@ -192,7 +192,7 @@ func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 			}
 			out = append(out, Fit(bar.Render(t.G.FocusBar)+" "+line, w))
 		case selected && mode == "caret":
-			out = append(out, Fit(t.S.Primary.Render(t.G.Cursor)+" "+line, w))
+			out = append(out, Fit(t.S.Focus.Render(t.G.Cursor)+" "+line, w))
 		case selected:
 			out = append(out, lipgloss.NewStyle().Background(t.P.BgSubtle).Render(Fit("  "+line, w)))
 		default:

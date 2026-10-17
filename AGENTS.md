@@ -48,9 +48,11 @@ claude plugin validate .                                           # plugin, mar
 ```
 
 CI (`.github/workflows/ci.yml`) runs all of these plus a render-and-lint pass over every
-theme in four variants: dark, `-light`, `-ascii` and `-profile ansi256`. Light, ASCII and
-256 colours are where footers, rules and downsampled roles break first, so lint the
-variant you touched before pushing, not only dark. It also runs `kit/README.md`'s copy
+theme (and the test themes in `kit/theme/testdata`) in six variants: dark, `-light`,
+`-ascii` (linted with `--ascii`), `-profile ansi256`, `-profile ansi` and `NO_COLOR=1`.
+Light, ASCII, 256 and 16 colours and no colour are where footers, rules, background steps
+and downsampled roles break first, so lint the variant you touched before pushing, not
+only dark. It also runs `kit/README.md`'s copy
 block, as written, in a fresh module, because a kit test that names a kit path passes here
 and fails in every project that copied the kit. `.github/workflows/conventional.yml`
 checks the PR title and commit subjects (§ Commits).

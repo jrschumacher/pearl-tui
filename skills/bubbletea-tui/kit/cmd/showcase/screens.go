@@ -358,7 +358,7 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 	}
 	c.Draw(strings.Join(s, "\n"), uv.Rect(main.Min.X, main.Min.Y, w, streamH))
 	ey := main.Max.Y - editorH
-	prompt := t.S.Tertiary.Bold(true).Render(t.G.Prompt) + " "
+	prompt := t.S.Prompt.Bold(true).Render(t.G.Prompt) + " "
 	text := m.input
 	if m.busy {
 		prompt = t.S.Subtle.Render(t.G.Prompt) + " "
@@ -369,9 +369,9 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 	case m.busy:
 		line += t.S.Subtle.Render("working… esc to stop")
 	case text == "":
-		line += t.S.Tertiary.Render("▏") + t.S.Subtle.Render("ask, or tell it what to do")
+		line += t.S.Prompt.Render("▏") + t.S.Subtle.Render("ask, or tell it what to do")
 	default:
-		line += t.S.Tertiary.Render("▏")
+		line += t.S.Prompt.Render("▏")
 	}
 	c.Draw(strings.Join([]string{ui.Rule(t, w), line}, "\n"), uv.Rect(main.Min.X, ey, w, editorH))
 }
@@ -438,7 +438,7 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 		for i, o := range opts {
 			switch {
 			case i == on && focused:
-				out = append(out, t.S.Primary.Render(t.G.RadioOn)+" "+t.S.Bold.Render(o))
+				out = append(out, t.S.Focus.Render(t.G.RadioOn)+" "+t.S.Bold.Render(o))
 			case i == on:
 				out = append(out, t.S.Muted.Render(t.G.RadioOn)+" "+t.S.Base.Render(o))
 			default:
@@ -448,9 +448,9 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 		return strings.Join(out, "   ")
 	}
 	field(0, "Environment", "", choice([]string{"prod", "staging", "dev"}, m.env, m.focus == 0))
-	input := t.S.Tertiary.Render(t.G.Prompt) + " " + t.S.Base.Render(m.version)
+	input := t.S.Prompt.Render(t.G.Prompt) + " " + t.S.Base.Render(m.version)
 	if m.focus == 1 {
-		input += t.S.Tertiary.Render("▏")
+		input += t.S.Prompt.Render("▏")
 	}
 	field(1, "Version", "tag or commit; latest is v2.4.1 (2 min ago)", input)
 	strategies := [][2]string{{"Rolling", "one pod at a time"}, {"Canary", "10% for 15 min, then all"}, {"Blue/green", "switch traffic at once"}}
@@ -458,7 +458,7 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 	check := func(i int, label string) string {
 		g, st := t.G.CheckOff, t.S.Subtle
 		if m.checks[i] {
-			g, st = t.G.CheckOn, t.S.Primary
+			g, st = t.G.CheckOn, t.S.Focus
 		}
 		lab := t.S.Muted.Render(label)
 		if m.focus == 3 && m.checkSel == i {
@@ -545,9 +545,9 @@ func (m *app) palette(c *ui.Canvas) {
 	for _, h := range hits {
 		items = append(items, ui.Item{Title: h.c.Title, Desc: h.c.Desc, Right: h.c.Key, Match: h.idx})
 	}
-	input := t.S.Tertiary.Render(t.G.Prompt) + " " + t.S.Base.Render(m.query) + t.S.Tertiary.Render("▏")
+	input := t.S.Prompt.Render(t.G.Prompt) + " " + t.S.Base.Render(m.query) + t.S.Prompt.Render("▏")
 	if m.query == "" {
-		input = t.S.Tertiary.Render(t.G.Prompt) + " " + t.S.Tertiary.Render("▏") + t.S.Subtle.Render("type to filter")
+		input = t.S.Prompt.Render(t.G.Prompt) + " " + t.S.Prompt.Render("▏") + t.S.Subtle.Render("type to filter")
 	}
 	// the list fits its results (min 3); the top edge stays put while typing
 	listH := min(max(3, len(hits)), len(commands), max(3, c.Bounds().Dy()-12))

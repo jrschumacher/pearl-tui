@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
@@ -175,5 +176,70 @@ func TestNoUnstyledText(t *testing.T) {
 			}
 		next:
 		}
+	}
+}
+
+// Every theme's overlay states render under 16 colours and NO_COLOR as the harness
+// writes them (-profile ansi, NO_COLOR=1): exactly W×H, with the theme resolved for
+// that profile (a borderless dialog's edge depends on it, ui TestEveryDialog…).
+func TestOverlaysInReducedProfiles(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, pr := range []struct {
+			name, flag, noColor string
+			explicit            bool
+			p                   colorprofile.Profile
+		}{{"-profile ansi", "ansi", "", true, colorprofile.ANSI}, {"NO_COLOR=1", "truecolor", "1", false, colorprofile.Ascii}} {
+			prof, err := renderProfile(pr.flag, pr.explicit, pr.noColor)
+			if err != nil || prof != pr.p {
+				t.Fatalf("%s: renderProfile = %v %v, want %v", pr.name, prof, err, pr.p)
+			}
+			for _, dark := range []bool{true, false} {
+				m := newApp(tf, dark, false)
+				m.profile = prof
+				for _, s := range []string{"palette", "confirm", "help"} {
+					m.setState(s)
+					if m.t.Profile != prof {
+						t.Fatalf("%s %s: theme resolved for %v, want %v", filepath.Base(f), s, m.t.Profile, prof)
+					}
+					c := m.render(80, 24)
+					c.PaintBackground()
+					if err := checkSize(ansi.Strip(downsample(c.String(), prof)), s, 80, 24); err != nil {
+						t.Errorf("%s %s dark=%v: %v", filepath.Base(f), pr.name, dark, err)
+					}
+				}
+			}
+		}
+	}
+}
+
+// -profile wins; without it NO_COLOR means no colour when strconv.ParseBool says true,
+// exactly as colorprofile reads it for the live program.
+func TestRenderProfile(t *testing.T) {
+	for _, c := range []struct {
+		name     string
+		explicit bool
+		noColor  string
+		want     colorprofile.Profile
+	}{
+		{"truecolor", false, "", colorprofile.TrueColor},
+		{"truecolor", false, "1", colorprofile.Ascii},
+		{"truecolor", false, "true", colorprofile.Ascii},
+		{"truecolor", false, "0", colorprofile.TrueColor},
+		{"truecolor", false, "false", colorprofile.TrueColor},
+		{"truecolor", false, "yes", colorprofile.TrueColor},
+		{"truecolor", false, "x", colorprofile.TrueColor},
+		{"ansi", true, "1", colorprofile.ANSI},
+		{"ansi256", true, "", colorprofile.ANSI256},
+	} {
+		if got, err := renderProfile(c.name, c.explicit, c.noColor); err != nil || got != c.want {
+			t.Errorf("renderProfile(%q, %v, %q) = %v %v, want %v", c.name, c.explicit, c.noColor, got, err, c.want)
+		}
+	}
+	if _, err := renderProfile("sixteen", true, ""); err == nil {
+		t.Error("renderProfile(sixteen) accepted")
 	}
 }

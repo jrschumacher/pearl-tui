@@ -52,7 +52,8 @@ type Theme struct {
 }
 
 // Load reads a theme file's choices. Dead axes are "-": headerRule under a
-// bar/stamp/minimal header, wordmark under a banner/stamp header.
+// bar/stamp/minimal header, wordmark under a banner/stamp header, dialogTitle under a
+// rules dialog.
 func Load(path string) (Theme, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -104,6 +105,9 @@ func Load(path string) (Theme, error) {
 	switch out["header"] {
 	case "banner", "stamp":
 		out["wordmark"] = Dead
+	}
+	if out["dialog"] == "rules" { // the title sits in the top rule (not in tuilint.py)
+		out["dialogTitle"] = Dead
 	}
 	name := path
 	if n, ok := t["name"]; ok {

@@ -1,9 +1,1 @@
-[
- {
-  "rule": "F-LEVELS",
-  "sev": "P2",
-  "file": "services-80x24.ansi",
-  "where": "frame",
-  "msg": "only 2 neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle"
- }
-]
+[]
