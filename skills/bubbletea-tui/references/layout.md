@@ -64,6 +64,13 @@ Draw (or measure) the header and footer first. The body gets whatever is left. N
 let body content push the footer off the screen. Overflow scrolls inside the body, with a
 visible "↑ 25 more lines" affordance.
 
+## Rows Go By Content
+
+- **DO** let a stacked pair share rows by content: the upper region takes the rows it
+  fills (capped at a share), the lower takes the rest. **DON'T** give each a fixed
+  half: a five-row collection over a long response leaves rows 6–10 blank while the
+  response is cut at row 11.
+
 ## Gutters And Rhythm
 
 - One gutter for the whole app (`expressions.gutter`, usually 2). Content never touches
