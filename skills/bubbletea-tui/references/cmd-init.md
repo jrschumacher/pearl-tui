@@ -265,7 +265,9 @@ because the state's table is dispatched first. Fix its warnings or justify each 
 § Decisions: a Global key a text box eats (`ctrl+k` deletes to end of line in a Bubbles
 textarea) [S-KEYSHADOW], an ambiguous-width glyph with no ASCII twin [S-GLYPHWIDTH], and
 a state whose footer keys overflow the 76 columns an 80-column footer has inside the
-kit's gutters, where `ui.Help` drops the tail behind `…` [S-FOOTER]. Fix that one by
+kit's gutters, where `ui.Help` drops the tail behind `…` [S-FOOTER], and a line that
+puts "the accent" or "primary" on something the `accents:` line didn't give it
+[S-ACCENT]. Fix that one by
 marking the footer, bold or ‖: the state's main actions and its way out, then `? help`,
 so the rest are help-only by decision rather than cut by width, and never `esc` or quit.
 

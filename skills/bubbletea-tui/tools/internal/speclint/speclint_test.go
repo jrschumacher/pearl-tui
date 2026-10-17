@@ -382,7 +382,7 @@ func TestMainExitCodes(t *testing.T) {
 		t.Fatal(err)
 	}
 	var fs []Finding
-	if err := json.Unmarshal(b, &fs); err != nil || len(fs) == 0 || fs[0].Sev != "P1" || fs[0].Line == 0 {
+	if err := json.Unmarshal(b, &fs); err != nil || len(fs) == 0 || fs[0].Sev != "P1" || fs[0].Where == "" {
 		t.Errorf("--json wrote %s (%v)", b, err)
 	}
 }
@@ -499,6 +499,40 @@ func TestSuggestCut(t *testing.T) {
 		front, back := suggestCut(hints(c.cell))
 		if got, want := strings.Join(front, " · ")+" ‖ "+strings.Join(back, " · "), c.front+" ‖ "+c.back; got != want {
 			t.Errorf("%s:\n got %s\nwant %s", c.name, got, want)
+		}
+	}
+}
+
+// S-ACCENT: an accents line that gives the hue one meaning, then lines that put "the
+// accent" or "primary" on something else (the welp brief: amber = new, then the wordmark,
+// the dots and a refresh ramp in the accent). A line that uses the hue for its meaning
+// passes; the template's placeholder accents line says nothing.
+func TestAccentDrift(t *testing.T) {
+	brand := func(lines ...string) string {
+		return "# x TUI\n\n### Brand read\n" + strings.Join(lines, "\n") + "\n\n" +
+			table("| inbox | inbox | enter open · q quit |", "")
+	}
+	drift := brand("accents: amber = new, nothing else; focus = weight", "remember: the wordmark in the accent",
+		"", "### Motion", "hero: refresh → dots in the accent, 20 cells")
+	fs := Lint("TUI.md", drift)
+	var hits []Finding
+	for _, f := range fs {
+		if f.Rule == "S-ACCENT" {
+			hits = append(hits, f)
+		}
+	}
+	if len(hits) != 2 || hits[0].Sev != "P2" || hits[0].Where != "5" || hits[1].Where != "8" ||
+		!strings.Contains(hits[0].Msg, "`remember: the wordmark in the accent`") || !strings.Contains(hits[0].Msg, "line 4 says `accents: amber = new, nothing else; focus = weight`") {
+		t.Errorf("drift: %s", dump(fs))
+	}
+	for name, doc := range map[string]string{
+		"the hue's own meaning": brand("accents: amber = new, nothing else", "remember: new rows take the accent; the wordmark is fg, bold", "motion: the refresh dots are fgMuted; the accent only on new"),
+		"the hue named":         brand("accents: amber = new", "remember: amber on the unread count, the primary accent of the screen is amber"),
+		"no accents line":       brand("palette: slate and amber", "remember: the wordmark in the accent"),
+		"placeholder":           brand("accents: <hue> = <its one meaning>, one line per hue", "remember: the wordmark in the accent"),
+	} {
+		if n := rules(Lint("TUI.md", doc))["S-ACCENT"]; n != 0 {
+			t.Errorf("%s: %d S-ACCENT, want 0:\n%s", name, n, dump(Lint("TUI.md", doc)))
 		}
 	}
 }
