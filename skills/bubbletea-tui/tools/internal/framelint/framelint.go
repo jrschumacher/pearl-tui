@@ -32,6 +32,8 @@
 //	F-EMPTY     [P2] frame is more than 98.5% blank (not on a splash*, intro* or wordmark* frame:
 //	                 a wordmark on an empty page is what a splash is)
 //	F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
+//	F-TRUNC     [P2] more than 3 rows ending in an ellipsis (…, the theme's glyphs.ellipsis, or
+//	                 ... with --ascii) at one column: a column budgeted narrower than its content
 //	F-ASCII     [P1] (with --ascii) a cell outside ASCII in a frame rendered for ASCII
 package framelint
 
@@ -83,6 +85,8 @@ every cell must be ASCII: a glyph that leaks through is tofu on a console font.
   F-EDGE      [P2] content touching column 0 or the last column on most rows
   F-EMPTY     [P2] frame is more than 98.5% blank (not on a splash*/intro*/wordmark* frame)
   F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
+  F-TRUNC     [P2] more than 3 rows ending in an ellipsis at one column: budget the column
+                   from the longest fixture
   F-ASCII     [P1] (with --ascii) a cell outside ASCII: give the glyph an ASCII twin
 `
 

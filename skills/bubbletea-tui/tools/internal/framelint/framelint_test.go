@@ -559,6 +559,59 @@ func TestBoldSkipsSparseFrames(t *testing.T) {
 	}
 }
 
+// F-TRUNC: more than truncMax rows that end in an ellipsis at one column is a column
+// budgeted narrower than its content (the recreate run's 32-cell sidebar beside a
+// 34-character fixture title, 5 rows cut). Three cuts are long names; a row of dots
+// under ASCII is a rule, not a cut; the theme's own glyphs.ellipsis counts too.
+func TestTruncatedColumn(t *testing.T) {
+	dir := t.TempDir()
+	frame := func(name string, cut int, ellipsis string) string {
+		var b strings.Builder
+		for y := range 8 {
+			side := "  short title         "
+			if y < cut {
+				side = "  a title that is lon" + ellipsis
+			}
+			b.WriteString(side + "  │ body text\n")
+		}
+		b.WriteString("  " + strings.Repeat(".", 20) + "  │ body text\n")
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	theme := filepath.Join(dir, "theme.json")
+	if err := os.WriteFile(theme, []byte(`{"roles": {"dark": {"bg": "#101010", "fg": "#E0E0E0"}}, "glyphs": {"ellipsis": "⋯"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	truncs := func(args ...string) []Finding {
+		fs, _, _ := run(t, args...)
+		var out []Finding
+		for _, f := range fs {
+			if f.Rule == "F-TRUNC" {
+				out = append(out, f)
+			}
+		}
+		return out
+	}
+	if got := truncs(frame("sidebar-34x9.ansi", 5, "…")); len(got) != 1 || got[0].Sev != "P2" || got[0].Where != "r0c21" || !strings.Contains(got[0].Msg, "5 rows") {
+		t.Errorf("five cut rows: %+v, want one P2 F-TRUNC at r0c21 naming 5 rows", got)
+	}
+	if got := truncs(frame("few-34x9.ansi", truncMax, "…")); len(got) != 0 {
+		t.Errorf("%d cut rows: %+v, want none", truncMax, got)
+	}
+	if got := truncs(frame("ascii-34x9.ansi", 0, "…"), "--ascii"); len(got) != 0 {
+		t.Errorf("a dotted rule under ASCII: %+v, want none", got)
+	}
+	if got := truncs(frame("ascii-cut-36x9.ansi", 5, "..."), "--ascii"); len(got) != 1 {
+		t.Errorf("five rows cut with ... under ASCII: %+v, want one", got)
+	}
+	if got := truncs(frame("own-34x9.ansi", 5, "⋯"), "--theme", theme); len(got) != 1 {
+		t.Errorf("five rows cut with the theme's ⋯: %+v, want one", got)
+	}
+}
+
 // F-LEVELS isn't judged on a frame with no colour (NO_COLOR): it has one text level by
 // construction, its levels are weight and glyphs. The same frame in colour still is.
 func TestLevelsSkipsColourlessFrames(t *testing.T) {

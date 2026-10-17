@@ -5,11 +5,14 @@ import (
 	"math"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"tuikit/theme"
 )
 
 // Finding is one rule hit. Its JSON shape is tuilint.py's.
@@ -841,10 +844,82 @@ func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii boo
 	f.Basic = !f.Indexed && !sgrTrue.MatchString(text) && sgr16.MatchString(text)
 	f.Plain = !sgr256.MatchString(text) && !sgrTrue.MatchString(text) && !sgr16.MatchString(text)
 	out := LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
+	ellipses := []string{theme.Ellipsis}
+	if pal != nil && pal.Ellipsis != "" && pal.Ellipsis != theme.Ellipsis {
+		ellipses = append(ellipses, pal.Ellipsis)
+	}
 	if ascii {
 		out = append(out, LintASCII(filepath.Base(path), f)...)
+		twin, _ := theme.ASCIITwin(theme.Ellipsis)
+		ellipses = append(ellipses, twin)
 	}
+	out = append(out, LintTrunc(filepath.Base(path), f, ellipses)...)
 	return out
+}
+
+// truncMax is how many rows of one column may end in an ellipsis before F-TRUNC: a cut
+// or three is a long name; more is a column budgeted narrower than its content.
+const truncMax = 3
+
+// LintTrunc is F-TRUNC: more than truncMax rows whose text ends in an ellipsis (one of
+// ellipses: the kit's …, the theme's glyphs.ellipsis, ASCII's ...) at one column. A
+// sidebar given 32 cells beside a fixture's 34-character title cuts every long row at
+// the same place; the budget comes from the longest fixture (layout.md), so the column
+// is too narrow. An ellipsis ends text when a non-blank cell precedes it and a blank
+// cell, a rule or box glyph, or the row's end follows. One finding per frame, at the
+// column with the most.
+func LintTrunc(name string, f Frame, ellipses []string) []Finding {
+	rowsAt := map[int][]int{} // end column -> rows
+	for y, row := range f.Rows {
+		for _, e := range ellipses {
+			glyph := []string{}
+			for _, r := range e {
+				glyph = append(glyph, string(r))
+			}
+			for end := len(glyph) - 1; end < len(row); end++ {
+				start := end - len(glyph) + 1
+				ok := true
+				for i, g := range glyph {
+					if row[start+i].Ch != g {
+						ok = false
+						break
+					}
+				}
+				before := start - 1
+				for before >= 0 && row[before].Ch == "" { // a wide glyph's continuation
+					before--
+				}
+				if !ok || before < 0 || cutsNothing(row[before].Ch) || row[before].Ch == glyph[0] { // a row of dots is a rule
+					continue
+				}
+				if end+1 < len(row) && !cutsNothing(row[end+1].Ch) {
+					continue
+				}
+				if !slices.Contains(rowsAt[end], y) {
+					rowsAt[end] = append(rowsAt[end], y)
+				}
+			}
+		}
+	}
+	best := -1
+	for x, ys := range rowsAt {
+		if best < 0 || len(ys) > len(rowsAt[best]) || (len(ys) == len(rowsAt[best]) && x < best) {
+			best = x
+		}
+	}
+	if best < 0 || len(rowsAt[best]) <= truncMax {
+		return nil
+	}
+	ys := rowsAt[best]
+	slices.Sort(ys)
+	return []Finding{{"F-TRUNC", "P2", name, fmt.Sprintf("r%dc%d", ys[0], best),
+		fmt.Sprintf("%d rows end in an ellipsis at column %d: the column is narrower than its content; budget it from the longest fixture (layout.md), or wrap", len(ys), best)}}
+}
+
+// cutsNothing is a cell an ellipsis can't have cut: blank, or a rule or box glyph.
+func cutsNothing(ch string) bool {
+	r := first(ch)
+	return ch == "" || r < 0 || isSpace(r) || strings.ContainsRune(ruleChars, r) || strings.ContainsRune(corners, r) || (0x2500 <= r && r <= 0x257F)
 }
 
 // LintASCII is F-ASCII: in a frame rendered for ASCII (TERM=linux, --ascii) every cell
