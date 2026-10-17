@@ -312,6 +312,16 @@ func (m *app) ladder(c *ui.Canvas, r uv.Rectangle) {
 			ui.Tag(t, "info", "SETUP"), ui.Tag(t, "primary", "NEW"), ui.Tag(t, "muted", "IDLE")}
 		rows = append(rows, "", ui.Section(t, "Tags", w, ""), "", strings.Join(tags, " "))
 	}
+	// text beside the marks: a reading with its unit, a product, a name with an accent.
+	// Text is not a glyph (C-GLYPH passes it); under -ascii it keeps its letters and
+	// digits (21.5 C, 3x4, Zoe), never a "?". Every size shows it, so the ASCII test sees it.
+	if r.Dy() >= len(rows)+2 {
+		rows = append(rows, "")
+	}
+	if r.Dy() >= len(rows)+1 {
+		rows = append(rows, t.S.Muted.Render("text")+"  "+t.S.Base.Render("21.5°C")+t.S.Subtle.Render(" "+t.G.Sep+" ")+
+			t.S.Base.Render("3×4 ±1")+t.S.Subtle.Render(" "+t.G.Sep+" ")+t.S.Base.Render("Zoë"))
+	}
 	c.Draw(strings.Join(rows, "\n"), r)
 }
 

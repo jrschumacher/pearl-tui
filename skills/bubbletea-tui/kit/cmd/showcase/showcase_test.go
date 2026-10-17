@@ -353,3 +353,36 @@ func TestDialogsStayAboveTheFooter(t *testing.T) {
 		}
 	}
 }
+
+// Text is not a glyph: the ladder's reading with a unit (21.5°C), a product (3×4) and a
+// name with an accent (Zoë) keep their letters and digits under -ascii (21.5 C, 3x4,
+// Zoe); the sweep drew every rune outside its twin tables as "?", and a unit read as a
+// question that F-ASCII could not see. No "?" may appear in an ASCII frame where the
+// unicode frame has none.
+func TestASCIIKeepsTextRunes(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, sz := range [][2]int{{80, 24}, {120, 40}} {
+			m := newApp(tf, true, false)
+			m.setState("ladder")
+			uni := ansi.Strip(m.render(sz[0], sz[1]).String())
+			a := newApp(tf, true, true)
+			a.setState("ladder")
+			asc := ansi.Strip(a.render(sz[0], sz[1]).String())
+			if !strings.Contains(uni, "21.5°C") {
+				t.Fatalf("%s ladder %dx%d: no reading with a unit on the unicode frame", filepath.Base(f), sz[0], sz[1])
+			}
+			for _, want := range []string{"21.5 C", "3x4 +1", "Zoe"} {
+				if !strings.Contains(asc, want) {
+					t.Errorf("%s ladder %dx%d: ASCII frame lacks %q:\n%s", filepath.Base(f), sz[0], sz[1], want, asc)
+				}
+			}
+			if strings.Count(asc, "?") != strings.Count(uni, "?") {
+				t.Errorf("%s ladder %dx%d: the ASCII frame draws a \"?\" the unicode frame has not:\n%s", filepath.Base(f), sz[0], sz[1], asc)
+			}
+		}
+	}
+}

@@ -121,8 +121,10 @@ func (c *Canvas) PaintBackground() {
 }
 
 // ASCIIfy maps every cell outside ASCII onto a tier-0 stand-in: box drawing
-// to - | +, blocks to # and =, arrows to < > ^ v, anything else to ?. Call it
-// last when the theme is resolved for ASCII, so no screen can leak a glyph.
+// to - | +, blocks to # and =, arrows to < > ^ v, Latin-1 text to its base letter or
+// unit (é → e, ° → a space, × → x), anything else to ?. Call it last when the theme is
+// resolved for ASCII, so no screen can leak a glyph. A "?" is loud on purpose: tuilint
+// frames --ascii reports one where the unicode frame has a glyph.
 func (c *Canvas) ASCIIfy() {
 	b := c.Bounds()
 	for y := b.Min.Y; y < b.Max.Y; y++ {
@@ -162,7 +164,36 @@ func asciiRune(r rune) string {
 	if s, ok := asciiMap[r]; ok {
 		return s
 	}
+	if s, ok := latin1Rune(r); ok {
+		return s
+	}
 	return "?"
+}
+
+// latin1Rune is the one-cell ASCII stand-in for a text rune: a Latin-1 letter's base
+// letter (é → e, Ø → O), a unit or mark a screen prints beside a number (° → a space,
+// so 21.5°C reads 21.5 C; × → x, ± → +, ² → 2, µ → u), currency (£ → L, € → E) and
+// the punctuation of prose (« » ‚ „ † ‰ ′ ″ −). One cell each, so a row keeps its
+// columns: a twin that needs more (½ as 1/2, © as (c)) would tear the row, so those
+// stay "?" and the lint names them; write them in ASCII in the app's own text.
+func latin1Rune(r rune) (string, bool) {
+	if 0xC0 <= r && r <= 0xFF {
+		return string(latin1Letters[r-0xC0]), true
+	}
+	s, ok := latin1Map[r]
+	return s, ok
+}
+
+// latin1Letters are the base letters of U+00C0–U+00FF in order (À..ÿ): the accent
+// goes, the letter stays; Æ, Ð, Ø, Þ, ß and their lowercase take one letter each.
+const latin1Letters = "AAAAAAACEEEEIIIIDNOOOOOxOUUUUYTsaaaaaaaceeeeiiiidnooooo/ouuuuyty"
+
+var latin1Map = map[rune]string{
+	'\u00A0': " ", '¡': "!", '¢': "c", '£': "L", '¤': "o", '¥': "Y", '¦': "|", '§': "S", '¨': "\"",
+	'©': "c", 'ª': "a", '«': "<", '\u00AD': "-", '®': "R", '¯': "-", '°': " ", '±': "+", '²': "2",
+	'³': "3", '´': "'", 'µ': "u", '¶': "P", '¸': ",", '¹': "1", 'º': "o", '»': ">", '¿': "?",
+	'€': "E", '‚': ",", '„': "\"", '†': "+", '‡': "+", '‰': "%", '′': "'", '″': "\"", '−': "-",
+	'≤': "<", '≥': ">", 'Œ': "O", 'œ': "o", 'Š': "S", 'š': "s", 'Ž': "Z", 'ž': "z", 'Ÿ': "Y",
 }
 
 // asciiClasses and asciiMap are the twin tables: the one place outside the theme
