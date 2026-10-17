@@ -32,9 +32,12 @@ Before any real screen:
 - `setState(name)` for every state in the spec, using fixtures
 - flags: `-golden -w -h`, `-state`, `-out -sizes`, `-theme`, `-light`, `-ascii`,
   `-profile`, `-frame`
-- `_test.go` asserting the footprint at the kit's five sizes (60×18, the floor at which
-  every ordinary state still renders, then 80×24, 100×30, 120×40, 200×60); trimming it
-  to four loses the floor. `toosmall` is `-golden`/`-out`'s, at 50×14
+- `_test.go` asserting the footprint at the floor `TUI.md` § Size floor names (the kit's
+  default is 60×18, at which every ordinary state still renders) and the four sizes
+  above it (80×24, 100×30, 120×40, 200×60), plus one size below the floor asserting the
+  too-small screen (the kit's is 50×14, checked by `-golden`/`-out`). A spec that raises
+  the floor to 80×24 moves the list: a test still at 60×18 renders `toosmall` there
+  and calls it a pass, so nothing below the real floor and nothing at it is tested
 
 Run `-golden` at both sizes. It must pass while the screens are still stubs.
 

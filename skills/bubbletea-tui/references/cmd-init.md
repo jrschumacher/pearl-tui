@@ -192,7 +192,7 @@ One gen-stamped tick, armed only while <what> animates.
 largest: <realistic worst case, e.g. 50k log lines, 5k rows> → <virtual list | render cache keyed by …>
 
 ### Size floor
-Below 60×18: ui.TooSmall. Below 110 columns: <what collapses>. Below 30 rows: <what>.
+Below <floor; 60×18 unless the product raises it>: ui.TooSmall. Below 110 columns: <what collapses>. Below 30 rows: <what>.
 
 ### Accessible and non-TTY
 ACCESSIBLE=1 or --accessible: no alt screen, Huh WithAccessible(true), status as new

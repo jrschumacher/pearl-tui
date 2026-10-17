@@ -52,7 +52,8 @@
         "the clock ticks only while a visible cell changes (Law 8): a theme whose spinner frames are wider than one cell draws a deploying row as the still partial mark and the clock stops (ui.BusyAnimates), and -ascii agrees with unicode for that theme (both animate a one-cell spinner, or both hold the partial mark)",
         "the kit's fixed copy follows the theme's case: tab names, 'Terminal too small', a tool call's 'Canceled.' and 'Waiting for permission', Thinking's 'Thought for' take labelCase when set, else titleCase (quire: `services / deploys`, `canceled.`); Huh field titles are the app's own text, written in the brand's case by the app",
         "a dialog never reaches the footer: ui.Dialog takes the rows it may use and scrolls its body (an ↑ n more row above, a … n more row below) when it doesn't fit, so the help dialog at 80×24 and 60×18 ends at least one row above the footer rule in every theme, with ↑↓ in its footer only when there is more to see",
-        "ASCII twins never collide across meanings: the input caret's twin (▏ → ') is not the focus bar's |, and the ASCII sparkline ramp holds no status twin (no * or +), so a caret never reads as a focused block and a peak never as a done or current mark"
+        "ASCII twins never collide across meanings: the input caret's twin (▏ → ') is not the focus bar's |, and the ASCII sparkline ramp holds no status twin (no * or +), so a caret never reads as a focused block and a peak never as a done or current mark",
+        "the footprint test renders every ordinary state at the floor TUI.md § Size floor names (60×18 unless the product raised it) and the four sizes above it, and one size below the floor asserts the too-small screen; a product with an 80×24 floor does not keep the kit's 60×18 list, where toosmall renders and passes as a layout"
       ]
     },
     {
