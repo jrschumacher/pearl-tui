@@ -206,21 +206,41 @@ func nonASCII(rs []rune) bool {
 }
 
 // cutDots finishes a cut the sweep found as a bare "…" (ui.Fit's, a screen's own
-// ansi.Truncate): one "." reads as a full stop ("unknown key."), so the two cells
-// before it turn to "." too and the cut reads as the theme's twin ("unknown k...").
-// Only cells of the cut text change: the same style and link as the ellipsis (a
-// truncated string carries its style to the tail), never a border's | or +.
+// ansi.Truncate): one "." reads as a full stop ("unknown key."), so up to two letters
+// or digits before it turn to "." too and the cut reads as the theme's twin
+// ("unknown k..."). A cut ends its run, so a "…" with same-style text right after it
+// ("a…b") is left as one "."; the walk left stops at the first space or punctuation,
+// so text before the cut keeps its marks ("key: .", "v2..", "[a.]").
+//
+// What stays ambiguous: the sweep cannot tell a cut from a "…" typed in data at the
+// end of a run, so "Loading…" draws "Loadi...", two letters short. Cut and draw text
+// with the theme (ui.Trunc, t.G.Ellipsis) and it never reaches the sweep.
 func (c *Canvas) cutDots(x, y int, dot *uv.Cell) {
-	for i := 1; i <= 2 && x-i >= c.Bounds().Min.X; i++ {
+	b := c.Bounds()
+	if x+1 < b.Max.X {
+		n := c.CellAt(x+1, y)
+		if n != nil && n.Content != "" && n.Content != " " && n.Style.Equal(&dot.Style) && n.Link == dot.Link {
+			return // not the end of a run: mid-text, not a cut
+		}
+	}
+	for i := 1; i <= 2 && x-i >= b.Min.X; i++ {
 		l := c.CellAt(x-i, y)
-		if l == nil || l.Width != 1 || l.Content == "|" || l.Content == "+" ||
-			!l.Style.Equal(&dot.Style) || l.Link != dot.Link {
+		if l == nil || l.Width != 1 || !alnum(l.Content) || !l.Style.Equal(&dot.Style) || l.Link != dot.Link {
 			return
 		}
 		nc := *l
 		nc.Content = "."
 		c.SetCell(x-i, y, &nc)
 	}
+}
+
+// alnum reports whether a swept cell is one ASCII letter or digit.
+func alnum(s string) bool {
+	if len(s) != 1 {
+		return false
+	}
+	r := s[0]
+	return r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9'
 }
 
 func asciiRune(r rune) string {
@@ -277,8 +297,8 @@ var latin1Map = map[rune]string{
 // where a glyph carries a meaning: the caret ▏ is ', not the focus bar's |, and an
 // ellipsis left for the sweep (a cut made with the bare theme.Ellipsis, ui.Fit's) is
 // ".", never "~", the partial mark's twin: a cut line read as a row in progress; and
-// cutDots turns the two cells of cut text before it to ".", so the cut reads "..." and
-// not as a full stop. Cut with t.G.Ellipsis (ui.Trunc) to keep the text's last cells.
+// cutDots turns up to two letters or digits before a cut to ".", so the cut reads
+// "..." and not as a full stop. Cut with t.G.Ellipsis (ui.Trunc) to keep the text's last cells.
 var asciiClasses = []struct{ glyphs, twin string }{
 	{"─━═╌┄┈╍┅┉▔▁╴╶╸╺", "-"},
 	{"│┃║╎┆┊╏┇┋▎▍▌▐▕", "|"},

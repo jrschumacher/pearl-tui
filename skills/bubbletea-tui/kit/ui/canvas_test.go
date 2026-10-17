@@ -14,7 +14,8 @@ import (
 // canvas as "…", and the sweep drew it as "~": the partial mark's twin, so a cut line
 // read as a row in progress ("unknown key~"). Then as one ".", which reads as a full
 // stop ("unknown key."). The sweep finishes the cut as the theme's twin: the "…" and
-// the two cells of cut text before it draw "...", never a border's cell.
+// up to two letters or digits before it draw "...", never a border, a space or a mark
+// before the cut, and a "…" with text right after it is not a cut.
 func TestASCIIfyCutIsNotThePartialTwin(t *testing.T) {
 	th := theme.Resolve(theme.Default(), true, true)
 	c := NewCanvas(th, 16, 1)
@@ -27,12 +28,22 @@ func TestASCIIfyCutIsNotThePartialTwin(t *testing.T) {
 	if strings.ContainsAny(row, th.G.Partial+"~") {
 		t.Errorf("a Fit cut under ASCII draws %q: the partial mark's twin %q reads as in progress", row, th.G.Partial)
 	}
+	edge := th.S.Subtle.Render
 	for _, d := range []struct{ in, want string }{
-		{"|" + Fit("abcdef", 1) + "|", "|.|"},                                   // a one-cell cut beside a border: the border stays
-		{"+" + Fit("abcdef", 2) + "+", "+..+"},                                  // the corner too
+		{edge("|") + Fit("abcdef", 1) + edge("|"), "|.|"},                       // a one-cell cut beside a border: the border stays
+		{edge("+") + Fit("abcdef", 2) + edge("+"), "+..+"},                      // the corner too
+		{"|" + Fit("abcdef", 1) + "|", "|.|"},                                   // an unstyled border is not a letter
 		{th.S.Muted.Render("> ") + Fit(th.S.Base.Render("abcdef"), 3), "> ..."}, // the prompt is not the text
-		{Fit("日本語です", 5), "? ..."},                                              // a wide cell's stand-in and its spacer are cut text
+		{Fit("日本語です", 5), "? ? ."},                                              // a wide cell's stand-in is not a letter
 		{Fit("short", 8), "short"},                                              // no cut, no dots
+		// text before the cut keeps its marks: only letters and digits turn to dots
+		{"key: " + Fit("value", 1), "key: ."},
+		{"v2." + Fit("4.1 rolled", 1), "v2.."},
+		{th.S.Muted.Render("12") + th.S.Muted.Render(Fit(" more lines", 2)), "12 ."},
+		{"[" + Fit("abcdef", 2) + "]", "[a.]"}, // the cut does not end its run: one dot
+		{"a…b", "a.b"},                         // a typed ellipsis mid-text: one dot
+		// the ambiguity left: a typed ellipsis at the end of a run reads as a cut
+		{"Loading…", "Loadi..."},
 	} {
 		cv := NewCanvas(th, 12, 1)
 		cv.Draw(d.in, Rect(0, 0, 12, 1))
