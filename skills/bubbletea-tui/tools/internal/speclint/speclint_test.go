@@ -583,7 +583,7 @@ func TestGoldenFooters(t *testing.T) {
 	}, "\n"), "ctrl+c quit")
 	cases := []struct {
 		name, frame string
-		want       []string // substrings of the finding for this state; none when empty
+		want        []string // substrings of the finding for this state; none when empty
 	}{
 		{"list", footer("↑↓/jk move", "enter open", "a add", "? help") + "  " + desc + "5 rows" + off, nil},
 		{"list-empty", footer("↑↓/jk move", "enter open", "a add", "esc back", "? help"), []string{"shows `↑↓/jk move`, `enter open`, which the row doesn't bind"}},
