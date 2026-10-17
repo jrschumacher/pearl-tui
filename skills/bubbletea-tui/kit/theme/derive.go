@@ -618,15 +618,21 @@ func CheckExpressions(x Expressions) error {
 // first frame, so asciiSpinner drops it).
 var spinnerMarks = []string{"FocusBar", "BlurBar", "Done", "Current", "Todo", "Fail", "Warn", "Pending", "Partial", "Caret"}
 
-// asciiSpinner is the line spinner | / - \ without the frames g's marks already draw
-// as (the "|" of a focus bar twinned from ▌): a turning line still, a frame short. If
-// the marks leave it fewer than two distinct frames, a pulse . : ' :, then a bounce ( ),
-// then any two punctuation marks no mark is.
+// asciiSpinner is the twin of g's spinner, g's marks already twinned. A spinner wider
+// than one cell keeps its frames' width and shape (multiCellSpinner): a three-cell dots
+// spinner stays three cells, never a one-cell line. A one-cell spinner is the line
+// spinner | / - \ without the frames g's marks already draw as (the "|" of a focus bar
+// twinned from ▌): a turning line still, a frame short. If the marks leave it fewer
+// than two distinct frames, a pulse . : ' :, then a bounce ( ), then any two
+// punctuation marks no mark is.
 func asciiSpinner(g Glyphs) []string {
 	v := reflect.ValueOf(g)
 	taken := map[string]bool{}
 	for _, m := range spinnerMarks {
 		taken[v.FieldByName(m).String()] = true
+	}
+	if out := multiCellSpinner(g.ASCII, g.Spinner, taken); out != nil {
+		return out
 	}
 	for _, frames := range [][]string{{"|", "/", "-", "\\"}, {".", ":", "'", ":"}, {"(", ")"}} {
 		var out []string
@@ -646,6 +652,59 @@ func asciiSpinner(g Glyphs) []string {
 		if f := string(r); !taken[f] && len(out) < 2 {
 			out = append(out, f)
 		}
+	}
+	return out
+}
+
+// spinnerCells are the one-cell twins a multi-cell spinner's glyph takes when its own
+// twin is a mark's or another glyph's of the frames: a dot, then denser shapes.
+const spinnerCells = ".:=#o+*~-^;,"
+
+// multiCellSpinner twins a spinner whose frames are wider than one cell cell for cell,
+// so each frame keeps its width and shape (··· •·· ••· ••• → ... :.. ::. ::: when "."
+// and ":" are free). A glyph takes its own twin (own map, then the kit's) unless that
+// is taken (a status, bar or caret mark's twin), wider than one cell, or another glyph
+// of the frames already has it; then the first free of spinnerCells. Spaces stay. nil
+// for a one-cell spinner, or when no free twin is left for a glyph.
+func multiCellSpinner(own map[string]string, frames []string, taken map[string]bool) []string {
+	wide := false
+	for _, f := range frames {
+		wide = wide || ansi.StringWidth(f) > 1
+	}
+	if !wide {
+		return nil
+	}
+	twins, used := map[rune]string{}, map[string]bool{}
+	for _, f := range frames {
+		for _, r := range f {
+			if _, ok := twins[r]; ok || unicode.IsSpace(r) {
+				continue
+			}
+			pick := ""
+			for _, c := range append([]string{twin(own, string(r))}, strings.Split(spinnerCells, "")...) {
+				if len(c) == 1 && c != "?" && !taken[c] && !used[c] {
+					pick = c
+					break
+				}
+			}
+			if pick == "" {
+				return nil
+			}
+			twins[r], used[pick] = pick, true
+		}
+	}
+	out := make([]string, len(frames))
+	for i, f := range frames {
+		var b strings.Builder
+		for _, r := range f {
+			if unicode.IsSpace(r) {
+				b.WriteRune(r)
+				continue
+			}
+			b.WriteString(twins[r])
+			b.WriteString(strings.Repeat(" ", ansi.StringWidth(string(r))-1)) // a wide glyph keeps its cells
+		}
+		out[i] = b.String()
 	}
 	return out
 }

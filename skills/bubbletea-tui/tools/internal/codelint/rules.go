@@ -575,6 +575,56 @@ func runGlyph(pass *analysis.Pass) (any, error) {
 	return nil, nil
 }
 
+// C-ELLIPSIS
+
+// EllipsisAnalyzer reports the bare theme.Ellipsis outside the ui package (C-ELLIPSIS).
+var EllipsisAnalyzer = newAnalyzer("tuiellipsis",
+	"C-ELLIPSIS: theme.Ellipsis outside the ui package; cut with ui.Trunc(t, s, w), which fits t.G.Ellipsis, the theme's glyph with its ASCII twin, inside w",
+	runEllipsis)
+
+// runEllipsis flags a use of the theme package's Ellipsis constant in any package but
+// ui, whose Fit holds the one cut made with no theme at hand. Elsewhere the theme is
+// at hand, and the constant skips it: the brand's glyph, and under ASCII its twin
+// ("..."), where the canvas sweep can only overwrite the cut's last two cells with dots.
+func runEllipsis(pass *analysis.Pass) (any, error) {
+	p := program(pass)
+	once := lineOnce{}
+	for _, f := range p.Files {
+		if pass.Pkg.Name() == "ui" || isTheme(pass, f) {
+			continue
+		}
+		ast.Inspect(f, func(n ast.Node) bool {
+			switch x := n.(type) {
+			case *ast.ImportSpec:
+				return false
+			case *ast.SelectorExpr:
+				r := p.Ref(x)
+				if r.Name != "Ellipsis" || r.Recv != "" || !themePath(r.Pkg) {
+					return true
+				}
+				if once.first(pass.Fset, "C-ELLIPSIS", x.Pos()) {
+					report(pass, x.Pos(), "C-ELLIPSIS", "cut with ui.Trunc(t, s, w): it fits the theme's glyph t.G.Ellipsis (ASCII \"...\", three cells) inside w; theme.Ellipsis is the kit's constant, not the brand's glyph, and t.G.Ellipsis pasted after a cut to w-1 overflows")
+				}
+			}
+			return true
+		})
+	}
+	return nil, nil
+}
+
+// themePath reports a package path that is a theme package: its last element is
+// "theme" (the kit's tuikit/theme, a project's <module>/internal/theme), or it names
+// the --theme-pkg fragment.
+func themePath(pkg string) bool {
+	if pkg == "" {
+		return false
+	}
+	if themePkg != "" && strings.Contains(pkg, themePkg) {
+		return true
+	}
+	return path.Base(pkg) == "theme"
+}
+
 // literalValue is the text of a string or rune literal and which it is.
 func literalValue(lit *ast.BasicLit) (string, string) {
 	if lit.Kind == token.STRING {
