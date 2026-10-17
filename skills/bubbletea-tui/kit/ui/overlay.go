@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"image/color"
 	"strings"
 
 	"github.com/charmbracelet/colorprofile"
@@ -9,11 +8,14 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// What Overlay does to the page before it draws a dialog, so that nothing of the page
-// reads as live beside it: the page's focus marks go (the dialog has the focus), a
-// phrase the dialog cuts is cleared to its column gap (no "1s" or "igh" fragment beside
-// the edge), a page rule never runs on beside the dialog's edge rows, and where no
-// scrim is drawn the rows the dialog spans are cleared across.
+// What Overlay (and Popover) does to the page before it draws a dialog, so that nothing
+// of the page reads as live beside it: a phrase the dialog cuts is cleared to its column
+// gap (no "1s" or "igh" fragment beside the edge), a page rule never runs on beside the
+// dialog's edge rows, and where no scrim is drawn the rows the dialog spans are cleared
+// across. Rows the dialog doesn't span are left as the page drew them: the page has no
+// focus under a dialog because the app draws it unfocused, not because its marks are
+// looked for afterwards (a glyph is not a focus mark: cartridge's █ bar is its
+// wordmark's block, and ASCII's | bar is a header's separator).
 
 // scrims reports whether Overlay dims the page: the theme asks for it and the terminal
 // can show it. There is no scrim under ASCII, at 16 colours (the page is ANSI 0 or 15
@@ -27,7 +29,6 @@ func (c *Canvas) scrims() bool {
 // clearPage prepares the page under a dialog drawn at r (see above). band clears the
 // rows r spans across the canvas: the equivalent of a scrim where none is drawn.
 func (c *Canvas) clearPage(r uv.Rectangle, dialog string, band bool) {
-	c.unfocus()
 	b := c.Bounds()
 	for y := max(r.Min.Y, b.Min.Y); y < min(r.Max.Y, b.Max.Y); y++ {
 		if band {
@@ -94,46 +95,6 @@ func (c *Canvas) clearRules(r uv.Rectangle, y int) {
 		}
 		x += max(1, n)
 	}
-}
-
-// unfocus clears the page's focus marks: the focus bar beside a selected block and
-// the selection cursor, each with a blank after it, in the focus ink or the quieter
-// one a blurred selection draws the same glyph in (with the colour gone, that is a
-// focus mark too). Under a dialog the page has no focus, and a list's bar showing
-// through the scrim beside the dialog's own made two.
-func (c *Canvas) unfocus() {
-	t := c.T
-	marks := []struct {
-		glyph string
-		fg    color.Color
-	}{
-		{t.G.FocusBar, t.S.FocusBar.GetForeground()}, {t.G.FocusBar, t.S.BlurBar.GetForeground()},
-		{t.G.Cursor, t.S.Focus.GetForeground()}, {t.G.Cursor, t.S.Muted.GetForeground()},
-	}
-	b := c.Bounds()
-	for y := b.Min.Y; y < b.Max.Y; y++ {
-		for x := b.Min.X; x < b.Max.X; x++ {
-			cell := c.CellAt(x, y)
-			if cell == nil || x+1 >= b.Max.X || !c.isBlank(x+1, y) {
-				continue
-			}
-			for _, m := range marks {
-				if m.glyph != "" && cell.Content == m.glyph && sameInk(cell.Style.Fg, m.fg) {
-					c.blank(x, y)
-					break
-				}
-			}
-		}
-	}
-}
-
-func sameInk(a, b color.Color) bool {
-	if a == nil || b == nil {
-		return a == nil && b == nil
-	}
-	r1, g1, b1, _ := a.RGBA()
-	r2, g2, b2, _ := b.RGBA()
-	return r1 == r2 && g1 == g2 && b1 == b2
 }
 
 // text is the content of the cell at x, y; a blank for an empty cell.

@@ -73,6 +73,8 @@ type app struct {
 	confOff  int
 	helpFrom overlay      // the overlay help was opened over: its keys are the ones help names
 	ovRect   uv.Rectangle // where the last overlay was drawn (tests hold it above the footer)
+	body     uv.Rectangle // the page's body, between the tabs and the footer, as last drawn
+	footY    int          // the footer's first row, as last drawn
 	// deploy form
 	focus    int // 0 env, 1 version, 2 strategy, 3 checks, 4 buttons
 	env      int

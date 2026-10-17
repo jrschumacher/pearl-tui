@@ -11,8 +11,8 @@ import (
 )
 
 // overlayPage is a page a dialog is drawn over: table rows whose columns are two blanks
-// apart, prose, full-width rules, a rule that starts after a gap, and one selected row
-// carrying the theme's focus bar. It returns the rows as plain text, cell for cell.
+// apart, prose, full-width rules, a rule that starts after a gap, and one row carrying
+// the theme's focus bar glyph. It returns the rows as plain text, cell for cell.
 func overlayPage(th *theme.Theme, c *Canvas) []string {
 	b := c.Bounds()
 	w := b.Dx()
@@ -86,8 +86,9 @@ func cellText(c *Canvas, x, y int) string {
 // no scrim (16 colours, NO_COLOR, ASCII, scrim: none) the rows the dialog spans are
 // cleared across, an equivalent of the scrim rather than nothing. A page rule never
 // runs on beside the dialog's own edge rows (a rules dialog's top rule met a table rule
-// with one gap cell), and the page's focus mark is gone: the dialog has the focus, and
-// a list's bar showing through the scrim made two.
+// with one gap cell). The rows the dialog doesn't span are the page's, cell for cell,
+// a focus bar's glyph among them: Overlay doesn't look for focus marks (the app draws
+// the page unfocused), so a wordmark or a separator drawn in the same glyph survives.
 func TestOverlayLeavesNoPageBesideIt(t *testing.T) {
 	const W, H = 70, 20
 	for _, dialog := range []string{"rounded", "rules", "none"} {
@@ -116,10 +117,15 @@ func TestOverlayLeavesNoPageBesideIt(t *testing.T) {
 				r := c.Overlay(d, &uv.Position{X: -1, Y: y0})
 				name := dialog + " " + mode.name
 				for y := range H {
+					if y >= r.Min.Y && y < r.Max.Y {
+						continue
+					}
+					var got strings.Builder
 					for x := range W {
-						if !(uv.Pos(x, y).In(r)) && cellText(c, x, y) == th.G.FocusBar {
-							t.Errorf("%s y0=%d: the page's focus bar shows at %d,%d beside the dialog's", name, y0, x, y)
-						}
+						got.WriteString(cellText(c, x, y))
+					}
+					if got.String() != page[y] {
+						t.Errorf("%s y0=%d: row %d, which the dialog doesn't span, reads %q, want the page's %q", name, y0, y, got.String(), page[y])
 					}
 				}
 				for y := r.Min.Y; y < r.Max.Y; y++ {

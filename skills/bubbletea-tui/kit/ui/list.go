@@ -254,10 +254,12 @@ func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 			}
 			out = append(out, Fit(bar.Render(t.G.FocusBar)+" "+line, w))
 		case selected && mode == "caret":
+			// blurred, the cursor is muted, as List draws it: the focus ink means focus
+			st := t.S.Muted
 			if focused {
-				line = bolden(line)
+				line, st = bolden(line), t.S.Focus
 			}
-			out = append(out, Fit(t.S.Focus.Render(t.G.Cursor)+" "+line, w))
+			out = append(out, Fit(st.Render(t.G.Cursor)+" "+line, w))
 		case selected:
 			out = append(out, lipgloss.NewStyle().Background(t.P.BgSubtle).Render(Fit("  "+line, w)))
 		default:

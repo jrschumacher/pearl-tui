@@ -69,6 +69,7 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		y += len(tabs) + 1 // tabs always get air below, even in compact brands
 	}
 	body := uv.Rect(g, y, w-2*g, max(0, fy-y-t.Gap()))
+	m.body, m.footY = body, fy
 	switch m.screen {
 	case scrServices:
 		m.services(c, body)
@@ -382,14 +383,20 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 		prompt = t.S.Subtle.Render(t.G.Prompt) + " "
 		text = ""
 	}
+	// under a dialog the composer has no caret (the dialog has the focus); a blank
+	// keeps the placeholder where it was
+	caret := t.S.Prompt.Render(t.G.Caret)
+	if m.ov != ovNone {
+		caret = strings.Repeat(" ", lipgloss.Width(t.G.Caret))
+	}
 	line := prompt + t.S.Base.Render(text)
 	switch {
 	case m.busy:
 		line += t.S.Subtle.Render("working" + t.G.Ellipsis + " esc to stop")
 	case text == "":
-		line += t.S.Prompt.Render(t.G.Caret) + t.S.Subtle.Render("ask, or tell it what to do")
+		line += caret + t.S.Subtle.Render("ask, or tell it what to do")
 	default:
-		line += t.S.Prompt.Render(t.G.Caret)
+		line += caret
 	}
 	c.Draw(strings.Join([]string{ui.Rule(t, w), line}, "\n"), uv.Rect(main.Min.X, ey, w, editorH))
 }
@@ -434,9 +441,14 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 	}
 	w := main.Dx()
 	rows := []string{ui.Section(t, "Deploy "+s.Name, w, s.Env), ""}
+	// under a dialog no field is focused: the dialog has the focus
+	focus := m.focus
+	if m.ov != ovNone {
+		focus = -1
+	}
 	// a field is a group: one blank row between fields even in compact brands
 	field := func(i int, label, hint string, body ...string) {
-		focused := m.focus == i
+		focused := focus == i
 		bar := ui.Gutter(t, focused, t.S.FocusBar)
 		lab := t.S.Muted.Render(t.Case(label))
 		if focused {
@@ -465,30 +477,30 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 		}
 		return strings.Join(out, "   ")
 	}
-	field(0, "Environment", "", choice([]string{"prod", "staging", "dev"}, m.env, m.focus == 0))
+	field(0, "Environment", "", choice([]string{"prod", "staging", "dev"}, m.env, focus == 0))
 	input := t.S.Prompt.Render(t.G.Prompt) + " " + t.S.Base.Render(m.version)
-	if m.focus == 1 {
+	if focus == 1 {
 		input += t.S.Prompt.Render(t.G.Caret)
 	}
 	field(1, "Version", "tag or commit; latest is v2.4.1 (2 min ago)", input)
 	strategies := [][2]string{{"Rolling", "one pod at a time"}, {"Canary", "10% for 15 min, then all"}, {"Blue/green", "switch traffic at once"}}
-	field(2, "Strategy", strategies[m.strategy][1], choice([]string{"Rolling", "Canary", "Blue/green"}, m.strategy, m.focus == 2))
+	field(2, "Strategy", strategies[m.strategy][1], choice([]string{"Rolling", "Canary", "Blue/green"}, m.strategy, focus == 2))
 	check := func(i int, label string) string {
 		g, st := t.G.CheckOff, t.S.Subtle
 		if m.checks[i] {
 			g, st = t.G.CheckOn, t.S.Focus
 		}
 		lab := t.S.Muted.Render(label)
-		if m.focus == 3 && m.checkSel == i {
+		if focus == 3 && m.checkSel == i {
 			lab = t.S.Bold.Render(label)
 		}
 		return st.Render(g) + " " + lab
 	}
 	field(3, "Checks", "", check(0, "run smoke tests")+"   "+check(1, "skip approval"))
 	btns := ui.Buttons(t, w-2, lipgloss.Left,
-		ui.Button(t, "Deploy", m.focus == 4 && m.formBtn == 0, false, -1),
-		ui.Button(t, "Cancel", m.focus == 4 && m.formBtn == 1, false, -1))
-	rows = append(rows, ui.Gutter(t, m.focus == 4, t.S.FocusBar)+btns)
+		ui.Button(t, "Deploy", focus == 4 && m.formBtn == 0, false, -1),
+		ui.Button(t, "Cancel", focus == 4 && m.formBtn == 1, false, -1))
+	rows = append(rows, ui.Gutter(t, focus == 4, t.S.FocusBar)+btns)
 	c.Draw(strings.Join(rows, "\n"), main)
 
 	if side.Dx() > 0 {

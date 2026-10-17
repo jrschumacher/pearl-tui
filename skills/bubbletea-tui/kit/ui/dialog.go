@@ -222,13 +222,22 @@ func dialogRules(t *theme.Theme, title string, w int, fill color.Color) (string,
 // with the page on ANSI 0 or 15, dimming toward it sends every text level to the page's
 // own slot and the scrim's text vanishes instead of fading. Where no scrim is drawn
 // (those, and scrim: none) the rows the dialog spans are cleared across instead; under
-// a scrim, a phrase the dialog cuts is cleared to its column gap. Either way the page's
-// focus marks go and no page rule runs on beside the dialog's edges (overlay.go).
+// a scrim, a phrase the dialog cuts is cleared to its column gap. Either way no page
+// rule runs on beside the dialog's edges (overlay.go).
+//
+// Draw the page under a dialog unfocused: pass focused=false to its lists, tables and
+// fields while the dialog is up. The dialog has the focus, and a focused list's bar
+// beside the dialog's own reads as two; unfocused, a list keeps its selection in the
+// blur ink, so the user still sees where they were.
+//
+//	tbl := ui.Table(t, header, rows, widths, align, sel, w, m.ov == ovNone)
 func (c *Canvas) Overlay(dialog string, anchor *uv.Position) uv.Rectangle {
 	return c.overlay(dialog, anchor, c.T.P.BgPanel)
 }
 
-// Popover is Overlay for a Popover: its cells fill with bgOverlay.
+// Popover is Overlay for a Popover: its cells fill with bgOverlay. It prepares the
+// page as Overlay does (the cut phrase, the edge rows' rules, the band where no scrim
+// is drawn), so the page under a palette is drawn unfocused too.
 func (c *Canvas) Popover(dialog string, anchor *uv.Position) uv.Rectangle {
 	return c.overlay(dialog, anchor, c.T.P.BgOverlay)
 }

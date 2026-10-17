@@ -71,11 +71,13 @@ the keys; hue stays for state (color.md).
   buttons (`ui.DialogStatus`).
 - Palette: a prompt input with a caret, then a fixed-height list (it doesn't jump while
   typing), with fuzzy matches underlined and shortcuts right-aligned.
-- Only the front dialog takes input. `esc` closes it. The scrim dims the rest, and
-  `Canvas.Overlay` clears what would still read as live beside it: the page's focus
-  marks (one focus per frame), a phrase the dialog cuts, to its column gap (no `igh` or
-  `1s` fragment at the edge), a page rule on the dialog's edge rows, and, where no scrim
-  is drawn (16 colours, NO_COLOR, ASCII, `scrim: none`), the rows the dialog spans.
+- Only the front dialog takes input. `esc` closes it. The scrim dims the rest. Draw the
+  page under it unfocused (`focused=false` to its lists, tables and fields, no caret in
+  its input): one focus per frame, and a list keeps its selection in the blur ink.
+  `Canvas.Overlay` (and `Popover`) clears what would still read as live beside it: a
+  phrase the dialog cuts, to its column gap (no `igh` or `1s` fragment at the edge), a
+  page rule on the dialog's edge rows, and, where no scrim is drawn (16 colours,
+  NO_COLOR, ASCII, `scrim: none`), the rows the dialog spans.
 - Max ~64–70 cols wide; fullscreen below the minimum size.
 
 ## Confirm — destructive actions
