@@ -204,17 +204,23 @@ go run ./cmd/<app> -out frames -sizes 80x24,120x40  every state × size into fra
 The `states` list names every screen and overlay the app can show (including empty,
 loading, error, too-small). `setState(name)` builds each from scratch with fixture data.
 `View` and the harness share one `render(w, h)`, so the PNG is the program. See
-`kit/cmd/showcase/main.go`. A `_test.go` renders every state at 60×18 (the floor, still
-a full layout), 80×24, 100×30, 120×40 and 200×60 in every theme and mode and asserts
-the footprint (`showcase_test.go`); `toosmall` is skipped there and checked by
-`-golden`/`-out` at 50×14.
+`kit/cmd/showcase/main.go`. A `_test.go` renders every state at the floor (60×18 in
+the kit, still a full layout; `TUI.md` § Size floor may raise it), 80×24, 100×30,
+120×40 and 200×60 in every theme and mode and asserts the footprint
+(`showcase_test.go`); `toosmall` is skipped there and checked by `-golden`/`-out` one
+size below the floor (50×14 in the kit).
 
 ## Project Layout
 
 ```
 cmd/<app>/main.go        flags, harness, tea.NewProgram
+cmd/<app>/app.go         the root model: state, Update, the action tables, the clock
+cmd/<app>/screens.go     render(w,h): every region into its rectangle, overlays last
+cmd/<app>/fixtures.go    realistic data for every state (replaces the showcase's data.go)
+cmd/<app>/*_test.go      the footprint, contrast and behaviour tests, copied with the kit
 internal/theme/          the kit's theme package (copied); themes/<brand>.json, embedded by themes/embed.go
 internal/ui/             the kit's components (copied), plus your own
-internal/app/            the root model: state, Update, render(w,h), screens
-internal/app/fixtures.go realistic data for every state
 ```
+
+One package, `cmd/<app>`, because that is where `kit/README.md`'s copy block puts the
+showcase and its tests: a model in `internal/app` splits the harness from its states.

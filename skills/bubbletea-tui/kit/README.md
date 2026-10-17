@@ -77,7 +77,8 @@ directory holding `SKILL.md`:
 mkdir -p internal themes cmd
 cp -r <skill>/kit/theme internal/theme && cp -r <skill>/kit/ui internal/ui
 cp -r <skill>/kit/cmd/showcase cmd/<app>
-cp <skill>/kit/themes/embed.go themes/ && cp <skill>/kit/themes/<closest>.json themes/<brand>.json
+cp <skill>/kit/themes/embed.go themes/
+cp <skill>/kit/themes/<closest>.json themes/<brand>.json   # skip when brand already wrote themes/<brand>.json
 perl -pi -e 's#"tuikit/themes"#"<your/module>/themes"#; s#"tuikit/#"<your/module>/internal/#' $(grep -rl '"tuikit/' internal cmd)
 gofmt -w internal cmd
 go mod edit -go=1.26.7
@@ -98,9 +99,22 @@ theme where they name one of the kit's, so they pass in your project as they do 
 
 `themes/<brand>.json` is the one theme in the project: the donor is copied under your
 brand's name, so `brand` edits it in place and `diversity themes/*.json` judges one
-brand. `themes/embed.go` embeds it and `cmd/<app>/main.go` draws it with no `-theme`
-flag (`themes.Default`), so the binary carries the brand wherever it is run from.
+brand. When `brand` ran first, the theme is already there and the `<closest>.json`
+line would overwrite the derived roles with a kit donor's: skip it. `themes/embed.go`
+embeds it and `cmd/<app>/main.go` draws it with no `-theme` flag (`themes.Default`),
+so the binary carries the brand wherever it is run from.
 
 Then build your root model in `cmd/<app>` on the showcase's shape (action tables,
 `render`, `setState`, harness flags, the test files) and replace its screens with yours.
 Rewrite the package doc at the top of `main.go` first: it still says what the showcase is.
+Once your screens are in, delete what is the showcase's alone:
+
+- `data.go`: its fixtures (yours are `fixtures.go`).
+- `setup.go` and `setup_test.go`, the first-run wizard, with its wiring: each `scrSetup`,
+  `m.setup` and `firstRun` branch in `app.go` and `screens.go`, and in `main.go` the
+  `setup-*` states, `setupState`, `-first-run` and the `runAccessibleSetup` call.
+- In `behaviour_test.go`, every test but `TestHelpIsHandled`, `TestASCIIIsASCII` and
+  `TestASCIIStatusDistinct` (keep `press` and `fixture`): the rest name a showcase state.
+  Rewrite on your states the ones whose law you share (one clock, typing never commands).
+- Keep all of `showcase_test.go`; point its overlay lists (`"palette", "confirm", "help"`)
+  at your overlay states. Then delete each import `go vet ./...` reports unused.
