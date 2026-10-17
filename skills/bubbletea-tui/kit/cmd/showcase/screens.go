@@ -313,6 +313,16 @@ func (m *app) ladder(c *ui.Canvas, r uv.Rectangle) {
 			ui.Tag(t, "info", "SETUP"), ui.Tag(t, "primary", "NEW"), ui.Tag(t, "muted", "IDLE")}
 		rows = append(rows, "", ui.Section(t, "Tags", w, ""), "", strings.Join(tags, " "))
 	}
+	// text beside the marks: a reading with its unit, a product, a name with an accent.
+	// Text is not a glyph (C-GLYPH passes it); under -ascii it keeps its letters and
+	// digits (21.5 C, 3x4, Zoe), never a "?". Every size shows it, so the ASCII test sees it.
+	if r.Dy() >= len(rows)+2 {
+		rows = append(rows, "")
+	}
+	if r.Dy() >= len(rows)+1 {
+		rows = append(rows, t.S.Muted.Render("text")+"  "+t.S.Base.Render("21.5°C")+t.S.Subtle.Render(" "+t.G.Sep+" ")+
+			t.S.Base.Render("3×4")+t.S.Subtle.Render(" "+t.G.Sep+" ")+t.S.Base.Render("Zoë"))
+	}
 	c.Draw(strings.Join(rows, "\n"), r)
 }
 
@@ -354,6 +364,7 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 			State: ui.ToolError, Err: "deploy/: no such directory (did you mean config/?)"}, w, false),
 		ui.ToolCall(t, ui.Tool{Name: "Edit", Param: "config/timeouts.go", Desc: "Accept a unit suffix on PAYMENTS_TIMEOUT",
 			Meta: "allowed for session " + t.G.Sep + " 0.3s", State: ui.ToolDone, Body: diff, Expand: true}, w, false),
+		ui.ToolCall(t, ui.Tool{Name: "Bash", Param: "go test ./internal/...", State: ui.ToolDone, Body: testLines}, w, false),
 		ui.AssistantMessage(t, chatAnswer, w, false),
 		{ui.TurnFooter(t, "opus", "anthropic", "41s", w)},
 	}
@@ -363,7 +374,7 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 			blocks = append(blocks, ui.ToolCall(t, ui.Tool{Name: "Deploy", Param: "checkout-api v2.4.1", Opts: [][2]string{{"strategy", "rolling"}},
 				State: ui.ToolDone, Body: []string{"3/3 pods healthy " + t.G.Sep + " error rate 0.02% " + t.G.Sep + " p99 124ms"}}, w, false))
 		case "\x00canceled":
-			blocks = append(blocks, []string{"  " + t.S.Subtle.Render(t.Copy("Canceled")+".")})
+			blocks = append(blocks, []string{"  " + t.S.Subtle.Render(t.Sentence("Canceled."))})
 		default:
 			blocks = append(blocks, ui.UserMessage(t, msg, w, false))
 		}

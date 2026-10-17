@@ -32,10 +32,14 @@
 //	F-EMPTY     [P2] frame is more than 98.5% blank (not on a splash*, intro* or wordmark* frame:
 //	                 a wordmark on an empty page is what a splash is)
 //	F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
+//	F-TAB       [P1] a raw tab in a frame: lipgloss measures it as 0 cells, a terminal as the
+//	                 run to the next 8-column stop, so the row tears; expand tabs before fitting
 //	F-TRUNC     [P2] more than 3 rows ending in an ellipsis (…, the theme's glyphs.ellipsis, or
 //	                 ... with --ascii) at one column: a column budgeted narrower than its content
 //	                 (not a table's last column headed path, file, command or url)
-//	F-ASCII     [P1] (with --ascii) a cell outside ASCII in a frame rendered for ASCII
+//	F-ASCII     [P1] (with --ascii) a cell outside ASCII in a frame rendered for ASCII; with
+//	                 --unicode, also a "?" where the unicode frame of the same state draws
+//	                 something else (a rune the sweep had no twin for)
 package framelint
 
 import (
@@ -51,7 +55,7 @@ import (
 	"strings"
 )
 
-const usage = `usage: tuilint frames <dir|files...> [--cols W --rows H] [--theme theme.json] [--bg #rrggbb] [--ascii] [--max-warnings N] [--json out.json]
+const usage = `usage: tuilint frames <dir|files...> [--cols W --rows H] [--theme theme.json] [--bg #rrggbb] [--ascii [--unicode dir|file]] [--max-warnings N] [--json out.json]
 
 Lints rendered truecolor ANSI frames (the output of your -state X -w W -h H flag).
 A directory means its *.ansi files. A name ending -<W>x<H>.ansi (what -out writes) sets
@@ -64,6 +68,9 @@ CI baseline catches a new warning class. Exit 2 on usage errors or an unreadable
 --bg is the terminal default background for cells that set none (default #16161a).
 --ascii says the frames were rendered for ASCII (-ascii: TERM=linux, --ascii), where
 every cell must be ASCII: a glyph that leaks through is tofu on a console font.
+--unicode names the unicode render of the same states (a directory, matched by file
+name, or one frame): a "?" in the ASCII frame where the unicode frame draws something
+else is a rune the ASCII sweep had no twin for, which reads as a question.
 
   F-WIDTH     [P0] a row is not exactly W cells / frame is not H rows
   F-EMOJI     [P1] emoji glyphs
@@ -86,9 +93,11 @@ every cell must be ASCII: a glyph that leaks through is tofu on a console font.
   F-EDGE      [P2] content touching column 0 or the last column on most rows
   F-EMPTY     [P2] frame is more than 98.5% blank (not on a splash*/intro*/wordmark* frame)
   F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
+  F-TAB       [P1] a raw tab: 0 cells to lipgloss, up to 8 to a terminal; expand it before fitting
   F-TRUNC     [P2] more than 3 rows ending in an ellipsis at one column: widen it from the
                    longest fixture, or say in TUI.md that it cuts (paths, URLs, code)
-  F-ASCII     [P1] (with --ascii) a cell outside ASCII: give the glyph an ASCII twin
+  F-ASCII     [P1] (with --ascii) a cell outside ASCII: give the glyph an ASCII twin;
+                   with --unicode, a "?" where the unicode frame of the state has none
 `
 
 var sevOrder = map[string]int{"P0": 0, "P1": 1, "P2": 2}
@@ -115,7 +124,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		}
 		k := a[2:]
 		switch k {
-		case "cols", "rows", "theme", "json", "bg", "max-warnings":
+		case "cols", "rows", "theme", "json", "bg", "max-warnings", "unicode":
 		default:
 			fmt.Fprintf(stderr, "tuilint frames: unknown flag %s\n%s", a, usage)
 			return 2
@@ -168,6 +177,20 @@ func Main(args []string, stdout, stderr io.Writer) int {
 			return 2
 		}
 	}
+	uni, hasUni := opts["unicode"]
+	if hasUni && !ascii {
+		fmt.Fprintf(stderr, "tuilint frames: --unicode compares an ASCII render; it needs --ascii\n")
+		return 2
+	}
+	uniDir := false
+	if hasUni {
+		st, err := os.Stat(uni)
+		if err != nil {
+			fmt.Fprintf(stderr, "tuilint frames: --unicode: %v\n", err)
+			return 2
+		}
+		uniDir = st.IsDir()
+	}
 	paths, err := expand(pos)
 	if err != nil {
 		fmt.Fprintf(stderr, "tuilint frames: %v\n", err)
@@ -189,7 +212,18 @@ func Main(args []string, stdout, stderr io.Writer) int {
 				h = fh
 			}
 		}
-		findings = append(findings, lintText(p, string(data), w, h, pal, bg, ascii)...)
+		fs := lintText(p, string(data), w, h, pal, bg, ascii)
+		if hasUni {
+			up := uni
+			if uniDir {
+				up = filepath.Join(uni, filepath.Base(p))
+			}
+			// a state the unicode render lacks has nothing to compare against
+			if ud, err := os.ReadFile(up); err == nil {
+				fs = append(fs, LintASCIIQuestion(filepath.Base(p), parseText(string(data)), parseText(string(ud)))...)
+			}
+		}
+		findings = append(findings, fs...)
 	}
 	fmt.Fprintf(stdout, "linted %d frame(s)\n", len(paths))
 	return Report(findings, opts["json"], maxWarnings, stdout, stderr)

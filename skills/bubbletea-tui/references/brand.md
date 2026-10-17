@@ -92,8 +92,9 @@ read it too.
     "sectionTitle": "primary",  // accent | primary | muted-upper | fg
     "titleCase": "sentence",    // sentence | upper | lower
     "labelCase": "lower",       // upper | lower | as-is: table headers, tags, toast and summary
-                                //   labels, and the kit's fixed copy (tabs, "Terminal too small",
-                                //   "Canceled."; unset: headers upper, fixed copy in titleCase)
+                                //   labels, and the kit's fixed labels (tab names; its
+                                //   sentences, "Canceled.", take titleCase; unset: headers upper,
+                                //   fixed copy in titleCase)
     "selection": "fill",        // bar | fill | caret | inverse
     "button": "bracket",        // pill | bracket | underline | inverse
     "tag": "filled",            // filled | bracket | bold
@@ -165,10 +166,10 @@ Every glyph needs an ASCII twin, the theme's own in `glyphs.ascii` or the kit's 
 `palette check` and the kit's theme tests name a glyph with neither and two marks of one
 meaning that share a twin (half-filled circles take `~` by convention). `theme.Load`
 still loads it, so an app always starts; an unmapped glyph then draws as `?`, which
-`tuilint frames --ascii` fails [F-ASCII]. If you add a key: add it to the Go structs,
-default it, document it here, probe-render it at 80×24 and 120×40, and decide whether
-`diversity` should count it; `theme.ASCII` and `theme.CheckGlyphs` cover every string in
-`Glyphs` on their own.
+`tuilint frames --ascii --unicode <the unicode frames>` fails [F-ASCII]. If you add a
+key: add it to the Go structs, default it, document it here, probe-render it at 80×24
+and 120×40, and decide whether `diversity` should count it; `theme.ASCII` and
+`theme.CheckGlyphs` cover every string in `Glyphs` on their own.
 
 **What never changes, whatever the brand:** whitespace and rules instead of boxes, one
 box for the floating thing, three to four text levels, exactly one visible focus that
@@ -219,10 +220,12 @@ Put it beside the baseline (`ink`) and one other brand. Ask:
 
 - Record the brand read, the theme path and the decisions in the project's design context
   file (`TUI.md`, written by `init`). Every later change reads it first.
-- `tuilint code` fails on hex outside the theme package [C-HEX], on emoji [C-EMOJI]
-  and on a glyph typed in a screen [C-GLYPH]. `tuilint frames --theme` fails on any
-  rendered colour that isn't a role or a blend of two roles [F-OFFPAL], and judges the
-  inside of a bordered, `+--+` or `rules` dialog (a `none` dialog has no edge to find, so
-  its frames carry a P2 note to check by eye).
+- `tuilint code` fails on hex outside the theme package [C-HEX], on emoji [C-EMOJI],
+  on a glyph typed in a screen [C-GLYPH] and on a cut made with the bare `theme.Ellipsis`
+  [C-ELLIPSIS]: cut with `ui.Trunc(t, s, w)`, which fits the brand's glyph
+  `t.G.Ellipsis` and its ASCII twin `...` inside the width. `tuilint frames --theme` fails
+  on any rendered colour that isn't a role or a blend of two roles [F-OFFPAL], and judges
+  the inside of a bordered, `+--+` or `rules` dialog (a `none` dialog has no edge to find,
+  so its frames carry a P2 note to check by eye).
 - New component? It takes `*theme.Theme` and nothing else. If it needs a new colour, the
   contract gets a new role, with a reason in the read.

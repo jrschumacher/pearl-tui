@@ -836,14 +836,9 @@ var (
 
 // lintText lints one frame's text, named by the file's base name. ascii adds F-ASCII.
 func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii bool) []Finding {
-	text = strings.ReplaceAll(text, "\r\n", "\n") // Python's universal newlines
-	text = strings.ReplaceAll(text, "\r", "\n")
-	text = strings.TrimSuffix(text, "\n")
-	f := Parse(text)
-	f.Indexed = sgr256.MatchString(text) && !sgrTrue.MatchString(text)
-	f.Basic = !f.Indexed && !sgrTrue.MatchString(text) && sgr16.MatchString(text)
-	f.Plain = !sgr256.MatchString(text) && !sgrTrue.MatchString(text) && !sgr16.MatchString(text)
+	f := parseText(text)
 	out := LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
+	out = append(out, LintTab(filepath.Base(path), normText(text))...)
 	ellipses := []string{theme.Ellipsis}
 	if pal != nil && pal.Ellipsis != "" && pal.Ellipsis != theme.Ellipsis {
 		ellipses = append(ellipses, pal.Ellipsis)
@@ -855,6 +850,83 @@ func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii boo
 	}
 	out = append(out, LintTrunc(filepath.Base(path), f, ellipses)...)
 	return out
+}
+
+// normText is a frame's text with Python's universal newlines and no final newline.
+func normText(text string) string {
+	text = strings.ReplaceAll(text, "\r\n", "\n")
+	text = strings.ReplaceAll(text, "\r", "\n")
+	return strings.TrimSuffix(text, "\n")
+}
+
+// parseText parses one frame's text and notes which colour SGR it uses.
+func parseText(text string) Frame {
+	text = normText(text)
+	f := Parse(text)
+	f.Indexed = sgr256.MatchString(text) && !sgrTrue.MatchString(text)
+	f.Basic = !f.Indexed && !sgrTrue.MatchString(text) && sgr16.MatchString(text)
+	f.Plain = !sgr256.MatchString(text) && !sgrTrue.MatchString(text) && !sgr16.MatchString(text)
+	return f
+}
+
+// LintTab is F-TAB: a raw tab in a frame. lipgloss measures a tab as 0 cells and a
+// terminal advances it to the next 8-column stop, so a row fitted with one in it is
+// padded short in the app's maths and pushed past its edge on screen: a panel's right
+// edge tears. (Parse expands it to the stop, so F-WIDTH sees the row as the terminal
+// does and cannot tell.) One finding per frame: where the first is, and how many.
+func LintTab(name, text string) []Finding {
+	i := strings.IndexByte(text, '\t')
+	if i < 0 {
+		return nil
+	}
+	start := strings.LastIndexByte(text[:i], '\n') + 1
+	x := 0
+	if rows := Parse(text[start:i]).Rows; len(rows) > 0 {
+		x = len(rows[0])
+	}
+	return []Finding{{"F-TAB", "P1", name, fmt.Sprintf("r%dc%d", strings.Count(text[:i], "\n"), x),
+		fmt.Sprintf("%d raw tabs in the frame: lipgloss measures a tab as 0 cells and a terminal advances it to the next 8-column stop, so the row tears; expand tabs (ui.ExpandTabs) before fitting",
+			strings.Count(text, "\t"))}}
+}
+
+// LintASCIIQuestion is F-ASCII's second half: a "?" in the ASCII frame where the
+// unicode frame of the same state draws something else. The sweep's fallback for a
+// rune with no twin is "?", which is ASCII, so the first half cannot see it, and a
+// unit or a name then reads as a question (21.5?C). One finding per frame: where the
+// first is, and up to 6 of the runes the unicode frame drew there.
+func LintASCIIQuestion(name string, asc, uni Frame) []Finding {
+	var at [2]int
+	var runes []string
+	seen := map[string]bool{}
+	n := 0
+	for y, row := range asc.Rows {
+		if y >= len(uni.Rows) {
+			break
+		}
+		for x, c := range row {
+			if c.Ch != "?" || x >= len(uni.Rows[y]) {
+				continue
+			}
+			u := uni.Rows[y][x].Ch
+			if u == "?" || u == "" {
+				continue
+			}
+			if n == 0 {
+				at = [2]int{y, x}
+			}
+			n++
+			if !seen[u] && len(runes) < 6 {
+				seen[u] = true
+				runes = append(runes, fmt.Sprintf("%s U+%04X", u, first(u)))
+			}
+		}
+	}
+	if n == 0 {
+		return nil
+	}
+	return []Finding{{"F-ASCII", "P1", name, fmt.Sprintf("r%dc%d", at[0], at[1]),
+		fmt.Sprintf("%d cells draw \"?\" where the unicode frame does not (%s): the ASCII sweep has no one-cell twin for them; give a glyph a theme twin, or write the text in ASCII",
+			n, strings.Join(runes, ", "))}}
 }
 
 // truncMax is how many rows of one column may end in an ellipsis before F-TRUNC: a cut

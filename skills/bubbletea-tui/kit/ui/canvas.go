@@ -31,9 +31,41 @@ func NewCanvas(t *theme.Theme, w, h int) *Canvas {
 	return c
 }
 
-// Draw paints a styled string into a rectangle (clipped to it).
+// Draw paints a styled string into a rectangle (clipped to it). A tab advances to the
+// next 8-column stop of its line (ExpandTabs), as a terminal would.
 func (c *Canvas) Draw(s string, r uv.Rectangle) {
-	uv.NewStyledString(s).Draw(c, r)
+	uv.NewStyledString(ExpandTabs(s)).Draw(c, r)
+}
+
+// ExpandTabs replaces each tab with the spaces to the next 8-column stop of its line,
+// counted in cells (styling is skipped). lipgloss measures a tab as 0 cells and a
+// terminal advances it to the next stop, so a line with a raw tab (go test's
+// "ok  \tpkg\t0.412s") is fitted short and tears the edge it was padded to. Fit, Trunc
+// and Canvas.Draw call it; call it on text you measure any other way.
+func ExpandTabs(s string) string {
+	if !strings.Contains(s, "\t") {
+		return s
+	}
+	lines := strings.Split(s, "\n")
+	for i, l := range lines {
+		if !strings.Contains(l, "\t") {
+			continue
+		}
+		var b strings.Builder
+		col := 0
+		parts := strings.Split(l, "\t")
+		for j, p := range parts {
+			b.WriteString(p)
+			col += ansi.StringWidth(p)
+			if j < len(parts)-1 {
+				n := 8 - col%8
+				b.WriteString(strings.Repeat(" ", n))
+				col += n
+			}
+		}
+		lines[i] = b.String()
+	}
+	return strings.Join(lines, "\n")
 }
 
 // Fill paints a rectangle's background (for panels and bars).
@@ -121,8 +153,10 @@ func (c *Canvas) PaintBackground() {
 }
 
 // ASCIIfy maps every cell outside ASCII onto a tier-0 stand-in: box drawing
-// to - | +, blocks to # and =, arrows to < > ^ v, anything else to ?. Call it
-// last when the theme is resolved for ASCII, so no screen can leak a glyph.
+// to - | +, blocks to # and =, arrows to < > ^ v, Latin-1 text to its base letter or
+// unit (é → e, ° → a space, × → x), anything else to ?. Call it last when the theme is
+// resolved for ASCII, so no screen can leak a glyph. A "?" is loud on purpose: tuilint
+// frames --ascii reports one where the unicode frame has a glyph.
 func (c *Canvas) ASCIIfy() {
 	b := c.Bounds()
 	for y := b.Min.Y; y < b.Max.Y; y++ {
@@ -131,13 +165,28 @@ func (c *Canvas) ASCIIfy() {
 			if cell == nil || cell.Content == "" {
 				continue
 			}
-			r := []rune(cell.Content)[0]
-			if r < 128 {
+			rs := []rune(cell.Content)
+			r := rs[0]
+			if r < 128 && !nonASCII(rs[1:]) {
 				continue
 			}
 			nc := *cell
-			nc.Content, nc.Width = asciiRune(r), 1
+			nc.Content, nc.Width = string(r), 1
+			if r >= 128 {
+				nc.Content = asciiRune(r)
+			}
+			// the rest of the cluster rides on the first rune: a combining mark (NFD
+			// "e" + U+0308, as macOS file names and git print them) or a soft hyphen
+			// (U+00AD, zero width) folds into the base letter, never leaks
+			for _, m := range rs[1:] {
+				if m < 128 {
+					nc.Content += string(m)
+				}
+			}
 			c.SetCell(x, y, &nc)
+			if string(r) == theme.Ellipsis { // a bare cut: finish it as "..."
+				c.cutDots(x, y, &nc)
+			}
 			if cell.Width == 2 && x+1 < b.Max.X { // a wide glyph's second cell
 				sp := nc
 				sp.Content = " "
@@ -145,6 +194,53 @@ func (c *Canvas) ASCIIfy() {
 			}
 		}
 	}
+}
+
+func nonASCII(rs []rune) bool {
+	for _, r := range rs {
+		if r >= 128 {
+			return true
+		}
+	}
+	return false
+}
+
+// cutDots finishes a cut the sweep found as a bare "…" (ui.Fit's, a screen's own
+// ansi.Truncate): one "." reads as a full stop ("unknown key."), so up to two letters
+// or digits before it turn to "." too and the cut reads as the theme's twin
+// ("unknown k..."). A cut ends its run, so a "…" with same-style text right after it
+// ("a…b") is left as one "."; the walk left stops at the first space or punctuation,
+// so text before the cut keeps its marks ("key: .", "v2..", "[a.]").
+//
+// What stays ambiguous: the sweep cannot tell a cut from a "…" typed in data at the
+// end of a run, so "Loading…" draws "Loadi...", two letters short. Cut and draw text
+// with the theme (ui.Trunc, t.G.Ellipsis) and it never reaches the sweep.
+func (c *Canvas) cutDots(x, y int, dot *uv.Cell) {
+	b := c.Bounds()
+	if x+1 < b.Max.X {
+		n := c.CellAt(x+1, y)
+		if n != nil && n.Content != "" && n.Content != " " && n.Style.Equal(&dot.Style) && n.Link == dot.Link {
+			return // not the end of a run: mid-text, not a cut
+		}
+	}
+	for i := 1; i <= 2 && x-i >= b.Min.X; i++ {
+		l := c.CellAt(x-i, y)
+		if l == nil || l.Width != 1 || !alnum(l.Content) || !l.Style.Equal(&dot.Style) || l.Link != dot.Link {
+			return
+		}
+		nc := *l
+		nc.Content = "."
+		c.SetCell(x-i, y, &nc)
+	}
+}
+
+// alnum reports whether a swept cell is one ASCII letter or digit.
+func alnum(s string) bool {
+	if len(s) != 1 {
+		return false
+	}
+	r := s[0]
+	return r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9'
 }
 
 func asciiRune(r rune) string {
@@ -162,13 +258,47 @@ func asciiRune(r rune) string {
 	if s, ok := asciiMap[r]; ok {
 		return s
 	}
+	if s, ok := latin1Rune(r); ok {
+		return s
+	}
 	return "?"
+}
+
+// latin1Rune is the one-cell ASCII stand-in for a text rune: a Latin-1 letter's base
+// letter (é → e, Ø → O), a unit or mark a screen prints beside a number (° → a space,
+// so 21.5°C reads 21.5 C; × → x, µ → u, © → c), currency (£ → L, € → E) and the
+// punctuation of prose (« » ‚ „ ′ ″ −). One cell each, so a row keeps its columns: a
+// twin that needs more (½ as 1/2, © as (c)) would tear the row. A rune whose one cell
+// would change the value (± as +, ≥ as >, ‰ as %, ³ as 3, ¬ as -, † as +, § as S) has
+// no stand-in: it stays "?", which the lint names, so write it in ASCII in the app's
+// own text. A silent wrong value is worse than a flagged "?".
+func latin1Rune(r rune) (string, bool) {
+	if 0xC0 <= r && r <= 0xFF {
+		return string(latin1Letters[r-0xC0]), true
+	}
+	s, ok := latin1Map[r]
+	return s, ok
+}
+
+// latin1Letters are the base letters of U+00C0–U+00FF in order (À..ÿ): the accent
+// goes, the letter stays; Æ, Ð, Ø, Þ, ß and their lowercase take one letter each.
+const latin1Letters = "AAAAAAACEEEEIIIIDNOOOOOxOUUUUYTsaaaaaaaceeeeiiiidnooooo/ouuuuyty"
+
+var latin1Map = map[rune]string{
+	'\u00A0': " ", '¡': "!", '¢': "c", '£': "L", '¤': "o", '¥': "Y", '¦': "|", '¨': "\"", '©': "c",
+	'ª': "a", '«': "<", '®': "R", '¯': "-", '°': " ", '´': "'", 'µ': "u", '¸': ",",
+	'º': "o", '»': ">", '€': "E", '‚': ",", '„': "\"", '′': "'", '″': "\"", '−': "-", 'Œ': "O",
+	'œ': "o", 'Š': "S", 'š': "s", 'Ž': "Z", 'ž': "z", 'Ÿ': "Y",
 }
 
 // asciiClasses and asciiMap are the twin tables: the one place outside the theme
 // package that spells glyphs (tuilint code C-GLYPH skips their literals). A class maps
 // a run of glyphs to one twin; the map, single glyphs. They agree with theme.ASCIITwin
-// where a glyph carries a meaning: the caret ▏ is ', not the focus bar's |.
+// where a glyph carries a meaning: the caret ▏ is ', not the focus bar's |, and an
+// ellipsis left for the sweep (a cut made with the bare theme.Ellipsis, ui.Fit's) is
+// ".", never "~", the partial mark's twin: a cut line read as a row in progress; and
+// cutDots turns up to two letters or digits before a cut to ".", so the cut reads
+// "..." and not as a full stop. Cut with t.G.Ellipsis (ui.Trunc) to keep the text's last cells.
 var asciiClasses = []struct{ glyphs, twin string }{
 	{"─━═╌┄┈╍┅┉▔▁╴╶╸╺", "-"},
 	{"│┃║╎┆┊╏┇┋▎▍▌▐▕", "|"},
@@ -178,11 +308,11 @@ var asciiClasses = []struct{ glyphs, twin string }{
 }
 
 var asciiMap = map[rune]string{
-	'↑': "^", '↓': "v", '←': "<", '→': ">", '·': ".", '•': "*", '…': "~", '—': "-", '–': "-",
+	'↑': "^", '↓': "v", '←': "<", '→': ">", '·': ".", '•': "*", '…': ".", '—': "-", '–': "-",
 	'×': "x", '✕': "x", '✗': "x", '✓': "+", '✔': "+", '●': "*", '○': "o", '◆': "*", '◇': "o",
 	'▲': "^", '△': "^", '▶': ">", '▸': ">", '›': ">", '❯': ">", '‹': "<", '“': "\"", '”': "\"",
 	'‘': "'", '’': "'", '▏': "'", '◉': "@", '■': "#", '□': "o", '★': "*", '✦': "*", '◜': "|", '◠': "/",
-	'◝': "-", '◞': "\\", '◡': "|", '◟': "/", '◢': "/", '◣': "\\", '◤': "/", '◥': "\\", '¬': "-",
+	'◝': "-", '◞': "\\", '◡': "|", '◟': "/", '◢': "/", '◣': "\\", '◤': "/", '◥': "\\",
 }
 
 // String renders the canvas as rows joined by "\n" (every row exactly W cells).
@@ -202,11 +332,15 @@ func OnBg(s string, bg color.Color) string {
 
 var resetRe = regexp.MustCompile(`\x1b\[0?m`)
 
-// Fit pads or truncates a single line to exactly w cells.
+// Fit pads or truncates a single line to exactly w cells. A cut ends in the kit's
+// ellipsis, which the ASCII sweep draws as "..." over the cut's last cells; for the
+// theme's own glyph and its ASCII twin after the text, cut with Trunc first. Tabs
+// expand to 8-column stops first.
 func Fit(s string, w int) string {
 	if w <= 0 {
 		return ""
 	}
+	s = ExpandTabs(s)
 	n := lipgloss.Width(s)
 	if n > w {
 		return ansi.Truncate(s, w, theme.Ellipsis)
@@ -223,8 +357,10 @@ func FitLines(block string, w int) string {
 	return strings.Join(lines, "\n")
 }
 
-// Trunc truncates to w cells with the theme's ellipsis (no padding).
+// Trunc truncates to w cells with the theme's ellipsis (no padding). Tabs expand to
+// 8-column stops first.
 func Trunc(t *theme.Theme, s string, w int) string {
+	s = ExpandTabs(s)
 	if lipgloss.Width(s) <= w {
 		return s
 	}

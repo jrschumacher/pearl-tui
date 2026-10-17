@@ -1,6 +1,7 @@
 // Command glyph holds glyph literals where they belong and where they don't: C-GLYPH
 // fails a screen's, and passes the theme package's, the ASCII twin table's file, a
-// comment's, a test file's, and text in another script.
+// comment's, a test file's, and text in another script. C-ELLIPSIS fails the bare
+// theme.Ellipsis in a screen and passes it in the ui package.
 package main
 
 import (
@@ -23,7 +24,8 @@ func view() string {
 	prose := "café, 日本語, naïve, ١٢٣"
 	// punctuation, currency, units and maths are text a screen prints, not marks it draws
 	text := "it’s «quoted» — a dash – and “curly” quotes; £5, €3, 72°F, ©2026 ™, 3×4 ÷ 2 ± 1 ≥ ½ µs ²"
-	marks := "✓ done" // want "C-GLYPH: glyph '✓'"
-	spark := "⣀⣤⣿"    // want "C-GLYPH: glyph '⣀'"
-	return sep + string(arrow) + caret + more + prose + text + marks + spark + theme.Caret + ui.Twin(theme.Caret)
+	marks := "✓ done"                                    // want "C-GLYPH: glyph '✓'"
+	cut := ui.Fit("a long title", true) + theme.Ellipsis // want `C-ELLIPSIS: cut with ui.Trunc\(t, s, w\)`
+	spark := "⣀⣤⣿"                                       // want "C-GLYPH: glyph '⣀'"
+	return sep + string(arrow) + caret + more + prose + text + marks + spark + cut + theme.Caret + ui.Twin(theme.Caret)
 }

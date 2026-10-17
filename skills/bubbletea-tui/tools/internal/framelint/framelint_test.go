@@ -99,7 +99,7 @@ func TestSyntheticCoversEveryRule(t *testing.T) {
 		seen[f.Rule] = true
 	}
 	for _, r := range []string{"F-WIDTH", "F-EMOJI", "F-DEFAULT", "F-OFFPAL", "F-CONTRAST", "F-BOXES",
-		"F-RAINBOW", "F-LEVELS", "F-BOLD", "F-EDGE", "F-EMPTY", "F-TOFU"} {
+		"F-RAINBOW", "F-LEVELS", "F-BOLD", "F-EDGE", "F-EMPTY", "F-TOFU", "F-TAB"} {
 		if !seen[r] {
 			t.Errorf("no synthetic frame trips %s", r)
 		}
@@ -474,6 +474,64 @@ func TestASCIIRule(t *testing.T) {
 	}
 	if _, _, code := run(t, leaky, "--ascii"); code != 1 {
 		t.Errorf("a leaky ASCII frame exits %d, want 1", code)
+	}
+}
+
+// A "?" is ASCII, so F-ASCII alone could not see the sweep's fallback for a rune with no
+// twin: 21.5°C drew 21.5?C. With --unicode (the unicode render of the same states) a
+// "?" where the unicode frame draws something else is F-ASCII; a "?" the unicode frame
+// also has (a help key, a question) is not.
+func TestASCIIQuestionAgainstUnicode(t *testing.T) {
+	dir := t.TempDir()
+	uniDir := filepath.Join(dir, "uni")
+	ascDir := filepath.Join(dir, "asc")
+	for _, d := range []string{uniDir, ascDir} {
+		if err := os.Mkdir(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write := func(d, name, text string) string {
+		p := filepath.Join(d, name)
+		if err := os.WriteFile(p, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	write(uniDir, "temp-20x2.ansi", "  cpu 61.5°C  ½ cup \n  ? keys  Zoë       \n")
+	asc := write(ascDir, "temp-20x2.ansi", "  cpu 61.5?C  ? cup \n  ? keys  Zoe       \n")
+	write(uniDir, "fine-20x2.ansi", "  cpu 61.5°C        \n  ? keys            \n")
+	fine := write(ascDir, "fine-20x2.ansi", "  cpu 61.5 C        \n  ? keys            \n")
+	lone := write(ascDir, "lone-20x2.ansi", "  what?             \n                    \n")
+	hits := func(args ...string) []Finding {
+		fs, _, _ := run(t, args...)
+		var out []Finding
+		for _, f := range fs {
+			if f.Rule == "F-ASCII" {
+				out = append(out, f)
+			}
+		}
+		return out
+	}
+	if h := hits(asc, "--ascii"); len(h) != 0 {
+		t.Errorf("without --unicode a \"?\" is ASCII: %+v", h)
+	}
+	h := hits(asc, "--ascii", "--unicode", uniDir)
+	if len(h) != 1 || h[0].Sev != "P1" || h[0].Where != "r0c10" || !strings.Contains(h[0].Msg, "2 cells") ||
+		!strings.Contains(h[0].Msg, "° U+00B0, ½ U+00BD") {
+		t.Errorf("a \"?\" where the unicode frame has a unit: %+v", h)
+	}
+	if h := hits(asc, "--ascii", "--unicode", filepath.Join(uniDir, "temp-20x2.ansi")); len(h) != 1 {
+		t.Errorf("--unicode naming one frame: %+v", h)
+	}
+	if h := hits(fine, lone, "--ascii", "--unicode", uniDir); len(h) != 0 {
+		t.Errorf("a \"?\" the unicode frame has too, and a state it lacks: %+v", h)
+	}
+	var out, errb bytes.Buffer
+	if code := Main([]string{asc, "--unicode", uniDir}, &out, &errb); code != 2 || !strings.Contains(errb.String(), "--ascii") {
+		t.Errorf("--unicode without --ascii: exit %d, stderr %q", code, errb.String())
+	}
+	if code := Main([]string{asc, "--ascii", "--unicode", filepath.Join(dir, "missing")}, &out, &errb); code != 2 {
+		t.Errorf("--unicode on a missing path: exit %d", code)
 	}
 }
 

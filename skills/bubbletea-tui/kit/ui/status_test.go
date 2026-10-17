@@ -210,25 +210,29 @@ func TestBlurBarIsVisible(t *testing.T) {
 // own words: ui.Tabs never called t.Case (Services 8  Deploys beside lowercase labels),
 // ui.TooSmall hard-coded "Terminal too small", and a tool call's "Canceled." and
 // "Waiting for permission" and Thinking's "Thought for" were fixed. Under
-// labelCase/titleCase lower they read as a second brand. The kit's fixed copy takes
-// labelCase when the theme sets one, else titleCase (t.Copy); the data after it (an
-// elapsed time, a size) stays as it is.
+// labelCase/titleCase lower they read as a second brand. The kit's labels (tab names,
+// one word or several) take labelCase when the theme sets one, else titleCase (t.Copy);
+// its sentences take titleCase (t.Sentence), so a sentence-case brand with lower labels
+// draws "Canceled." and not "canceled.", a typo at the head of a line; the data after
+// them (an elapsed time, a size) stays as it is. A two-word tab name is a label like its
+// neighbours: deciding by "has a space" once drew "SERVICES / Pull requests / DEPLOYS".
 func TestFixedCopyFollowsTheme(t *testing.T) {
 	for _, c := range []struct {
 		name, titleCase, labelCase                        string
 		tabs, small, canceled, waiting, thought, thinking string
 	}{
-		{"quire", "sentence", "lower", "services / deploys", "terminal too small", "canceled.", "waiting for permission", "thought for 6.1s", ""},
-		{"default", "sentence", "", "Services / Deploys", "Terminal too small", "Canceled.", "Waiting for permission", "Thought for 6.1s", ""},
-		{"upper titles", "upper", "", "SERVICES / DEPLOYS", "TERMINAL TOO SMALL", "CANCELED.", "WAITING FOR PERMISSION", "THOUGHT FOR 6.1s", ""},
-		{"upper titles, lower labels", "upper", "lower", "services / deploys", "terminal too small", "canceled.", "waiting for permission", "thought for 6.1s", ""},
+		{"quire", "sentence", "lower", "services / pull requests / deploys", "Terminal too small", "Canceled.", "Waiting for permission", "Thought for 6.1s", ""},
+		{"default", "sentence", "", "Services / Pull requests / Deploys", "Terminal too small", "Canceled.", "Waiting for permission", "Thought for 6.1s", ""},
+		{"upper titles", "upper", "", "SERVICES / PULL REQUESTS / DEPLOYS", "TERMINAL TOO SMALL", "CANCELED.", "WAITING FOR PERMISSION", "THOUGHT FOR 6.1s", ""},
+		{"upper titles, lower labels", "upper", "lower", "services / pull requests / deploys", "TERMINAL TOO SMALL", "CANCELED.", "WAITING FOR PERMISSION", "THOUGHT FOR 6.1s", ""},
+		{"lower titles, upper labels", "lower", "upper", "SERVICES / PULL REQUESTS / DEPLOYS", "terminal too small", "canceled.", "waiting for permission", "thought for 6.1s", ""},
 	} {
 		f := quire(t)
 		f.Expressions.TitleCase, f.Expressions.LabelCase = c.titleCase, c.labelCase
 		th := theme.Resolve(f, true, false)
 		plain := func(rows []string) string { return strings.TrimSpace(ansi.Strip(strings.Join(rows, "\n"))) }
 		got := map[string]string{
-			"tabs":     plain(Tabs(th, []string{"Services", "Deploys"}, 0, nil)),
+			"tabs":     plain(Tabs(th, []string{"Services", "Pull requests", "Deploys"}, 0, nil)),
 			"canceled": plain(ToolCall(th, Tool{Name: "Edit", State: ToolCanceled}, 60, false)[2:]),
 			"waiting":  strings.TrimSuffix(plain(ToolCall(th, Tool{Name: "Edit", State: ToolPending}, 60, false)[2:]), th.G.Ellipsis),
 			"thought":  plain(Thinking(th, []string{"a"}, 2, "6.1s", 60)[1:]),
