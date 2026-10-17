@@ -1,10 +1,12 @@
-// usage: tuilint spec [TUI.md...] [--json out.json]
+// usage: tuilint spec [TUI.md...] [--frames DIR] [--json out.json]
 //
 // Lints the plan before the code: the States-and-keys table and the brand read of a
 // TUI.md written by init (references/cmd-init.md). With no file it reads ./TUI.md.
 // A finding prints as [SEV] ID  file:line  message (--json writes it with "where", the
 // line, as frames and code do). P0/P1 findings fail the run (exit 1); P2 are warnings to
-// fix or justify in one line. Exit 2 on usage errors or an unreadable file.
+// fix or justify in one line. Exit 2 on usage errors, an unreadable file, or a --frames
+// that is not a directory. --frames names the golden frames (<state>-80x24.ansi, by
+// harness name) to hold the table to (S-GOLDEN).
 //
 // It reads the table in the template's format, keys as `key action · key action`, and
 // a `Global:` line (or a row whose state is "global") whose keys apply in every state.
@@ -81,4 +83,11 @@
 //	                  refresh ramp), quoting both. A line that names a hue or a word of a meaning
 //	                  is the same meaning; "primary pane", "primary key" are not the hue. Table
 //	                  rows and fenced sketches are not read. A warning: the critic stays the judge.
+//	S-GOLDEN     [P2] (with --frames) a state's footer in <state>-80x24.ansi and its row disagree:
+//	                  the footer shows a hint whose keys neither the row nor Global binds (row
+//	                  keys over an empty table), or lacks a key the row puts in the footer while
+//	                  nothing is dropped behind …. A hint is a key drawn in another style than its
+//	                  action, as ui.Help draws it, so status text on the row is not one; ASCII
+//	                  twins (^v, <>) read as arrows; a row "as list; x cancel" is list's keys and
+//	                  these; a frame whose last row holds no hint (a toast) is not compared.
 package speclint

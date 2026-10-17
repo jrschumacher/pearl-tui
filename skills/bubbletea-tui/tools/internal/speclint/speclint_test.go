@@ -553,3 +553,89 @@ func TestAccentDrift(t *testing.T) {
 		}
 	}
 }
+
+// S-GOLDEN: with --frames, each state's footer in <state>-80x24.ansi against its row.
+// The recreate run's empty table advertised its row keys (`↑↓/jk move · enter edit`)
+// while TUI.md's empty row said `a add · esc back`, and TestHelpIsHandled passed.
+// A footer hint is a key drawn in another style than its action, as ui.Help draws it,
+// so status text on the row is not one; ASCII twins (^v, <>) read as their arrows; a
+// row of only a toast compares nothing; a … means Help dropped the rest.
+func TestGoldenFooters(t *testing.T) {
+	key, desc, off := "\x1b[1;38;2;230;230;230m", "\x1b[22;38;2;140;140;140m", "\x1b[0m"
+	footer := func(hints ...string) string { // each "key action", drawn as ui.Help does
+		var b strings.Builder
+		b.WriteString("  ")
+		for i, h := range hints {
+			if i > 0 {
+				b.WriteString("  ")
+			}
+			k, d, _ := strings.Cut(h, " ")
+			b.WriteString(key + k + off + " " + desc + d + off)
+		}
+		return b.String()
+	}
+	doc := table(strings.Join([]string{
+		"| list | list | **↑↓/jk move** · **enter open** · **a add** · **? help** · d delete |",
+		"| list-empty | list | **a add** · **esc back** · **? help** |",
+		"| list-busy | list | as list; **x cancel** |",
+		"| list-toast | list | **a add** · **? help** |",
+		"| confirm | overlay | ←→ choose · enter confirm · esc cancel |",
+	}, "\n"), "ctrl+c quit")
+	cases := []struct {
+		name, frame string
+		want       []string // substrings of the finding for this state; none when empty
+	}{
+		{"list", footer("↑↓/jk move", "enter open", "a add", "? help") + "  " + desc + "5 rows" + off, nil},
+		{"list-empty", footer("↑↓/jk move", "enter open", "a add", "esc back", "? help"), []string{"shows `↑↓/jk move`, `enter open`, which the row doesn't bind"}},
+		{"list-busy", footer("↑↓/jk move", "enter open", "x cancel", "…", "? help"), nil},
+		{"list-toast", "  " + desc + "copied 6 lines" + off, nil},
+		{"confirm", footer("<> choose", "enter confirm"), []string{"lacks `esc cancel`, which the row puts in the footer"}},
+	}
+	dir := t.TempDir()
+	for _, c := range cases {
+		frame := strings.Repeat("\n", 23) + c.frame + "\n"
+		if err := os.WriteFile(filepath.Join(dir, c.name+"-80x24.ansi"), []byte(frame), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got := map[string]string{}
+	for _, f := range LintFrames("TUI.md", doc, dir) {
+		if f.Rule == "S-GOLDEN" {
+			if f.Sev != "P2" {
+				t.Errorf("S-GOLDEN is %s, want P2", f.Sev)
+			}
+			state, _, _ := strings.Cut(f.Msg, ":")
+			got[state] = f.Msg
+		}
+	}
+	for _, c := range cases {
+		msg, ok := got[c.name]
+		if len(c.want) == 0 && ok {
+			t.Errorf("%s: %s, want no finding", c.name, msg)
+		}
+		if len(c.want) > 0 && !ok {
+			t.Errorf("%s: no finding, want %q", c.name, c.want)
+		}
+		for _, w := range c.want {
+			if ok && !strings.Contains(msg, w) {
+				t.Errorf("%s: %s, want %q", c.name, msg, w)
+			}
+		}
+	}
+	// without --frames nothing is compared, and --frames must name a directory
+	if fs := Lint("TUI.md", doc); rules(fs)["S-GOLDEN"] != 0 {
+		t.Errorf("Lint without frames: %v", rules(fs))
+	}
+	var out, errb bytes.Buffer
+	tui := filepath.Join(dir, "TUI.md")
+	if err := os.WriteFile(tui, []byte(doc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code := Main([]string{tui, "--frames", filepath.Join(dir, "list-80x24.ansi")}, &out, &errb); code != 2 {
+		t.Errorf("--frames on a file: exit %d, want 2", code)
+	}
+	out.Reset()
+	if code := Main([]string{tui, "--frames=" + dir}, &out, &errb); code != 0 || !strings.Contains(out.String(), "S-GOLDEN") {
+		t.Errorf("--frames=dir: exit %d\n%s", code, out.String())
+	}
+}

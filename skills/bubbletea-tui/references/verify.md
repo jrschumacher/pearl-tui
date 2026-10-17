@@ -23,7 +23,8 @@ screenshot.
             truecolour passes, and LOOK at the overlays there: a dialog's edge is the first to go;
             --ascii fails any glyph that leaked into an ASCII frame [F-ASCII])
             tuilint code .                                                (tuivet ./... in go vet or an editor: same rules)
-            tuilint spec TUI.md                                           (after any key-table change)
+            tuilint spec TUI.md --frames frames                           (after any key-table change;
+            each state's footer in its golden must be its row's keys [S-GOLDEN])
 4. LOOK     cellshot frames/*-80x24.ansi frames/toosmall-*.ansi --sheet sheet-80.png
             cellshot frames/*-120x40.ansi --sheet sheet-120.png --cell 8x16
             cellshot frames/light/*-80x24.ansi --sheet sheet-light.png --light
