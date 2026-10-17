@@ -560,7 +560,8 @@ func TestAccentDrift(t *testing.T) {
 // while TUI.md's empty row said `a add · esc back`, and TestHelpIsHandled passed.
 // A footer hint is a key drawn in another style than its action, as ui.Help draws it,
 // so status text on the row is not one; ASCII twins (^v, <>) read as their arrows; a
-// row of only a toast compares nothing; a … means Help dropped the rest.
+// row of only a toast compares nothing; a … means Help dropped the rest; a badge drawn
+// one blank before the first hint ("[PROD] enter next field") is not part of it.
 func TestGoldenFooters(t *testing.T) {
 	key, desc, off := "\x1b[1;38;2;230;230;230m", "\x1b[22;38;2;140;140;140m", "\x1b[0m"
 	footer := func(hints ...string) string { // each "key action", drawn as ui.Help does
@@ -581,6 +582,7 @@ func TestGoldenFooters(t *testing.T) {
 		"| list-busy | list | as list; **x cancel** |",
 		"| list-toast | list | **a add** · **? help** |",
 		"| confirm | overlay | ←→ choose · enter confirm · esc cancel |",
+		"| form | form | enter next field · esc back ‖ tab/shift+tab field |",
 	}, "\n"), "ctrl+c quit")
 	cases := []struct {
 		name, frame string
@@ -591,6 +593,8 @@ func TestGoldenFooters(t *testing.T) {
 		{"list-busy", footer("↑↓/jk move", "enter open", "x cancel", "…", "? help"), nil},
 		{"list-toast", "  " + desc + "copied 6 lines" + off, nil},
 		{"confirm", footer("<> choose", "enter confirm"), []string{"lacks `esc cancel`, which the row puts in the footer"}},
+		// a badge one blank before the first hint, in its own style, is not part of it
+		{"form", "  \x1b[1;38;2;207;162;78m[PROD]" + off + " " + strings.TrimPrefix(footer("enter next field", "esc back"), "  "), nil},
 	}
 	dir := t.TempDir()
 	for _, c := range cases {

@@ -89,5 +89,6 @@
 //	                  nothing is dropped behind …. A hint is a key drawn in another style than its
 //	                  action, as ui.Help draws it, so status text on the row is not one; ASCII
 //	                  twins (^v, <>) read as arrows; a row "as list; x cancel" is list's keys and
-//	                  these; a frame whose last row holds no hint (a toast) is not compared.
+//	                  these; a badge one blank before the first hint ("[PROD] enter next") is not
+//	                  part of it; a frame whose last row holds no hint (a toast) is not compared.
 package speclint

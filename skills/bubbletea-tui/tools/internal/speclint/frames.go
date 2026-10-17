@@ -66,35 +66,28 @@ func frameFooter(text string) (hints []frameHint, cut bool) {
 		for _, c := range ch {
 			sb.WriteString(c.Ch)
 		}
-		s := strings.TrimSpace(sb.String())
-		if s == "…" || s == "..." {
+		if s := strings.TrimSpace(sb.String()); s == "…" || s == "..." {
 			cut = true
 			continue
 		}
-		words := strings.Fields(s)
-		if len(words) < 2 {
-			continue
-		}
-		words[0] = unASCII(words[0])
-		b := readItem(words)
-		if b.bad != "" || len(b.keys) == 0 || b.action == "" {
-			continue
-		}
-		if styled { // the action's first cell, after the key words, in another style
-			at, n := 0, len(strings.Fields(b.token))
-			for w := 0; w < n && at < len(ch); w++ {
-				for at < len(ch) && strings.TrimSpace(ch[at].Ch) != "" {
-					at++
-				}
-				for at < len(ch) && strings.TrimSpace(ch[at].Ch) == "" {
-					at++
-				}
+		h, ok := chunkHint(ch, styled)
+		if !ok && styled {
+			// a badge one blank before the first hint ("[PROD] enter next field"): the
+			// hint starts at the next word when that is drawn in another style
+			at := 0
+			for at < len(ch) && strings.TrimSpace(ch[at].Ch) != "" {
+				at++
 			}
-			if at >= len(ch) || sameStyle(ch[0], ch[at]) {
-				continue
+			for at < len(ch) && strings.TrimSpace(ch[at].Ch) == "" {
+				at++
+			}
+			if at < len(ch) && !sameStyle(ch[0], ch[at]) {
+				h, ok = chunkHint(ch[at:], styled)
 			}
 		}
-		hints = append(hints, frameHint{text: s, keys: b.keys})
+		if ok {
+			hints = append(hints, h)
+		}
 	}
 	return hints, cut
 }
@@ -113,6 +106,40 @@ func unASCII(tok string) string {
 		}
 	}
 	return strings.Join(alts, "/")
+}
+
+// chunkHint reads one footer chunk as a `key action` hint: its first word reads as keys
+// and, on a styled row, the action after it is drawn in another style.
+func chunkHint(ch []framelint.Cell, styled bool) (frameHint, bool) {
+	var sb strings.Builder
+	for _, c := range ch {
+		sb.WriteString(c.Ch)
+	}
+	s := strings.TrimSpace(sb.String())
+	words := strings.Fields(s)
+	if len(words) < 2 {
+		return frameHint{}, false
+	}
+	words[0] = unASCII(words[0])
+	b := readItem(words)
+	if b.bad != "" || len(b.keys) == 0 || b.action == "" {
+		return frameHint{}, false
+	}
+	if styled { // the action's first cell, after the key words, in another style
+		at, n := 0, len(strings.Fields(b.token))
+		for w := 0; w < n && at < len(ch); w++ {
+			for at < len(ch) && strings.TrimSpace(ch[at].Ch) != "" {
+				at++
+			}
+			for at < len(ch) && strings.TrimSpace(ch[at].Ch) == "" {
+				at++
+			}
+		}
+		if at >= len(ch) || sameStyle(ch[0], ch[at]) {
+			return frameHint{}, false
+		}
+	}
+	return frameHint{text: s, keys: b.keys}, true
 }
 
 // sameAs is a keys cell that borrows another state's: "as chat", "same as chat",
