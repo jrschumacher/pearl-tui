@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -164,38 +165,53 @@ func TestOneClock(t *testing.T) {
 // The product clock survives a setting change. The frame clock may let a stale tick
 // die (TestOneClock): the next key press re-arms it. The list's refresh has no second
 // chance, so a handler that changes its interval or pauses and resumes it returns the
-// new arm cmd itself; a copied app whose bumper only bumps the generation fails here.
+// new arm cmd itself. The test delivers that cmd's tick: a copied app that only bumps
+// the generation, or arms a tick stamped with the old one, never syncs again and fails.
 func TestClockSurvivesSettingChange(t *testing.T) {
+	saved := refreshRates
+	refreshRates = []time.Duration{time.Millisecond, 2 * time.Millisecond, 3 * time.Millisecond}
+	t.Cleanup(func() { refreshRates = saved })
 	m := fixture(t, "services")
+	m.refresh.rate = 0
 	if m.armRefresh() == nil {
 		t.Fatal("a live list should arm its refresh")
 	}
+	// deliver runs an arm cmd and feeds its tick back: it must sync once and re-arm
+	deliver := func(what string, arm tea.Cmd) tea.Cmd {
+		t.Helper()
+		if arm == nil {
+			t.Fatalf("%s returned no arm cmd: the pending tick dies and the list never syncs again", what)
+		}
+		before := m.refresh.syncs
+		_, next := m.Update(arm())
+		if m.refresh.syncs != before+1 || next == nil {
+			t.Fatalf("%s: its tick should sync once and re-arm (synced %d, re-armed %v)", what, m.refresh.syncs-before, next != nil)
+		}
+		return next
+	}
 	for range refreshRates {
 		pending := m.refresh.gen
-		if m.command("Refresh rate") == nil {
-			t.Fatalf("a rate change (now %s) returned no arm cmd: the pending tick dies and the list never syncs again", refreshRates[m.refresh.rate])
+		arm := m.command("Refresh rate")
+		what := "a rate change (now " + refreshRates[m.refresh.rate].String() + ")"
+		if _, cmd := m.Update(refreshMsg{gen: pending}); cmd != nil || m.refresh.syncs != 0 {
+			t.Fatalf("%s: the old interval's tick ran as well as the new one", what)
 		}
-		if _, cmd := m.Update(refreshMsg{gen: pending}); cmd != nil {
-			t.Fatal("the old interval's tick ran as well as the new one")
-		}
-		if n := m.refresh.syncs; n != 0 {
-			t.Fatalf("the old interval's tick synced (%d)", n)
-		}
-	}
-	if _, cmd := m.Update(refreshMsg{gen: m.refresh.gen}); cmd == nil || m.refresh.syncs != 1 {
-		t.Fatalf("the current tick should sync and re-arm (synced %d, re-armed %v)", m.refresh.syncs, cmd != nil)
+		deliver(what+", then its own re-arm", deliver(what, arm))
+		m.refresh.syncs = 0
 	}
 	// pause stops the clock; resume is a setting change too, and arms it again
 	pending := m.refresh.gen
 	if m.key(press("p")) != nil || !m.paused {
 		t.Fatal("pause should stop the refresh")
 	}
-	if _, cmd := m.Update(refreshMsg{gen: pending}); cmd != nil || m.refresh.syncs != 1 {
+	if _, cmd := m.Update(refreshMsg{gen: pending}); cmd != nil || m.refresh.syncs != 0 {
 		t.Fatal("a paused list synced or re-armed")
 	}
-	if m.key(press("p")) == nil || m.paused {
-		t.Fatal("resume should arm the refresh again")
+	resume := m.key(press("p"))
+	if m.paused {
+		t.Fatal("resume should unpause the list")
 	}
+	deliver("resume", resume)
 }
 
 // ASCII mode emits ASCII, whatever a screen or a fixture typed.
