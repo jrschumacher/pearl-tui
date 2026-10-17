@@ -32,17 +32,18 @@ func (it Item) status(t *theme.Theme) string {
 }
 
 // cols are the columns a list's rows share, from all its items, so titles line up
-// whatever the scroll offset: a status column when any item has one, and a Lead column
-// as wide as the widest lead, at most a third of the row.
+// whatever the scroll offset: a status column as wide as the widest mark (an ASCII
+// twin can be [x] or (*)), and a Lead column as wide as the widest lead, at most a
+// third of the row.
 type cols struct {
-	status bool
+	status int
 	lead   int
 }
 
-func listCols(items []Item, w int) cols {
+func listCols(t *theme.Theme, items []Item, w int) cols {
 	var c cols
 	for _, it := range items {
-		c.status = c.status || it.Mark != "" || it.State != ""
+		c.status = max(c.status, lipgloss.Width(it.status(t)))
 		c.lead = max(c.lead, lipgloss.Width(it.Lead))
 	}
 	c.lead = min(c.lead, w/3)
@@ -53,12 +54,12 @@ func listCols(items []Item, w int) cols {
 // (a filled row carries its own).
 func (c cols) prefix(t *theme.Theme, it Item, plain bool) string {
 	out := ""
-	if c.status {
+	if c.status > 0 {
 		st := it.status(t)
 		if plain {
 			st = ansi.Strip(st)
 		}
-		out = Fit(st, 1) + " "
+		out = Fit(st, c.status) + " "
 	}
 	if c.lead > 0 {
 		lead := Fit(Trunc(t, it.Lead, c.lead), c.lead)
@@ -83,7 +84,7 @@ func List(t *theme.Theme, items []Item, sel, offset, w, h int, focused bool) []s
 		bodyW = w - 2
 	}
 	out := make([]string, 0, h)
-	c := listCols(items, bodyW)
+	c := listCols(t, items, bodyW)
 	for row := 0; row < h; row++ {
 		i := offset + row
 		if i >= len(items) {

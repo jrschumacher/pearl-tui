@@ -102,28 +102,62 @@ func TestItemMarkAndLead(t *testing.T) {
 			t.Fatal(err)
 		}
 		tf.Ladder = append(tf.Ladder, theme.LadderRung{Glyph: "current", Meaning: "new", Role: "accent"})
-		th := theme.Resolve(tf, true, false)
-		items := []Item{{Mark: "new", Lead: "acme/web#128", Title: "Fix the login", Right: "5h"}, {Lead: "ops#7", Title: "Bump deps"}}
-		for _, focused := range []bool{true, false} {
-			for _, sel := range []int{0, 1} {
-				rows := List(th, items, sel, 0, 60, 2, focused)
-				var col []int
-				for i, r := range rows {
-					plain := ansi.Strip(r)
-					if n := ansi.StringWidth(plain); n != 60 {
-						t.Errorf("%s sel=%d focused=%v: row %d is %d cells: %q", filepath.Base(f), sel, focused, i, n, plain)
+		for _, ascii := range []bool{false, true} {
+			th := theme.Resolve(tf, true, ascii)
+			items := []Item{{Mark: "new", Lead: "acme/web#128", Title: "Fix the login", Right: "5h"}, {Lead: "ops#7", Title: "Bump deps"}}
+			for _, focused := range []bool{true, false} {
+				for _, sel := range []int{0, 1} {
+					rows := List(th, items, sel, 0, 60, 2, focused)
+					var col []int
+					for i, r := range rows {
+						plain := ansi.Strip(r)
+						if n := ansi.StringWidth(plain); n != 60 {
+							t.Errorf("%s sel=%d focused=%v: row %d is %d cells: %q", filepath.Base(f), sel, focused, i, n, plain)
+						}
+						col = append(col, ansi.StringWidth(plain[:strings.Index(plain, items[i].Title)]))
+						lead := strings.Index(plain, items[i].Lead)
+						if lead < 0 {
+							t.Errorf("%s sel=%d focused=%v: row %d drops its lead: %q", filepath.Base(f), sel, focused, i, plain)
+						}
 					}
-					col = append(col, ansi.StringWidth(plain[:strings.Index(plain, items[i].Title)]))
-					lead := strings.Index(plain, items[i].Lead)
-					if lead < 0 {
-						t.Errorf("%s sel=%d focused=%v: row %d drops its lead: %q", filepath.Base(f), sel, focused, i, plain)
+					if col[0] != col[1] {
+						t.Errorf("%s sel=%d focused=%v: titles start at %v, want one column", filepath.Base(f), sel, focused, col)
+					}
+					if mark := ansi.Strip(Mark(th, "new")); !strings.Contains(ansi.Strip(rows[0]), mark+" acme/web#128") {
+						t.Errorf("%s sel=%d focused=%v: the new rung %q is not before the lead: %q", filepath.Base(f), sel, focused, mark, ansi.Strip(rows[0]))
 					}
 				}
-				if col[0] != col[1] {
-					t.Errorf("%s sel=%d focused=%v: titles start at %v, want one column", filepath.Base(f), sel, focused, col)
+			}
+		}
+	}
+}
+
+// The status column is as wide as its widest mark: under ASCII cartridge's done and todo
+// are [x] and [ ], and a one-cell column cut them to …, which the canvas sweep drew as
+// ~, the partial twin: done read as busy.
+func TestListStatusColumnKeepsItsMarks(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, ascii := range []bool{false, true} {
+			th := theme.Resolve(tf, true, ascii)
+			items := []Item{{State: "ok", Title: "api"}, {State: "idle", Title: "db"}, {State: "error", Title: "queue"}, {Title: "web"}}
+			rows := List(th, items, 3, 0, 40, len(items), false)
+			col := -1
+			for i, r := range rows {
+				plain := ansi.Strip(r)
+				x := strings.Index(plain, items[i].Title)
+				if col >= 0 && ansi.StringWidth(plain[:x]) != col {
+					t.Errorf("%s ascii=%v: %q starts at %d, the titles above at %d", filepath.Base(f), ascii, items[i].Title, ansi.StringWidth(plain[:x]), col)
 				}
-				if mark := ansi.Strip(Mark(th, "new")); !strings.Contains(ansi.Strip(rows[0]), mark+" acme/web#128") {
-					t.Errorf("%s sel=%d focused=%v: the new rung %q is not before the lead: %q", filepath.Base(f), sel, focused, mark, ansi.Strip(rows[0]))
+				col = ansi.StringWidth(plain[:x])
+				if items[i].State == "" {
+					continue
+				}
+				if mark := ansi.Strip(Dot(th, items[i].State)); !strings.Contains(plain, mark+" ") {
+					t.Errorf("%s ascii=%v: %s row %q, want its whole mark %q", filepath.Base(f), ascii, items[i].State, plain, mark)
 				}
 			}
 		}
