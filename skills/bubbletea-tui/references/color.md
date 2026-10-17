@@ -15,7 +15,7 @@ literal.
 | `accent` | section titles: reads "heading", never "alert" | 4.5 |
 | `bg › bgPanel › bgSubtle › bgOverlay` | the background ramp | bgSubtle 1.1–2.2 |
 | `fg › fgSoft › fgMuted › fgSubtle` | the text ramp | 7 › (unchecked) › 4.5 › 2.6; on bgSubtle fg 4.5, fgMuted 3.0 |
-| `border` / `borderFocus` | rules: barely there, but there / the one dialog's border | 1.14–1.9 / unchecked |
+| `border` / `borderFocus` | rules: quiet, but seen / the one dialog's border | 1.3–1.9, a warning under 1.5 (light pages the same: 1.5:1 is ~15 L* on either) / unchecked |
 | `success error warning` / `info` | state only | 3.5 / 3.0 |
 | `onPrimary onWarning` / `onSecondary onError onSuccess` | text on a filled role | 4.5 / 3.5 |
 | `fgSelected` | text on the primary selection fill | 3.5 (not under `focus: fg`) |
@@ -31,7 +31,9 @@ palette check theme.json   # on any existing theme
 `derive` works in OKLCH so lightness steps are perceptual. It:
 
 - keeps the brand's hue and chroma for `primary`/`secondary` and moves only lightness
-  until the colour clears its floor
+  until the colour clears its floor; puts `border` at 1.5:1, where a rule is seen
+  without being a line (`#2A231A` on `#17140F`, 1.18:1, passed the old floor with every
+  rule invisible on the sheet)
 - **tints every neutral toward the background's hue** (or the primary's, on a neutral
   bg). This is the single biggest difference between a palette that reads "designed" and
   one that reads "default grey".

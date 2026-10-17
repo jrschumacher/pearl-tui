@@ -85,7 +85,7 @@ func derive(r Roles, dark bool, pins map[string]int) Palette {
 	p.FgMuted = c(r.FgMuted, Mix(p.Fg, p.Bg, 0.45))
 	p.FgSubtle = c(r.FgSubtle, Mix(p.Fg, p.Bg, 0.62))
 	p.FgSoft = c(r.FgSoft, Mix(p.Fg, p.FgMuted, 0.3))
-	p.Border = c(r.Border, Mix(p.Bg, p.Fg, 0.1))
+	p.Border = c(r.Border, edgeTint(p.Bg, p.Fg, 1.5))
 	p.BorderFocus = c(r.BorderFocus, p.Primary)
 	p.Success = c(r.Success, lipgloss.Color("#3DBE7F"))
 	p.Error = c(r.Error, lipgloss.Color("#E5484D"))
@@ -164,6 +164,18 @@ func pinned(r Roles, pins map[string]int) Roles {
 		}
 	}
 	return r
+}
+
+// edgeTint is the first step of the ramp from bg toward fg that reads at floor against
+// bg (1.5:1 for a border: visible but quiet, palette check's warning floor; bg one step
+// off, 1.2:1, was a rule nobody saw), or fg when none does.
+func edgeTint(bg, fg color.Color, floor float64) color.Color {
+	for _, step := range lipgloss.Blend1D(101, bg, fg)[1:] {
+		if c := rgb8(step); Contrast(c, bg) >= floor {
+			return c
+		}
+	}
+	return fg
 }
 
 // Mix blends a toward b by t (0 = a, 1 = b) in CIELAB, the way Crush derives

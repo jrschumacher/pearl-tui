@@ -164,6 +164,9 @@ func check(path string, stdout, stderr io.Writer) int {
 		b, txt := ReportSkipping(r, mode, accept, skip, extra...)
 		bad += b
 		fmt.Fprintln(stdout, txt)
+		for _, w := range Warnings(r, mode) {
+			fmt.Fprintf(stderr, "palette: warning: %s: %s\n", path, w)
+		}
 		if d, near := NearPrimary(r); near {
 			fmt.Fprintf(stderr, "palette: warning: %s: %s\n", path, nearPrimaryText(mode, r, d))
 		}
@@ -772,6 +775,9 @@ func derive(args []string, stdout, stderr io.Writer) int {
 		b, txt := Report(m.Roles, m.Name, nil)
 		bad += b
 		fmt.Fprintln(stderr, txt)
+		for _, w := range Warnings(m.Roles, m.Name) {
+			fmt.Fprintf(stderr, "warning: %s\n", w)
+		}
 		if d, near := NearPrimary(m.Roles); near {
 			fmt.Fprintf(stderr, "warning: %s\n", nearPrimaryText(m.Name, m.Roles, d))
 		}

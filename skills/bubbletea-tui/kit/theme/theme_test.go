@@ -480,3 +480,40 @@ func TestInkIsTheDefault(t *testing.T) {
 		}
 	}
 }
+
+// A rule is half the idiom (Law 2), and a border at 1.18:1 on its page is a rule nobody
+// sees: welp's #2A231A on #17140F passed palette check's 1.14 floor with its section,
+// table and footer rules invisible on both sheets. Every kit theme's border, set or
+// derived (ink's), now reads at 1.5:1 or more in both modes and stays under 1.9, where
+// palette check warns and fails respectively; the engine's own derived border lands in
+// the same band on any page.
+func TestBordersAreVisibleButQuiet(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	test, _ := filepath.Glob(filepath.Join("testdata", "*.json"))
+	for _, path := range append(files, test...) {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dark := range []bool{true, false} {
+			p := Resolve(f, dark, false).P
+			if cr := Contrast(p.Border, p.Bg); cr < 1.5 || cr > 1.9 {
+				t.Errorf("%s dark=%v: border %v on bg %v is %.2f:1, want 1.5–1.9", filepath.Base(path), dark, p.Border, p.Bg, cr)
+			}
+		}
+	}
+	for _, c := range []struct {
+		bg, fg string
+	}{{"#17140F", "#E8E2D6"}, {"#F6F1E6", "#2B2620"}, {"#000000", "#FFFFFF"}, {"#808080", "#FFFFFF"}, {"#FAFAF9", "#1D232D"}} {
+		dark := Luminance(Hex(c.bg)) < 0.5
+		p := derive(Roles{Bg: c.bg, Fg: c.fg}, dark, nil)
+		if cr := Contrast(p.Border, p.Bg); cr < 1.5 || cr > 1.9 {
+			t.Errorf("derived border on %s is %.2f:1, want 1.5–1.9", c.bg, cr)
+		}
+	}
+}

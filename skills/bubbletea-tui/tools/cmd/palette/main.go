@@ -79,7 +79,9 @@
 //
 //	fg ≥ 7      fgMuted ≥ 4.5     fgSubtle ≥ 2.6 (hints only, never the only carrier of meaning)
 //	primary, success, error, warning ≥ 3.5    secondary, info ≥ 3.0    tertiary, accent ≥ 4.5
-//	border 1.14–1.9 and bgSubtle 1.1–2.2 (barely there, but there)
+//	border 1.3–1.9, and a warning under 1.5 (a rule nobody sees is half the idiom gone;
+//	  the same numbers on a light page, where 1.5:1 is the same step in L*)
+//	bgSubtle 1.1–2.2 (barely there, but there)
 //	fg ≥ 4.5 and fgMuted ≥ 3.0 on bgSubtle too
 //	onPrimary, onWarning ≥ 4.5 on their fill; onSecondary, onError, onSuccess, fgSelected ≥ 3.5
 //	plus the pairs a theme's expressions put on screen: "footer": "bar" draws the key
@@ -87,7 +89,8 @@
 //	the ones they take off: under "focus": "fg" no selection is a primary fill, so
 //	fgSelected on primary isn't checked (primary on bg and onPrimary still are)
 //
-// derive aims higher than these floors (fgMuted 4.6, fg 11–12, accent and status 4.5).
+// derive aims higher than these floors (fgMuted 4.6, fg 11–12, accent and status 4.5,
+// border 1.5).
 // On a mid-tone fill where neither ink clears its floor, derive deepens the ink toward
 // black or white along its hue (the engine does the same), so the brand keeps its hex.
 //

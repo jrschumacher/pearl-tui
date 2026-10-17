@@ -12,7 +12,7 @@
     ok   error        on bg         4.29  (want ≥3.5)  #EB4268 / #201F26
     ok   warning      on bg        14.82  (want ≥3.5)  #E8FE96 / #201F26
     ok   info         on bg         6.03  (want ≥3.0)  #00A4FF / #201F26
-    ok   border       on bg         1.44  (want ≥1.14 ≤1.9)  #3A3943 / #201F26
+    ok   border       on bg         1.53  (want ≥1.3 ≤1.9)  #3E3D47 / #201F26
     ok   bgSubtle     on bg         1.44  (want ≥1.1 ≤2.2)  #3A3943 / #201F26
     ok   onPrimary    on primary    4.79  (want ≥4.5)  #FFFAF1 / #6B50FF
     ok   onSecondary  on secondary  6.51  (want ≥3.5)  #201F26 / #FF60FF
@@ -34,7 +34,7 @@
     ok   error        on bg         4.80  (want ≥3.5)  #D12B55 / #FBFAF7
     ok   warning      on bg         5.48  (want ≥3.5)  #736700 / #FBFAF7
     ok   info         on bg         4.46  (want ≥3.0)  #0077CC / #FBFAF7
-    ok   border       on bg         1.24  (want ≥1.14 ≤1.9)  #E4E2DB / #FBFAF7
+    ok   border       on bg         1.52  (want ≥1.3 ≤1.9)  #CFCDC6 / #FBFAF7
     ok   bgSubtle     on bg         1.15  (want ≥1.1 ≤2.2)  #ECEAE4 / #FBFAF7
     ok   onPrimary    on primary    6.12  (want ≥4.5)  #FFFFFF / #5B3DF5
     ok   onSecondary  on secondary  3.93  (want ≥3.5)  #26252B / #D63AD6

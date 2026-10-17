@@ -12,7 +12,7 @@
     ok   error        on bg         5.72  (want ≥3.5)  #B3363F / #FAFAF9
     FAIL warning      on bg         1.50  (want ≥3.5)  #EBCB8B / #FAFAF9
     ok   info         on bg         6.49  (want ≥3.0)  #2E5E8C / #FAFAF9
-    FAIL border       on bg        12.10  (want ≥1.14 ≤1.9)  #333333 / #FAFAF9
+    FAIL border       on bg        12.10  (want ≥1.3 ≤1.9)  #333333 / #FAFAF9
     FAIL bgSubtle     on bg         1.03  (want ≥1.1 ≤2.2)  #F7F7F5 / #FAFAF9
     ok   onPrimary    on primary    4.54  (want ≥4.5)  #444444 / #7FB3FF
     ok   onSecondary  on secondary  4.10  (want ≥3.5)  #555555 / #C0C0C0

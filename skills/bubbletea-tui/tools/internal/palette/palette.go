@@ -152,7 +152,7 @@ func Derive(primary, secondary, accent, bg, lightBg string, tint float64) []Mode
 		r["bgSubtle"] = oklch.FromLCH(lb+d*0.075, nc*1.4, hn)
 		r["bgOverlay"] = oklch.FromLCH(lb+d*0.13, nc*1.6, hn)
 		r["bgPanel"] = oklch.FromLCH(lb+d*0.035, nc*1.2, hn)
-		r["border"] = oklch.FromLCH(lb+d*0.07, nc*1.6, hn)
+		r["border"] = oklch.FromLCH(tuneL(lb+d*0.07, nc*1.6, hn, b, 1.5, d), nc*1.6, hn) // visible but quiet: the check warns under 1.5
 		r["fgSubtle"] = oklch.FromLCH(tuneL(lb+d*0.25, nc*1.8, hn, b, 2.7, d), nc*1.8, hn)
 		r["fgMuted"] = oklch.FromLCH(tuneL(lb+d*0.35, nc*1.6, hn, b, 4.6, d), nc*1.6, hn)
 		fgT, softT := 11.0, 8.0
@@ -241,11 +241,27 @@ func Derive(primary, secondary, accent, bg, lightBg string, tint float64) []Mode
 	return out
 }
 
-// Check is one contrast requirement: role a against role b, within [min, max].
+// Check is one contrast requirement: role a against role b, within [min, max]; a pair
+// in warnFloors passes with a warning under that floor.
 type Check struct {
 	A, B     string
 	Min, Max float64
 	want     string // the range as palette.py prints it
+}
+
+// warnFloor is the floor a pair should clear, under which check warns, and what reads
+// wrong under it.
+type warnFloor struct {
+	floor float64
+	why   string
+}
+
+// warnFloors are the pairs that pass with a warning under a floor above their Min: a
+// rule is half the idiom (Law 2); under 1.3 nobody sees it (1.18 passed the old 1.14
+// floor with every rule invisible on the sheet), under 1.5 it is barely there. The
+// same numbers on a light page, where 1.5:1 is the same ~15 L* step.
+var warnFloors = map[[2]string]warnFloor{
+	{"border", "bg"}: {1.5, "the section, table and footer rules are barely there; a rule reads at 1.5–1.9"},
 }
 
 // Checks are the contrast requirements, in report order.
@@ -254,7 +270,7 @@ var Checks = []Check{
 	{"fg", "bgSubtle", 4.5, 0, "≥4.5"}, {"fgMuted", "bgSubtle", 3.0, 0, "≥3.0"},
 	{"primary", "bg", 3.5, 0, "≥3.5"}, {"secondary", "bg", 3.0, 0, "≥3.0"}, {"tertiary", "bg", 4.5, 0, "≥4.5"},
 	{"accent", "bg", 4.5, 0, "≥4.5"}, {"success", "bg", 3.5, 0, "≥3.5"}, {"error", "bg", 3.5, 0, "≥3.5"},
-	{"warning", "bg", 3.5, 0, "≥3.5"}, {"info", "bg", 3.0, 0, "≥3.0"}, {"border", "bg", 1.14, 1.9, "≥1.14 ≤1.9"},
+	{"warning", "bg", 3.5, 0, "≥3.5"}, {"info", "bg", 3.0, 0, "≥3.0"}, {"border", "bg", 1.3, 1.9, "≥1.3 ≤1.9"}, // and a warning under 1.5 (warnFloors)
 	{"bgSubtle", "bg", 1.1, 2.2, "≥1.1 ≤2.2"}, {"onPrimary", "primary", 4.5, 0, "≥4.5"}, {"onSecondary", "secondary", 3.5, 0, "≥3.5"},
 	{"onWarning", "warning", 4.5, 0, "≥4.5"}, {"onError", "error", 3.5, 0, "≥3.5"}, {"onSuccess", "success", 3.5, 0, "≥3.5"},
 	{"fgSelected", "primary", 3.5, 0, "≥3.5"},
@@ -323,6 +339,9 @@ func ReportSkipping(roles map[string]string, label string, accept map[string]str
 		ok := ratio >= c.Min && (c.Max == 0 || ratio <= c.Max)
 		why := accept[label+"."+c.A]
 		mark := "ok "
+		if w, has := warnFloors[[2]string{c.A, c.B}]; ok && has && ratio < w.floor {
+			mark = "warn"
+		}
 		if !ok {
 			mark = "FAIL"
 			if why != "" {
@@ -338,6 +357,24 @@ func ReportSkipping(roles map[string]string, label string, accept map[string]str
 		lines = append(lines, line)
 	}
 	return bad, strings.Join(lines, "\n")
+}
+
+// Warnings are the checks a role set passes under their Warn floor (the border under
+// 1.5:1), one line each for stderr, as mode names the set.
+func Warnings(roles map[string]string, mode string) []string {
+	var out []string
+	for _, c := range Checks {
+		w, has := warnFloors[[2]string{c.A, c.B}]
+		a, okA := roles[c.A]
+		b, okB := roles[c.B]
+		if !has || !okA || !okB {
+			continue
+		}
+		if ratio := oklch.Contrast(a, b); ratio >= c.Min && ratio < w.floor {
+			out = append(out, fmt.Sprintf("%s: %s %s on %s %s is %.2f:1, under %.1f: %s", mode, c.A, a, c.B, b, ratio, w.floor, w.why))
+		}
+	}
+	return out
 }
 
 // referenced are the roles a check reads: every role in Checks plus the inks the

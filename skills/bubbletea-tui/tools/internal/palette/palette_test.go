@@ -37,7 +37,12 @@ import (
 // floor (palette.py shipped the failure), the ink is now theme.OnInk's deepened one.
 // That changed derive/tint and derive/tint-zero (exit 1 → 0), 14 corpus rows'
 // onPrimary/fgSelected, and check/failing's light onPrimary (the engine now draws
-// #444444, not #555555, on #7FB3FF).
+// #444444, not #555555, on #7FB3FF). The border floor moved from 1.14 to 1.3 with a
+// warning under 1.5, and derive's border from a 0.07 L step (1.2:1) to 1.5:1
+// (TestBorderFloor): every check/*.txt border line, every derive/* border (its .out,
+// .err and the swatch's rule row) and the kit themes' own borders were regenerated for
+// that alone; corpus.txt keeps palette.py's rows, with border compared against the new
+// rule instead.
 
 const kitThemes = "../../../kit/themes"
 
@@ -166,6 +171,11 @@ func TestDeriveCorpusMatchesPython(t *testing.T) {
 				// palette.py's hue shift and complement (TestOneHueStepsLightness); the
 				// rest of the set still matches
 				if in[1] == "" && (k == "secondary" || k == "tertiary" || k == "onSecondary") {
+					pyHex[j], pyIdx[j] = hexes[j], idx[j]
+				}
+				// the border now lands at 1.5:1 (TestBorderFloor), not palette.py's step of
+				// 0.07 L that read at 1.2; the rest of the set still matches
+				if k == "border" {
 					pyHex[j], pyIdx[j] = hexes[j], idx[j]
 				}
 			}
@@ -720,7 +730,7 @@ func TestOneHueNeverCollapses(t *testing.T) {
 // hue, each with the grey that puts it back; borderFocus on primary's own slot is the
 // kit's truecolour default, not a stray hue, so that pin is not reported.
 func TestCheckFailsDialogRolesOnRedAt16Colours(t *testing.T) {
-	roles := `{"dark": {"bg": "#17140F", "fg": "#E8E2D6", "fgMuted": "#9A9183", "fgSubtle": "#746B5A", "border": "#2A231A", "borderFocus": "#746B5A", "bgOverlay": "#2E2720", "primary": "#D99A3B"}}`
+	roles := `{"dark": {"bg": "#17140F", "fg": "#E8E2D6", "fgMuted": "#9A9183", "fgSubtle": "#746B5A", "border": "#40372B", "borderFocus": "#746B5A", "bgOverlay": "#2E2720", "primary": "#D99A3B"}}`
 	for _, c := range []struct {
 		name, pins string
 		code       int
@@ -832,6 +842,56 @@ func TestCheckWarnsOnAFarPin(t *testing.T) {
 		Main([]string{"check", path}, "", &out, &errb)
 		if strings.Contains(errb.String(), "of hue from its own") {
 			t.Errorf("%s: %s", filepath.Base(path), errb.String())
+		}
+	}
+}
+
+// The border floor matches what a reader can see: check fails a border under 1.3:1 on
+// its page and warns under 1.5:1 (welp's #2A231A on #17140F, 1.18:1, passed the old 1.14
+// floor with every rule invisible on the sheet); 1.9 stays the ceiling. derive puts its
+// border at 1.5–1.9 on any page, so its output never warns; light pages get the same
+// numbers, since a 1.5:1 step is about 15 L* on a dark page and on a light one alike.
+func TestBorderFloor(t *testing.T) {
+	for _, c := range []struct {
+		name, border string
+		code         int
+		stdout       string
+		stderr       []string
+	}{
+		{"invisible", "#2A231A", 1, "FAIL border       on bg         1.18  (want ≥1.3 ≤1.9)", []string{"FAIL (1 contrast problems)"}},
+		{"faint", "#383026", 0, "warn border       on bg         1.42  (want ≥1.3 ≤1.9)", []string{
+			`palette: warning: ` + "%s" + `: dark: border #383026 on bg #17140F is 1.42:1, under 1.5: the section, table and footer rules are barely there; a rule reads at 1.5–1.9`}},
+		{"visible", "#40372B", 0, "ok   border       on bg         1.57  (want ≥1.3 ≤1.9)", nil},
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		if err := os.WriteFile(path, []byte(`{"roles": {"dark": {"bg": "#17140F", "fg": "#E8E2D6", "border": "`+c.border+`", "primary": "#D99A3B"}}, "ansi16": {"dark": {"primary": 11, "warning": 3}}}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		if code != c.code {
+			t.Errorf("%s: exit %d, want %d\n%s%s", c.name, code, c.code, out.String(), errb.String())
+		}
+		if !strings.Contains(out.String(), c.stdout) {
+			t.Errorf("%s: stdout %q, want %q", c.name, out.String(), c.stdout)
+		}
+		for _, want := range c.stderr {
+			if strings.Contains(want, "%s") {
+				want = fmt.Sprintf(want, path)
+			}
+			if !strings.Contains(out.String()+errb.String(), want) {
+				t.Errorf("%s: output %q, want %q", c.name, errb.String()+out.String(), want)
+			}
+		}
+		if c.stderr == nil && errb.String() != "" {
+			t.Errorf("%s: stderr %q, want nothing", c.name, errb.String())
+		}
+	}
+	for _, args := range [][]string{{"#D99A3B", "", "", "#17140F", "#F6F1E6"}, {"#6B50FF", "", "", "", ""}, {"#6B50FF", "", "", "#808080", ""}, {"#0F5257", "#FF6F59", "", "", ""}, {"#F5F0E1", "", "", "", ""}} {
+		for _, m := range Derive(args[0], args[1], args[2], args[3], args[4], 0.012) {
+			if cr := oklch.Contrast(m.Roles["border"], m.Roles["bg"]); cr < 1.5 || cr > 1.9 {
+				t.Errorf("derive %v %s: border %s on bg %s is %.2f:1, want 1.5–1.9", args, m.Name, m.Roles["border"], m.Roles["bg"], cr)
+			}
 		}
 	}
 }
