@@ -140,4 +140,13 @@ func TestBusyAgreesAcrossProfiles(t *testing.T) {
 			t.Errorf("ascii=%v: a three-cell spinner animates Busy", ascii)
 		}
 	}
+	// one frame is no motion in unicode, so it is none under ASCII either, where the
+	// kit's line spinner would otherwise turn
+	f.Glyphs.Spinner = []string{"◍"}
+	f.Glyphs.ASCII = map[string]string{"◍": "@"}
+	for _, ascii := range []bool{false, true} {
+		if th := theme.Resolve(f, true, ascii); BusyAnimates(th) || moves(th) {
+			t.Errorf("ascii=%v: a one-frame spinner animates Busy", ascii)
+		}
+	}
 }

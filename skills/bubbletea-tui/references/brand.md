@@ -115,7 +115,7 @@ read it too.
     "gutter": 2, "measure": 100
   },
   "wordmark": { "rows": ["…"], "style": "half" },   // optional, from wordmark.py; style is its note, the kit reads rows
-  "ladder": [{ "glyph": "current", "meaning": "new", "role": "primary" }, …],   // optional: the product's own rungs (a status slot or a literal with a twin, in any colour role or focus / working), drawn by ui.Mark(t, "new"), ui.Rungs and the ladder state
+  "ladder": [{ "glyph": "current", "meaning": "new", "role": "primary" }, …],   // optional: the product's own rungs (a status slot or a one-cell literal with a twin; a meaning that is no kit slot; any colour role or focus / working), drawn by ui.Mark(t, "new"), ui.Rungs and the ladder state
   "ansi16": { "dark": { "warning": 11 }, "light": { "warning": 3 } }  // optional, color.md
 }
 ```

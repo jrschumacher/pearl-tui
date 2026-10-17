@@ -33,11 +33,13 @@ kit doesn't know. `wordmark.style` is the one key nothing reads: wordmark.py rec
 style it drew with; the tones come from the glyphs in the rows.
 
 `ladder` (optional) is the product's own status ladder, `[{"glyph", "meaning", "role"}]`
-in the order a thing moves through it: a glyph that is a status slot (`current`) or a
-literal with a twin, a meaning (`new`), and any colour role (or `focus` / `working`).
-`ui.Rungs`, `ui.Mark(t, "new")` and the `ladder` state draw those rungs in those inks
-instead of the kit's default rungs; the kit's slots keep theirs. `theme/testdata/quire.json`
-declares one; `palette check` fails a role or glyph the kit can't draw (`theme.CheckLadder`).
+in the order a thing moves through it: a glyph that is a status slot (`current`, never a
+chrome glyph such as `focusBar`) or a one-cell literal with a twin, a meaning of the
+product's own (`new`; never a kit slot's name such as `done`), and any colour role (or
+`focus` / `working`). `ui.Rungs`, `ui.Mark(t, "new")` and the `ladder` state draw those
+rungs in those inks instead of the kit's default rungs; the kit's slots keep theirs.
+`theme/testdata/quire.json` declares one; `palette check` fails a role, glyph or meaning
+the kit can't draw (`theme.CheckLadder`).
 
 ## The showcase is the pattern
 

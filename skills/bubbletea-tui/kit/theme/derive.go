@@ -474,6 +474,13 @@ func CheckGlyphs(g Glyphs) error {
 			}
 		}
 	}
+	// the caret sits after typed text; as a bar, or a bar's twin, "> ro|" reads as a
+	// focused block
+	for _, bar := range []string{"FocusBar", "BlurBar"} {
+		if b := sv.FieldByName(bar).String(); b != "" && (src.Caret == b || out.Caret == ov.FieldByName(bar).String()) {
+			return fmt.Errorf("glyphs.caret %q draws as %q, the %s's: a caret that is a bar reads as focus; pick ▏ or _ (ASCII ')", src.Caret, out.Caret, jsonKey(bar))
+		}
+	}
 	return nil
 }
 

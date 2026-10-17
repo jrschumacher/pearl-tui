@@ -98,7 +98,7 @@ func BusyAnimates(t *theme.Theme) bool {
 			return false
 		}
 	}
-	return len(t.G.Spinner) > 1
+	return len(t.Unicode.Spinner) > 1 && len(t.G.Spinner) > 1
 }
 
 // Busy is the working mark for a status column, one cell like the Dot beside it: the

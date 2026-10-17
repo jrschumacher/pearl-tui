@@ -99,7 +99,7 @@ type Glyphs struct {
 	FieldA     string   `json:"fieldA"`     // backdrop field bright glyph ◆ ▲ ╱
 	FieldB     string   `json:"fieldB"`     // backdrop field subtle glyph ◇ △
 
-	Caret         string `json:"caret"`         // input caret after the typed text: ▏ ▌ _ (ASCII ', never the focus bar's |)
+	Caret         string `json:"caret"`         // input caret after the typed text: ▏ _ (ASCII '; never a bar glyph or its twin |, the focus bar's: CheckGlyphs fails it)
 	More          string `json:"more"`          // marks lines scrolled off ("↑ 12 more lines"): ↑ ▲ ^
 	UpDown        string `json:"upDown"`        // the arrow-key pair as footers name it: ↑↓ (ascii ^v)
 	LeftRight     string `json:"leftRight"`     // ←→ (ascii <>)
@@ -180,8 +180,8 @@ type Wordmark struct {
 // ui.Rungs lists it and the showcase's ladder state shows it, so a sheet can judge the
 // product's states and not only the kit's slots.
 type LadderRung struct {
-	Glyph   string `json:"glyph"`   // a status slot (done, current, todo, pending, partial, warn, fail: that glyph, and its twin under ASCII) or a literal with a twin in glyphs.ascii or the kit's map
-	Meaning string `json:"meaning"` // the name the product gives the state (new, reading, reviewed): what ui.Mark takes
+	Glyph   string `json:"glyph"`   // a status slot (StatusSlots: that glyph, and its twin under ASCII) or a one-cell literal with a twin in glyphs.ascii or the kit's map
+	Meaning string `json:"meaning"` // the name the product gives the state (new, reading, reviewed): what ui.Mark takes; never a kit slot's name (KitSlots), whose ink is the kit's
 	Role    string `json:"role"`    // the ink: any colour role (primary, fgSubtle, success, …), or focus / working, the inks expressions.focus and expressions.spinner resolve to
 }
 
@@ -346,9 +346,19 @@ func CheckKeys(data []byte) error {
 // expressions.focus and expressions.spinner resolve to (ui.RoleInk).
 var ladderInks = []string{"focus", "working"}
 
+// StatusSlots are the glyph keys a ladder rung may name instead of a literal: the status
+// marks, each with its twin. Not the chrome glyphs (focusBar, caret), whose twins are
+// bars a rung must never be.
+var StatusSlots = []string{"done", "current", "todo", "pending", "partial", "warn", "fail"}
+
+// KitSlots are the names the kit's own components draw by (ui.Mark, ui.Dot): a rung's
+// meaning can't be one, or the rung would recolour the kit's slot.
+var KitSlots = []string{"done", "current", "todo", "pending", "partial", "busy", "warn", "fail"}
+
 // CheckLadder reports a rung of the theme's ladder the kit can't draw: a role that is
-// neither a colour role nor focus / working, a glyph that is neither a status slot nor
-// a literal with an ASCII twin, two rungs with one meaning, or two rungs that draw as
+// neither a colour role nor focus / working, a meaning that is a kit slot's name (the
+// kit's slots keep their inks), a glyph that is neither a status slot nor a one-cell
+// literal with an ASCII twin, two rungs with one meaning, or two rungs that draw as
 // one mark under ASCII. palette check fails on it (through CheckKeys); Load doesn't,
 // so an app still starts, drawing the rung in fg.
 func CheckLadder(f File) error {
@@ -358,6 +368,9 @@ func CheckLadder(f File) error {
 		where := fmt.Sprintf("ladder[%d]", i)
 		if r.Meaning == "" {
 			return fmt.Errorf("%s.meaning is empty: name the state (new, reading, reviewed)", where)
+		}
+		if slices.Contains(KitSlots, r.Meaning) {
+			return fmt.Errorf("%s.meaning %q is a kit slot, whose ink is the kit's: name the product's state (new, reading, reviewed)", where, r.Meaning)
 		}
 		if j, dup := seen[r.Meaning]; dup {
 			return fmt.Errorf("%s.meaning %q is also ladder[%d]'s: one name per state", where, r.Meaning, j)
@@ -370,8 +383,8 @@ func CheckLadder(f File) error {
 		if !ok {
 			tw = twin(f.Glyphs.ASCII, r.Glyph)
 		}
-		if r.Glyph == "" || tw == "?" {
-			return fmt.Errorf("%s.glyph %q is neither a status slot (done, current, todo, pending, partial, warn, fail) nor a glyph with an ASCII twin: add \"ascii\": {%q: \"<twin>\"} to glyphs", where, r.Glyph, r.Glyph)
+		if r.Glyph == "" || tw == "?" || !ok && (lipgloss.Width(r.Glyph) != 1 || lipgloss.Width(tw) != 1) {
+			return fmt.Errorf("%s.glyph %q is neither a status slot (%s) nor a one-cell glyph with a one-cell ASCII twin: add \"ascii\": {%q: \"<twin>\"} to glyphs", where, r.Glyph, strings.Join(StatusSlots, ", "), r.Glyph)
 		}
 		if j, dup := twins[tw]; dup {
 			return fmt.Errorf("%s.glyph %q and ladder[%d].glyph %q both draw as %q under ASCII, so two states read as one", where, r.Glyph, j, f.Ladder[j].Glyph, tw)
@@ -381,12 +394,16 @@ func CheckLadder(f File) error {
 	return nil
 }
 
-// GlyphSlot is the glyph in g with JSON key key (done, current, caret, …) and whether
-// key names one. A ladder rung's glyph may be a slot's name instead of a literal.
+// GlyphSlot is the status glyph in g with JSON key key (StatusSlots: done, current, …)
+// and whether key names one. A ladder rung's glyph may be a slot's name instead of a
+// literal; any other string, a chrome glyph's key included, is a literal.
 func GlyphSlot(g Glyphs, key string) (string, bool) {
+	if !slices.Contains(StatusSlots, key) {
+		return "", false
+	}
 	v, t := reflect.ValueOf(g), reflect.TypeOf(g)
 	for i := range t.NumField() {
-		if k, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ","); k == key && t.Field(i).Type.Kind() == reflect.String {
+		if k, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ","); k == key {
 			return v.Field(i).String(), true
 		}
 	}

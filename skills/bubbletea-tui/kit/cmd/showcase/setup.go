@@ -80,8 +80,12 @@ func newSetup() *setupFlow {
 	return &setupFlow{cluster: "staging-eu-west-1", auth: "browser", alerts: true, makeDefault: true}
 }
 
-func (f *setupFlow) steps() ui.Steps {
-	return ui.Steps{Names: setupNames, Cur: int(f.step), Failed: f.failed}
+func (f *setupFlow) steps(t *theme.Theme) ui.Steps {
+	names := make([]string, len(setupNames))
+	for i, n := range setupNames {
+		names[i] = t.Copy(n) // the wizard's step names in the brand's case, like the kit's own copy
+	}
+	return ui.Steps{Names: names, Cur: int(f.step), Failed: f.failed}
 }
 
 func (m *app) openSetup() tea.Cmd {
@@ -131,13 +135,13 @@ func (m *app) buildForm(s setupStep) *huh.Form {
 	switch s {
 	case stTarget:
 		g = huh.NewGroup(
-			huh.NewSelect[string]().Title("Cluster").Description("contexts in ~/.kube/config").
+			huh.NewSelect[string]().Title(t.Copy("Cluster")).Description("contexts in ~/.kube/config").
 				Options(ui.Options(clusterChoices...)...).Value(&f.cluster),
-			ui.NewInput(t).Title("Namespace").Description("where your services run; blank means default").
+			ui.NewInput(t).Title(t.Copy("Namespace")).Description("where your services run; blank means default").
 				Placeholder("default").Value(&f.namespace).Validate(validNamespace),
 		)
 	case stAuth:
-		g = huh.NewGroup(huh.NewSelect[string]().Title("Sign in with").
+		g = huh.NewGroup(huh.NewSelect[string]().Title(t.Copy("Sign in with")).
 			Description("change it later with " + brand + " auth").
 			Options(ui.Options(authChoices...)...).Value(&f.auth))
 	case stAlerts:

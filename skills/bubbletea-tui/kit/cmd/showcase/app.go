@@ -68,8 +68,9 @@ type app struct {
 	palOff int // the list's scroll offset (ui.Follow keeps palSel on screen)
 	// confirm
 	btn int // 0 = the action, 1 = cancel (the default)
-	// help: the dialog's body scrolls when the screen's keys don't fit (ui.Clip)
+	// help and confirm: a dialog's body scrolls when it doesn't fit (ui.Clip)
 	helpOff int
+	confOff int
 	ovRect  uv.Rectangle // where the last overlay was drawn (tests hold it above the footer)
 	// deploy form
 	focus    int // 0 env, 1 version, 2 strategy, 3 checks, 4 buttons
@@ -337,19 +338,22 @@ func (m *app) actions() []action {
 		return action{bind([]string{"esc"}, "esc", desc), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { f(m); return nil }}
 	}
 
+	// a dialog's body scrolls only when it overflows, and the footer says so only then
+	scroll := func(rows, shown int, off *int) action {
+		return action{bind([]string{"up", "k", "down", "j"}, m.t.G.UpDown, "scroll"), rows > shown, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
+			if msg.String() == "up" || msg.String() == "k" {
+				*off = max(0, *off-1)
+			} else {
+				*off = min(ui.ClipMax(rows, shown), *off+1)
+			}
+			return nil
+		}}
+	}
+
 	switch m.ov {
 	case ovHelp:
-		// the body scrolls only when it overflows, and the footer says so only then
-		rows, shown := len(m.helpBody()), m.helpRows()
 		return []action{esc("close", func(m *app) { m.ov = ovNone; m.helpOff = 0 }),
-			{bind([]string{"up", "k", "down", "j"}, m.t.G.UpDown, "scroll"), rows > shown, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
-				if msg.String() == "up" || msg.String() == "k" {
-					m.helpOff = max(0, m.helpOff-1)
-				} else {
-					m.helpOff = min(ui.ClipMax(rows, shown), m.helpOff+1)
-				}
-				return nil
-			}},
+			scroll(len(m.helpBody()), m.helpRows(), &m.helpOff),
 			{bind([]string{"?", "ctrl+g"}, "?", "close"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.ov = ovNone; m.helpOff = 0; return nil }}}
 	case ovPalette:
 		return []action{
@@ -367,6 +371,7 @@ func (m *app) actions() []action {
 		}
 	case ovConfirm:
 		s := m.svcs[m.sel]
+		_, confBody, _ := m.confirmBody()
 		enterDesc := "cancel"
 		if m.btn == 0 {
 			enterDesc = "roll back"
@@ -382,7 +387,9 @@ func (m *app) actions() []action {
 			{bind([]string{"left", "right", "tab", "h", "l"}, m.t.G.LeftRight, "switch"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.btn = 1 - m.btn; return nil }},
 			{bind([]string{"r"}, "r", "roll back to "+s.Prev), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.rollback(); m.ov = ovNone; return nil }},
 			{bind([]string{"c"}, "c", "cancel"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.ov = ovNone; return nil }},
-			esc("cancel", func(m *app) { m.ov = ovNone }),
+			esc("cancel", func(m *app) { m.ov = ovNone; m.confOff = 0 }),
+			// a fallback: the dialog takes the rows it needs down to the footer first
+			scroll(len(confBody), m.confirmRows(), &m.confOff),
 		}
 	}
 

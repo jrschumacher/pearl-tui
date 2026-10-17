@@ -113,10 +113,16 @@ func TestCheckKeys(t *testing.T) {
 		{`{"ladder": [{"glyph": "current", "meaning": "new", "colour": "primary"}]}`, `ladder[0].colour is not a key the kit reads (glyph, meaning, role)`},
 		{`{"ladder": [{"glyph": "current", "meaning": "new", "role": "amber"}]}`, `ladder[0].role "amber" is not a colour role`},
 		{`{"ladder": [{"glyph": "◔", "meaning": "queued", "role": "info"}]}`, `ladder[0].glyph "◔" is neither a status slot`},
-		{`{"ladder": [{"glyph": "●", "meaning": "new", "role": "primary"}, {"glyph": "◆", "meaning": "done", "role": "success"}]}`, `ladder[1].glyph "◆" and ladder[0].glyph "●" both draw as "*" under ASCII`},
+		{`{"ladder": [{"glyph": "●", "meaning": "new", "role": "primary"}, {"glyph": "◆", "meaning": "finished", "role": "success"}]}`, `ladder[1].glyph "◆" and ladder[0].glyph "●" both draw as "*" under ASCII`},
 		{`{"ladder": [{"glyph": "current", "meaning": "new", "role": "primary"}, {"glyph": "done", "meaning": "new", "role": "success"}]}`, `ladder[1].meaning "new" is also ladder[0]'s`},
 		{`{"ladder": [{"glyph": "current", "meaning": "", "role": "primary"}]}`, `ladder[0].meaning is empty`},
 		{`{"ladder": {"glyph": "current"}}`, `ladder: not an array of rungs`},
+		// a meaning that is a kit slot would recolour the kit's own mark (Dot ok, a step)
+		{`{"ladder": [{"glyph": "✔", "meaning": "done", "role": "fgSubtle"}]}`, `ladder[0].meaning "done" is a kit slot`},
+		{`{"ladder": [{"glyph": "partial", "meaning": "busy", "role": "info"}]}`, `ladder[0].meaning "busy" is a kit slot`},
+		// only the status slots are slot names: a chrome glyph's key is a literal, and no literal is a word
+		{`{"ladder": [{"glyph": "focusBar", "meaning": "new", "role": "primary"}]}`, `ladder[0].glyph "focusBar" is neither a status slot`},
+		{`{"ladder": [{"glyph": "▌", "meaning": "new", "role": "primary"}, {"glyph": "caret", "meaning": "typing", "role": "info"}]}`, `ladder[1].glyph "caret" is neither a status slot`},
 		{`{"ladder": [{"glyph": "current", "meaning": "new", "role": "primary"}, {"glyph": "◔", "meaning": "queued", "role": "working"}, {"glyph": "✔", "meaning": "reviewed", "role": "fgSubtle"}], "glyphs": {"ascii": {"◔": "%"}}}`, ""},
 	} {
 		err := CheckKeys([]byte(c.json))
@@ -179,6 +185,10 @@ func TestCheckGlyphs(t *testing.T) {
 		{`{"glyphs": {"done": "◆", "current": "▲", "todo": "△"}}`, `glyphs.done "◆" and glyphs.pending "●" both draw as "*"`, ""},
 		{`{"glyphs": {"done": "•", "current": "●", "todo": "○"}}`, `glyphs.done "•" and glyphs.current "●" both draw as "*"`, ""},
 		{`{"glyphs": {"checkOn": "◼", "checkOff": "◻", "ascii": {"◼": "#", "◻": "#"}}}`, `glyphs.checkOn "◼" and glyphs.checkOff "◻" both draw as "#"`, ""},
+		// the caret sits after typed text: as the focus bar, or its twin, "> ro|" reads as focus
+		{`{"glyphs": {"focusBar": "▌", "caret": "▌"}}`, `glyphs.caret "▌" draws as "|", the focusBar's`, ""},
+		{`{"glyphs": {"focusBar": "┃", "caret": "│"}}`, `glyphs.caret "│" draws as "|", the focusBar's`, ""},
+		{`{"glyphs": {"focusBar": "▌", "blurBar": "┆", "caret": "┆", "ascii": {"┆": ":"}}}`, `glyphs.caret "┆" draws as ":", the blurBar's`, ""},
 	} {
 		path := writeTheme(t, c.json)
 		f, err := Load(path)

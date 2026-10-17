@@ -88,24 +88,28 @@ func TestRulesVisibleAt16And256Colours(t *testing.T) {
 func TestLabelCase(t *testing.T) {
 	base := theme.Default()
 	for _, c := range []struct {
-		labelCase                 string
-		header, tag, toast, strip string
+		labelCase                          string
+		header, tag, toast, strip, summary string
 	}{
-		{"", "SERVICE", "SETUP", "DEPLOYED", "namespace"},
-		{"lower", "service", "setup", "deployed", "namespace"},
-		{"upper", "SERVICE", "SETUP", "DEPLOYED", "NAMESPACE"},
-		{"as-is", "Service", "SETUP", "DEPLOYED", "Namespace"},
+		{"", "SERVICE", "SETUP", "DEPLOYED", "namespace", ""},
+		{"lower", "service", "setup", "deployed", "namespace", "namespace"},
+		{"upper", "SERVICE", "SETUP", "DEPLOYED", "NAMESPACE", "NAMESPACE"},
+		{"as-is", "Service", "SETUP", "DEPLOYED", "Namespace", "Namespace"},
 	} {
 		f := base
 		f.Expressions.LabelCase = c.labelCase
 		th := theme.Resolve(f, true, false)
 		got := map[string]string{
-			"header": strings.Fields(ansi.Strip(Table(th, []string{"Service", "when"}, nil, []int{10, 0}, "lr", -1, 40, false)[0]))[0],
-			"tag":    strings.TrimSpace(ansi.Strip(Tag(th, "info", "SETUP"))),
-			"toast":  strings.Fields(ansi.Strip(Toast(th, "ok", "DEPLOYED", "ledger v7.1.0", 60)))[0],
-			"strip":  strings.Fields(ansi.Strip(SummaryStrip(th, []SummaryRow{{Label: "Namespace", Value: "payments", Set: true}}, 60)))[0],
+			"header":  strings.Fields(ansi.Strip(Table(th, []string{"Service", "when"}, nil, []int{10, 0}, "lr", -1, 40, false)[0]))[0],
+			"tag":     strings.TrimSpace(ansi.Strip(Tag(th, "info", "SETUP"))),
+			"toast":   strings.Fields(ansi.Strip(Toast(th, "ok", "DEPLOYED", "ledger v7.1.0", 60)))[0],
+			"strip":   strings.Fields(ansi.Strip(SummaryStrip(th, []SummaryRow{{Label: "Namespace", Value: "payments", Set: true}}, 60)))[0],
+			"summary": strings.Fields(ansi.Strip(Summary(th, "Summary", "", []SummaryRow{{Label: "Namespace", Value: "payments", Set: true}}, 40)[2]))[0],
 		}
-		for what, want := range map[string]string{"header": c.header, "tag": c.tag, "toast": c.toast, "strip": c.strip} {
+		if c.labelCase == "" {
+			c.summary = "Namespace" // the sidebar's labels keep the app's case unless the theme sets one
+		}
+		for what, want := range map[string]string{"header": c.header, "tag": c.tag, "toast": c.toast, "strip": c.strip, "summary": c.summary} {
 			if got[what] != want {
 				t.Errorf("labelCase %q: %s %q, want %q", c.labelCase, what, got[what], want)
 			}
