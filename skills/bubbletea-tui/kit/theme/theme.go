@@ -79,6 +79,7 @@ type Glyphs struct {
 	Fail       string   `json:"fail"`       // × ✗ ✕ !
 	Warn       string   `json:"warn"`       // ▲ ! ◬ (status: degraded) — must differ in shape from Current and Fail
 	Pending    string   `json:"pending"`    // ● ◌ ·
+	Partial    string   `json:"partial"`    // ◐ ◑ ◒ (in progress: between current and done; "reading", "rolling", a running tool)
 	Bullet     string   `json:"bullet"`     // • · ▪ -
 	Sep        string   `json:"sep"`        // separator in detail lines: · • │ /
 	Arrow      string   `json:"arrow"`      // → › ▸

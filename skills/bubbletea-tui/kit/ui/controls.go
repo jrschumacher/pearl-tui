@@ -122,7 +122,8 @@ func Alert(t *theme.Theme, kind, label, msg string, w int) string {
 }
 
 // Dot is a status dot: ● in a role colour, with the label after it. Never
-// colour alone: the label says the state too.
+// colour alone: the label says the state too, and each state has its own shape
+// (busy is the partial rung, ◐, not ok's ● in another colour).
 func Dot(t *theme.Theme, state string) string {
 	switch state {
 	case "ok", "healthy", "online", "done":
@@ -132,7 +133,7 @@ func Dot(t *theme.Theme, state string) string {
 	case "warning", "degraded":
 		return t.S.Warn.Render(t.G.Warn)
 	case "busy", "deploying", "running":
-		return t.S.Mark.Render(t.G.Current)
+		return t.S.Mark.Render(t.G.Partial)
 	}
 	return t.S.Subtle.Render(t.G.Todo)
 }

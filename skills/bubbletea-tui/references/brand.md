@@ -72,11 +72,12 @@ read it too.
   "glyphs": {
     "headerRule": "", "rule": "┄", "focusBar": "▎", "blurBar": "", "cursor": "▸", "prompt": "▸",
     "done": "◆", "current": "▲", "todo": "△", "fail": "✕", "pending": "●",
+    "partial": "◭",              // in progress, between current and done (default ◐, ascii ~)
     "bullet": "▸", "sep": "/", "arrow": "→", "ellipsis": "…",
     "radioOn": "◉", "radioOff": "○", "checkOn": "■", "checkOff": "□",
     "treeMid": "├─", "treeEnd": "╰─", "thumb": "┃", "track": "│",
     "spinner": ["◢","◣","◤","◥"], "fieldA": "▲", "fieldB": "△",
-    "ascii": { "◔": "~" }         // twins for glyphs the kit's map lacks (theme.ASCIITwin)
+    "ascii": { "◭": "~" }         // twins for glyphs the kit's map lacks (theme.ASCIITwin)
   },
   "expressions": {
     "header": "bar",            // rule | bar | minimal | stamp | banner
@@ -116,6 +117,13 @@ solid, inverse or tracked wordmark (`plain` is the name in fg), `sectionTitle: p
 scramble. So does what the app asks for
 (`t.S.Primary`, `ui.Tag(t, "primary", …)`): that is the state.
 
+**A state ladder takes the status slots, by meaning.** `● new · ◐ reading · ○ waiting ·
+✓ reviewed` is `current · partial · todo · done`: the app draws `t.G.Current`,
+`t.G.Partial`, `t.G.Todo`, `t.G.Done`, never literals, so `-ascii` draws `* ~ o +` and
+`palette check` keeps the rungs apart. `partial` is the in-progress rung (default `◐`);
+the kit draws it for a busy `ui.Dot` and a running tool call, which would otherwise be
+another state's glyph in another colour, and one mark under NO_COLOR.
+
 Missing roles are derived, and missing glyphs and expressions default, so a theme can
 start small. Write every role as `#RRGGBB` or `#RGB`, `#` included: Lip Gloss reads
 `6B50FF` as an ANSI index or no colour, so `theme.Load` and `palette check` reject it. A theme that keeps a role below the contrast floors on purpose (a brand's
@@ -128,11 +136,11 @@ as ACCEPT instead of FAIL:
  Every glyph maps to an ASCII twin (`theme.ASCII`): the theme's own in `glyphs.ascii`,
 else the kit's map. `palette check` (and the kit's theme tests) fail on a glyph with
 neither, and on two marks of one meaning that share a twin (done/current/todo/pending/
-warn/fail, radio on/off, check on/off, thumb/track, focus/blur bar): a guessed fallback
-lands on another mark's twin (`◔` reading and `●` new both as `*`). `theme.Load` doesn't,
-so an app always starts; at run time an unmapped glyph draws as `?`, which
-`tuilint frames --ascii` fails [F-ASCII]. Half-filled circles take `~` by convention
-(`"ascii": {"◐": "~"}`). If you add a key:
+partial/warn/fail, radio on/off, check on/off, thumb/track, focus/blur bar): a guessed
+fallback lands on another mark's twin (`◔` reading and `●` new both as `*`). `theme.Load`
+doesn't, so an app always starts; at run time an unmapped glyph draws as `?`, which
+`tuilint frames --ascii` fails [F-ASCII]. Half-filled circles take `~` by convention; the
+kit's own `◐` has it already. If you add a key:
 add it to the Go structs, default it, document it here, probe-render it at 80×24 and
 120×40, and decide whether `diversity` should count it. A new glyph field needs nothing
 more for ASCII: `theme.ASCII` maps, and `theme.CheckGlyphs` checks, every string in `Glyphs`.

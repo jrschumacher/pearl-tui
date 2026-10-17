@@ -26,9 +26,10 @@
         "empty state says what is missing, why in context, and the one key to fix it",
         "at 120x40 a detail pane or extra section uses the room; at 80x24 it collapses to a summary",
         "the agent rendered PNGs with cellshot and looked at them before replying",
-        "palette check passes the shipped theme including its glyphs: every glyph outside ASCII has an ASCII twin (glyphs.ascii or the kit's map) and no two state marks (done/current/todo/pending, radio, check) share one, so a ◐ 'reading' and a ● 'new' never become the same * under -ascii",
+        "palette check passes the shipped theme including its glyphs: every glyph outside ASCII has an ASCII twin (glyphs.ascii or the kit's map) and no two state marks (done/current/todo/pending/partial, radio, check) share one, so a ◐ 'reading' and a ● 'new' never become the same * under -ascii",
         "every dialog has a visible edge at -profile ansi and under NO_COLOR=1, not only in truecolour: a borderless panel one background step up lands on the page's colour there (the kit's dialog: none draws a rule above and below; dialog: rules always has one)",
-        "the -ascii renders pass tuilint frames --ascii (F-ASCII): no glyph outside ASCII leaks into an ASCII frame, and a cut footer ends in the full ..."
+        "the -ascii renders pass tuilint frames --ascii (F-ASCII): no glyph outside ASCII leaks into an ASCII frame, and a cut footer ends in the full ...",
+        "the state ladder (queued, running, retrying, failed, done) draws its marks from the theme's status slots, never literals: in progress is t.G.Partial (◐, ascii ~), not current's ● in another colour, so under NO_COLOR and -ascii every rung keeps its own shape"
       ]
     },
     {
@@ -46,7 +47,7 @@
         "region borders replaced by whitespace/rules/background steps; at most one bordered box (a dialog)",
         "WindowSizeMsg handled; frames exact at 80x24 and 120x40",
         "behaviour unchanged: every original key still works",
-        "palette check passes the shipped theme including its glyphs: every glyph outside ASCII has an ASCII twin (glyphs.ascii or the kit's map) and no two state marks (done/current/todo/pending, radio, check) share one, so a ◐ 'reading' and a ● 'new' never become the same * under -ascii",
+        "palette check passes the shipped theme including its glyphs: every glyph outside ASCII has an ASCII twin (glyphs.ascii or the kit's map) and no two state marks (done/current/todo/pending/partial, radio, check) share one, so a ◐ 'reading' and a ● 'new' never become the same * under -ascii",
         "every dialog has a visible edge at -profile ansi and under NO_COLOR=1, not only in truecolour: a borderless panel one background step up lands on the page's colour there (the kit's dialog: none draws a rule above and below; dialog: rules always has one)",
         "the -ascii renders pass tuilint frames --ascii (F-ASCII): no glyph outside ASCII leaks into an ASCII frame, and a cut footer ends in the full ..."
       ]

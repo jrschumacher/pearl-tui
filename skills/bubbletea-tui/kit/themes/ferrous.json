@@ -53,6 +53,7 @@
   "done": "■",
   "current": "■",
   "todo": "□",
+  "partial": "◧",
   "fail": "✕",
   "bullet": "▪",
   "sep": "│",
@@ -67,7 +68,10 @@
    "▘",
    "▝",
    "▗"
-  ]
+  ],
+  "ascii": {
+   "◧": "~"
+  }
  },
  "expressions": {
   "header": "stamp",

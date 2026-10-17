@@ -24,7 +24,7 @@
 // as an ANSI index or no colour, and "#6B50FFAA" as no colour, so those exit 2.
 // It exits 2 on the theme's glyphs too (theme.CheckGlyphs): a glyph with no ASCII twin
 // (in glyphs.ascii or the kit's map), a twin that isn't ASCII, or two marks of one
-// meaning (done/current/todo/pending/warn/fail, radio on/off, check on/off,
+// meaning (done/current/todo/pending/partial/warn/fail, radio on/off, check on/off,
 // thumb/track, focus/blur bar) that share a twin under -ascii.
 //
 // Thresholds (WCAG 2 contrast ratio against the role's background):

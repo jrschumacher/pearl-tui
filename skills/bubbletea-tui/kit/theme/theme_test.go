@@ -241,3 +241,62 @@ func TestStylesKeepInkOffTheirFill(t *testing.T) {
 		}
 	}
 }
+
+// A state ladder has a rung between current and done: "◐ reading" between "● new" and
+// "✓ reviewed". Glyphs had no slot for it, so a theme's "reading" key was dropped by
+// the struct and the rung drew as whatever the app hard-coded. partial is that slot:
+// ◐ by default, "~" under ASCII from the kit's map, and one of the status marks
+// CheckGlyphs keeps apart.
+func TestPartialSlot(t *testing.T) {
+	f, err := Load(writeTheme(t, `{"glyphs": {"partial": "◑", "ascii": {"◑": "%"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if g := Resolve(f, true, false).G; g.Partial != "◑" {
+		t.Errorf("glyphs.partial is %q, want the theme's ◑", g.Partial)
+	}
+	if g := Resolve(f, true, true).G; g.Partial != "%" {
+		t.Errorf("glyphs.partial draws %q under ASCII, want the theme's twin %%", g.Partial)
+	}
+	d := Resolve(File{}, true, false).G
+	a := Resolve(File{}, true, true).G
+	if d.Partial != "◐" || a.Partial != "~" {
+		t.Errorf("default partial %q (ASCII %q), want ◐ (~)", d.Partial, a.Partial)
+	}
+	if tw, ok := ASCIITwin("◐"); !ok || tw != "~" {
+		t.Errorf("the kit's map twins ◐ as %q (%v), want ~", tw, ok)
+	}
+	// a partial whose twin is another state's is caught like any other status mark
+	for _, c := range []struct{ json, want string }{
+		{`{"glyphs": {"partial": "◑", "ascii": {"◑": "*"}}}`, `glyphs.current "●" and glyphs.partial "◑" both draw as "*"`},
+		{`{"glyphs": {"partial": "◑", "ascii": {"◑": "o"}}}`, `glyphs.todo "○" and glyphs.partial "◑" both draw as "o"`},
+	} {
+		f, err := Load(writeTheme(t, c.json))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := CheckGlyphs(f.Glyphs); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("CheckGlyphs(%s) = %v, want %q", c.json, err, c.want)
+		}
+	}
+}
+
+// A theme written before the partial slot existed, with its own "in progress" mark
+// twinned "~" by brand.md's convention ({"◔": "~"}), still passes CheckGlyphs: the
+// default ◐ takes the next free twin instead of making two states one mark.
+func TestDefaultPartialKeepsOutOfTheThemesWay(t *testing.T) {
+	f, err := Load(writeTheme(t, `{"glyphs": {"pending": "◔", "ascii": {"◔": "~"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CheckGlyphs(f.Glyphs); err != nil {
+		t.Errorf("CheckGlyphs = %v: a default must not collide with the theme's own twins", err)
+	}
+	g := Resolve(f, true, true).G
+	if g.Pending != "~" || g.Partial == "~" || g.Partial == "?" {
+		t.Errorf("ASCII pending %q partial %q, want ~ and another twin", g.Pending, g.Partial)
+	}
+	if f.Glyphs.ASCII["◐"] != "" {
+		t.Errorf("the default wrote into the theme's own map: %v", f.Glyphs.ASCII)
+	}
+}

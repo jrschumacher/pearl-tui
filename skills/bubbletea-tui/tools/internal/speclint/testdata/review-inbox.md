@@ -12,7 +12,7 @@ all day in a tmux pane, locally and over SSH.
 ### Brand read
 palette: deep slate neutrals, one accent, signal amber
 tone: calm, nocturnal, precise
-motif: inbox state dots in the first column, ● unread, ◐ seen, ○ done
+motif: inbox state dots in the first column, ● unread, ◑ seen, ○ done
 remember: amber marks whatever needs you: unread rows, the focused row, the active tour stop
 
 ### Theme

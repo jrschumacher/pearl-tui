@@ -187,6 +187,9 @@ func glyphDefaults(g Glyphs) Glyphs {
 	d(&g.Todo, "○")
 	d(&g.Fail, "×")
 	d(&g.Pending, "●")
+	if g.Partial == "" {
+		g = defaultPartial(g)
+	}
 	d(&g.Warn, "▲")
 	d(&g.Bullet, "•")
 	d(&g.Sep, "·")
@@ -210,6 +213,37 @@ func glyphDefaults(g Glyphs) Glyphs {
 	return g
 }
 
+// defaultPartial gives a theme that leaves glyphs.partial unset the kit's ◐. Its twin is
+// "~", unless one of the theme's own status marks already draws as "~" (a ◔ pending
+// written before the slot existed): then the first twin no status mark uses, so a
+// default never makes two of the theme's states one mark under ASCII.
+func defaultPartial(g Glyphs) Glyphs {
+	g.Partial = "◐"
+	if _, own := g.ASCII[g.Partial]; own {
+		return g
+	}
+	used := map[string]bool{"!": true, "x": true} // warn and fail, as ASCII draws them
+	for _, s := range []string{g.Done, g.Current, g.Todo, g.Pending} {
+		if s != "" && s != g.Partial {
+			used[twin(g.ASCII, s)] = true
+		}
+	}
+	for _, alt := range []string{"~", "%", "=", "&"} {
+		if !used[alt] {
+			if alt != asciiTwins[g.Partial] {
+				own := make(map[string]string, len(g.ASCII)+1)
+				for k, v := range g.ASCII {
+					own[k] = v
+				}
+				own[g.Partial] = alt
+				g.ASCII = own
+			}
+			break
+		}
+	}
+	return g
+}
+
 // asciiTwins is ASCII's map: each glyph the kit draws and its tier-0 twin. A theme
 // adds its own in glyphs.ascii.
 var asciiTwins = map[string]string{
@@ -217,7 +251,7 @@ var asciiTwins = map[string]string{
 	"▌": "|", "┃": "|", "│": "|", "▎": "|", "❯": ">", "›": ">", "▸": ">", "→": "->",
 	"✓": "+", "✔": "+", "●": "*", "◆": "*", "◇": "o", "○": "o", "◉": "(*)", "×": "x", "✗": "x", "✕": "x", "✖": "x",
 	"•": "*", "▪": "*", "…": "...", "■": "[x]", "□": "[ ]", "☑": "[x]", "☐": "[ ]",
-	"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "▲": "^", "△": "o", "◢": "/",
+	"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "◐": "~", "▲": "^", "△": "o", "◢": "/",
 	"◦": "o", "–": "-", "—": "-", "█": "#", "░": ".",
 }
 
@@ -275,7 +309,7 @@ func twin(own map[string]string, s string) string {
 // become one mark (a ◔ reading and a ● new both "*"). warn and fail are in the status
 // set as ASCII draws them, "!" and "x".
 var glyphMeanings = [][]string{
-	{"Done", "Current", "Todo", "Pending", "Warn", "Fail"}, // a step's or an item's state
+	{"Done", "Current", "Todo", "Pending", "Partial", "Warn", "Fail"}, // a step's or an item's state
 	{"RadioOn", "RadioOff"},
 	{"CheckOn", "CheckOff"},
 	{"Thumb", "Track"},
