@@ -74,9 +74,11 @@ read it too.
     "done": "◆", "current": "▲", "todo": "△", "fail": "✕", "pending": "●",
     "partial": "◭",              // in progress, between current and done (default ◐, ascii ~)
     "warn": "!",                 // degraded: must differ in shape from current and fail
-    "bullet": "▸", "sep": "/", "arrow": "→", "ellipsis": "…",
+    "bullet": "▸",               // ui.Empty's mark, and before an Alert's message when the tag has no bar
+    "sep": "/", "arrow": "→", "ellipsis": "…",
     "radioOn": "◉", "radioOff": "○", "checkOn": "■", "checkOff": "□",
-    "treeMid": "├─", "treeEnd": "╰─", "treeRail": "│", "thumb": "┃", "track": "│",
+    "treeMid": "├─", "treeEnd": "╰─", "treeRail": "│",   // the rail under a multi-line ui.Tree item
+    "thumb": "┃", "track": "│",
     "spinner": ["◢","◣","◤","◥"], "fieldA": "▲", "fieldB": "△",
     "caret": "▏", "more": "↑",   // the input caret; the "↑ 12 more lines" marker
     "upDown": "↑↓", "leftRight": "←→", "back": "←",       // key labels in footers and forms
@@ -103,12 +105,15 @@ read it too.
     "density": "compact",       // airy | compact
     "backdrop": "field",        // none | field
     "working": "spinner",       // spinner | scramble (Crush's hero; without it ui.Anim draws the spinner + label)
+    "spinner": "focus",         // focus | primary | secondary | tertiary | accent | info | fg | muted: the ink of
+                                //   the working marks (spinner frames, a busy row, a running tool); focus = primary,
+                                //   or fg under focus "fg"
     "scrim": "dim",             // dim | none
     "focus": "primary",         // primary | fg (focus, cursor, prompt, selection in fg + bold)
     "paintBg": false,           // own the terminal background
     "gutter": 2, "measure": 100
   },
-  "wordmark": { "rows": ["…"], "style": "half" },   // optional, from wordmark.py
+  "wordmark": { "rows": ["…"], "style": "half" },   // optional, from wordmark.py; style is its note, the kit reads rows
   "ansi16": { "dark": { "warning": 11 }, "light": { "warning": 3 } }  // optional, color.md
 }
 ```
@@ -200,7 +205,9 @@ Put it beside the baseline (`ink`) and one other brand. Ask:
 
 1. With the colour stripped, can you still tell which brand it is? If not, identity is
    only in the palette. Move the expressions.
-2. Is the "remember" line from the read visible in the first second?
+2. Is the "remember" line from the read visible in the first second? The showcase's
+   `ladder` state draws every status rung in its role, the spinner, a step row and the
+   tags on one frame: judge a signature that lives in the marks there, in every profile.
 3. Does every choice in the read trace to something on screen?
 4. Does the light set look like the same brand, not a different app?
 

@@ -29,6 +29,7 @@ const (
 	scrIncidents
 	scrAssistant
 	scrDeploy // the deploy form (from services)
+	scrLadder // the status legend: every mark in its role (from the palette)
 	scrSplash
 	scrSetup // the first-run wizard (setup.go)
 )
@@ -63,6 +64,7 @@ type app struct {
 	// palette
 	query  string
 	palSel int
+	palOff int // the list's scroll offset (ui.Follow keeps palSel on screen)
 	// confirm
 	btn int // 0 = the action, 1 = cancel (the default)
 	// deploy form
@@ -82,6 +84,8 @@ type app struct {
 	scroll    int
 	// incidents
 	declared bool
+	// services: the list refreshes itself unless paused
+	paused bool
 	// deploys log: newest first; depSel is a row, resolved to a service by name
 	events []event
 	depSel int
@@ -309,11 +313,11 @@ func (m *app) actions() []action {
 		return nil
 	}}
 	tabs := action{bind([]string{"tab"}, "tab", "next view"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
-		m.screen = (m.screen + 1) % 4
+		m.screen = (m.screen + 1) % screen(len(tabNames))
 		return nil
 	}}
 	tabsBack := action{bind([]string{"shift+tab"}, "shift+tab", "previous view"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
-		m.screen = (m.screen + 3) % 4
+		m.screen = (m.screen + screen(len(tabNames)) - 1) % screen(len(tabNames))
 		return nil
 	}}
 	bs := action{bind([]string{"backspace"}, "backspace", "delete"), false, backspace}
@@ -365,6 +369,8 @@ func (m *app) actions() []action {
 		return m.setupActions(help)
 	case scrSplash:
 		return []action{quit}
+	case scrLadder:
+		return []action{esc("back", func(m *app) { m.screen = scrServices }), palette, quit, help}
 	case scrDeploy:
 		enterDesc := "next field" // enter in a field never ships to prod
 		if m.focus == 4 {
@@ -432,7 +438,9 @@ func (m *app) actions() []action {
 			}})
 		}
 		return append(acts,
-			action{bind([]string{"ctrl+o"}, "ctrl+o", "expand output"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.expand = !m.expand; return nil }},
+			// a toggle's help names what the key does now: "collapse" while expanded
+			action{bind([]string{"ctrl+o"}, "ctrl+o", map[bool]string{false: "expand output", true: "collapse output"}[m.expand]), true,
+				func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.expand = !m.expand; return nil }},
 			action{bind([]string{"pgup"}, "pgup", "scroll"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.scroll += 5; return nil }},
 			action{bind([]string{"pgdown"}, "pgdn", "scroll down"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.scroll = max(0, m.scroll-5); return nil }},
 			tabs, tabsBack, palette, help, bs,
@@ -473,11 +481,15 @@ func (m *app) actions() []action {
 	if m.screen == scrDeploys {
 		return []action{move, palette, tabs, tabsBack, quit, help}
 	}
+	// a toggle's help names what the key does now (TestToggleHelpIsTruthful): "pause"
+	// while the list is live, "resume" while it is paused
+	pause := action{bind([]string{"p"}, "p", map[bool]string{false: "pause", true: "resume"}[m.paused]), true,
+		func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.paused = !m.paused; return nil }}
 	acts := []action{
 		move,
 		{bind([]string{"d"}, "d", "deploy"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.openDeploy(); return nil }},
 		{bind([]string{"r"}, "r", "roll back"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.askRollback(); return nil }},
-		palette, tabs, tabsBack, quit, help,
+		palette, tabs, tabsBack, pause, quit, help,
 	}
 	// the palette's shortcuts work here too, so the hints it shows are true
 	for _, c := range commands {
@@ -597,6 +609,8 @@ func (m *app) command(title string) tea.Cmd {
 		return tea.SetClipboard("https://" + s.Name + ".prod.internal")
 	case "Toggle theme":
 		m.resolve(!m.t.Dark)
+	case "Status legend":
+		m.screen = scrLadder
 	}
 	return nil
 }

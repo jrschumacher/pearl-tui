@@ -35,6 +35,7 @@ var commands = []command{
 	{"Switch environment", "prod, staging or dev", "e"},
 	{"Copy service URL", "", "y"},
 	{"Toggle theme", "dark or light", ""},
+	{"Status legend", "every mark in its role", ""},
 }
 
 var chatUser = "checkout-api is throwing 502s since the last deploy. what changed?"

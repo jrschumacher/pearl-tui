@@ -17,8 +17,9 @@ const FrameInterval = 50 * time.Millisecond
 
 // Anim is a branded "working" indicator in the spirit of Crush's: a run of
 // scrambling glyphs whose colour flows along the brand gradient, columns
-// materialising one by one, then a label and an animated ellipsis or an
-// elapsed timer.
+// materialising one by one, then a label and an optional elapsed timer. The
+// label gets no animated ellipsis: the spinner already moves, and "Loading..."
+// is the default the skill's slop test removes.
 //
 // It is deterministic: Frame(n) depends only on n and the seed, so the same
 // frame renders in a golden test and in the live program. Drive it from ONE
@@ -53,15 +54,15 @@ func NewAnim(t *theme.Theme, size int, label, seed string) *Anim {
 	return a
 }
 
-// Frame renders frame n. elapsed (optional) replaces the ellipsis.
+// Frame renders frame n. elapsed (optional) follows the label.
 func (a *Anim) Frame(n int, elapsed string) string {
 	t := a.T
+	suffix := ""
+	if elapsed != "" {
+		suffix = t.S.Subtle.Render(" " + elapsed)
+	}
 	if t.ASCII || t.X.Working != "scramble" {
 		// the brand's own spinner, then the label: scramble is Crush's signature
-		suffix := t.S.Subtle.Render(Fit([]string{"", ".", "..", "..."}[(n/8)%4], 3))
-		if elapsed != "" {
-			suffix = t.S.Subtle.Render(" " + elapsed)
-		}
 		return Spinner(t, n/2) + t.S.Soft.Render(" "+a.Label) + suffix
 	}
 	var b strings.Builder
@@ -79,17 +80,12 @@ func (a *Anim) Frame(n int, elapsed string) string {
 		ch := scramble[int(h.Sum32())%len(scramble)]
 		b.WriteString(st.Render(string(ch)))
 	}
-	label := t.S.Soft.Render(" " + a.Label)
-	if elapsed != "" {
-		return b.String() + label + t.S.Subtle.Render(" "+elapsed)
-	}
-	dots := []string{"", ".", "..", "..."}[(n/8)%4]
-	return b.String() + label + t.S.Subtle.Render(Fit(dots, 3))
+	return b.String() + t.S.Soft.Render(" "+a.Label) + suffix
 }
 
 // Spinner is the small inline spinner (the theme's frames) at frame n.
 func Spinner(t *theme.Theme, n int) string {
-	return t.S.Mark.Render(t.G.Spinner[n%len(t.G.Spinner)])
+	return t.S.Working.Render(t.G.Spinner[n%len(t.G.Spinner)])
 }
 
 // Busy is the working mark for a status column, one cell like the Dot beside it: the

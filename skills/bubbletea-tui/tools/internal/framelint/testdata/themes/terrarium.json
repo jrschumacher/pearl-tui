@@ -73,6 +73,7 @@
   "done": "✓",
   "current": "●",
   "todo": "○",
+  "pending": "◌",
   "partial": "◐",
   "fail": "×",
   "bullet": "·",

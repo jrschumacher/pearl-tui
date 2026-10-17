@@ -35,17 +35,13 @@ func (s Steps) Count() string {
 func (s Steps) mark(t *theme.Theme, i int) (glyph, label string) {
 	switch {
 	case i < s.Cur:
-		done := t.G.Done
-		if t.ASCII && done == t.G.Current { // done and current must differ in shape, not only in colour
-			done = "+"
-		}
-		return t.S.OK.Render(done), t.S.Muted.Render(s.Names[i])
+		return Mark(t, "done"), t.S.Muted.Render(s.Names[i])
 	case i == s.Cur && s.Failed:
 		return t.S.Err.Bold(true).Render(t.G.Fail), t.S.Err.Bold(true).Render(s.Names[i])
 	case i == s.Cur:
 		return t.S.Focus.Bold(true).Render(t.G.Current), t.S.Bold.Render(s.Names[i])
 	}
-	return t.S.Subtle.Render(t.G.Todo), t.S.Subtle.Render(s.Names[i])
+	return Mark(t, "todo"), t.S.Subtle.Render(s.Names[i])
 }
 
 // Row is the full progress on one line, at most w cells:

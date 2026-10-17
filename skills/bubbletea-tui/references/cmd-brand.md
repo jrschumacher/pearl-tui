@@ -27,7 +27,9 @@ drifts), contact sheets in both modes, a passing diversity lint. Read
    --style …`. Logo, if the splash needs it: `scripts/logo2cells.py` and then
    `cell-art.md`. Motif glyph and its ASCII fallback.
 6. **Write the JSON** (contract in `brand.md` §4). Start from the kit theme closest in
-   spirit, then change every axis the read says to.
+   spirit, then change every axis the read says to. Once `craft` has run the copy block,
+   that donor is already `themes/<brand>.json`: edit it in place, and keep `themes/` to
+   that one file, since `diversity` and the kit's tests count every JSON there as a brand.
 7. **Render** the kit showcase (or the app) with the theme: dark, light, ascii, at 80×24
    and 120×40 (`brand.md` §6). Before `craft` copies the kit, the showcase runs from the
    skill: `go -C <skill>/kit run ./cmd/showcase -theme $PWD/themes/<brand>.json -out
@@ -42,8 +44,9 @@ drifts), contact sheets in both modes, a passing diversity lint. Read
    <bg>` and the light frames with `--bg <light bg>`, and the footprint: `go test` once
    the kit is in the project (`craft` §1); until then the showcase's `-golden -w 80 -h
    24` and `-w 120 -h 40` from step 7's `go -C` form, which tests every state's rows.
-9. **Judge** with the four questions in `brand.md` §6, then run a critic (`verify.md`)
-   focused on identity: "which product is this, and what will you remember?"
+9. **Judge** with the four questions in `brand.md` §6 (the `ladder` frame shows every
+   status mark in its role), then run a critic (`verify.md`) focused on identity: "which
+   product is this, and what will you remember?"
 10. **Record** the theme path and decisions in `TUI.md`.
 
 Next: `shape` (no screen spec yet) | `craft` (§ Screens is filled).

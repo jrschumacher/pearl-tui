@@ -470,7 +470,7 @@ const frameRate = 2 * FrameInterval
 func BubblesSpinner(t *theme.Theme) spinner.Model {
 	return spinner.New(
 		spinner.WithSpinner(spinner.Spinner{Frames: t.G.Spinner, FPS: frameRate}),
-		spinner.WithStyle(t.S.Mark),
+		spinner.WithStyle(t.S.Working),
 	)
 }
 
@@ -480,7 +480,7 @@ func BubblesSpinner(t *theme.Theme) spinner.Model {
 // and the title with no space between), and a subject instead of Huh's
 // default "Loading...". It honours ACCESSIBLE=1 (one plain line, no frames).
 func HuhSpinner(t *theme.Theme, title string) *hspinner.Spinner {
-	st := &hspinner.Styles{Spinner: t.S.Mark, Title: t.S.Soft.PaddingLeft(1)}
+	st := &hspinner.Styles{Spinner: t.S.Working, Title: t.S.Soft.PaddingLeft(1)}
 	return hspinner.New().
 		Type(hspinner.Type(spinner.Spinner{Frames: t.G.Spinner, FPS: frameRate})).
 		WithTheme(hspinner.ThemeFunc(func(bool) *hspinner.Styles { return st })).

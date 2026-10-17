@@ -13,8 +13,10 @@ screen by screen.
 ## 1. Start From The Kit, Not From Prose
 
 Run the copy block in `kit/README.md` § Copying it into a project, as written: it copies
-`theme/`, `ui/` and `cmd/showcase` (as `cmd/<app>`, tests included), rewrites the import
-paths and pins the versions, and CI proves it passes in a fresh module. Then read
+`theme/`, `ui/` and `cmd/showcase` (as `cmd/<app>`, tests included), the donor theme as
+`themes/<brand>.json` with `themes/embed.go` (the binary carries the theme: no `-theme`
+flag, no path that breaks when it moves), rewrites the import paths and pins the
+versions, and CI proves it passes in a fresh module. Then read
 `cmd/<app>/{app.go,screens.go,main.go}`: the model, `render(w,h)`, the harness. A cold rebuild from these references loses half the idiom at once
 (the focus gutter, the filled-row backgrounds, the help truncation, the scrim order).
 The code already has them.
@@ -24,7 +26,8 @@ The code already has them.
 Before any real screen:
 
 - the root model (one model, a focus enum, the per-state action table, the clock with
-  a generation number)
+  a generation number), and `main.go`'s package doc rewritten for this product
+- the theme from `themes/` (`themes.Default`, `theme.Parse`), `-theme` only overriding it
 - `render(w, h) *ui.Canvas` shared by `View` and the harness
 - `setState(name)` for every state in the spec, using fixtures
 - flags: `-golden -w -h`, `-state`, `-out -sizes`, `-theme`, `-light`, `-ascii`,

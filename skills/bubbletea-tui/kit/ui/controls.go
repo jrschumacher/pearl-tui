@@ -29,9 +29,11 @@ func Button(t *theme.Theme, label string, focused, danger bool, mnemonic int) st
 		text = string(r[:mnemonic]) + "\x00" + string(r[mnemonic:mnemonic+1]) + "\x01" + string(r[mnemonic+1:])
 	}
 	style := t.X.Button
-	if t.ASCII {
+	if t.ASCII && style != "underline" {
 		// a filled pill is invisible without colour, and its ink is the fill's on-colour
-		// (often the background itself): draw it as the bracket expression does
+		// (often the background itself): draw it as the bracket expression does. An
+		// underline button keeps its bold and underline: both survive ASCII, and a
+		// bracket with a cursor would be a second and third cue
 		style = "bracket"
 		switch {
 		case focused && danger:
@@ -117,7 +119,9 @@ func Alert(t *theme.Theme, kind, label, msg string, w int) string {
 	}
 	rest := max(0, w-lipgloss.Width(tg))
 	if t.X.Tag != "filled" {
-		return Fit(tg+"  "+t.S.Base.Render(Trunc(t, msg, rest-2)), w)
+		// no bar to carry the message: the theme's bullet marks where it starts
+		b := " " + t.S.Subtle.Render(t.G.Bullet) + " "
+		return Fit(tg+b+t.S.Base.Render(Trunc(t, msg, rest-lipgloss.Width(b))), w)
 	}
 	return tg + bar.Width(rest).Render(Trunc(t, msg, max(0, rest-2)))
 }
@@ -134,9 +138,9 @@ func Dot(t *theme.Theme, state string) string {
 	case "warning", "degraded":
 		return t.S.Warn.Render(t.G.Warn)
 	case "busy", "deploying", "running":
-		return t.S.Mark.Render(t.G.Partial)
+		return Mark(t, "busy")
 	}
-	return t.S.Subtle.Render(t.G.Todo)
+	return Mark(t, "todo") // idle: a rung still to come, in fgMuted, never dimmer than a hint
 }
 
 // KV renders "key   value" rows with an aligned key column. Keys are dimmer
@@ -244,8 +248,11 @@ func Count(n int) string {
 }
 
 // Empty is an empty state: what is missing, why, and the one thing to do.
-// Never a bare "No items".
+// Never a bare "No items". glyph is the mark above the title; "" draws the theme's bullet.
 func Empty(t *theme.Theme, w int, glyph, title, why, action string) []string {
+	if glyph == "" {
+		glyph = t.G.Bullet
+	}
 	rows := []string{t.S.Subtle.Render(glyph), "", t.S.Bold.Render(title)}
 	for _, l := range strings.Split(lipgloss.NewStyle().Width(min(w, 56)).Align(lipgloss.Center).Render(why), "\n") {
 		rows = append(rows, t.S.Muted.Render(strings.TrimSpace(l)))
