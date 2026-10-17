@@ -107,12 +107,14 @@ so the binary carries the brand wherever it is run from.
 Then build your root model in `cmd/<app>` on the showcase's shape (action tables,
 `render`, `setState`, harness flags, the test files) and replace its screens with yours.
 Rewrite the package doc at the top of `main.go` first: it still says what the showcase is.
-Once your screens are in, delete what is the showcase's alone, because each file left
-behind is a test or a wizard for a product you are not building: `setup.go` and
-`setup_test.go` (the first-run wizard and its nine tests), `data.go` (its fixtures;
-yours are `fixtures.go`) and every behaviour test that names a showcase fixture
-(`grep -l 'fixture(t, "' cmd/<app>/*_test.go` finds them: the deploy, rollback,
-palette and assistant cases), rewriting the ones whose behaviour is yours too (one
-clock, inputs take letters) on your fixtures. Keep `main.go`, `showcase_test.go` and
-the behaviour tests that press the action tables and name no fixture (`TestHelpIsHandled`,
-the ASCII, focus, breakpoint and help-truth tests): they hold for any app built on this shape.
+Once your screens are in, delete what is the showcase's alone:
+
+- `data.go`: its fixtures (yours are `fixtures.go`).
+- `setup.go` and `setup_test.go`, the first-run wizard, with its wiring: each `scrSetup`,
+  `m.setup` and `firstRun` branch in `app.go` and `screens.go`, and in `main.go` the
+  `setup-*` states, `setupState`, `-first-run` and the `runAccessibleSetup` call.
+- In `behaviour_test.go`, every test but `TestHelpIsHandled`, `TestASCIIIsASCII` and
+  `TestASCIIStatusDistinct` (keep `press` and `fixture`): the rest name a showcase state.
+  Rewrite on your states the ones whose law you share (one clock, typing never commands).
+- Keep all of `showcase_test.go`; point its overlay lists (`"palette", "confirm", "help"`)
+  at your overlay states. Then delete each import `go vet ./...` reports unused.
