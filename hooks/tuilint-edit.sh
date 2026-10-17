@@ -17,9 +17,16 @@
 # notes ("another edit is building the tools") go to stderr, which Claude Code keeps in
 # its debug log only.
 #
-# Builds the skill's tools on first use, with Setup step 4's command, into
-# $CLAUDE_PLUGIN_DATA/tuitools (or $HOME/.cache/tuitools outside a plugin). The cache
-# holds, beside the binaries:
+# Builds the skill's tools on first use (Setup step 4's go build, into the plugin's own
+# cache rather than a project's .tuitools/), into $CLAUDE_PLUGIN_DATA/tuitools (or
+# $HOME/.cache/tuitools outside a plugin). Before that build, which costs a toolchain
+# and module download on a cold machine, the shell does the cheap half of tuilint hook's
+# gate: the edited file must sit under a TUI.md (up to the repository root) or in a
+# module whose go.mod requires charm.land/bubbletea/v2 or charm.land/huh/v2, or import
+# one of them itself; otherwise the edit is in some other Go project and nothing is
+# built. The theme-package opt-in (a copy of the kit's theme/) is left to tuilint hook,
+# which makes the exact decision once the tools exist. The cache holds, beside the
+# binaries:
 #   .built          the plugin root the tools were built from; its mtime is the build's
 #                   start. A different root (a plugin update) or a newer Go source,
 #                   go.mod or go.sum under tools/ or kit/ means rebuild.
@@ -36,6 +43,27 @@
 input=$(cat)
 # Not a Go file: done, before building anything. tuilint hook makes the exact decision.
 case $input in *'.go"'*) ;; *) exit 0 ;; esac
+
+# tui_project FILE: FILE is in a Bubble Tea or Huh module, or under a TUI.md, up to the
+# first .git. The cheap half of tuilint hook's gate, so an edit in an unrelated Go
+# project never builds the tools.
+tui_project() {
+	d=$(dirname "$1")
+	grep -q -e 'charm\.land/bubbletea/v2' -e 'charm\.land/huh/v2' "$1" 2>/dev/null && return 0
+	while :; do
+		[ -f "$d/TUI.md" ] && return 0
+		[ -f "$d/go.mod" ] && grep -q -e 'charm\.land/bubbletea/v2' -e 'charm\.land/huh/v2' "$d/go.mod" && return 0
+		[ -e "$d/.git" ] && return 1
+		case $d in / | .) return 1 ;; esac
+		d=$(dirname "$d")
+	done
+}
+# The edited path, from tool_input.file_path (Claude Code sends it absolute). When the
+# input holds no such path, the gate is skipped and tuilint hook decides after the build.
+file=$(printf '%s' "$input" | sed -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"\([^"]*\.go\)".*/\1/p' | head -n 1)
+case $file in
+/*) tui_project "$file" || exit 0 ;;
+esac
 
 root=${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}
 skill=$root/skills/bubbletea-tui

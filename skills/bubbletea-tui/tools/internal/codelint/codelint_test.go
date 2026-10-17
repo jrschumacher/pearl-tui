@@ -259,7 +259,7 @@ type input struct{ name, dir, themePkg string }
 
 var inputs = []input{
 	{"kit", "../../../kit", ""},
-	{"v1-todo", "../../../evals/fixtures/v1-todo", ""},
+	{"v1-todo", "../../../../../evals/fixtures/v1-todo", ""}, // at the repo root, outside the shipped skill
 	{"bad", "testdata/bad", ""},
 	{"bad-theme-pkg", "testdata/bad", "brand"},
 	{"good", "testdata/good", ""},

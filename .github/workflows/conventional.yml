@@ -21,9 +21,9 @@ permissions:
 env:
   TYPES: feat fix docs style refactor perf test build ci chore revert
   # skill: SKILL.md + references · kit · themes · tools: the Go tools · scripts: the Python
-  # converters · evals · site: the landing page · plugin: hooks/ and .claude-plugin/.
+  # converters · evals · plugin: hooks/ and .claude-plugin/.
   # Repo-wide work takes no scope (ci:, docs:).
-  SCOPES: skill kit themes tools scripts evals site plugin
+  SCOPES: skill kit themes tools scripts evals plugin
   MAX_HEADER: "100"
 
 jobs:

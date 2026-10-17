@@ -108,6 +108,15 @@ check "non-Go file is silent" tui/notes.md 0 || fail=1
 check "non-TUI Go module is silent" plain/main.go 0 || fail=1
 check "Bubble Tea app without TUI.md is silent" bare/main.go 0 || fail=1
 
+# An edit in a Go project that isn't a TUI never builds the tools: the shell's cheap gate
+# (TUI.md above the file, or a go.mod/import naming Bubble Tea or Huh) runs before go.
+HOOK_PATH=$logged:$PATH HOOK_CACHE=$tmp/cache-plain
+n=$(builds)
+check "non-TUI module: not built" plain/main.go 0 || fail=1
+expect "  ...no go build ran" [ "$(builds)" = "$n" ] || fail=1
+expect "  ...and the cache stays empty" [ ! -e "$tmp/cache-plain/tuilint" ] || fail=1
+unset HOOK_PATH HOOK_CACHE
+
 # The hook's own failures never block the edit. They tell the user once, on stdout.
 HOOK_PATH=$nogo HOOK_CACHE=$tmp/empty
 check "no Go toolchain: tells the user, exit 0" tui/form/form.go 0 "go is not on PATH" '"systemMessage":"bubbletea-tui plugin: Go edits are not being linted: go is not on PATH' || fail=1

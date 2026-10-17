@@ -1,6 +1,6 @@
 {
   "skill_name": "bubbletea-tui",
-  "notes": "Run with the skill-creator skill. Each assertion is a failure seen when models build TUIs without the skill (or with an earlier version). Deterministic ones are checked by tuilint and the harness; the rest by a grader reading renders. Add a case whenever the skill misses something in real use: write the miss as an assertion first, make the kit pass it, then edit the skill.",
+  "notes": "Run with the skill-creator skill pointed at skills/bubbletea-tui. This file lives outside the skill on purpose: npx skills add copies the skill directory whole, and the prompts and graded assertions here must not reach the agent under evaluation. `files` are relative to the repository root. Each assertion is a failure seen when models build TUIs without the skill (or with an earlier version). Deterministic ones are checked by tuilint and the harness; the rest by a grader reading renders and the transcript. The init cases run unattended: an answers.md fixture stands in for the user. Add a case whenever the skill misses something in real use: write the miss as an assertion first, make the kit pass it, then edit the skill.",
   "evals": [
     {
       "id": 0,
@@ -13,7 +13,7 @@
         "go run ./cmd/<app> with no flags starts tea.NewProgram; -golden -w 80 -h 24 and -w 120 -h 40 exit 0",
         "go test ./... passes in the app's module, the copied internal/ui and cmd/<app> tests included, on the app's own theme (they used to load the kit's themes by path and name)",
         "a themes/tidepool.json exists with dark and light roles derived from #0F5257 and #FF6F59; no hex literals outside the theme package (tuilint code C-HEX passes)",
-        "a brand read (read field or .read.md) ties at least 5 expression choices to product traits",
+        "the brand read lives in TUI.md § Brand read (condensed in the theme's read field; no separate .read.md) and ties each expression choice it makes to a product trait, one line per expression, with no expression left unexplained",
         "palette derive on the brand hexes exits 0 on its first run (its output passes its own check, even for a mid-tone primary such as #2E8B57), and palette check passes the shipped tidepool.json in dark and light with the brand's primary hex kept and no contrastAccept added for an on-colour",
         "diversity shows the theme differs from kit ink on >= 8 axes",
         "diversity was run with kit/themes/ink.json and kit/themes/charm.json among its inputs, so the min-distance rule actually ran (a --baseline name with no matching theme exits 2; it used to be skipped silently)",
@@ -32,7 +32,10 @@
         "the state ladder (queued, running, retrying, failed, done) draws its marks from the theme's status slots, never literals: in progress is t.G.Partial (◐, ascii ~), not current's ● in another colour, so under NO_COLOR and -ascii every rung keeps its own shape",
         "a theme whose state roles collide at 16 colours carries an ansi16 pin: palette check on the shipped theme prints no 16-colour clash (stderr), e.g. a warning #E9B949 and an error #E0665C that both downsample to ANSI 9 at -profile ansi get \"ansi16\": {\"dark\": {\"warning\": 11}}, and a brand whose hue is a state (focus fg) never shares primary's slot with error; the brand hexes stay as derived",
         "palette check passes the shipped theme with no unknown expression key or value (it exits 2 on \"dialog\": \"rule\" for \"rules\" and lists what the kit knows): every expression the brand read chooses is one the kit draws, none silently falls back to a default",
-        "a running job's working mark in the status column is one cell like the dots beside it (ui.Busy, not a multi-cell spinner), and under -ascii it is never the focus bar's | or another state's mark"
+        "a running job's working mark in the status column is one cell like the dots beside it (ui.Busy, not a multi-cell spinner), and under -ascii it is never the focus bar's | or another state's mark",
+        "every toggle's help names what the key does now: a key that pauses while following reads `f pause`, not `f follow`, in the state where the header or status says following (render both states; the footer and the status word never show the same verb)",
+        "the critic round was a fresh subagent given the PNGs and goldens, or, with no subagent tool, a fresh message that re-read only the PNGs and goldens with verify.md's prompt, and the hand-off says which; a self-review with the code in context is not a critic",
+        "go vet -vettool=$(which tuivet) ./... (or tuivet ./...) exits 0 in the app's module: the tuilint code rules hold as go/analysis analyzers too, so an editor or CI run finds nothing tuilint code didn't"
       ]
     },
     {
@@ -40,7 +43,9 @@
       "name": "restyle-a-v1-app",
       "prompt": "Here's my little Bubble Tea app (main.go). It works but it looks like every tutorial. Make it look like a real product. Our brand color is #3A86FF and we're a calm developer tool.",
       "files": [
-        "evals/fixtures/v1-todo/main.go"
+        "evals/fixtures/v1-todo/main.go",
+        "evals/fixtures/v1-todo/go.mod",
+        "evals/fixtures/v1-todo/go.sum"
       ],
       "expected_output": "The app ported to v2 with a theme, de-boxed, with the harness, and before/after contact sheets.",
       "assertions": [
@@ -64,13 +69,13 @@
       "files": [],
       "expected_output": "A chat TUI with messages, tool calls in the Crush grammar, a working animation, an editor, and an identity that differs from the charm study theme.",
       "assertions": [
-        "tool calls use status glyph + name + main param + k=v options, an indented panel body, and an honest collapsed affordance",
+        "tool calls use status glyph + name + main param + k=v options and an indented panel body; a collapsed tool call shows the hidden line count and the key that expands it",
         "one shared animation clock that stops when idle (tick returns nil in idle states)",
         "the working indicator says what is happening (no 'Loading...'/'Thinking...' alone without subject or elapsed time)",
         "diversity: loom differs from the charm study theme on >= 8 axes (not Crush recoloured)",
         "prose is capped at a measure (<= 100 cells) at 200 columns",
         "editor uses a real cursor via tea.View.Cursor",
-        "the brand read explains how 'warmer and more editorial' became specific expressions",
+        "the brand read ties 'warm' and 'editorial' each to a named expression axis and its value (e.g. editorial → titleCase lower, measure 72; warm → a tinted neutral, a soft motif), not to a colour alone",
         "if the brand read makes the type lowercase, the theme says so for labels too (expressions.labelCase \"lower\"): table headers, tags and toast labels follow it, and no kit-forced SERVICE or SETUP is left on screen"
       ]
     },
@@ -83,10 +88,10 @@
       ],
       "expected_output": "A splash composition with a cell-art mark, a wordmark from a real font, a spinner with a subject, verified renders and a GIF.",
       "assertions": [
-        "logo sampled with logo2cells.py then hand-fixed; one vocabulary per edge; no ░ on dark",
+        "the committed mark grid differs from logo2cells.py's raw output and a comment beside it says what was hand-fixed and why (the cells the lint flagged, an edge vocabulary); one vocabulary per edge; no ░ on dark",
         "wordmark generated with wordmark.py (not figlet standard), >= 4 rows for half / >= 5 for shade",
         "splash shows only while connecting (not a fixed delay), with version bottom-left and quit hint bottom-right",
-        "frames dumped deterministically via an At(frame)/-frame path; a GIF and a contact sheet were rendered and inspected",
+        "frames dumped deterministically from a frame number (a Frame(n, …) method like the kit's Anim.Frame, rendered with -frame N; no wall-clock phase); a GIF and a contact sheet were rendered and inspected",
         "a Go test asserts every frame's footprint"
       ]
     },
@@ -95,7 +100,9 @@
       "name": "critique-only",
       "prompt": "/bubbletea-tui critique — review the TUI in this repo, don't change anything.",
       "files": [
-        "evals/fixtures/v1-todo/main.go"
+        "evals/fixtures/v1-todo/main.go",
+        "evals/fixtures/v1-todo/go.mod",
+        "evals/fixtures/v1-todo/go.sum"
       ],
       "expected_output": "A scored critique with cited defects and no file changes.",
       "assertions": [
@@ -130,47 +137,69 @@
     {
       "id": 6,
       "name": "init-interview",
-      "prompt": "/bubbletea-tui init — we're about to build a TUI for our CLI.",
-      "files": [],
-      "expected_output": "An interview in short rounds (at most three questions each, every one with a proposed default), then TUI.md with design context and architecture, and a two-line summary of what was assumed.",
+      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /bubbletea-tui init — we're about to build a TUI for our CLI (this repo).",
+      "files": [
+        "evals/fixtures/cli-stub/README.md",
+        "evals/fixtures/cli-stub/main.go",
+        "evals/fixtures/cli-stub/go.mod",
+        "evals/fixtures/cli-stub/go.sum",
+        "evals/fixtures/cli-stub/assets/logo.svg",
+        "evals/fixtures/cli-stub/answers.md"
+      ],
+      "expected_output": "An interview in short rounds (at most three questions each, every one with a proposed default), answered from answers.md with defaults for the rest, then TUI.md with design context and architecture, and a two-line summary of what was assumed.",
       "assertions": [
-        "explored the repo (README, --help, existing screens, brand assets) before asking anything",
-        "asked at most three questions per round, each with a proposed default",
+        "asked nothing the fixture's README or cairn --help already answered: the brand hexes, the logo file, the commands and the users' terminals were taken from the repo and confirmed in a question's default, not asked open",
+        "posed its questions in rounds of at most three, each with a proposed default, and answered each from answers.md or by its own default (named under ## Assumed), never by inventing an answer",
         "wrote TUI.md with product, users and terminals, brand read, theme, screens and states, keys per state, architecture (root model, regions, forms library, async work, harness states), decisions, never",
         "named the forms library and how it is themed (Huh with the kit form theme) in the architecture section",
         "ended by naming the next command (brand or shape) and what it assumed",
-        "created no file besides TUI.md (no SPEC.md, PRD or ARCH.md); with no product doc in the repo, TUI.md § Product holds the product facts and the hand-off has no 'Proposed for' line",
-        "round 2 confirmed the screen list, each screen with its one-line job, in a question's default (e.g. 'Screens: list — find a job; detail — read its log (recommended)'), instead of inferring the screens silently"
+        "created no file besides TUI.md (no SPEC.md, PRD or ARCH.md; apart from .tuitools/ and the .gitignore line Setup adds); with no product doc in the repo beyond the README, TUI.md § Product holds the product facts and the hand-off has no 'Proposed for' line",
+        "round 2 confirmed the screen list, each screen with its one-line job, in a question's default (e.g. 'Screens: flags — find a flag and its state per environment; detail — its rollout (recommended)'), instead of inferring the screens silently; answers.md's three screens are the list, and envs stays a plain command",
+        "the brand read keeps the README's never ('must never feel like a dashboard full of gauges') out of the design: no gauge, meter or dial component is planned, and the read says what calm and exact look like in cells instead",
+        "the brand read marks each hex as measured and names its source (the README's hexes, assets/logo.svg), not chosen, and names the kit theme it started from; where the read needed a choice the user didn't make, the hand-off says which was taken and the other is under ## Assumed"
       ]
     },
     {
       "id": 7,
-      "name": "init-from-existing-spec",
-      "prompt": "/bubbletea-tui init — SPEC.md describes the TUI we're building. Interview me and write TUI.md.",
+      "name": "init-keys-and-glyphs",
+      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /bubbletea-tui init — SPEC.md describes the TUI we're building. Interview me and write TUI.md.",
       "files": [
-        "evals/fixtures/review-inbox-spec/SPEC.md"
+        "evals/fixtures/review-inbox-spec/SPEC.md",
+        "evals/fixtures/review-inbox-spec/answers.md"
       ],
-      "expected_output": "A TUI.md that keeps what SPEC.md decided, catches what it got wrong for a terminal (indistinguishable keys, a global key a text box eats, one accent with three meanings, ambiguous-width state dots), settles which design method governs without skipping the screens question, keeps a visible brand signature and the ◐ glyph, fits every footer in 80 columns, keeps dialogs visible without colour, proposes a first slice of the main loop, and passes tuilint spec.",
+      "expected_output": "A TUI.md that keeps what SPEC.md decided and catches what it got wrong for a terminal: indistinguishable keys, a global key a text box eats, one accent with three meanings, ambiguous-width state dots, footers that overflow 80 columns, dialogs that vanish without colour. It passes tuilint spec.",
       "assertions": [
         "no key that terminals without key disambiguation deliver as another key (shift+enter, ctrl+enter, ctrl+m, ctrl+i, ctrl+[, ctrl+backspace …) is advertised in TUI.md's key table without a fallback in the same cell (e.g. `shift+enter/ctrl+j newline`), although SPEC.md asks for Shift+Enter; tuilint spec reports no S-KEYAMBIG",
         "the ctrl+k quick switcher is not a global key in the reply and note states, where a Bubbles textarea deletes to end of line on ctrl+k: it is rebound, or those states bind it explicitly; tuilint spec reports no S-KEYSHADOW for it",
         "the brand read gives each accent hue exactly one meaning, and focus is not drawn in the unread colour, so the inbox cursor row and an unread row look different, although SPEC.md asks amber to mean unread, focus and the active filter",
         "each state dot (● ◐ ○) has an ASCII twin named in TUI.md, and the brand read says how the dots stay width-safe in the inbox's state column (they are East Asian Width ambiguous); tuilint spec reports no S-GLYPHWIDTH",
+        "TUI.md says how focus, selection and errors stay visible under -profile ascii and lists the colour profiles it supports (truecolor, 256, 16, none)",
+        "the key table has a partial state for the inbox (one of Forge, Beacon or mail failed while the others loaded), besides its empty, loading and error states",
+        "the ● ◐ ○ ✓ state ladder keeps ◐: it has an ASCII twin and sits in a 2-cell column, and is not dropped or replaced by plain text for being ambiguous-width",
+        "no state's footer keys overflow the 80-column footer: a state with more actions than fit (the inbox) marks its footer (bold keys, or ‖ after them), keeping its main actions and its way out in it and the rest reachable from ? help; tuilint spec reports no S-FOOTER",
+        "TUI.md's colour line says what separates dialogs and overlays from the page where the background step is gone (16 colours, NO_COLOR, -profile ascii), e.g. a hairline rule or border, although SPEC.md asks for borderless filled panels"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "init-scope-and-slice",
+      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /bubbletea-tui init — SPEC.md describes the TUI we're building. Interview me and write TUI.md.",
+      "files": [
+        "evals/fixtures/review-inbox-spec/SPEC.md",
+        "evals/fixtures/review-inbox-spec/answers.md"
+      ],
+      "expected_output": "A TUI.md that settles which design method governs without skipping the screens question, keeps a visible brand signature, names the fixtures, fakes, data sizes and hero animation, proposes a first slice of the main loop, and leaves SPEC.md untouched.",
+      "assertions": [
         "TUI.md's architecture half says one fixtures file feeds both the harness (-state, -out) and the tests, and names a fake for each external service (the forge CLI and the Beacon API)",
         "noticed that SPEC.md routes screen design to 'the Grainline method', asked which method governs the screens before writing TUI.md, and recorded the answer with its reason in TUI.md § Decisions",
         "TUI.md proposes a first slice: the smallest milestone that renders the core screens (inbox, thread, reply) on fixtures before any integration, with the rest of the v1 list ordered after it",
-        "the project ends with a way for a fresh clone to get the skill back: skills-lock.json plus the .claude/skills link committed (restored with npx skills experimental_install), or .agents/skills/ committed, as SKILL.md Setup says",
         "TUI.md names one hero animation for the long-running action (the AI summary or a source refresh), drawn from the brand motif and at most 30 cells wide, and says nothing moves while idle",
         "TUI.md's architecture half names the largest realistic data (the 20,000-line diff, a thread of hundreds of comments) and how it stays fast: a virtual list or a render cache with its key",
-        "TUI.md says how focus, selection and errors stay visible under -profile ascii and lists the colour profiles it supports (truecolor, 256, 16, none)",
-        "the key table has a partial state for the inbox (one of Forge, Beacon or mail failed while the others loaded), besides its empty, loading and error states",
-        "TUI.md is the only file init created or changed (apart from the skill install files): SPEC.md is untouched, its product changes from the interview are listed in the hand-off as a proposed edit, and no layout, key, colour or screen detail was written outside TUI.md",
+        "TUI.md is the only file init created or changed (apart from the skill install files, .tuitools/ and the .gitignore line Setup adds): SPEC.md is untouched, its product changes from the interview are listed in the hand-off as a proposed edit, and no layout, key, colour or screen detail was written outside TUI.md",
         "round 2 confirmed the screen list, each screen with its job, in a question's default, although the Grainline conflict also needed a question: the conflict got its own short round or replaced a lower-value question, never the screens one, and the flows SPEC.md describes outside § Screens (morning triage with bulk mark-done and snooze, acknowledging a Beacon page from anywhere) appear in that list or are deferred by name",
         "the brand read's remember line names a move the TUI draws on every screen (the state-dot column, a rule, a gutter, a layout move), not a quality of the content such as 'reads like a well-set page'",
-        "the ● ◐ ○ ✓ state ladder keeps ◐: it has an ASCII twin and sits in a 2-cell column, and is not dropped or replaced by plain text for being ambiguous-width",
-        "no state's footer keys overflow the 80-column footer: a state with more actions than fit (the inbox) marks its footer (bold keys, or ‖ after them), keeping its main actions and its way out in it and the rest reachable from ? help; tuilint spec reports no S-FOOTER",
-        "TUI.md's colour line says what separates dialogs and overlays from the page where the background step is gone (16 colours, NO_COLOR, -profile ascii), e.g. a hairline rule or border, although SPEC.md asks for borderless filled panels",
-        "the First slice is the main loop's 2–3 screens (inbox, thread, reply) with every state of those on fixtures, not every state of every screen; note, the quick switcher and the rest come after it"
+        "the First slice is the main loop's 2–3 screens (inbox, thread, reply) with every state of those on fixtures, not every state of every screen; note, the quick switcher and the rest come after it",
+        "TUI.md § Screens holds one block per screen in the template's shape, not one line: the job, regions with x,y w×h at 80×24 and at 120×40, what collapses below 110 columns and 30 rows, the kit components that draw it, the fixture notes (longest name, failing row, empty list) and an 80-wide sketch in a code fence; a filled TUI.md still passes tuilint spec"
       ]
     }
   ]

@@ -29,7 +29,7 @@ case tickMsg:
 
 ## Deterministic Frames
 
-Every animated thing renders from `(frame, seed)` only: `Anim.Frame(n)`,
+Every animated thing renders from `(frame, seed)` only: `Anim.Frame(n, elapsed)`,
 `ui.Spinner(t, n)` (beside a label), `ui.Busy(t, n)` (in a status column: one cell like
 the dots beside it, the partial glyph when the theme's frames are wider),
 `Field{Drift: n/3}`. So the harness can render frame 24 in a
@@ -58,7 +58,9 @@ not "Loading...") and, after ~3 s, an elapsed time.
 `0-9a-fA-F~!@#…`, coloured along a primary→secondary→primary ramp that flows one step per
 frame. Columns materialise from `.` at staggered, seeded frames (so two spinners don't
 march in lockstep), followed by the label in soft fg and an animated ellipsis, or an
-elapsed timer. Pre-render frames if you have many on screen.
+elapsed timer. It draws only when the theme sets `expressions.working: scramble`;
+otherwise `Anim.Frame` is the theme's spinner + label, because the scramble is Crush's
+signature and a brand must choose it. Pre-render frames if you have many on screen.
 
 ## Transitions
 
@@ -88,10 +90,12 @@ lint, and intros that play once and hand off to an identical idle frame.
 
 ## DO / DON'T
 
-- **DO** stop ticking when nothing visible moves. **DON'T** leave a `tea.Every` running
-  on an idle screen [C-FASTTICK].
-- **DO** give every animated component an `At(frame)`. **DON'T** animate with state you
-  can't reproduce in a test.
+- **DO** stop ticking when nothing visible moves (`TestOneClock`, copied with the kit,
+  asserts `startClock()`, this page's `tick()`, returns nil on an idle fixture).
+  **DON'T** leave a `tea.Every` running on an idle screen, or tick faster than 33 ms
+  [C-FASTTICK].
+- **DO** give every animated component a `Frame(n, …)` like the kit's
+  `Anim.Frame(n, elapsed)`. **DON'T** animate with state you can't reproduce in a test.
 - **DO** say what is happening. **DON'T** ship "Loading..." [M2].
 - **DO** keep the hero animation small (a label's width). **DON'T** shimmer the whole
   screen.
