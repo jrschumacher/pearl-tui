@@ -3,9 +3,8 @@
 For an app that works but looks like every other one (or like five different ones). The
 goal is the same behaviour **at the idiom's richness**: a theme, a harness, and the moves
 that make the kit's own screens look designed, landed in small steps that each keep it
-running. A recolour is not a restyle. The first dogfood run of this command swapped the
-colours of a Huh wizard and kept everything else, and the owner's verdict was "the
-richness is missing".
+running. A recolour is not a restyle: swapping a wizard's colours and keeping everything
+else leaves the richness missing.
 
 **Keep the libraries that work.** Huh for forms, Bubbles for lists and inputs, Glamour
 for markdown: theme them from the brand theme (`components.md` § Forms And Wizards) and draw them

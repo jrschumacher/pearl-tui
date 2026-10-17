@@ -119,8 +119,8 @@ for (`t.S.Primary`) keep primary, because the brand chose it.
 hue with `ansi16` (color.md § The Four Palettes) so it doesn't land on red, error's slot;
 `palette check` fails a focus-fg theme whose primary shares a slot with a state.
 
-**A state ladder takes the status slots, by meaning.** `● new · ◐ reading · ○ waiting ·
-✓ reviewed` is `current · partial · todo · done`: the app draws `t.G.Current`,
+**A state ladder takes the status slots, by meaning.** `● queued · ◐ running · ○ waiting ·
+✓ done` is `current · partial · todo · done`: the app draws `t.G.Current`,
 `t.G.Partial`, `t.G.Todo`, `t.G.Done`, never literals, so `-ascii` draws `* ~ o +` and
 `palette check` keeps the rungs apart. `partial` is the in-progress rung (default `◐`);
 the kit draws it for a busy `ui.Dot` and a running tool call, which would otherwise be
@@ -131,8 +131,8 @@ with the same meanings: `ui.Steps` done/current/todo/fail, `ui.ToolCall`
 pending/partial/done/fail, `ui.Dot` current (ok), partial (busy), warn, fail and todo
 (idle), and `ui.Busy` the spinner (one cell, the partial glyph when the frames are wider).
 So a ladder mapped onto the slots by meaning stays consistent everywhere. Where a rung
-means something no kit component means (welp's `●` is "new", and `ui.Dot` draws
-`current` for "healthy"), keep that component off the ladder's screens, or give the rung
+means something no kit component means (an app whose `●` means "queued", while `ui.Dot`
+draws `current` for "healthy"), keep that component off the ladder's screens, or give the rung
 its own field in the copied `Glyphs` (`ASCII` maps it and `CheckGlyphs` checks its twin;
 add it to `glyphMeanings`' status set so the rungs stay apart). The hue stays off the
 kit's chrome with `focus: fg`; a spinner frame may not be a status or focus mark
