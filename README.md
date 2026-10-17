@@ -34,6 +34,11 @@ npx skills add jrschumacher/skill-bubbletea-tui
 or copy `skills/bubbletea-tui` into `~/.claude/skills/` (or your agent's skills
 directory).
 
+**Fresh clones.** A cloud container clones your project without the skill. Commit what
+`npx skills add` wrote under `.claude/skills/bubbletea-tui` (a copy, or a link into
+`.agents/skills/`), or commit `skills-lock.json` and run `npx skills experimental_install`
+after cloning; SKILL.md § Setup says which to pick and what each pins.
+
 ### Install as a Claude Code plugin (adds the lint hook)
 
 In Claude Code:
@@ -94,7 +99,7 @@ skills/bubbletea-tui/
 ├── SKILL.md              the stance, the laws, per-domain DO/DON'T, the TUI slop test, the command router
 ├── references/           medium · idiom · color · layout · components · interaction · motion · brand
 │                         cell-art · architecture · verify · anti-patterns, plus one file per command
-├── tools/                Go, built once: go -C tools build -o ~/.cache/tuitools/ ./cmd/...
+├── tools/                Go, built once per project: go -C <skill>/tools build -o "$PWD/.tuitools/" ./cmd/...
 │   ├── cellshot          ANSI → PNG / GIF / contact sheet, drawn like Ghostty/Kitty/WezTerm draw it
 │   ├── tuilint           slop + correctness lint on rendered frames, on Go source and on TUI.md's keys (rule IDs)
 │   ├── tuivet            the code rules as a go vet tool, for editors and CI
@@ -112,21 +117,22 @@ skills/bubbletea-tui/
 │   ├── themes/           seven themes (a default, a Crush study, five fictional brands)
 │   └── cmd/showcase/     the reference app (an ops dashboard and a first-run setup wizard)
 │                         + harness (-golden, -state, -out, -profile, -light, -ascii, -first-run)
-└── evals/                cases for skill-creator, with fixtures
 .claude-plugin/           plugin.json + marketplace.json: the repo as a Claude Code plugin
 hooks/                    the plugin's PostToolUse hook: tuilint code after every Go edit
+evals/                    cases for skill-creator, with fixtures (outside the skill: installs don't ship them)
 ```
 
 `cd skills/bubbletea-tui/kit && go test ./...` renders every theme × dark/light/ASCII ×
 every state × five terminal sizes and asserts each frame is exactly W×H cells, plus
 contrast floors on every palette, every advertised key handled in every state, and no
-Huh default colour in the wizard's frames. CI also lints every theme's dark, light, ASCII and
-256-colour renders.
+Huh default colour in the wizard's frames. CI also renders and lints every theme in the
+variants `.github/workflows/ci.yml` lists (seven today: dark, light, ASCII, 256, 16 colours
+dark and light, and NO_COLOR).
 
 ## The loop
 
 ```sh
-go -C <skill>/tools build -o ~/.cache/tuitools/ ./cmd/...  # once: cellshot, tuilint, palette, diversity, tuivet
+go -C <skill>/tools build -o "$PWD/.tuitools/" ./cmd/...   # once per project (gitignored): cellshot, tuilint, palette, diversity, tuivet
 go run ./cmd/app -out frames -sizes 80x24,120x40           # every state (and -light, -ascii, -profile ansi256|ansi, NO_COLOR=1)
 tuilint frames frames --theme themes/brand.json            # slop and correctness, by rule ID
 tuilint code .                                             # the same for the Go source

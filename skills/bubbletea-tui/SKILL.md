@@ -34,20 +34,29 @@ to all three. A half-applied idiom reads as noise.
    `theme/` (engine), `ui/` (components), `cmd/showcase/` (a full reference app with the
    harness), `themes/` (seven brand themes). Copy and adapt it. A cold rebuild from
    descriptions loses half the idiom at once.
-4. **Build the tools** once per session, from the directory holding this file:
-   `go -C tools build -o "$HOME/.cache/tuitools/" ./cmd/...`, then put that directory on
-   `PATH` (if `$HOME/.cache` isn't writable, any writable `-o` directory works). That
-   gives `cellshot`, `tuilint`, `palette`, `diversity` and `tuivet`. The
-   modules need Go ≥ 1.26.7; if `go` says "requires go >= 1.26.7", prefix the command
-   with `GOTOOLCHAIN=auto` and Go fetches it.
+4. **Build the tools** once per project, into the project's own `.tuitools/`, from the
+   project root: `go -C <dir holding this file>/tools build -o "$PWD/.tuitools/" ./cmd/...`
+   (absolute, because `go -C` resolves a relative `-o` in the tools directory), then
+   `export PATH="$PWD/.tuitools:$PATH"` and add `.tuitools/` to `.gitignore` (with
+   `frames/` and `out/`). A per-project directory because two projects can hold two
+   versions of the skill, and a shared `$HOME/.cache` lets one overwrite the other's
+   `tuilint` with nothing to show which rules you are linting with. That gives
+   `cellshot`, `tuilint`, `palette`, `diversity` and `tuivet`. The modules need
+   Go ≥ 1.26.7; if `go` says "requires go >= 1.26.7", prefix the command with
+   `GOTOOLCHAIN=auto` and Go fetches it.
 5. **Never show the user anything you haven't rendered and looked at** with
    `cellshot`. Never ask them for a screenshot.
 
 Once per project, **keep the skill in fresh clones**: a cloud container clones without
-it. Either commit `.agents/skills/` as installed, or commit `skills-lock.json` plus the
-`.claude/skills/bubbletea-tui` link and run `npx skills experimental_install` after
-cloning (it restores `.agents/skills/` only). Pick one with the user. Installed as the
-Claude Code plugin instead, the skill lives with the user, not the repo.
+it. Either commit whatever `npx skills add` created under `.claude/skills/bubbletea-tui`
+(a copy when the CLI detected an agent and ran non-interactively, or a link into
+`.agents/skills/`, which you then commit too), or commit `skills-lock.json` plus a
+`.claude/skills/bubbletea-tui -> ../../.agents/skills/bubbletea-tui` link and run
+`npx skills experimental_install` after cloning (it restores `.agents/skills/` only).
+The lock pins no commit, only a content hash, so `experimental_install` restores the
+current `main`, not the version the project was built with: to pin, commit the copy.
+Pick one with the user. Installed as the Claude Code plugin instead, the skill lives with
+the user, not the repo.
 
 ## The Laws
 
@@ -156,7 +165,8 @@ Would someone who lives in a terminal look at this and say "a model made this"? 
 
 ## Commands
 
-The user may name a command (`/bubbletea-tui critique`), or you route from intent. Load
+The user may name a command (`/bubbletea-tui critique`, or your agent's equivalent), or
+you route from intent. Load
 the reference, follow it, and hand off to the next command when it says so. Never
 auto-run a command the user didn't ask for; suggest it.
 

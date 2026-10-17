@@ -6,6 +6,12 @@ labels: feedback
 
 **What you asked for** (the prompt or command, e.g. `/bubbletea-tui craft`):
 
+**Skill version** (`git -C <plugin or skill dir> rev-parse --short HEAD`, or `computedHash` from `skills-lock.json`):
+
+**TUI.md** (attach it, or paste § States and keys and § Brand read; an `init` miss is a TUI.md diff):
+
+**Variant** (colour: truecolor / 256 / 16 / none; dark or light; `-ascii`; `NO_COLOR`; tmux or SSH):
+
 **What the agent produced** (attach contact sheets: `cellshot frames/*.ansi --sheet sheet.png`):
 
 **What was wrong** (cite the state, size and cells if visual; the key and state if behavioural):
