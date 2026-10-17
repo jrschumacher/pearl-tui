@@ -246,7 +246,10 @@ checks:
 
 - **State names equal harness names.** `-state services-empty` must render the row
   called `services-empty`, so the critic, the harness and this file talk about the same
-  frame. The kit's too-small state is `toosmall`, one row for the whole app.
+  frame. The kit's too-small state is `toosmall`, one row for the whole app. An overlay
+  state's name carries one of `dialog`, `palette`, `confirm`, `modal`, `overlay`,
+  `popup`, `help` or `keys` (`confirm-sending`, not `sending`): `tuilint frames` lints
+  the dialog on those names and the scrimmed page on any other.
 - **Keys here are the action tables.** If the table and `actions()` disagree, the code
   wins and this file is fixed in the same change; `TestHelpIsHandled` holds the code.
   The help-only keys (not bold, or after ‖) are the actions with `show: false`.

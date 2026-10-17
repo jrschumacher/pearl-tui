@@ -195,7 +195,8 @@
         "the ● ◐ ○ ✓ state ladder keeps ◐: it has an ASCII twin and sits in a 2-cell column, and is not dropped or replaced by plain text for being ambiguous-width",
         "no state's footer keys overflow the 80-column footer: a state with more actions than fit (the inbox) marks its footer (bold keys, or ‖ after them), keeping its main actions and its way out in it and the rest reachable from ? help; tuilint spec reports no S-FOOTER",
         "TUI.md's colour line says what separates dialogs and overlays from the page where the background step is gone (16 colours, NO_COLOR, -profile ascii), e.g. a hairline rule or border, although SPEC.md asks for borderless filled panels",
-        "tuilint spec reports no S-ACCENT on TUI.md: once the accents: line gives the hue its one meaning (amber = new), no other line puts 'the accent' or 'the primary hue' on the wordmark, a spinner, a ramp or anything else; a brief that does trips S-ACCENT and is fixed before the hand-off"
+        "tuilint spec reports no S-ACCENT on TUI.md: once the accents: line gives the hue its one meaning (amber = new), no other line puts 'the accent' or 'the primary hue' on the wordmark, a spinner, a ramp or anything else; a brief that does trips S-ACCENT and is fixed before the hand-off",
+        "every overlay state's harness name in the key table carries one of dialog, palette, confirm, modal, overlay, popup, help or keys (confirm-sending, not sending; quick-switcher-palette, not switcher), because tuilint frames finds a dialog by the frame's name and lints the scrimmed page behind any other, failing F-CONTRAST on every dimmed cell"
       ]
     },
     {

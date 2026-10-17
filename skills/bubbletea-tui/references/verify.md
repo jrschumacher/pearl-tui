@@ -21,7 +21,10 @@ screenshot.
             tuilint frames frames/light --theme themes/<brand>.json --bg <light bg>
             (lint every directory you rendered: light, 256, 16, no colour and ASCII break where dark
             truecolour passes, and LOOK at the overlays there: a dialog's edge is the first to go;
-            --ascii fails any glyph that leaked into an ASCII frame [F-ASCII])
+            --ascii fails any glyph that leaked into an ASCII frame [F-ASCII];
+            a frame is linted as a dialog only when its name carries dialog, palette, confirm,
+            modal, overlay, popup, help or keys: any other overlay name lints the scrim and
+            fails F-CONTRAST on it, so rename the state, not the theme)
             tuilint code .                                                (tuivet ./... in go vet or an editor: same rules)
             tuilint spec TUI.md                                           (after any key-table change)
 4. LOOK     cellshot frames/*-80x24.ansi frames/toosmall-*.ansi --sheet sheet-80.png
