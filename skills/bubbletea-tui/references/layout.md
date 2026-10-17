@@ -70,6 +70,10 @@ visible "↑ 25 more lines" affordance.
   fills (capped at a share), the lower takes the rest. **DON'T** give each a fixed
   half: a five-row collection over a long response leaves rows 6–10 blank while the
   response is cut at row 11.
+- **DO** keep the working surface (the list the user acts on) at least half the body
+  rows at the floor, and fold a readings panel's secondary rows into the row above
+  (`cpu 42% · mem 61%`, not two rows) before taking rows from it. **DON'T** let "one
+  row per reading" win: at 80×24 it takes a 13-row list down to 8.
 
 ## Gutters And Rhythm
 
