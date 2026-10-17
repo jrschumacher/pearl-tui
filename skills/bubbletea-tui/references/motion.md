@@ -91,8 +91,9 @@ lint, and intros that play once and hand off to an identical idle frame.
 ## DO / DON'T
 
 - **DO** stop ticking when nothing visible moves (`TestOneClock`, copied with the kit,
-  asserts `tick()` is nil in idle states). **DON'T** leave a `tea.Every` running on an
-  idle screen, or tick faster than 33 ms [C-FASTTICK].
+  asserts `startClock()`, this page's `tick()`, returns nil on an idle fixture).
+  **DON'T** leave a `tea.Every` running on an idle screen, or tick faster than 33 ms
+  [C-FASTTICK].
 - **DO** give every animated component a `Frame(n, …)` like the kit's
   `Anim.Frame(n, elapsed)`. **DON'T** animate with state you can't reproduce in a test.
 - **DO** say what is happening. **DON'T** ship "Loading..." [M2].

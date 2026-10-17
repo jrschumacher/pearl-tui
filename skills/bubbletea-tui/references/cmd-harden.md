@@ -11,7 +11,7 @@ Each item becomes a harness state or a test, so it stays fixed.
 
 ## Data
 
-- [ ] Empty, one item, and `TUI.md` § Async `largest:` (10,000 items if it names none):
+- [ ] Empty, one item, and `TUI.md` § Async and the clock `largest:` (10,000 items if it names none):
       virtualise; measure render time. The user's worst case, not a round number.
 - [ ] The longest realistic name (60+ chars), CJK names (2 cells per rune), emoji in
       user data (render it, but never let it break a column: truncate by cells).

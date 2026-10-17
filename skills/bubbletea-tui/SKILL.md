@@ -26,7 +26,7 @@ to all three. A half-applied idiom reads as noise.
 1. **Read `TUI.md`.** If it exists at the project root, read it: the design half holds
    the brand read, the theme and the screens; the architecture half holds the stack, the
    regions, the forms library, the states and the keys per state. If it doesn't exist,
-   run `init` first (or, for a one-off screen, its short form in
+   suggest `init` (or, for a one-off screen, run its short form in
    `references/cmd-init.md`: 2–3 questions, then say what you assumed).
 2. **Load the command's reference** from the table below, plus the domain references it
    names. Load nothing else up front.
@@ -160,8 +160,9 @@ Would someone who lives in a terminal look at this and say "a model made this"? 
 The user may name a command (`/bubbletea-tui critique`, or your agent's equivalent), or
 you route from intent. Load the reference, follow it, and hand off to the next command
 when it says so. Never auto-run a command the user didn't ask for; suggest it. The one
-exception is `init`'s short form, which any command runs when `TUI.md` is missing, because
-a build with no plan invents its regions and keys screen by screen.
+exception: when `TUI.md` is missing and the job is one screen, run `init`'s short form
+(`references/cmd-init.md`); otherwise suggest `init`, because a build with no plan
+invents its regions and keys screen by screen.
 
 | Command | Use when | Reference |
 |---|---|---|

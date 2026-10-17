@@ -6,8 +6,9 @@ program with the harness, rendered and critiqued.
 ## 0. Read TUI.md First
 
 It holds the brand read, the screens and the architecture this build must follow. If it's
-missing, run `init` (or its short form, saying what you assumed): a build with no plan
-invents its regions and keys screen by screen.
+missing and the job is one screen, run `init`'s short form, saying what you assumed;
+otherwise suggest `init` and stop: a build with no plan invents its regions and keys
+screen by screen.
 
 ## 1. Start From The Kit, Not From Prose
 
@@ -28,8 +29,9 @@ Before any real screen:
 - `setState(name)` for every state in the spec, using fixtures
 - flags: `-golden -w -h`, `-state`, `-out -sizes`, `-theme`, `-light`, `-ascii`,
   `-profile`, `-frame`
-- `_test.go` asserting the footprint at the kit's five sizes (60×18, 80×24, 100×30,
-  120×40, 200×60); trimming it to four loses the floor
+- `_test.go` asserting the footprint at the kit's five sizes (60×18, the floor at which
+  every ordinary state still renders, then 80×24, 100×30, 120×40, 200×60); trimming it
+  to four loses the floor. `toosmall` is `-golden`/`-out`'s, at 50×14
 
 Run `-golden` at both sizes. It must pass while the screens are still stubs.
 

@@ -1,6 +1,7 @@
 # brand — turn a brand into a theme file that is provably not the default
 
-Input: `TUI.md` (run `init`'s short form first if missing) and the brand assets. Output:
+Input: `TUI.md` (missing: suggest `init`; its short form only for a one-screen job) and
+the brand assets. Output:
 `themes/<brand>.json`, the read in `TUI.md` § Brand read (the only copy: a second file
 drifts), contact sheets in both modes, a passing diversity lint. Read
 `references/brand.md` and `references/color.md` first.
@@ -28,7 +29,8 @@ drifts), contact sheets in both modes, a passing diversity lint. Read
 7. **Render** the kit showcase (or the app) with the theme: dark, light, ascii, at 80×24
    and 120×40 (`brand.md` §6). Before `craft` copies the kit, the showcase runs from the
    skill: `go -C <skill>/kit run ./cmd/showcase -theme $PWD/themes/<brand>.json -out
-   $PWD/frames/<brand> -sizes 80x24,120x40` (`-C` runs it from the kit, so paths are
+   $PWD/frames/<brand> -sizes 80x24,120x40`, then the same with `-out
+   $PWD/frames/<brand>-light -light` (`-C` runs it from the kit, so paths are
    absolute). Contact sheets via `cellshot --sheet`.
 8. **Lint.** `diversity themes/*.json kit/themes/ink.json kit/themes/charm.json
    --baseline ink,charm --min-distance 8` must pass (`kit/` is in the skill directory;

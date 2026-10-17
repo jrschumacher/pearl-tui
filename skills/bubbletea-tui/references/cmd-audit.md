@@ -7,7 +7,7 @@ evidence and the command that reproduces each finding.
 
 | Area | How | P0 if |
 |---|---|---|
-| Footprint | `-golden` at 80×24, 120×40; `go test` at the kit's five sizes (60×18 … 200×60); resize to 250×70 | any row ≠ W or rows ≠ H |
+| Footprint | `-golden` at 80×24, 120×40 (`toosmall` included, at 50×14); `go test` at the kit's five sizes (60×18, the floor with a full layout, … 200×60); resize to 250×70 | any row ≠ W or rows ≠ H |
 | Resize | is `tea.WindowSizeMsg` handled; what renders below the minimum | the layout is hard-coded |
 | Blocking | `tuilint code` C-SLEEP/C-VIEWIO; grep `Update`/`View` for I/O | anything slow on the UI goroutine |
 | Version | imports: `charm.land/*/v2` | v1 in new code (P1) |
@@ -20,7 +20,7 @@ evidence and the command that reproduces each finding.
 | Output | `fmt.Print` while running; logs to stdout | frame corruption |
 | Exit | the terminal is restored after quit, panic and `tea.Suspend` (if ctrl+z is bound); program status cleared | broken terminal after exit |
 | Pipes | behaviour when stdout is not a TTY; `--json` path | a TUI forced into a pipe |
-| Perf | render time at 200×60 with `TUI.md` § Async `largest:` (10k items if it names none; `testing.B` on `render`) | > 16 ms per frame (P1) |
+| Perf | render time at 200×60 with `TUI.md` § Async and the clock `largest:` (10k items if it names none; `testing.B` on `render`) | > 16 ms per frame (P1) |
 
 ## Report
 
