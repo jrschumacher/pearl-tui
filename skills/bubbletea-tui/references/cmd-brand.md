@@ -48,9 +48,12 @@ drifts), contact sheets in both modes, a passing diversity lint. Read
    <bg>` and the light frames with `--bg <light bg>`, and the footprint: `go test` once
    the kit is in the project (`craft` §1); until then the showcase's `-golden -w 80 -h
    24` and `-w 120 -h 40` from step 7's `go -C` form, which tests every state's rows.
-9. **Judge** with the four questions in `brand.md` §6 (the `ladder` frame shows every
-   status mark in its role), then run a critic (`verify.md`) focused on identity: "which
-   product is this, and what will you remember?"
+9. **Judge** with the four questions in `brand.md` §6. The `ladder` frame shows every
+   status mark in its role: before the kit is copied it is the showcase's, at
+   `frames/<brand>/ladder-80x24.ansi` from step 7's `go -C` run (the app has no
+   `ladder` state yet; the showcase always does), and after `craft` it is the app's
+   own. Then run a critic (`verify.md`) focused on identity: "which product is this,
+   and what will you remember?"
 10. **Record** the theme path and decisions in `TUI.md`.
 
 Next: `shape` (no screen spec yet) | `craft` (§ Screens is filled).
