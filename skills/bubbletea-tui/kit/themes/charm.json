@@ -2,6 +2,11 @@
  "name": "charm",
  "brand": "crush-ish",
  "read": "A study of Crush's idiom with the Charmtone palette (Charple #6B50FF, Dolly #FF60FF, Bok mint, Zest, Pepper bg): the ╱ diagonal as the brand signature in the header and every dialog title, a bold per-glyph gradient wordmark, ▌ focus bars that never shift content, filled pill buttons, inverse tag chips, toasts over the help line, the terminal background owned. Use it to calibrate against the reference, not as a product's theme: it is Charm's identity.",
+ "ansi16": {
+  "dark": {
+   "warning": 11
+  }
+ },
  "roles": {
   "dark": {
    "primary": "#6B50FF",

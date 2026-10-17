@@ -2,6 +2,14 @@
  "name": "moss",
  "brand": "moss",
  "read": "A personal knowledge base for writers (fictional). Quiet, bookish, unhurried: ink green on warm paper, a brick-red second voice for highlights, light first. Lowercase titles, a · dotted leader after the name like a table of contents, a thin │ bar, underlined text buttons, no borders on the dialog (a filled page instead), plain dialog titles, underlined tabs, rules under the footer, airy. It should feel like a well-set page, not an app.",
+ "ansi16": {
+  "dark": {
+   "warning": 11
+  },
+  "light": {
+   "warning": 3
+  }
+ },
  "roles": {
   "dark": {
    "accent": "#B9D3C2",
