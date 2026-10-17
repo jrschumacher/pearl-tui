@@ -2,7 +2,7 @@
 //
 //	tuilint frames <dir|files...> [--cols W --rows H] [--theme theme.json] [--bg #rrggbb] [--json out.json]
 //	tuilint code <dir...> [--theme-pkg path/fragment] [--json out.json]
-//	tuilint spec [TUI.md...] [--json out.json]
+//	tuilint spec [TUI.md...] [--frames DIR] [--json out.json]
 //	tuilint hook < posttooluse.json
 //
 // Every rule has an ID. Rules marked P0/P1 fail the run (exit 1); P2 are warnings, and

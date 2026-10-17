@@ -34,6 +34,8 @@ type Palette struct {
 	near    map[RGB]bool
 	cols    map[RGB]struct{} // every colour before quantising, for Indexed
 	indexed map[RGB]bool     // built on first use
+
+	Ellipsis string // the theme's glyphs.ellipsis, "" when it sets none (F-TRUNC)
 }
 
 // Indexed is the set of xterm-256 colours the palette's colours can downsample to, for
@@ -166,7 +168,13 @@ func LoadPalette(path string) (*Palette, error) {
 			}
 		}
 	}
-	return buildPalette(base, bgs), nil
+	p := buildPalette(base, bgs)
+	if m, ok := t.(map[string]any); ok {
+		if g, ok := m["glyphs"].(map[string]any); ok {
+			p.Ellipsis, _ = g["ellipsis"].(string)
+		}
+	}
+	return p, nil
 }
 
 func buildPalette(base, bgs []RGB) *Palette {

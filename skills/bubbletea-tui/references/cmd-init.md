@@ -267,7 +267,9 @@ table not in the template's format
 [S-TABLE], because nothing else can be checked without one; a key that terminals without key
 disambiguation deliver as another, with no fallback in the cell (`shift+enter` arrives
 as `enter` in tmux: write `shift+enter/ctrl+j newline`) [S-KEYAMBIG], and one key with
-two actions in one state's cell or in Global [S-KEYDUP]. A state that binds a Global
+two actions in one state's cell or in Global [S-KEYDUP]; a modifier carries onto arrows
+only (`shift+↑↓` and `shift+↑/↓` are shift+up and shift+down, but `ctrl+c/q` is ctrl+c
+or q, so spell three ctrl keys `ctrl+d/ctrl+f/ctrl+t`). A state that binds a Global
 key to its own action (`esc cancel` over Global `esc back`) overrides it and passes,
 because the state's table is dispatched first. Fix its warnings or justify each in
 § Decisions: a Global key a text box eats (`ctrl+k` deletes to end of line in a Bubbles
