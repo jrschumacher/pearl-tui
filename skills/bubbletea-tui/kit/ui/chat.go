@@ -300,11 +300,35 @@ func Transcript(t *theme.Theme, blocks [][]string, w, h, scroll int, hint string
 	}
 	if head >= 0 && hidden > head && hidden < next-1 {
 		right := more(hidden-1) + tail
-		room := w - lipgloss.Width(right) - 2
-		return append([]string{Fit(cutRow(t, rows[head], room)+"  "+right, w)}, rows[hidden:end]...)
+		// lifted only where the head keeps its icon and name; narrower, the plain
+		// marker counts the head with the rest
+		if room := w - lipgloss.Width(right) - 2; room >= headWidth(rows[head]) {
+			return append([]string{Fit(cutRow(t, rows[head], room)+"  "+right, w)}, rows[hidden:end]...)
+		}
 	}
 	marker := "  " + t.S.Subtle.Render(t.G.More+" "+strconv.Itoa(hidden)+" more lines") + tail
 	return append([]string{Fit(marker, w)}, rows[hidden:end]...)
+}
+
+// headWidth is the cells a block's head needs to say what it is: through its second
+// word (the gutter, then an icon and a name: "  ● Edit") and a cell for the ellipsis
+// after it, or all of it when that is shorter.
+func headWidth(row string) int {
+	plain := []rune(ansi.Strip(row))
+	all := ansi.StringWidth(strings.TrimRight(string(plain), " "))
+	words, in := 0, false
+	for i, r := range plain {
+		switch {
+		case r != ' ' && !in:
+			in = true
+		case r == ' ' && in:
+			in = false
+			if words++; words == 2 {
+				return min(all, ansi.StringWidth(string(plain[:i]))+1)
+			}
+		}
+	}
+	return all
 }
 
 // cutRow truncates a padded row to w cells: plainly when only its padding is lost;

@@ -218,3 +218,43 @@ func TestTranscriptLiftsAHeadWithoutItsNote(t *testing.T) {
 		}
 	}
 }
+
+// At a width where the marker row can't hold the lifted head's icon and name, the
+// marker is the plain one and counts every hidden row, the head among them: at 12 cells
+// the head was cut to nothing ("↑ 4 more …" over "+ c") and its count was one short.
+func TestTranscriptLiftsAHeadOnlyWhereItReads(t *testing.T) {
+	th := theme.Resolve(theme.Default(), true, false)
+	blocks := [][]string{{"  U user"}, {"  ● Edit config/timeouts.go", "  + a", "  + b", "  + c"}}
+	const h = 2
+	for w := 1; w <= 60; w++ {
+		rows := Transcript(th, blocks, w, h, 0, "pgup")
+		first := ansi.Strip(rows[0])
+		if lipgloss.Width(rows[0]) != w {
+			t.Errorf("w=%d: the marker row is %d cells", w, lipgloss.Width(rows[0]))
+		}
+		if !strings.Contains(first, "● Edit") {
+			// plain: it counts the head too, when the count fits at all
+			if strings.Contains(first, th.G.More+" ") {
+				var n int
+				if _, err := fmtSscan(first, th.G.More+" ", &n); err == nil && n != 5 {
+					t.Errorf("w=%d: the plain marker %q counts %d, want all 5 hidden rows", w, first, n)
+				}
+			}
+			if strings.Contains(first, "●") || strings.Contains(first, "Edi") {
+				t.Errorf("w=%d: a head cut short of its icon and name: %q", w, first)
+			}
+			continue
+		}
+		var n int
+		if _, err := fmtSscan(first, th.G.More+" ", &n); err != nil || n != 4 {
+			t.Errorf("w=%d: the lifted marker %q counts %d, want 4 (the head is shown)", w, first, n)
+		}
+	}
+	// wide enough, the head is lifted; at 12 cells it can't be
+	if first := ansi.Strip(Transcript(th, blocks, 40, h, 0, "pgup")[0]); !strings.Contains(first, "● Edit") {
+		t.Errorf("w=40: want the head lifted, got %q", first)
+	}
+	if first := ansi.Strip(Transcript(th, blocks, 12, h, 0, "pgup")[0]); !strings.HasPrefix(strings.TrimSpace(first), th.G.More+" 5") {
+		t.Errorf("w=12: want the plain marker counting 5, got %q", first)
+	}
+}
