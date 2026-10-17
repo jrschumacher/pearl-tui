@@ -536,6 +536,9 @@ func TestLevelsSkipsColourlessFrames(t *testing.T) {
 	if n := levels("plain-80x12.ansi", plain.String()); n != 0 {
 		t.Errorf("no-colour frame: %d F-LEVELS, want 0", n)
 	}
+	if n := levels("basic-80x12.ansi", strings.ReplaceAll(grey.String(), "\x1b[38;2;200;200;200m", "\x1b[37m")); n != 0 {
+		t.Errorf("16-colour frame: %d F-LEVELS, want 0 (palette check judges the theme's greys)", n)
+	}
 	if n := levels("grey-80x12.ansi", grey.String()); n != 1 {
 		t.Errorf("one-grey colour frame: %d F-LEVELS, want 1", n)
 	}

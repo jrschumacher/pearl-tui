@@ -107,5 +107,15 @@
    "tertiary": 23,
    "warning": 94
   }
+ },
+ "ansi16": {
+  "dark": {
+   "primary": 13,
+   "warning": 11
+  },
+  "light": {
+   "primary": 5,
+   "warning": 3
+  }
  }
 }

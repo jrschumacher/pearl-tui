@@ -491,8 +491,11 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 		add("F-RAINBOW", "P2", "frame", fmt.Sprintf("%d distinct foreground hues: hierarchy should come from lightness levels, colour from roles", big))
 	}
 	// a frame with no colour (NO_COLOR) has one text level by construction: its levels
-	// are weight and glyphs, and the colour renders are where F-LEVELS is judged
-	if textCells > 400 && len(levels) < 3 && !f.Plain {
+	// are weight and glyphs; at 16 colours (-profile ansi) the text ramp is three of the
+	// terminal's four greys, which the engine assigns and palette check judges per theme
+	// (a neutral it pinned onto a hue), so a count here would name the symptom and not
+	// the cause. The truecolour and 256-colour renders are where F-LEVELS is judged
+	if textCells > 400 && len(levels) < 3 && !f.Plain && !f.Basic {
 		add("F-LEVELS", "P2", "frame", fmt.Sprintf("only %d neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle", len(levels)))
 	}
 	splash := splashName.MatchString(name)

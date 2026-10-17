@@ -22,9 +22,9 @@
    "onSuccess": "#0A131A",
    "onWarning": "#0A131A",
    "primary": "#7A7D80",
-   "secondary": "#7C7C80",
+   "secondary": "#989B9E",
    "success": "#56AE6C",
-   "tertiary": "#BBB6B4",
+   "tertiary": "#B7BABD",
    "warning": "#F1C45E"
   },
   "light": {
@@ -44,13 +44,13 @@
    "info": "#006A9D",
    "onError": "#F8FAFD",
    "onPrimary": "#0B1219",
-   "onSecondary": "#0B1219",
+   "onSecondary": "#F8FAFD",
    "onSuccess": "#F8FAFD",
    "onWarning": "#F8FAFD",
    "primary": "#7A7D80",
-   "secondary": "#7C7C80",
+   "secondary": "#5D6063",
    "success": "#137738",
-   "tertiary": "#666260",
+   "tertiary": "#424548",
    "warning": "#906B00"
   }
  },
@@ -76,7 +76,7 @@
    "onSuccess": 233,
    "onWarning": 233,
    "primary": 244,
-   "secondary": 244,
+   "secondary": 247,
    "success": 71,
    "tertiary": 250,
    "warning": 221
@@ -98,14 +98,22 @@
    "info": 24,
    "onError": 231,
    "onPrimary": 233,
-   "onSecondary": 233,
+   "onSecondary": 231,
    "onSuccess": 231,
    "onWarning": 231,
    "primary": 244,
-   "secondary": 244,
+   "secondary": 59,
    "success": 29,
-   "tertiary": 241,
+   "tertiary": 238,
    "warning": 94
+  }
+ },
+ "ansi16": {
+  "dark": {
+   "warning": 11
+  },
+  "light": {
+   "warning": 3
   }
  }
 }

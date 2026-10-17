@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -211,6 +212,51 @@ func TestOverlaysInReducedProfiles(t *testing.T) {
 						t.Errorf("%s %s dark=%v: %v", filepath.Base(f), pr.name, dark, err)
 					}
 				}
+			}
+		}
+	}
+}
+
+// At 16 colours the scrim is skipped: the page is ANSI 0 or 15 there, so dimming text
+// toward it put every level on the page's own slot (93 invisible cells under halyard's
+// confirm). No text cell on a confirm frame at -profile ansi draws in its background's
+// slot, for any theme, in either mode; the dialog is judged too, since its own text is
+// fg on bgPanel.
+func TestNoScrimAt16Colours(t *testing.T) {
+	slot := func(c color.Color, def color.Color) int {
+		if c == nil {
+			c = def
+		}
+		if b, ok := colorprofile.ANSI.Convert(c).(ansi.BasicColor); ok {
+			return int(b)
+		}
+		return -1
+	}
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dark := range []bool{true, false} {
+			m := newApp(tf, dark, false)
+			m.profile = colorprofile.ANSI
+			m.setState("confirm")
+			c := m.render(80, 24)
+			c.PaintBackground()
+			hidden := 0
+			for y := 0; y < 24; y++ {
+				for x := 0; x < 80; x++ {
+					cell := c.CellAt(x, y)
+					if cell == nil || strings.TrimSpace(cell.Content) == "" {
+						continue
+					}
+					if slot(cell.Style.Fg, m.t.P.Fg) == slot(cell.Style.Bg, m.t.P.Bg) {
+						hidden++
+					}
+				}
+			}
+			if hidden > 0 {
+				t.Errorf("%s dark=%v: %d text cells draw in their background's slot at 16 colours", filepath.Base(f), dark, hidden)
 			}
 		}
 	}

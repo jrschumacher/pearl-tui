@@ -14,8 +14,12 @@
 //	                                "contrastAccept": {"dark.primary": "the brand's own hex, used as a fill"}
 //
 // `derive` prints the roles as JSON (`{"dark": {...}, "light": {...}}`, the theme contract's
-// shape), a contrast table, and the nearest xterm-256 index for each role (for the
-// ANSI256 fallback). `--swatch` writes an .ansi file you can render with cellshot.
+// shape), a contrast table, the nearest xterm-256 index for each role (for the
+// ANSI256 fallback), and the "ansi16" pins its own check would ask for (below), so the
+// first check of the theme prints no 16-colour pin. With one hex, secondary and tertiary are
+// lightness steps of it (accent its pale tint), not a hue 40° off and a complement the
+// brand never chose; with two, the second is the brand's and tertiary a complement.
+// `--swatch` writes an .ansi file you can render with cellshot.
 // Options take their value as the next argument or after "=".
 //
 // `check` fills the on-colours a theme leaves out exactly as the kit's engine does
@@ -28,7 +32,13 @@
 // thumb/track, focus/blur bar) that share a twin under -ascii. And on its expressions
 // (theme.CheckExpressions): a key the kit doesn't read or a value it doesn't know, which
 // theme.Load draws as the default silently ("dialog": "rule" for "rules"), named with
-// the values the kit knows.
+// the values the kit knows. A key under roles.<mode>, glyphs or wordmark the kit doesn't
+// read ("primay", "focusbar": theme.Load drops it and the role falls back to the derived
+// colour) and a wordmark.style it doesn't know exit 2 the same way (theme.CheckKeys).
+//
+// It warns, on stderr, when a mode's warning sits beside its primary in hue and chroma
+// (OKLab a/b distance under 0.06: an amber brand's warning a shade brighter than its
+// amber), since a warning row then reads as a focused one; derive warns the same.
 //
 // It reports, on stderr, state roles that land on one of the 16 colours (-profile ansi)
 // after the theme's "ansi16" pins, each with the pin that separates them:
@@ -40,7 +50,14 @@
 // on red or on another state role's colour (amber = new must not read as error). It warns
 // on primary on red under "focus": "primary" (focus reads as an error), on warning,
 // success or info on red, and on two of those on one colour: their glyphs and words still
-// differ. A pin that names no role, no mode or no colour 0-15 exits 2, as theme.Load does.
+// differ. The neutrals (bg, fg, fgMuted, fgSubtle, their steps, border) draw on the four
+// greys there (the kit assigns them: page 0 or 15, text the opposite; a dark page keeps
+// three text levels, fgMuted 7 and fgSubtle 8; a light page keeps two, fgMuted and
+// fgSubtle both 8, since ANSI 7 on a white page is below every floor and fgSubtle is
+// never the only carrier of meaning), so only a pin moves one: a neutral on red exits 1 (hints read as
+// errors), on another hue or two text levels on one grey it warns, each with the grey to
+// pin instead. A pin that names no role, no mode or no colour 0-15 exits 2, as
+// theme.Load does.
 //
 // Thresholds (WCAG 2 contrast ratio against the role's background):
 //
@@ -58,8 +75,8 @@
 // On a mid-tone fill where neither ink clears its floor, derive deepens the ink toward
 // black or white along its hue (the engine does the same), so the brand keeps its hex.
 //
-// Exit status: 0 OK, 1 contrast problems or a state clash under focus "fg", 2 usage or
-// input errors.
+// Exit status: 0 OK, 1 contrast problems, error off red, a state clash under focus "fg"
+// or a neutral on red at 16 colours; 2 usage or input errors.
 package main
 
 import (

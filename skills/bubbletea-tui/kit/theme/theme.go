@@ -18,6 +18,7 @@ import (
 	"image/color"
 	"os"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 
@@ -233,6 +234,76 @@ func CheckANSI16(f File) error {
 	return nil
 }
 
+// wordmarkStyles are the styles scripts/wordmark.py writes into wordmark.style.
+var wordmarkStyles = []string{"half", "shade", "ascii", "tracked"}
+
+// CheckKeys reports a key under roles.<mode>, glyphs or wordmark that the kit doesn't
+// read ("primay", "focusbar"), and a wordmark.style it doesn't know, each with what it
+// does know. Load ignores an unknown key, so the role it meant falls back to the derived
+// colour and nothing says why; palette check fails on it, as on an expressions key. Keys
+// are matched exactly: encoding/json would read "focusbar" as focusBar, but the contract
+// is written one way. data is the theme JSON, or a bare roles object ({"dark": …}). Any
+// other error in the JSON is left to Load.
+func CheckKeys(data []byte) error {
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(data, &top); err != nil {
+		return nil
+	}
+	exact := func(raw json.RawMessage, where string, known []string) error {
+		var obj map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &obj); err != nil {
+			return nil
+		}
+		for _, k := range sortedKeys(obj) {
+			if !slices.Contains(known, k) {
+				return fmt.Errorf("%s.%s is not a key the kit reads (%s): a typo, or a key from a newer kit, is drawn as if unset", where, k, strings.Join(known, ", "))
+			}
+		}
+		return nil
+	}
+	modes := map[string]json.RawMessage{}
+	if raw, ok := top["roles"]; ok {
+		_ = json.Unmarshal(raw, &modes)
+	} else {
+		for _, m := range []string{"dark", "light"} {
+			if raw, ok := top[m]; ok {
+				modes[m] = raw
+			}
+		}
+	}
+	for _, m := range sortedKeys(modes) {
+		if err := exact(modes[m], "roles."+m, jsonKeys(reflect.TypeOf(Roles{}))); err != nil {
+			return err
+		}
+	}
+	if raw, ok := top["glyphs"]; ok {
+		if err := exact(raw, "glyphs", jsonKeys(reflect.TypeOf(Glyphs{}))); err != nil {
+			return err
+		}
+	}
+	if raw, ok := top["wordmark"]; ok {
+		if err := exact(raw, "wordmark", jsonKeys(reflect.TypeOf(Wordmark{}))); err != nil {
+			return err
+		}
+		var w Wordmark
+		if err := json.Unmarshal(raw, &w); err == nil && w.Style != "" && !slices.Contains(wordmarkStyles, w.Style) {
+			return fmt.Errorf("wordmark.style %q is not a style wordmark.py writes: %s", w.Style, strings.Join(wordmarkStyles, " | "))
+		}
+	}
+	return nil
+}
+
+// jsonKeys are t's fields' JSON keys, in the contract's order.
+func jsonKeys(t reflect.Type) []string {
+	out := make([]string, 0, t.NumField())
+	for i := range t.NumField() {
+		if k, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ","); k != "" {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
 func sortedKeys[V any](m map[string]V) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -383,6 +454,65 @@ func ANSI16Index(f File, mode, role string) int {
 	return -1
 }
 
+// NeutralRoles are the roles that carry no state: the page, its steps, its rules and
+// the text ramp. At 16 colours they belong on the four greys (0, 7, 8, 15): on a hue,
+// body text reads as a state and the page as a fill; on red, hints read as errors.
+var NeutralRoles = []string{"bg", "bgPanel", "bgSubtle", "bgOverlay", "border", "fg", "fgSoft", "fgMuted", "fgSubtle"}
+
+// TextRamp are the text levels that stay apart at 16 colours: three on a dark page, two
+// on a light one, where fgSubtle shares fgMuted's grey by design (GreySlot16). fgSoft is
+// prose and may share fg's grey.
+var TextRamp = []string{"fg", "fgMuted", "fgSubtle"}
+
+// NeutralSlot is a neutral role misplaced at 16 colours: on a hue, or sharing a grey with
+// another level of the text ramp.
+type NeutralSlot struct {
+	Mode  string      // dark | light
+	Role  string      // role key
+	Col   color.Color // as the theme writes it (truecolour)
+	Index int         // the ANSI colour it lands on
+	With  string      // the text ramp role it shares Index with; "" when Index is a hue
+}
+
+func (n NeutralSlot) String() string {
+	if n.With != "" {
+		return fmt.Sprintf("%s: %s and %s both ANSI %d", n.Mode, n.With, n.Role, n.Index)
+	}
+	return fmt.Sprintf("%s: %s draws as ANSI %d, a hue", n.Mode, n.Role, n.Index)
+}
+
+// Grey16 reports whether i is one of the four greys at 16 colours.
+func Grey16(i int) bool { return i == 0 || i == 7 || i == 8 || i == 15 }
+
+// ANSI16Neutrals reports, per mode, the neutral roles (NeutralRoles) a 16-colour terminal
+// draws on a hue, and the pairs of the text ramp (TextRamp) that draw as one grey other
+// than by the engine's own assignment (a light page's fgMuted and fgSubtle both on 8),
+// after the theme's ansi16 pins. derive puts every neutral on its grey (GreySlot16), so
+// only a pin moves one off; palette check fails a neutral on red and warns on the rest,
+// each with the pin that puts it back.
+func ANSI16Neutrals(f File) []NeutralSlot {
+	var out []NeutralSlot
+	for _, mode := range modes16(f) {
+		dark := mode != "light"
+		tc := ResolveProfile(f, dark, false, colorprofile.TrueColor).P
+		for _, role := range NeutralRoles {
+			if i := ANSI16Index(f, mode, role); i >= 0 && !Grey16(i) {
+				out = append(out, NeutralSlot{mode, role, paletteRole(tc, role), i, ""})
+			}
+		}
+		for i, a := range TextRamp {
+			for _, b := range TextRamp[i+1:] {
+				ia, ib := ANSI16Index(f, mode, a), ANSI16Index(f, mode, b)
+				if ia < 0 || ia != ib || (ia == GreySlot16(a, dark) && ib == GreySlot16(b, dark)) {
+					continue
+				}
+				out = append(out, NeutralSlot{mode, b, paletteRole(tc, b), ib, a})
+			}
+		}
+	}
+	return out
+}
+
 func sameColor(a, b color.Color) bool {
 	if a == nil || b == nil {
 		return a == b
@@ -463,8 +593,10 @@ func Resolve(f File, dark, ascii bool) *Theme {
 }
 
 // ResolveProfile is Resolve for the colour profile the terminal reports
-// (tea.ColorProfileMsg: 16 colours, 256, or none under NO_COLOR). At 16 colours the
-// theme's ansi16 pins replace the roles they name. Where a
+// (tea.ColorProfileMsg: 16 colours, 256, or none under NO_COLOR). At 16 colours every
+// neutral role draws on one of the four greys (GreySlot16: the page 0 or 15, body text
+// the opposite, fgMuted and fgSubtle on 7 and 8) and the theme's ansi16 pins replace
+// the roles they name. Where a
 // background step the styles separate things with can't be told from the page at
 // that profile (Distinct), they add an edge instead: a borderless dialog gets a rule
 // above and below. A rule or border colour that lands on bg moves to the nearest one
@@ -483,7 +615,7 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 	t := &Theme{File: f, Dark: dark, ASCII: ascii, Profile: profile}
 	var pins map[string]int
 	if profile == colorprofile.ANSI {
-		pins = f.ANSI16[mode]
+		pins = pins16(f, mode, dark)
 	}
 	t.P = derive(r, dark, pins)
 	t.G = glyphDefaults(f.Glyphs)
