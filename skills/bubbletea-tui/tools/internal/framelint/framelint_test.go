@@ -634,8 +634,47 @@ func TestTruncatedColumn(t *testing.T) {
 	if got := truncs(table("titles-34x9.ansi", "title", "")); len(got) != 1 || !strings.Contains(got[0].Msg, "widen the column") || !strings.Contains(got[0].Msg, "§ Decisions") {
 		t.Errorf("a last column headed title: %+v, want one that says widen it or say so in § Decisions", got)
 	}
+	asciiOf := func(p string) string { // the same frame as -ascii draws it: - rules, ... cuts
+		b, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b = []byte(strings.NewReplacer("─", "-", "…", "...").Replace(string(b)))
+		if err := os.WriteFile(p, b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	if got := truncs(asciiOf(table("ascii-procs-36x9.ansi", "command", "")), "--ascii"); len(got) != 0 {
+		t.Errorf("a last column headed command under --ascii: %+v, want none", got)
+	}
 	if got := truncs(table("mid-40x9.ansi", "command", "  ok")); len(got) != 1 {
 		t.Errorf("a command column with a column after it: %+v, want one", got)
+	}
+	// the header heads the column: the cell where the cut rows' text starts, on the row
+	// above them. A sidebar heading or a hint that ends in "files" or "path" is not one.
+	sidebar := func(name string, top ...string) string {
+		var b strings.Builder
+		for _, l := range top {
+			b.WriteString(fmt.Sprintf("%-80s\n", l))
+		}
+		for _, title := range []string{"Add CSV import for bank stat", "Fix rounding in ledger expor", "Refactor the OFX parser into", "Write tests for the importer", "Port the CLI flags to cobra "} {
+			b.WriteString(fmt.Sprintf("%-80s\n", fmt.Sprintf("  %-46s%s…", "body text here", title)))
+		}
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	if got := truncs(sidebar("recent-80x8.ansi", fmt.Sprintf("  %-46s%s", "chat", "Recent files"), "")); len(got) != 1 {
+		t.Errorf("titles under a \"Recent files\" heading: %+v, want one", got)
+	}
+	if got := truncs(sidebar("hint-80x9.ansi", "  press y to Copy path", fmt.Sprintf("  %-46s%s", "chat", "Sessions"), "")); len(got) != 1 {
+		t.Errorf("titles under \"Sessions\" with a \"Copy path\" hint above: %+v, want one", got)
+	}
+	if got := truncs(sidebar("files-80x7.ansi", fmt.Sprintf("  %-46s%s", "chat", "Files (5)"))); len(got) != 0 {
+		t.Errorf("a column headed \"Files (5)\": %+v, want none", got)
 	}
 }
 

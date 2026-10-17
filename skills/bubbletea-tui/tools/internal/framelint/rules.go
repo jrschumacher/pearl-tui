@@ -923,9 +923,16 @@ func LintTrunc(name string, f Frame, ellipses []string) []Finding {
 // unboundedHeaders name a column whose content has no length to budget from.
 var unboundedHeaders = map[string]bool{"path": true, "file": true, "command": true, "cmd": true, "url": true, "uri": true}
 
+// headerCount is what may follow a header word in its cell: a count ("files 12",
+// "files (12)") or a separator.
+var headerCount = regexp.MustCompile(`^(?:[(\[]?\d+[)\]]?|·)$`)
+
 // unboundedColumn reports whether the column cut at x on rows ys is a table's last column
-// under a header in unboundedHeaders: nothing follows x on any cut row, and a row above
-// the first cut ends in that header, starting at or left of x ("pid  program  command").
+// under a header in unboundedHeaders: nothing follows x on any cut row, and walking up
+// from the first cut through the column's other rows (text starting where the cut rows'
+// text starts, past at most one rule or blank row), the first row that isn't one holds,
+// at that start, a cell that is the header word alone or with a count ("pid  program
+// command"). A heading ("Recent files") or a hint ("press y to Copy path") is not one.
 func unboundedColumn(f Frame, ys []int, x int) bool {
 	for _, y := range ys {
 		for _, c := range f.Rows[y][x+1:] {
@@ -934,26 +941,59 @@ func unboundedColumn(f Frame, ys []int, x int) bool {
 			}
 		}
 	}
+	// the column starts after the last gap of two blank cells left of the cut, the same
+	// on most cut rows
+	starts := map[int]int{}
+	col := -1
+	for _, y := range ys {
+		row, start := f.Rows[y], 0
+		for i := x - 1; i >= 1; i-- {
+			if cutsNothing(row[i].Ch) && cutsNothing(row[i-1].Ch) && row[i].Ch != "" && row[i-1].Ch != "" {
+				start = i + 1
+				break
+			}
+		}
+		starts[start]++
+		if col < 0 || starts[start] > starts[col] {
+			col = start
+		}
+	}
+	gaps := 0
 	for y := ys[0] - 1; y >= 0; y-- {
 		row := f.Rows[y]
-		end := len(row) - 1
-		for end >= 0 && cutsNothing(row[end].Ch) {
-			end--
+		if col >= len(row) {
+			return false
 		}
-		start := end
-		for start > 0 && !cutsNothing(row[start-1].Ch) {
-			start--
-		}
-		if end < 0 || start > x {
+		if cutsNothing(row[col].Ch) || row[col].Ch == "-" || row[col].Ch == "=" { // a rule (ASCII's too) or a blank row under the header: one at most
+			if gaps++; gaps > 1 {
+				return false
+			}
 			continue
 		}
-		var word strings.Builder
-		for _, c := range row[start : end+1] {
-			word.WriteString(c.Ch)
+		if col > 0 && !cutsNothing(row[col-1].Ch) {
+			return false // text that doesn't start at the column: no header
 		}
-		if unboundedHeaders[strings.TrimSuffix(strings.ToLower(word.String()), "s")] {
-			return true
+		var cell strings.Builder // the cell: to the next gap of two blank cells
+		for i := col; i < len(row); i++ {
+			if row[i].Ch == "" {
+				continue // a wide glyph's second cell
+			}
+			if cutsNothing(row[i].Ch) && (i+1 >= len(row) || cutsNothing(row[i+1].Ch)) {
+				break
+			}
+			cell.WriteString(row[i].Ch)
 		}
+		words := strings.Fields(cell.String())
+		if unboundedHeaders[strings.TrimSuffix(strings.ToLower(words[0]), "s")] {
+			header := true
+			for _, w := range words[1:] {
+				header = header && headerCount.MatchString(w)
+			}
+			if header {
+				return true
+			}
+		}
+		// another row of the column (a row not cut): keep walking up
 	}
 	return false
 }
