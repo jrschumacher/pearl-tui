@@ -181,7 +181,7 @@ func TestNearest(t *testing.T) {
 }
 
 // A min-distance failure names the axes the theme shares with the baseline, so the
-// agent sees what to move and can trace each to the brand read (the fathom run moved
+// agent sees what to move and can trace each to the brand read (a recreate run moved
 // three axes blind, one of them only for the lint). Each named axis is live in both and
 // equal; the count is the live axes less the distance.
 func TestMinDistanceNamesSharedAxes(t *testing.T) {
