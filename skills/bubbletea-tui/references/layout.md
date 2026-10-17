@@ -33,7 +33,7 @@ Decide what changes and at which width, and write it down:
 | < 60 or < 18 rows | `ui.TooSmall`: "Terminal too small", "52×16, needs 60×18", "q quit", centred, nothing else |
 | 60–109 | single column. The detail pane becomes one summary line under the list. The sidebar becomes a header row. Long help becomes short help. |
 | ≥ 110 | detail pane / sidebar on the right (30–40 cols) |
-| ≥ 140 | diffs go side by side |
+| ≥ 140 | diffs default to side by side. A product toggle (`t unified`) may offer it narrower; below ~100 columns each half gets < 45 cells, so the dialog says the toggle and cuts the long lines honestly with `…` |
 | h ≥ 30 | a banner header is allowed; below that it collapses to one row |
 
 The rule: **one design at every size, more or less room**. Nothing exists at one size
