@@ -66,9 +66,10 @@ these tiers can carry so much design: they are the terminal's vector graphics.
 
 Bubble Tea v2 detects the profile and downsamples for you, so the screen still renders.
 **Downsampling is not design**, though. At ANSI256 a subtle `bgSubtle` step can merge
-with `bg` and the focused row disappears. At 16 colours, `fgMuted` and `fgSubtle` may
-become the same grey. Under NO_COLOR, a selected row that is marked only by background
-colour is invisible.
+with `bg` and the focused row disappears. At 16 colours a tinted neutral lands on a hue
+(a warm page on yellow, warm hints on error's red), so the kit draws every neutral on
+one of the four greys there and `palette check` reports a pin that moves one off. Under
+NO_COLOR, a selected row that is marked only by background colour is invisible.
 
 Rules:
 

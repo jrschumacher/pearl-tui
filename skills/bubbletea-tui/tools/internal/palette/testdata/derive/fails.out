@@ -22,7 +22,7 @@
    "onSuccess": "#101119",
    "onWarning": "#101119",
    "primary": "#F1F2FF",
-   "secondary": "#FDEDFF",
+   "secondary": "#DEE0FF",
    "success": "#FFFFFF",
    "tertiary": "#FFFFFF",
    "warning": "#FFFFFF"
@@ -48,9 +48,9 @@
    "onSuccess": "#F9FAFD",
    "onWarning": "#F9FAFD",
    "primary": "#6B50FF",
-   "secondary": "#B526C9",
+   "secondary": "#5328DB",
    "success": "#007835",
-   "tertiary": "#805C00",
+   "tertiary": "#382E85",
    "warning": "#906B00"
   }
  },
@@ -76,7 +76,7 @@
    "onSuccess": 233,
    "onWarning": 233,
    "primary": 255,
-   "secondary": 255,
+   "secondary": 189,
    "success": 231,
    "tertiary": 231,
    "warning": 231
@@ -102,10 +102,18 @@
    "onSuccess": 231,
    "onWarning": 231,
    "primary": 63,
-   "secondary": 128,
+   "secondary": 56,
    "success": 29,
-   "tertiary": 94,
+   "tertiary": 54,
    "warning": 94
+  }
+ },
+ "ansi16": {
+  "dark": {
+   "error": 9
+  },
+  "light": {
+   "warning": 3
   }
  }
 }

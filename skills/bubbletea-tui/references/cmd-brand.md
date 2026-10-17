@@ -14,8 +14,10 @@ drifts), contact sheets in both modes, a passing diversity lint. Read
    each hex, so nobody later reads a chosen hue as measured.
 2. **Derive the roles.**
    `palette derive <primary> [<secondary>] [--accent …] --bg <brand bg> --light-bg <…> --swatch s.ansi --out roles.json`
-   Render `s.ansi` with `cellshot` and look. Tune by hand where the brand demands it
-   (a calmer tertiary, a warmer bg). Re-run `palette check`.
+   Render `s.ansi` with `cellshot` and look. One hue: pass it alone, and secondary and
+   tertiary are lightness steps of it. The `ansi16` block in the output is the pins
+   `check` would ask for: keep it. Tune by hand where the brand demands it (a calmer
+   tertiary, a warmer bg). Re-run `palette check`.
 3. **Write the read** into `TUI.md` § Brand read (`brand.md` §1): palette, tone,
    geometry, density, type, motif, remember, then one line per expression tying it to a
    trait. Use the translation table in `brand.md` §2 as a starting point, not an answer.
