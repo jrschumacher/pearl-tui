@@ -39,7 +39,11 @@ drifts), contact sheets in both modes, a passing diversity lint. Read
 8. **Lint.** `diversity themes/*.json kit/themes/ink.json kit/themes/charm.json
    --baseline ink,charm --min-distance 8` must pass (`kit/` is in the skill directory;
    without the baseline files it exits 2). If it fails on distance from `ink`, identity
-   is only in the palette, so go back to step 4. Also `palette check` (every role is
+   is only in the palette, so go back to step 4. Each axis moved after the lint gets its
+   product reason in the read and in `TUI.md` § Decisions; an axis whose only reason is
+   the count moves back, because a scrim dropped or a dialog edge changed to reach 8 is
+   the lint designing the product (the critic then charges the dialog with the bleed).
+   Also `palette check` (every role is
    `#RGB` or `#RRGGBB`), `tuilint frames frames/<brand> --theme themes/<brand>.json --bg
    <bg>` and the light frames with `--bg <light bg>`, and the footprint: `go test` once
    the kit is in the project (`craft` §1); until then the showcase's `-golden -w 80 -h
