@@ -128,10 +128,12 @@ and the program status (`View.ProgramStatus`). These cost nothing and make the a
 Thinking text renders as colourless markdown on `bgPanel`, tail-windowed to 10 lines, and
 closes with "Thought for 6.1s". Secondary information is not hidden; it is quieter.
 
-## 15. One Clock
+## 15. One Frame Clock
 
 All spinners run off one tick that is armed only while a visible item is animating, with
-a generation number so stale ticks die. Frames are pre-rendered (`motion.md`).
+a generation number so stale ticks die. Frames are pre-rendered (`motion.md`). A product
+clock (a poll, a sync) is not motion: it owns its own message, and a setting change
+re-arms it.
 
 ## 16. Draw Into Rectangles
 

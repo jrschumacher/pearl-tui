@@ -132,21 +132,42 @@ func splitAlts(tok string) []string {
 
 var arrowGlyph = map[rune]bool{'↑': true, '↓': true, '←': true, '→': true}
 
-// expandAlt turns one alternative into keys: "↑↓" is up and down, "jk" is j and k.
+// modPrefix splits the modifiers off a written key as written: "shift+↑↓" is "shift+"
+// and "↑↓"; "/" and "ctrl+" alone keep theirs as the key.
+func modPrefix(a string) (prefix, rest string) {
+	rest = a
+	for {
+		i := strings.Index(rest, "+")
+		if i <= 0 || i == len(rest)-1 {
+			return a[:len(a)-len(rest)], rest
+		}
+		if _, ok := modAlias[strings.ToLower(rest[:i])]; !ok {
+			return a[:len(a)-len(rest)], rest
+		}
+		rest = rest[i+1:]
+	}
+}
+
+// arrows reports whether s is one or more arrow glyphs ("↑", "↑↓", "←→").
+func arrows(s string) bool {
+	for _, r := range s {
+		if !arrowGlyph[r] {
+			return false
+		}
+	}
+	return s != ""
+}
+
+// expandAlt turns one alternative into keys: "↑↓" is up and down, "jk" is j and k,
+// "shift+↑↓" is shift+up and shift+down.
 func expandAlt(a string) []key {
 	runes := []rune(a)
-	if len(runes) > 1 {
-		all := true
-		for _, r := range runes {
-			all = all && arrowGlyph[r]
+	if prefix, rest := modPrefix(a); utf8.RuneCountInString(rest) > 1 && arrows(rest) {
+		var ks []key
+		for _, r := range rest {
+			ks = append(ks, parseKey(prefix+string(r)))
 		}
-		if all {
-			ks := make([]key, len(runes))
-			for i, r := range runes {
-				ks[i] = parseKey(string(r))
-			}
-			return ks
-		}
+		return ks
 	}
 	if len(runes) == 2 && !strings.Contains(a, "+") && !isNamed(a) && unicode.IsLetter(runes[0]) && unicode.IsLetter(runes[1]) {
 		return []key{{base: string(runes[0])}, {base: string(runes[1])}}
@@ -180,9 +201,22 @@ func readToken(tok string) (ks []key, bad string) {
 	if n := len(tok); n > 2 && tok[0] == '<' && tok[n-1] == '>' {
 		tok = tok[1 : n-1] // "<enter>"
 	}
+	carry := "" // the modifiers on the last modified arrow
 	for _, a := range splitAlts(tok) {
 		if a == "" {
 			continue
+		}
+		// "shift+↑/↓": a bare arrow after a modified arrow takes its modifiers. Nothing
+		// else does: "ctrl+c/q" is ctrl+c or q, and "ctrl+c/esc" is ctrl+c or esc
+		prefix, rest := modPrefix(a)
+		switch {
+		case prefix != "":
+			carry = ""
+			if arrows(rest) {
+				carry = prefix
+			}
+		case carry != "" && arrows(a):
+			a = carry + a
 		}
 		for _, k := range expandAlt(a) {
 			if utf8.RuneCountInString(k.base) == 1 || isNamed(k.base) {

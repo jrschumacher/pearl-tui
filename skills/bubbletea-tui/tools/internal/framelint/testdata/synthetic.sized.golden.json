@@ -119,6 +119,13 @@
   "msg": "1 colours not in the theme roles: #000000"
  },
  {
+  "rule": "F-TAB",
+  "sev": "P1",
+  "file": "sgr-mix.ansi",
+  "where": "r4c5",
+  "msg": "3 raw tabs in the frame: lipgloss measures a tab as 0 cells and a terminal advances it to the next 8-column stop, so the row tears; expand tabs (ui.ExpandTabs) before fitting"
+ },
+ {
   "rule": "F-BOLD",
   "sev": "P2",
   "file": "all-bold.ansi",

@@ -411,7 +411,7 @@ func TooSmall(t *theme.Theme, w, h, minW, minH int, bindings []key.Binding) stri
 			keys = append(keys, t.S.Key.Render(HelpKey(t, b.Help().Key))+" "+t.S.KeyDesc.Render(b.Help().Desc))
 		}
 	}
-	msg := Wordmark(t, t.AppName()) + "\n\n" + t.S.Soft.Render(t.Copy("Terminal too small")) + "\n" + t.S.Muted.Render(
+	msg := Wordmark(t, t.AppName()) + "\n\n" + t.S.Soft.Render(t.Sentence("Terminal too small")) + "\n" + t.S.Muted.Render(
 		strconv.Itoa(w)+"x"+strconv.Itoa(h)+", needs "+strconv.Itoa(minW)+"x"+strconv.Itoa(minH))
 	if len(keys) > 0 {
 		msg += "\n\n" + Trunc(t, strings.Join(keys, "  "), w)

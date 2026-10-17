@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -201,6 +202,81 @@ func TestOneClock(t *testing.T) {
 		wide.setState("services")
 		if wide.startClock() != nil {
 			t.Errorf("ascii=%v: a deploying row with a three-cell spinner draws a still mark, and ticked anyway", ascii)
+		}
+	}
+}
+
+// The product clock survives a setting change. The frame clock may let a stale tick
+// die (TestOneClock): the next key press re-arms it. The list's refresh has no second
+// chance, so a handler that changes its interval or pauses and resumes it returns the
+// new arm cmd itself. The test delivers that cmd's tick: a copied app that only bumps
+// the generation, or arms a tick stamped with the old one, never syncs again and fails.
+func TestClockSurvivesSettingChange(t *testing.T) {
+	saved := refreshRates
+	refreshRates = []refreshRate{{time.Millisecond, "1ms"}, {2 * time.Millisecond, "2ms"}, {3 * time.Millisecond, "3ms"}}
+	t.Cleanup(func() { refreshRates = saved })
+	m := fixture(t, "services")
+	m.refresh.rate = 0
+	if m.armRefresh() == nil {
+		t.Fatal("a live list should arm its refresh")
+	}
+	// deliver runs an arm cmd and feeds its tick back: it must sync once and re-arm
+	deliver := func(what string, arm tea.Cmd) tea.Cmd {
+		t.Helper()
+		if arm == nil {
+			t.Fatalf("%s returned no arm cmd: the pending tick dies and the list never syncs again", what)
+		}
+		before := m.refresh.syncs
+		_, next := m.Update(arm())
+		if m.refresh.syncs != before+1 || next == nil {
+			t.Fatalf("%s: its tick should sync once and re-arm (synced %d, re-armed %v)", what, m.refresh.syncs-before, next != nil)
+		}
+		return next
+	}
+	for range refreshRates {
+		pending := m.refresh.gen
+		arm := m.command("Refresh rate")
+		what := "a rate change (now " + refreshRates[m.refresh.rate].label + ")"
+		if _, cmd := m.Update(refreshMsg{gen: pending}); cmd != nil || m.refresh.syncs != 0 {
+			t.Fatalf("%s: the old interval's tick ran as well as the new one", what)
+		}
+		deliver(what+", then its own re-arm", deliver(what, arm))
+		m.refresh.syncs = 0
+	}
+	// pause stops the clock; resume is a setting change too, and arms it again
+	pending := m.refresh.gen
+	if m.key(press("p")) != nil || !m.paused {
+		t.Fatal("pause should stop the refresh")
+	}
+	if _, cmd := m.Update(refreshMsg{gen: pending}); cmd != nil || m.refresh.syncs != 0 {
+		t.Fatal("a paused list synced or re-armed")
+	}
+	resume := m.key(press("p"))
+	if m.paused {
+		t.Fatal("resume should unpause the list")
+	}
+	deliver("resume", resume)
+}
+
+// The rate a toast names is the one the palette lists, as people write it: "every 1m",
+// never time.Duration's "every 1m0s".
+func TestRefreshRateToastNamesTheRate(t *testing.T) {
+	m := fixture(t, "services")
+	i := slices.IndexFunc(commands, func(c command) bool { return c.Title == "Refresh rate" })
+	if i < 0 {
+		t.Fatal("the palette has no Refresh rate command")
+	}
+	for range refreshRates {
+		m.command("Refresh rate")
+		r := refreshRates[m.refresh.rate]
+		if m.toast == nil || m.toast.msg != "every "+r.label {
+			t.Fatalf("the toast for %s reads %+v, want \"every %s\"", r.every, m.toast, r.label)
+		}
+		if strings.HasSuffix(r.label, "0s") && r.every >= time.Minute {
+			t.Errorf("the %s label %q prints the zero seconds", r.every, r.label)
+		}
+		if !strings.Contains(commands[i].Desc, r.label) {
+			t.Errorf("the palette's %q does not list the %s rate", commands[i].Desc, r.label)
 		}
 	}
 }

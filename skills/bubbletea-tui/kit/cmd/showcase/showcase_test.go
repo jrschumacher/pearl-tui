@@ -427,3 +427,66 @@ func markerColumns(c *ui.Canvas, mark string, edge uv.Rectangle) map[int][]int {
 	}
 	return cols
 }
+
+// Text is not a glyph: the ladder's reading with a unit (21.5°C), a product (3×4) and a
+// name with an accent (Zoë) keep their letters and digits under -ascii (21.5 C, 3x4,
+// Zoe); the sweep drew every rune outside its twin tables as "?", and a unit read as a
+// question that F-ASCII could not see. No "?" may appear in an ASCII frame where the
+// unicode frame has none. The sample holds no ±: its one cell (+) would change the value.
+func TestASCIIKeepsTextRunes(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, sz := range [][2]int{{80, 24}, {120, 40}} {
+			m := newApp(tf, true, false)
+			m.setState("ladder")
+			uni := ansi.Strip(m.render(sz[0], sz[1]).String())
+			a := newApp(tf, true, true)
+			a.setState("ladder")
+			asc := ansi.Strip(a.render(sz[0], sz[1]).String())
+			if !strings.Contains(uni, "21.5°C") {
+				t.Fatalf("%s ladder %dx%d: no reading with a unit on the unicode frame", filepath.Base(f), sz[0], sz[1])
+			}
+			for _, want := range []string{"21.5 C", "3x4", "Zoe"} {
+				if !strings.Contains(asc, want) {
+					t.Errorf("%s ladder %dx%d: ASCII frame lacks %q:\n%s", filepath.Base(f), sz[0], sz[1], want, asc)
+				}
+			}
+			if strings.Count(asc, "?") != strings.Count(uni, "?") {
+				t.Errorf("%s ladder %dx%d: the ASCII frame draws a \"?\" the unicode frame has not:\n%s", filepath.Base(f), sz[0], sz[1], asc)
+			}
+		}
+	}
+}
+
+// go test prints tabs; lipgloss measures one as 0 cells, so the assistant's go test body
+// was fitted short and the canvas drew it with a cut ("0.087s   …") mid-panel. The kit
+// expands a tab to its 8-column stop before fitting: every row of the body ends in its
+// time, uncut, with the stops aligned.
+func TestToolBodyTabsKeepTheirStops(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := newApp(tf, true, false)
+		m.setState("assistant")
+		frame := ansi.Strip(m.render(120, 40).String())
+		for _, want := range []string{"ok      checkout-api/internal/config    0.087s", "ok      checkout-api/internal/payments  0.412s"} {
+			i := strings.Index(frame, want)
+			if i < 0 {
+				t.Errorf("%s assistant 120x40: no %q:\n%s", filepath.Base(f), want, frame)
+				continue
+			}
+			row := frame[i:]
+			if j := strings.IndexByte(row, '\n'); j >= 0 {
+				row = row[:j]
+			}
+			if strings.Contains(row, m.t.G.Ellipsis) {
+				t.Errorf("%s assistant 120x40: the go test row is cut: %q", filepath.Base(f), row)
+			}
+		}
+	}
+}

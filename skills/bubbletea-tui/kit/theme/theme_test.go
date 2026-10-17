@@ -12,6 +12,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // CheckHex accepts exactly the strings Lip Gloss draws as the colour written: for
@@ -678,6 +679,61 @@ func TestBordersAreVisibleButQuiet(t *testing.T) {
 		p := derive(Roles{Bg: c.bg, Fg: c.fg}, dark, nil)
 		if cr := Contrast(p.Border, p.Bg); cr < 1.5 || cr > 1.9 {
 			t.Errorf("derived border on %s is %.2f:1, want 1.5–1.9", c.bg, cr)
+		}
+	}
+}
+
+// A multi-cell spinner's ASCII twin was the one-cell line spinner: a three-cell dots
+// spinner (··· •·· ••· •••) turned into a \ one cell wide under -ascii. The twin keeps
+// each frame's width and shape, cell for cell, in twins no status, bar or caret mark
+// draws (a cell that would be one takes the next of . : = # …), and two glyphs of the
+// frames never share a twin, so the motion survives.
+func TestASCIIMultiCellSpinnerKeepsItsShape(t *testing.T) {
+	for _, c := range []struct {
+		json string
+		want []string
+	}{
+		// · keeps its twin "."; • (twin *, current's) takes the next free cell
+		{`{"glyphs": {"spinner": ["···", "•··", "••·", "•••"]}}`, []string{"...", ":..", "::.", ":::"}},
+		{`{"glyphs": {"spinner": ["·  ", "·· ", "···", " ··", "  ·", "   "]}}`, []string{".  ", ".. ", "...", " ..", "  .", "   "}},
+		// a pending ◌ twins to ".", so the dots take ":" and • the next free cell
+		{`{"glyphs": {"pending": "◌", "spinner": ["···", "•··", "••·", "•••"]}}`, []string{":::", "=::", "==:", "==="}},
+	} {
+		f, err := Load(writeTheme(t, c.json))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := CheckGlyphs(f.Glyphs); err != nil {
+			t.Errorf("%s: CheckGlyphs %v", c.json, err)
+		}
+		if g := Resolve(f, true, true).G; !slices.Equal(g.Spinner, c.want) {
+			t.Errorf("%s: ASCII spinner %q, want %q", c.json, g.Spinner, c.want)
+		}
+	}
+	// every shipped theme: each ASCII frame as wide as its unicode frame
+	files, _ := filepath.Glob(filepath.Join("..", "themes", "*.json"))
+	test, _ := filepath.Glob(filepath.Join("testdata", "*.json"))
+	for _, path := range append(files, test...) {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		uni, asc := Resolve(f, true, false).G.Spinner, Resolve(f, true, true).G.Spinner
+		wide := false
+		for _, fr := range uni {
+			wide = wide || ansi.StringWidth(fr) > 1
+		}
+		if !wide {
+			continue
+		}
+		if len(asc) != len(uni) {
+			t.Errorf("%s: ASCII spinner %q has %d frames, unicode %q %d", filepath.Base(path), asc, len(asc), uni, len(uni))
+			continue
+		}
+		for i := range uni {
+			if ansi.StringWidth(asc[i]) != ansi.StringWidth(uni[i]) {
+				t.Errorf("%s: ASCII frame %q is %d cells, unicode %q %d", filepath.Base(path), asc[i], ansi.StringWidth(asc[i]), uni[i], ansi.StringWidth(uni[i]))
+			}
 		}
 	}
 }

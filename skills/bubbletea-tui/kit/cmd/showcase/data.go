@@ -34,6 +34,7 @@ var commands = []command{
 	{"Silence alerts", "mute for 1h, 4h or until resolved", ""},
 	{"Switch environment", "prod, staging or dev", "e"},
 	{"Copy service URL", "", "y"},
+	{"Refresh rate", "cycles 1s, 2s, 5s, 15s, 1m", ""},
 	{"Toggle theme", "dark or light", ""},
 	{"Status legend", "every mark in its role", ""},
 }
@@ -45,6 +46,13 @@ var chatAnswer = "The 502s start at 14:02, two minutes after `v2.4.0` rolled out
 	"call to the payments provider waits 2,000 s and the gateway gives up first.\n\n" +
 	"I've changed the parser to accept a unit suffix and kept the old value working. Roll back now, " +
 	"or ship the fix as `v2.4.1`?"
+
+// testLines are go test's output as it prints it, tabs and all: the kit expands a tab
+// to its 8-column stop (ui.ExpandTabs), so the panel's edge holds.
+var testLines = []string{
+	"ok  \tcheckout-api/internal/config\t0.087s",
+	"ok  \tcheckout-api/internal/payments\t0.412s",
+}
 
 var logLines = []string{
 	"14:02:11  INFO   rollout complete  checkout-api v2.4.0  3/3 pods ready",
