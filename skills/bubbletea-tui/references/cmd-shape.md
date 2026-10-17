@@ -13,7 +13,8 @@ No Go yet.
 2. **Regions and budgets** at 80×24 and 120×40, with every pane's outer, inner and text
    width as integers (`layout.md`). Say what collapses below 110 columns and below 30
    rows.
-3. **States**: populated, empty, loading, error, partial, plus every overlay (palette,
+3. **States**: populated, empty, loading, error, partial (a chat screen adds thinking
+   with no tool call yet, and prose streaming in), plus every overlay (palette,
    confirm, help). Each becomes a harness state name; `toosmall` is one row for the app.
 4. **Keys**: the bindings, the help order, what `esc` does, and where focus starts and
    moves.
