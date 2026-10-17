@@ -18,6 +18,7 @@ import (
 	"image/color"
 	"os"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 
@@ -204,6 +205,76 @@ func CheckANSI16(f File) error {
 		}
 	}
 	return nil
+}
+
+// wordmarkStyles are the styles scripts/wordmark.py writes into wordmark.style.
+var wordmarkStyles = []string{"half", "shade", "ascii", "tracked"}
+
+// CheckKeys reports a key under roles.<mode>, glyphs or wordmark that the kit doesn't
+// read ("primay", "focusbar"), and a wordmark.style it doesn't know, each with what it
+// does know. Load ignores an unknown key, so the role it meant falls back to the derived
+// colour and nothing says why; palette check fails on it, as on an expressions key. Keys
+// are matched exactly: encoding/json would read "focusbar" as focusBar, but the contract
+// is written one way. data is the theme JSON, or a bare roles object ({"dark": …}). Any
+// other error in the JSON is left to Load.
+func CheckKeys(data []byte) error {
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(data, &top); err != nil {
+		return nil
+	}
+	exact := func(raw json.RawMessage, where string, known []string) error {
+		var obj map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &obj); err != nil {
+			return nil
+		}
+		for _, k := range sortedKeys(obj) {
+			if !slices.Contains(known, k) {
+				return fmt.Errorf("%s.%s is not a key the kit reads (%s): a typo, or a key from a newer kit, is drawn as if unset", where, k, strings.Join(known, ", "))
+			}
+		}
+		return nil
+	}
+	modes := map[string]json.RawMessage{}
+	if raw, ok := top["roles"]; ok {
+		_ = json.Unmarshal(raw, &modes)
+	} else {
+		for _, m := range []string{"dark", "light"} {
+			if raw, ok := top[m]; ok {
+				modes[m] = raw
+			}
+		}
+	}
+	for _, m := range sortedKeys(modes) {
+		if err := exact(modes[m], "roles."+m, jsonKeys(reflect.TypeOf(Roles{}))); err != nil {
+			return err
+		}
+	}
+	if raw, ok := top["glyphs"]; ok {
+		if err := exact(raw, "glyphs", jsonKeys(reflect.TypeOf(Glyphs{}))); err != nil {
+			return err
+		}
+	}
+	if raw, ok := top["wordmark"]; ok {
+		if err := exact(raw, "wordmark", jsonKeys(reflect.TypeOf(Wordmark{}))); err != nil {
+			return err
+		}
+		var w Wordmark
+		if err := json.Unmarshal(raw, &w); err == nil && w.Style != "" && !slices.Contains(wordmarkStyles, w.Style) {
+			return fmt.Errorf("wordmark.style %q is not a style wordmark.py writes: %s", w.Style, strings.Join(wordmarkStyles, " | "))
+		}
+	}
+	return nil
+}
+
+// jsonKeys are t's fields' JSON keys, in the contract's order.
+func jsonKeys(t reflect.Type) []string {
+	out := make([]string, 0, t.NumField())
+	for i := range t.NumField() {
+		if k, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ","); k != "" {
+			out = append(out, k)
+		}
+	}
+	return out
 }
 
 func sortedKeys[V any](m map[string]V) []string {

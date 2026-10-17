@@ -54,6 +54,12 @@ func check(path string, stdout, stderr io.Writer) int {
 	if err := json.Unmarshal(data, &top); err != nil {
 		return fail(stderr, fmt.Errorf("%s: %w", path, err))
 	}
+	// theme.CheckKeys: a role, glyph or wordmark key the kit doesn't read ("primay",
+	// "focusbar") is dropped by theme.Load and the role falls back to the derived colour
+	// with nothing to say why; this is the gate, as for an expressions key below
+	if err := theme.CheckKeys(data); err != nil {
+		return fail(stderr, fmt.Errorf("%s: %w", path, err))
+	}
 	// theme.CheckGlyphs: a glyph -ascii can't draw, a twin that isn't ASCII, or two
 	// states that share a twin. theme.Load lets them through so an app always starts;
 	// this is the gate

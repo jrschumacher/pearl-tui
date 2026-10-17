@@ -97,6 +97,42 @@ func TestKitThemesLoad(t *testing.T) {
 	}
 }
 
+// A key the kit doesn't read is dropped by Load, and the role it meant falls back to the
+// derived colour with nothing to say why; CheckKeys (palette check) names it. Every kit
+// theme and test theme passes it.
+func TestCheckKeys(t *testing.T) {
+	for _, c := range []struct{ json, want string }{
+		{`{"roles": {"dark": {"primay": "#6B50FF"}}}`, `roles.dark.primay is not a key the kit reads (primary, secondary, tertiary, accent, bg, `},
+		{`{"dark": {"bg": "#201F26"}, "light": {"fgMutted": "#777"}}`, `roles.light.fgMutted is not a key the kit reads`},
+		{`{"glyphs": {"focusbar": "▌"}}`, `glyphs.focusbar is not a key the kit reads (headerRule, rule, focusBar, `},
+		{`{"wordmark": {"rows": [], "style": "bogus"}}`, `wordmark.style "bogus" is not a style wordmark.py writes: half | shade | ascii | tracked`},
+		{`{"wordmark": {"rows": [], "styl": "half"}}`, `wordmark.styl is not a key the kit reads (rows, style)`},
+		{`{"roles": {"dark": {"primary": "#6B50FF", "white": "#fff"}}, "glyphs": {"focusBar": "▌", "ascii": {"▌": "|"}}, "wordmark": {"rows": ["x"], "style": "shade"}, "contrastAccept": {}, "unknownTop": 1}`, ""},
+		{`{"roles": {"dark": {"primary": 12}}}`, ""}, // not a key problem: Load reports the colour
+	} {
+		err := CheckKeys([]byte(c.json))
+		if c.want == "" && err != nil || c.want != "" && (err == nil || !strings.Contains(err.Error(), c.want)) {
+			t.Errorf("CheckKeys(%s) = %v, want %q", c.json, err, c.want)
+		}
+	}
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	test, _ := filepath.Glob(filepath.Join("testdata", "*.json"))
+	for _, path := range append(files, test...) {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := CheckKeys(b); err != nil {
+			t.Errorf("%s: %v", filepath.Base(path), err)
+		}
+	}
+}
+
 func sameRGB(a, b color.Color) bool {
 	if a == nil || b == nil {
 		return false

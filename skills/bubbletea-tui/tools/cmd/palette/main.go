@@ -28,7 +28,9 @@
 // thumb/track, focus/blur bar) that share a twin under -ascii. And on its expressions
 // (theme.CheckExpressions): a key the kit doesn't read or a value it doesn't know, which
 // theme.Load draws as the default silently ("dialog": "rule" for "rules"), named with
-// the values the kit knows.
+// the values the kit knows. A key under roles.<mode>, glyphs or wordmark the kit doesn't
+// read ("primay", "focusbar": theme.Load drops it and the role falls back to the derived
+// colour) and a wordmark.style it doesn't know exit 2 the same way (theme.CheckKeys).
 //
 // It reports, on stderr, state roles that land on one of the 16 colours (-profile ansi)
 // after the theme's "ansi16" pins, each with the pin that separates them:

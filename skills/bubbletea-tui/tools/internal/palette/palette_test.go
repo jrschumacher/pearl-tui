@@ -451,6 +451,38 @@ func TestCheckRejectsUnknownExpressions(t *testing.T) {
 	}
 }
 
+// A role, glyph or wordmark key the kit doesn't read is dropped by theme.Load, and the
+// role it meant falls back to the derived colour with nothing to say why: check exits 2
+// naming it, as it does for an expressions key.
+func TestCheckRejectsUnknownKeys(t *testing.T) {
+	for _, c := range []struct{ json, err string }{
+		{`{"roles": {"dark": {"bg": "#201F26", "fg": "#DFDBDD", "primay": "#6B50FF"}}}`, `roles.dark.primay is not a key the kit reads (primary, secondary, tertiary, accent, bg, bgPanel, bgSubtle, bgOverlay, fg, fgSoft, fgMuted, fgSubtle, fgSelected, border, borderFocus, success, error, warning, info, onPrimary, onSecondary, onError, onWarning, onSuccess, white): a typo, or a key from a newer kit, is drawn as if unset`},
+		{`{"roles": {"dark": {"bg": "#201F26", "fg": "#DFDBDD"}}, "glyphs": {"focusbar": "▌"}}`, `glyphs.focusbar is not a key the kit reads (headerRule, rule, focusBar, `},
+		{`{"roles": {"dark": {"bg": "#201F26", "fg": "#DFDBDD"}}, "wordmark": {"rows": ["x"], "style": "bogus"}}`, `wordmark.style "bogus" is not a style wordmark.py writes: half | shade | ascii | tracked`},
+		{`{"dark": {"bg": "#201F26", "fg": "#DFDBDD", "fgmuted": "#777777"}}`, `roles.dark.fgmuted is not a key the kit reads`},
+		{`{"roles": {"dark": {"bg": "#201F26", "fg": "#DFDBDD", "white": "#FFFFFF"}}, "glyphs": {"focusBar": "▌"}, "wordmark": {"rows": ["x"], "style": "half"}}`, ""},
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		if err := os.WriteFile(path, []byte(c.json), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		if _, err := theme.Load(path); err != nil {
+			t.Errorf("%s: theme.Load %v, want it to load", c.json, err)
+		}
+		if c.err == "" {
+			if code != 0 {
+				t.Errorf("%s: check exit %d (%q), want 0", c.json, code, errb.String())
+			}
+			continue
+		}
+		if want := "palette: " + path + ": " + c.err; code != 2 || !strings.Contains(errb.String(), want) {
+			t.Errorf("%s: check exit %d (%q), want exit 2 with %q", c.json, code, errb.String(), want)
+		}
+	}
+}
+
 // The engine draws every neutral on a grey at 16 colours, so only a pin puts one on a
 // hue or two of the text ramp on one grey: check fails a neutral on error's red (hints
 // read as errors) and warns on another hue or a shared grey, each with the grey to pin.
