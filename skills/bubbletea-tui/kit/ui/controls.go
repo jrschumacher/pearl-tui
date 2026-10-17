@@ -134,9 +134,9 @@ func Dot(t *theme.Theme, state string) string {
 	case "warning", "degraded":
 		return t.S.Warn.Render(t.G.Warn)
 	case "busy", "deploying", "running":
-		return t.S.Working.Render(t.G.Partial)
+		return Mark(t, "busy")
 	}
-	return t.S.Subtle.Render(t.G.Todo)
+	return Mark(t, "todo") // idle: a rung still to come, in fgMuted, never dimmer than a hint
 }
 
 // KV renders "key   value" rows with an aligned key column. Keys are dimmer

@@ -29,6 +29,7 @@ const (
 	scrIncidents
 	scrAssistant
 	scrDeploy // the deploy form (from services)
+	scrLadder // the status legend: every mark in its role (from the palette)
 	scrSplash
 	scrSetup // the first-run wizard (setup.go)
 )
@@ -365,6 +366,8 @@ func (m *app) actions() []action {
 		return m.setupActions(help)
 	case scrSplash:
 		return []action{quit}
+	case scrLadder:
+		return []action{esc("back", func(m *app) { m.screen = scrServices }), palette, quit, help}
 	case scrDeploy:
 		enterDesc := "next field" // enter in a field never ships to prod
 		if m.focus == 4 {
@@ -603,6 +606,8 @@ func (m *app) command(title string) tea.Cmd {
 		return tea.SetClipboard("https://" + s.Name + ".prod.internal")
 	case "Toggle theme":
 		m.resolve(!m.t.Dark)
+	case "Status legend":
+		m.screen = scrLadder
 	}
 	return nil
 }

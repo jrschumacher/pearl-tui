@@ -58,7 +58,7 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		// the wizard's step row stands where the tabs stand
 		c.Draw(m.setup.steps().Row(t, w-2*g), ui.Rect(g, y, w-2*g, 1))
 		y += 2
-	} else if m.screen != scrDeploy {
+	} else if m.screen != scrDeploy && m.screen != scrLadder {
 		counts := []string{t.S.Subtle.Render(itoa(len(m.svcs))), "", "", ""}
 		if m.declared {
 			counts[2] = t.S.Warn.Render("1")
@@ -79,6 +79,8 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		m.assistant(c, body)
 	case scrDeploy:
 		m.deployForm(c, body)
+	case scrLadder:
+		m.ladder(c, body)
 	case scrSetup:
 		m.setupView(c, body)
 	}
@@ -288,6 +290,26 @@ func (m *app) incidents(c *ui.Canvas, r uv.Rectangle) {
 	rows := ui.Empty(t, r.Dx(), t.G.FieldB, title, why, act)
 	top := r.Min.Y + max(0, (r.Dy()-len(rows))/2-1)
 	c.Draw(strings.Join(rows, "\n"), uv.Rect(r.Min.X, top, r.Dx(), len(rows)))
+}
+
+// ---------------------------------------------------------------- ladder
+
+// ladder is the status legend: every rung of the theme's ladder in its role, the
+// spinner, a step row and the tags, so a brand's marks are judged from one frame in
+// every profile (brand.md §6).
+func (m *app) ladder(c *ui.Canvas, r uv.Rectangle) {
+	t := m.t
+	w := r.Dx()
+	rows := []string{ui.Section(t, "Status", w, "glyph · meaning · slot · role"), ""}
+	rows = append(rows, ui.Ladder(t, m.frame/2)...)
+	if r.Dy() >= len(rows)+7 {
+		steps := ui.Steps{Names: []string{"Build", "Test", "Deploy", "Verify"}, Cur: 2}
+		rows = append(rows, "", ui.Section(t, "Steps", w, ""), "", steps.Row(t, w))
+		tags := []string{ui.Tag(t, "ok", "HEALTHY"), ui.Tag(t, "warning", "DEGRADED"), ui.Tag(t, "error", "FAILING"),
+			ui.Tag(t, "info", "SETUP"), ui.Tag(t, "primary", "NEW"), ui.Tag(t, "muted", "IDLE")}
+		rows = append(rows, "", ui.Section(t, "Tags", w, ""), "", strings.Join(tags, " "))
+	}
+	c.Draw(strings.Join(rows, "\n"), r)
 }
 
 // ---------------------------------------------------------------- assistant
@@ -592,6 +614,8 @@ func (m *app) keysOverlay(c *ui.Canvas) {
 	switch m.screen {
 	case scrDeploy:
 		name = "Deploy"
+	case scrLadder:
+		name = "Legend"
 	case scrSetup:
 		name = "Setup"
 	}

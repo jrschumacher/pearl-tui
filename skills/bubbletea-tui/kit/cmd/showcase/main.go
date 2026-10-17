@@ -36,7 +36,7 @@ import (
 // states are every screen the app can show. A state you can't render here is
 // a state nobody reviewed.
 var states = []string{"services", "services-toast", "deploys", "palette", "confirm", "help", "deploy",
-	"incidents", "assistant", "assistant-busy", "splash", "toosmall",
+	"incidents", "ladder", "assistant", "assistant-busy", "splash", "toosmall",
 	"setup-target", "setup-namespace", "setup-invalid", "setup-auth", "setup-alerts", "setup-review", "setup-signin", "setup-failed", "setup-done"}
 
 // setState rebuilds the model from scratch for a named state, using the same
@@ -63,6 +63,8 @@ func (m *app) setState(s string) {
 		m.openDeploy()
 	case "incidents":
 		m.screen = scrIncidents
+	case "ladder":
+		m.screen = scrLadder
 	case "assistant":
 		m.screen, m.input = scrAssistant, "ship it as v2.4.1, and add a test for the unit parsing"
 	case "assistant-busy":
