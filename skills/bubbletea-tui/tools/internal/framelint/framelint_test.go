@@ -509,6 +509,56 @@ func TestBasicFrames(t *testing.T) {
 	}
 }
 
+// F-BOLD is a ratio, so it needs a floor: a loading frame of a few labels (the recreate
+// run's overview-loading: ~120 text cells, the wordmark, six bold labels and two footer
+// keys) is 35% bold by arithmetic, not a wall of bold. Under boldFloor text cells it is
+// not judged, as a splash isn't; at the floor the same ratio still fails.
+func TestBoldSkipsSparseFrames(t *testing.T) {
+	dir := t.TempDir()
+	frame := func(name string, cells int) string {
+		var b strings.Builder
+		row, n := 0, 0
+		for row < 24 {
+			line := ""
+			for x := 0; x < 80; x += 10 {
+				if n < cells {
+					word := "abcdefgh"
+					if n%5 < 2 { // 40% bold
+						word = "\x1b[1m" + word + "\x1b[22m"
+					}
+					line += word + "  "
+					n += 8
+				} else {
+					line += "          "
+				}
+			}
+			b.WriteString(line + "\n")
+			row++
+		}
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	bolds := func(path string) int {
+		fs, _, _ := run(t, path)
+		n := 0
+		for _, f := range fs {
+			if f.Rule == "F-BOLD" {
+				n++
+			}
+		}
+		return n
+	}
+	if n := bolds(frame("loading-80x24.ansi", boldFloor-40)); n != 0 {
+		t.Errorf("a sparse frame under the floor: %d F-BOLD, want 0", n)
+	}
+	if n := bolds(frame("list-80x24.ansi", boldFloor+40)); n != 1 {
+		t.Errorf("a frame over the floor at 40%% bold: %d F-BOLD, want 1", n)
+	}
+}
+
 // F-LEVELS isn't judged on a frame with no colour (NO_COLOR): it has one text level by
 // construction, its levels are weight and glyphs. The same frame in colour still is.
 func TestLevelsSkipsColourlessFrames(t *testing.T) {

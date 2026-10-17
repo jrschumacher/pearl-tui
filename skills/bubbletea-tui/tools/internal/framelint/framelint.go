@@ -26,7 +26,8 @@
 //	                 downsampling scatters a gradient's steps over hues the design never chose)
 //	F-LEVELS    [P2] fewer than 3 neutral text levels on a dense frame (not judged on a
 //	                 frame with no colour, NO_COLOR: its levels are weight and glyphs)
-//	F-BOLD      [P2] more than 30% of text cells bold (not on a splash*, intro* or wordmark* frame)
+//	F-BOLD      [P2] more than 30% of text cells bold (not on a splash*, intro* or wordmark* frame,
+//	                 nor under 200 text cells: a few bold labels there are a ratio, not a wall)
 //	F-EDGE      [P2] content touching column 0 or the last column on most rows
 //	F-EMPTY     [P2] frame is more than 98.5% blank (not on a splash*, intro* or wordmark* frame:
 //	                 a wordmark on an empty page is what a splash is)
@@ -77,7 +78,8 @@ every cell must be ASCII: a glyph that leaks through is tofu on a console font.
   F-BOXES     [P1] more than one bordered box
   F-RAINBOW   [P2] more than 7 distinct foreground hues (not on a 256-colour frame)
   F-LEVELS    [P2] fewer than 3 neutral text levels on a dense frame (not on a no-colour frame)
-  F-BOLD      [P2] more than 30% of text cells bold (not on a splash*/intro*/wordmark* frame)
+  F-BOLD      [P2] more than 30% of text cells bold (not on a splash*/intro*/wordmark* frame,
+                   nor under 200 text cells)
   F-EDGE      [P2] content touching column 0 or the last column on most rows
   F-EMPTY     [P2] frame is more than 98.5% blank (not on a splash*/intro*/wordmark* frame)
   F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs

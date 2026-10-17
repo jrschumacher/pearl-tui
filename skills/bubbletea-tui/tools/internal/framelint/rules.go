@@ -167,6 +167,11 @@ type corner struct {
 
 // LintFrame applies every frame rule to one parsed frame. cols and rows are
 // the expected size (0 = take the widest row, any height); pal may be nil.
+// boldFloor is the fewest text cells F-BOLD judges: under it a few bold labels (a
+// loading frame's section titles, the wordmark, two footer keys) are a third of the
+// text by arithmetic, not a wall of bold. An 80x24 list holds 600 or more.
+const boldFloor = 200
+
 func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB) []Finding {
 	var out []Finding
 	add := func(rule, sev, where, msg string) {
@@ -500,7 +505,7 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 		add("F-LEVELS", "P2", "frame", fmt.Sprintf("only %d neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle", len(levels)))
 	}
 	splash := splashName.MatchString(name)
-	if textCells > 0 && float64(bold)/float64(textCells) > 0.30 && !splash {
+	if textCells >= boldFloor && float64(bold)/float64(textCells) > 0.30 && !splash {
 		add("F-BOLD", "P2", "frame", fmt.Sprintf("%d%% of text is bold", 100*bold/textCells))
 	}
 	if nonblankRows > 0 && (float64(edgeLeft) > 0.6*float64(nonblankRows) || float64(edgeRight) > 0.6*float64(nonblankRows)) {
