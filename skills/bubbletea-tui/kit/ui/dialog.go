@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"github.com/charmbracelet/colorprofile"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -102,9 +103,11 @@ func dialogRules(t *theme.Theme, title string, w int) (string, string) {
 
 // Overlay draws a dialog centred on the canvas (or at anchor when non-nil),
 // dimming what is under it when the theme asks for a scrim. Draw it last:
-// draw order is z-order.
+// draw order is z-order. There is no scrim under ASCII or at 16 colours: with the page
+// on ANSI 0 or 15, dimming toward it sends every text level to the page's own slot and
+// the scrim's text vanishes instead of fading.
 func (c *Canvas) Overlay(dialog string, anchor *uv.Position) uv.Rectangle {
-	if c.T.X.Scrim == "dim" && !c.T.ASCII {
+	if c.T.X.Scrim == "dim" && !c.T.ASCII && c.T.Profile != colorprofile.ANSI {
 		c.Scrim(0.55)
 	}
 	dw, dh := lipgloss.Width(dialog), lipgloss.Height(dialog)

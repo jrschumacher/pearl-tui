@@ -22,9 +22,9 @@
    "onSuccess": "#151107",
    "onWarning": "#151107",
    "primary": "#F5F0E1",
-   "secondary": "#EBF3E5",
+   "secondary": "#D4CFC1",
    "success": "#7CD591",
-   "tertiary": "#E6F1FE",
+   "tertiary": "#B4AFA1",
    "warning": "#F1C45E"
   },
   "light": {
@@ -44,13 +44,13 @@
    "info": "#006A9D",
    "onError": "#FBFAF6",
    "onPrimary": "#141108",
-   "onSecondary": "#141108",
+   "onSecondary": "#FBFAF6",
    "onSuccess": "#FBFAF6",
    "onWarning": "#FBFAF6",
    "primary": "#898477",
-   "secondary": "#80877B",
+   "secondary": "#6B675A",
    "success": "#137738",
-   "tertiary": "#5B646F",
+   "tertiary": "#4F4B3F",
    "warning": "#906B00"
   }
  },
@@ -76,9 +76,9 @@
    "onSuccess": 233,
    "onWarning": 233,
    "primary": 255,
-   "secondary": 255,
+   "secondary": 252,
    "success": 114,
-   "tertiary": 255,
+   "tertiary": 145,
    "warning": 221
   },
   "light": {
@@ -98,14 +98,23 @@
    "info": 24,
    "onError": 231,
    "onPrimary": 233,
-   "onSecondary": 233,
+   "onSecondary": 231,
    "onSuccess": 231,
    "onWarning": 231,
    "primary": 102,
-   "secondary": 102,
+   "secondary": 241,
    "success": 29,
-   "tertiary": 241,
+   "tertiary": 239,
    "warning": 94
+  }
+ },
+ "ansi16": {
+  "dark": {
+   "primary": 14,
+   "warning": 11
+  },
+  "light": {
+   "warning": 3
   }
  }
 }

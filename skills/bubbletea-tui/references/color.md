@@ -40,10 +40,17 @@ palette check theme.json   # on any existing theme
 - picks the on-colour ink (light or dark) by contrast for every fill, and on a mid-tone
   fill where neither clears its floor deepens that ink toward black or white along its
   hue (`theme.OnInk`, which the engine uses too), so the brand hex stays the fill
-- writes both a dark and a light set, plus the nearest xterm-256 index per role
+- from one brand hue makes `secondary` and `tertiary` lightness steps of it (and
+  `accent` its pale tint), not a hue shift and a complement the brand never chose; with
+  two hues the second is the brand's and the tertiary a complement
+- writes both a dark and a light set, the nearest xterm-256 index per role, and the
+  `ansi16` pins its own `check` would ask for (most brands' warning lands on error's red
+  at 16 colours), so the first `palette check` of the theme prints no 16-colour pin
+- warns when `warning` sits beside `primary` in hue and chroma (an amber brand's warning
+  a shade brighter than its amber): a warning row then reads as a focused one
 
 Then tune by hand. The tool gets you a correct palette; the brand read decides whether
-the tertiary should be a complement or a quiet tint.
+the tertiary should be a complement or a quiet tint, and what an amber brand's warning is.
 
 **Measure, don't guess.** Take brand colours from the logo file, the site's CSS or the
 style guide. A "close enough" blue is a different brand.
@@ -118,8 +125,14 @@ and look at the PNGs. What usually breaks:
 
 - the `bg`/`bgSubtle` step merges at 256 colours, so selection disappears. Move it further
   apart, or add the glyph marker.
-- `fgMuted` and `fgSubtle` collapse to one grey at 16 colours. Acceptable if nothing
-  depends on the difference.
+- a tinted neutral downsamples by distance onto a hue at 16 colours: a warm page lands on
+  yellow, warm hints on red, and three cool text levels on one blue. The kit puts every
+  neutral on a grey there (`bg` 0/15, `fg` the opposite, `bgSubtle` and `border` beside
+  the page). Dark keeps three text levels at 16 colours (`fgMuted` 7, `fgSubtle` 8);
+  light keeps two (`fgMuted` and `fgSubtle` both 8), because ANSI 7 on a white page is
+  below every floor; `fgSubtle` is never the only carrier of meaning. `palette check`
+  fails a pin that puts a neutral back on red and warns on any other hue or two text
+  levels pinned onto one grey.
 - `border`, a step off `bg`, lands on `bg` itself at 16 colours and every rule vanishes.
   `theme.ResolveProfile` moves a rule or border colour that isn't `Distinct` from bg to
   ANSI 8 (dark) or 7 (light); keep the profile from `tea.ColorProfileMsg` and pass it, or
@@ -136,8 +149,10 @@ and look at the PNGs. What usually breaks:
   ```
 
   `palette check` names each clash and the pin that fixes it (stderr): it fails error
-  off red and, under `focus: fg`, primary on red or on another state's colour, and warns
-  on the rest (`palette -h` lists them). A warning is not a pass to ignore: pin it unless
+  off red, under `focus: fg` primary on red or on another state's colour, and a neutral
+  (`bg`, `fg`, `fgMuted`, `fgSubtle`, their steps, `border`) pinned onto red; it warns
+  on the rest, two of `fg`/`fgMuted`/`fgSubtle` pinned onto one grey included
+  (`palette -h` lists them). A warning is not a pass to ignore: pin it unless
   the brand accepts it in its read. Pin bright (9-14) on dark, normal (1-6) on light,
   error to 9/1, a status role to its own slot (warning 3/11, success 2/10, info 4/12 or
   6/14), never a grey; the user's terminal palette decides the exact colour.

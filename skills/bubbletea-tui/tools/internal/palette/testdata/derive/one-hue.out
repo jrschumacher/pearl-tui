@@ -18,13 +18,13 @@
    "info": "#00A2EE",
    "onError": "#10101C",
    "onPrimary": "#F9FAFE",
-   "onSecondary": "#F9FAFE",
+   "onSecondary": "#10101C",
    "onSuccess": "#10101C",
    "onWarning": "#10101C",
    "primary": "#6B50FF",
-   "secondary": "#B526C9",
+   "secondary": "#8781FF",
    "success": "#00B754",
-   "tertiary": "#E3AE3C",
+   "tertiary": "#A8AAFF",
    "warning": "#FDC000"
   },
   "light": {
@@ -48,9 +48,9 @@
    "onSuccess": "#F9FAFD",
    "onWarning": "#F9FAFD",
    "primary": "#6B50FF",
-   "secondary": "#B526C9",
+   "secondary": "#5328DB",
    "success": "#007835",
-   "tertiary": "#805C00",
+   "tertiary": "#382E85",
    "warning": "#906B00"
   }
  },
@@ -72,13 +72,13 @@
    "info": 39,
    "onError": 233,
    "onPrimary": 231,
-   "onSecondary": 231,
+   "onSecondary": 233,
    "onSuccess": 233,
    "onWarning": 233,
    "primary": 63,
-   "secondary": 128,
+   "secondary": 105,
    "success": 35,
-   "tertiary": 179,
+   "tertiary": 147,
    "warning": 214
   },
   "light": {
@@ -102,10 +102,18 @@
    "onSuccess": 231,
    "onWarning": 231,
    "primary": 63,
-   "secondary": 128,
+   "secondary": 56,
    "success": 29,
-   "tertiary": 94,
+   "tertiary": 54,
    "warning": 94
+  }
+ },
+ "ansi16": {
+  "dark": {
+   "warning": 11
+  },
+  "light": {
+   "warning": 3
   }
  }
 }
