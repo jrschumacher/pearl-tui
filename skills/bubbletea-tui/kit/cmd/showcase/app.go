@@ -106,7 +106,7 @@ type toast struct {
 	until            int // frame
 }
 
-// tickState is the one clock. gen kills stale tick chains: a key press can't
+// tickState is the one frame clock. gen kills stale tick chains: a key press can't
 // start a second loop, and a loop started before a pause dies on arrival.
 type tickState struct {
 	gen     int

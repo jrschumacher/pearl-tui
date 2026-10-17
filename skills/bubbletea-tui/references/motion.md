@@ -1,4 +1,4 @@
-# Motion: one clock, deterministic frames, motion only when something moves
+# Motion: one frame clock, deterministic frames, motion only when something moves
 
 Motion in a terminal means "something is happening". If nothing is happening, nothing
 moves. Every frame is bytes through a pty, and over SSH at 60 fps a full-screen shimmer

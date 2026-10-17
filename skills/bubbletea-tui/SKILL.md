@@ -79,8 +79,9 @@ the user, not the repo.
    every advertised key in every state. Help is never a paragraph and never a lie.
 7. **Every state is designed and rendered:** empty, loading, error, partial, too small,
    and every overlay. If the harness can't render it, nobody reviewed it.
-8. **Motion means something is happening.** One clock, ticking only while something
-   visible moves. A spinner always says what it is doing.
+8. **Motion means something is happening.** One frame clock, ticking only while
+   something visible moves; each product clock (a poll, a sync) owns its own message. A
+   spinner always says what it is doing.
 9. **80×24 first, then 120×40, the same design.** Collapse at named breakpoints; use the
    extra room, don't stretch into it.
 10. **The brand owns two or three moves.** Pick them in the brand read and make them
@@ -128,7 +129,7 @@ Cmd for everything slow, cancel paths, and copy that names the thing and the nex
 occurred" or "Successfully".
 
 ### Motion → *Consult `references/motion.md`*
-**DO** run one `gen`-stamped clock, render deterministic frames from `frame`, and keep
+**DO** run one `gen`-stamped frame clock, render deterministic frames from `frame`, and keep
 one hero animation (`ui.Anim`) with a subject.
 **DON'T** tick while idle, fake progress, or shimmer the screen.
 
