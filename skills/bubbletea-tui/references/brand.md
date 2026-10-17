@@ -166,10 +166,10 @@ Every glyph needs an ASCII twin, the theme's own in `glyphs.ascii` or the kit's 
 `palette check` and the kit's theme tests name a glyph with neither and two marks of one
 meaning that share a twin (half-filled circles take `~` by convention). `theme.Load`
 still loads it, so an app always starts; an unmapped glyph then draws as `?`, which
-`tuilint frames --ascii --unicode <the unicode frames>` fails [F-ASCII]. If you add a key: add it to the Go structs,
-default it, document it here, probe-render it at 80×24 and 120×40, and decide whether
-`diversity` should count it; `theme.ASCII` and `theme.CheckGlyphs` cover every string in
-`Glyphs` on their own.
+`tuilint frames --ascii --unicode <the unicode frames>` fails [F-ASCII]. If you add a
+key: add it to the Go structs, default it, document it here, probe-render it at 80×24
+and 120×40, and decide whether `diversity` should count it; `theme.ASCII` and
+`theme.CheckGlyphs` cover every string in `Glyphs` on their own.
 
 **What never changes, whatever the brand:** whitespace and rules instead of boxes, one
 box for the floating thing, three to four text levels, exactly one visible focus that
