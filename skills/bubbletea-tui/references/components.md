@@ -48,6 +48,11 @@ muted and values in fg), then sections for the next most useful things (a sparkl
 its last value and trend, recent events). It appears at ≥ 110 columns. Below that it
 collapses to one summary line under the list.
 
+A body viewer in it (JSON, code, a response, a log) levels its text at two lightnesses:
+names and keys in fg, punctuation and values in muted (or the reverse, chosen once),
+never one flat level and never a rainbow of token colours. Two levels let the eye find
+the keys; hue stays for state (color.md).
+
 ## Dialog / Command Palette — `ui.Dialog` + `Canvas.Overlay`
 
 - The title row per `expressions.dialogTitle` (the motif rule in a gradient, plain, or a
