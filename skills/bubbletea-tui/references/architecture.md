@@ -223,5 +223,4 @@ internal/ui/             the kit's components (copied), plus your own
 ```
 
 One package, `cmd/<app>`, because that is where `kit/README.md`'s copy block puts the
-showcase and its tests: a model in `internal/app` splits the harness from the states it
-renders, and every cold run that read both layouts chose `cmd/<app>`.
+showcase and its tests: a model in `internal/app` splits the harness from its states.

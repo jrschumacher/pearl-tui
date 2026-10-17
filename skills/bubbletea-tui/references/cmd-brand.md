@@ -42,7 +42,7 @@ drifts), contact sheets in both modes, a passing diversity lint. Read
    is only in the palette, so go back to step 4. Each axis moved after the lint gets its
    product reason in the read and in `TUI.md` § Decisions; an axis whose only reason is
    the count moves back, because a scrim dropped or a dialog edge changed to reach 8 is
-   the lint designing the product (the critic then charges the dialog with the bleed).
+   the lint designing the product.
    Also `palette check` (every role is
    `#RGB` or `#RRGGBB`), `tuilint frames frames/<brand> --theme themes/<brand>.json --bg
    <bg>` and the light frames with `--bg <light bg>`, and the footprint: `go test` once
