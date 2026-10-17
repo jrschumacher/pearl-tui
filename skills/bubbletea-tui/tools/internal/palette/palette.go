@@ -399,7 +399,10 @@ var onFills = []struct{ on, fill string }{
 // nearest in OKLCH hue whose other brightness no state role draws either (10 beside a
 // success on 2 is a different slot and the same reading). Bright (9-14) on a dark page,
 // normal (1-6) on a light one, where terminal palettes put their legible hues. The greys
-// (0, 7, 8, 15) carry no state and are never offered.
+// (0, 7, 8, 15) carry no state and are never offered. A warm hue (on the arc from red
+// to yellow) takes yellow before magenta while yellow is free, however the degrees
+// fall: an orange at 38° is 70° from magenta and 72° from yellow, but magenta lies
+// across red from it, and an orange drawn pink is the one hue its read forbids.
 func Pin16(role, hex string, dark bool, used map[int]bool) int {
 	shift := 0
 	if dark {
@@ -418,6 +421,9 @@ func Pin16(role, hex string, dark bool, used map[int]bool) int {
 		for i := base + 1; i <= base+6; i++ {
 			if used[i] || used[(i+8)%16] {
 				continue
+			}
+			if i == base+5 && warm(h) && !used[base+3] && !used[(base+3+8)%16] {
+				continue // magenta, with yellow free: the pink a warm brand forbids
 			}
 			_, _, hi := oklch.LCH(hexOf(ansi.BasicColor(i)))
 			d := math.Abs(h - hi)

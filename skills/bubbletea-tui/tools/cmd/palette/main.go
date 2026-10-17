@@ -68,12 +68,13 @@
 // never the other brightness of a slot another state draws (10 beside success's 2 reads
 // as success). When the brand and a status role are both displaced (an amber and its
 // warning, both on red), the brand takes the slot nearest its hue first (yellow 11/3)
-// and the status role moves, when a slot within 60° of the brand's hue exists; an
-// orange, as far from yellow as from magenta, lets the status roles keep their own and
-// takes the nearest free. A brand that is a status role's own colour (a yellow on 3, or
-// within 25° of yellow's hue) yields the slot, each mode for itself. It warns on a pin,
-// the theme's or derive's, that moves a role
-// more than 60° of OKLCH hue from its truecolour value while the tool would pin it
+// and the status role moves. A warm brand, between red and yellow (an orange, a copper
+// 63° from yellow), takes yellow, never magenta, however near magenta is in degrees: its
+// warning moves off yellow, off its own native yellow too, since magenta is the pink an
+// orange is not and a warning is rarer than focus. A brand that is a status role's own
+// colour (a yellow on 3, or within 25° of yellow's hue) yields the slot, each mode for
+// itself. It warns on a pin, the theme's or derive's, that moves a role more than 60°
+// of OKLCH hue from its truecolour value while the tool would pin it
 // nearer (an amber pinned to green 10 while yellow is its warning's), naming the hex, its
 // hue, the slot and the nearer pin; a pin that is the nearest free hue, however far, is
 // not reported.

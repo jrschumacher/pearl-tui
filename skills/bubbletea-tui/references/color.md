@@ -166,7 +166,9 @@ and look at the PNGs. What usually breaks:
   6/14), never a grey; the user's terminal palette decides the exact colour. A pin
   that moves a role more than 60° of hue while a nearer slot is free (an amber brand on
   green 10, with yellow 11 its warning's) warns with the hex, the slot and the nearer
-  pin: the brand reads as a success there.
+  pin: the brand reads as a success there. An orange or copper brand takes yellow and
+  its warning moves: a pin onto 5/13 is the pink an orange read forbids, so look at the
+  focus bar and buttons in the `-profile ansi` render before keeping one.
 
 ## DO / DON'T
 
