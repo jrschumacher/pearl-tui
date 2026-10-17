@@ -9,6 +9,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
@@ -358,7 +359,8 @@ func TestDialogsStayAboveTheFooter(t *testing.T) {
 // TERM=linux read) has its focus marker, the focus bar's twin under selection bar and the
 // cursor's under caret, standing before a row in one column at most. A list blurred behind
 // a palette kept the focus bar in fgSubtle, so the frame showed two | columns (Law 5); the
-// blurred row now takes Theme.BlurBar, : under ASCII.
+// blurred row now takes Theme.BlurBar, : under ASCII. Every showcase state is checked
+// (its services list is a ui.Table), and so is a blurred ui.List beside a focused one.
 func TestOneFocusMarkerColumn(t *testing.T) {
 	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)
@@ -374,39 +376,54 @@ func TestOneFocusMarkerColumn(t *testing.T) {
 		if mode == "caret" {
 			focus = m.t.G.Cursor
 		}
+		check := func(what string, c *ui.Canvas, edge uv.Rectangle) {
+			if cols := markerColumns(c, focus, edge); len(cols) > 1 {
+				t.Errorf("%s %s -ascii: the focus marker %q stands in %d columns %v (column: rows), want one: a blurred selection takes Theme.BlurBar (%q)",
+					filepath.Base(f), what, focus, len(cols), cols, m.t.BlurBar())
+			}
+		}
 		for _, s := range states {
 			for _, sz := range [][2]int{{80, 24}, {120, 40}} {
 				m.setState(s)
 				c := m.render(sz[0], sz[1])
-				b := c.Bounds()
-				at := func(x, y int) string {
-					if x < b.Min.X || x >= b.Max.X {
-						return " "
-					}
-					if cell := c.CellAt(x, y); cell != nil && cell.Content != "" {
-						return cell.Content
-					}
-					return " "
-				}
-				cols := map[int][]int{}
-				for y := b.Min.Y; y < b.Max.Y; y++ {
-					for x := b.Min.X; x < b.Max.X; x++ {
-						// a marker stands alone before its row ("  | name"); a tree rail
-						// "|- build", a separator "quit | ? keys" and a dialog's edge do not
-						if at(x, y) != focus || at(x-1, y) != " " || at(x+1, y) != " " || at(x+2, y) == " " {
-							continue
-						}
-						if r := m.ovRect; !r.Empty() && (x == r.Min.X || x == r.Max.X-1) {
-							continue
-						}
-						cols[x] = append(cols[x], y)
-					}
-				}
-				if len(cols) > 1 {
-					t.Errorf("%s %s %dx%d -ascii: the focus marker %q stands in %d columns %v (column: rows), want one: a blurred selection takes Theme.BlurBar (%q)",
-						filepath.Base(f), s, sz[0], sz[1], focus, len(cols), cols, m.t.BlurBar())
-				}
+				check(fmt.Sprintf("%s %dx%d", s, sz[0], sz[1]), c, m.ovRect)
 			}
 		}
+		// two panes of ui.List: the sidebar blurred, the main list focused
+		items := []ui.Item{{Title: "api"}, {Title: "worker"}, {Title: "queue"}}
+		c := ui.NewCanvas(m.t, 60, 3)
+		c.Draw(strings.Join(ui.List(m.t, items, 1, 0, 24, 3, false), "\n"), ui.Rect(0, 0, 24, 3))
+		c.Draw(strings.Join(ui.List(m.t, items, 2, 0, 30, 3, true), "\n"), ui.Rect(28, 0, 30, 3))
+		c.ASCIIfy()
+		check("two lists", c, uv.Rectangle{})
 	}
+}
+
+// markerColumns maps each column where mark stands alone before a row ("  | name") to
+// its rows; a tree rail "|- build", a separator "quit | ? keys" and the edges of the
+// overlay at edge are not markers.
+func markerColumns(c *ui.Canvas, mark string, edge uv.Rectangle) map[int][]int {
+	b := c.Bounds()
+	at := func(x, y int) string {
+		if x < b.Min.X || x >= b.Max.X {
+			return " "
+		}
+		if cell := c.CellAt(x, y); cell != nil && cell.Content != "" {
+			return cell.Content
+		}
+		return " "
+	}
+	cols := map[int][]int{}
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			if at(x, y) != mark || at(x-1, y) != " " || at(x+1, y) != " " || at(x+2, y) == " " {
+				continue
+			}
+			if !edge.Empty() && (x == edge.Min.X || x == edge.Max.X-1) {
+				continue
+			}
+			cols[x] = append(cols[x], y)
+		}
+	}
+	return cols
 }
