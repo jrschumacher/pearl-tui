@@ -201,19 +201,21 @@ func readToken(tok string) (ks []key, bad string) {
 	if n := len(tok); n > 2 && tok[0] == '<' && tok[n-1] == '>' {
 		tok = tok[1 : n-1] // "<enter>"
 	}
-	carry, kind := "", "" // the last modifiers written, on an arrow or on a character
+	carry := "" // the modifiers on the last modified arrow
 	for _, a := range splitAlts(tok) {
 		if a == "" {
 			continue
 		}
-		// "shift+↑/↓" and "ctrl+d/f/t": a bare alternative of the same kind as the last
-		// modified one takes its modifiers; a named key ("ctrl+c/esc") keeps none
+		// "shift+↑/↓": a bare arrow after a modified arrow takes its modifiers. Nothing
+		// else does: "ctrl+c/q" is ctrl+c or q, and "ctrl+c/esc" is ctrl+c or esc
 		prefix, rest := modPrefix(a)
-		k := altKind(rest)
 		switch {
 		case prefix != "":
-			carry, kind = prefix, k
-		case carry != "" && k != "" && k == kind:
+			carry = ""
+			if arrows(rest) {
+				carry = prefix
+			}
+		case carry != "" && arrows(a):
 			a = carry + a
 		}
 		for _, k := range expandAlt(a) {
@@ -225,18 +227,6 @@ func readToken(tok string) (ks []key, bad string) {
 		}
 	}
 	return ks, bad
-}
-
-// altKind is what a carried modifier may land on: "arrow" for arrow glyphs, "char"
-// for one other character, "" for anything else (a named key, a range).
-func altKind(s string) string {
-	switch {
-	case arrows(s):
-		return "arrow"
-	case utf8.RuneCountInString(s) == 1:
-		return "char"
-	}
-	return ""
 }
 
 // looksKey reports whether a field reads as a key token in full ("ctrl+c", "↑/↓,").
