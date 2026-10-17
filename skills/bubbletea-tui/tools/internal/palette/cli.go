@@ -92,6 +92,11 @@ func check(path string, stdout, stderr io.Writer) int {
 	if err := theme.CheckANSI16(tf); err != nil {
 		return fail(stderr, fmt.Errorf("%s: %w", path, err))
 	}
+	// theme.CheckSelectionGlyphs: under selection "caret" a prompt that is the cursor
+	// (or its twin) draws one glyph twice on a palette; theme.Load lets it through
+	if err := theme.CheckSelectionGlyphs(tf); err != nil {
+		return fail(stderr, fmt.Errorf("%s: %w", path, err))
+	}
 	accept := map[string]string{}
 	if raw, ok := top["contrastAccept"]; ok {
 		if v, err := pyfmt.Decode(raw); err == nil {

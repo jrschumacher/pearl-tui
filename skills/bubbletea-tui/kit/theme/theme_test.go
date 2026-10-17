@@ -245,6 +245,34 @@ func TestThemesPassCheckGlyphs(t *testing.T) {
 		if err := CheckGlyphs(f.Glyphs); err != nil {
 			t.Errorf("%s: %v", path, err)
 		}
+		if err := CheckSelectionGlyphs(f); err != nil {
+			t.Errorf("%s: %v", path, err)
+		}
+	}
+}
+
+// Under selection "caret" the prompt and the cursor are one glyph twice on a palette
+// (where you type, where you are): CheckSelectionGlyphs refuses it, as glyphs and as
+// ASCII twins; under bar they mark different things and may be one glyph.
+func TestCheckSelectionGlyphs(t *testing.T) {
+	for _, c := range []struct{ json, want string }{
+		{`{"glyphs": {"cursor": "›", "prompt": "›"}, "expressions": {"selection": "caret"}}`, `glyphs.prompt "›" is glyphs.cursor under selection "caret"`},
+		{`{"glyphs": {"cursor": "›", "prompt": "❯"}, "expressions": {"selection": "caret"}}`, `glyphs.prompt "❯" and glyphs.cursor "›" both draw as ">" under ASCII`},
+		{`{"glyphs": {"cursor": "›", "prompt": "»"}, "expressions": {"selection": "caret"}}`, ""},
+		{`{"glyphs": {"cursor": ">", "prompt": ">"}, "expressions": {"selection": "bar"}}`, ""},
+		{`{"glyphs": {"cursor": ">", "prompt": ">"}}`, ""},
+	} {
+		f, err := Load(writeTheme(t, c.json))
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = CheckSelectionGlyphs(f)
+		if c.want == "" && err != nil {
+			t.Errorf("CheckSelectionGlyphs(%s) = %v, want nil", c.json, err)
+		}
+		if c.want != "" && (err == nil || !strings.Contains(err.Error(), c.want)) {
+			t.Errorf("CheckSelectionGlyphs(%s) = %v, want %q", c.json, err, c.want)
+		}
 	}
 }
 

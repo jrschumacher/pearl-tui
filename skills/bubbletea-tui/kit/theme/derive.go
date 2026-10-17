@@ -367,7 +367,7 @@ var asciiTwins = map[string]string{
 	"╱": "/", "╲": "\\", "─": "-", "━": "=", "═": "=", "╌": "-", "┄": "-", "·": ".", "~": "~",
 	"▌": "|", "┃": "|", "│": "|", "▎": "|", "╎": ":", "┆": ":", "┊": ":", "❯": ">", "›": ">", "▸": ">", "→": "->",
 	"✓": "+", "✔": "+", "●": "*", "◆": "*", "◇": "o", "○": "o", "◉": "(*)", "×": "x", "✗": "x", "✕": "x", "✖": "x",
-	"•": "*", "▪": "*", "…": "...", "■": "[x]", "□": "[ ]", "☑": "[x]", "☐": "[ ]",
+	"•": "*", "▪": "*", "…": "...", "■": "[x]", "□": "[ ]", "☑": "[x]", "☐": "[ ]", "»": ">>", "«": "<<",
 	"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "◐": "~", "▲": "^", "△": "o", "◢": "/",
 	"◦": "o", "–": "-", "—": "-", "█": "#", "░": ".",
 	"▏": "'", "↑": "^", "↓": "v", "↑↓": "^v", "←": "<-", "←→": "<>", "╸": "=", "▔": "-",
@@ -529,6 +529,27 @@ func CheckGlyphs(g Glyphs) error {
 		if b := sv.FieldByName(bar).String(); b != "" && (src.Caret == b || out.Caret == ov.FieldByName(bar).String()) {
 			return fmt.Errorf("glyphs.caret %q draws as %q, the %s's: a caret that is a bar reads as focus; pick ▏ or _ (ASCII ')", src.Caret, out.Caret, jsonKey(bar))
 		}
+	}
+	return nil
+}
+
+// CheckSelectionGlyphs reports a theme whose prompt is its cursor under selection
+// "caret": a filter input above a caret-selected list (a palette, a picker) then
+// shows the one glyph twice, where you type and where you are, and so does its ASCII
+// twin. Under bar, fill and inverse the cursor marks only selects and buttons, so
+// one glyph for both is fine (Crush's >). palette check and the kit's tests fail on
+// it; theme.Load doesn't.
+func CheckSelectionGlyphs(f File) error {
+	if exprDefaults(f.Expressions).Selection != "caret" {
+		return nil
+	}
+	g := glyphDefaults(f.Glyphs)
+	a := ASCII(g)
+	switch {
+	case g.Prompt == g.Cursor:
+		return fmt.Errorf("glyphs.prompt %q is glyphs.cursor under selection \"caret\": a filter input above a list shows it twice, where you type and where you are; give the prompt its own glyph with an ASCII twin that is not the cursor's (» draws as >>, or $)", g.Prompt)
+	case a.Prompt == a.Cursor:
+		return fmt.Errorf("glyphs.prompt %q and glyphs.cursor %q both draw as %q under ASCII, so a filter input above a caret-selected list shows one mark twice: give the prompt a twin of its own in glyphs.ascii", g.Prompt, g.Cursor, a.Prompt)
 	}
 	return nil
 }
