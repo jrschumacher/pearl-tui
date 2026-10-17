@@ -457,6 +457,7 @@ var exprValues = map[string][]string{
 	"density":      {"airy", "compact"},
 	"backdrop":     {"none", "field"},
 	"working":      {"spinner", "scramble"},
+	"spinner":      {"focus", "primary", "secondary", "tertiary", "accent", "info", "fg", "muted"},
 	"scrim":        {"dim", "none"},
 	"focus":        {"primary", "fg"},
 }

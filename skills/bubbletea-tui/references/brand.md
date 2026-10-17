@@ -99,6 +99,9 @@ read it too.
     "density": "compact",       // airy | compact
     "backdrop": "field",        // none | field
     "working": "spinner",       // spinner | scramble (Crush's hero; without it ui.Anim draws the spinner + label)
+    "spinner": "focus",         // focus | primary | secondary | tertiary | accent | info | fg | muted: the ink of
+                                //   the working marks (spinner frames, a busy row, a running tool); focus = primary,
+                                //   or fg under focus "fg"
     "scrim": "dim",             // dim | none
     "focus": "primary",         // primary | fg (focus, cursor, prompt, selection in fg + bold)
     "paintBg": false,           // own the terminal background

@@ -122,6 +122,7 @@ type Expressions struct {
 	Density      string `json:"density"`      // airy | compact
 	Backdrop     string `json:"backdrop"`     // none | field
 	Working      string `json:"working"`      // spinner | scramble   (the hero "working" indicator; scramble is Crush's)
+	Spinner      string `json:"spinner"`      // focus | primary | secondary | tertiary | accent | info | fg | muted: the ink of the working marks (spinner frames, a busy row's mark, a running tool); focus = primary, or fg under focus "fg"
 	Scrim        string `json:"scrim"`        // dim | none   (dim the screen under a dialog)
 	// Focus is the ink of the kit's own emphasis: primary (default), or fg, where the
 	// focus bar, cursor, prompt, current step, active tab, selection and focused button

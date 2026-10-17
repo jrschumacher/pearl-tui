@@ -134,7 +134,7 @@ func Dot(t *theme.Theme, state string) string {
 	case "warning", "degraded":
 		return t.S.Warn.Render(t.G.Warn)
 	case "busy", "deploying", "running":
-		return t.S.Mark.Render(t.G.Partial)
+		return t.S.Working.Render(t.G.Partial)
 	}
 	return t.S.Subtle.Render(t.G.Todo)
 }

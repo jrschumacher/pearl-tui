@@ -23,10 +23,11 @@ type Styles struct {
 	Key     lipgloss.Style // help: the key
 	KeyDesc lipgloss.Style // help: what it does
 	// emphasis, per expressions.focus: primary, or fg and bold
-	Focus  lipgloss.Style // focus, current and selection marks: cursor, current step, active tab, chosen option
-	Prompt lipgloss.Style // input prompts and carets (tertiary, or fg and bold)
-	Mark   lipgloss.Style // the kit's own marks: spinner, progress fill, busy dot (primary, or fg)
-	Motif  lipgloss.Style // the header rule and dialog-title rule runs (primary, or the rule role)
+	Focus   lipgloss.Style // focus, current and selection marks: cursor, current step, active tab, chosen option
+	Prompt  lipgloss.Style // input prompts and carets (tertiary, or fg and bold)
+	Mark    lipgloss.Style // the kit's own marks: the progress fill (primary, or fg)
+	Working lipgloss.Style // the working marks: spinner frames, a busy row's mark, a running tool (per expressions.spinner; Mark by default)
+	Motif   lipgloss.Style // the header rule and dialog-title rule runs (primary, or the rule role)
 	// selection
 	SelRow   lipgloss.Style // a selected row (per expressions.selection)
 	FocusBar lipgloss.Style // ▌ beside the focused block
@@ -63,6 +64,24 @@ func build(t *Theme) Styles {
 	s.Focus, s.Prompt, s.Mark, s.Motif = s.Primary, s.Tertiary, s.Primary, s.Primary
 	if fgFocus {
 		s.Focus, s.Prompt, s.Mark, s.Motif = s.Bold, s.Bold, s.Base, s.Rule
+	}
+	// the working marks follow the focus ink unless the theme names a role for them
+	s.Working = s.Mark
+	switch x.Spinner {
+	case "primary":
+		s.Working = s.Primary
+	case "secondary":
+		s.Working = s.Secondary
+	case "tertiary":
+		s.Working = s.Tertiary
+	case "accent":
+		s.Working = s.Accent
+	case "info":
+		s.Working = s.Info
+	case "fg":
+		s.Working = s.Base
+	case "muted":
+		s.Working = s.Muted
 	}
 
 	switch x.SectionTitle {
