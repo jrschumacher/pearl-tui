@@ -62,12 +62,22 @@ func TestASCIIfyKeepsTextRunes(t *testing.T) {
 		// x > 1, 5‰ not 5%, 10³ not 103, ¬a not -a; they stay "?" for the lint, as does ¿,
 		// which F-ASCII --unicode would otherwise report as a "?" with no twin
 		{"±0.5 x≥1 y≤9 5‰ 10¹²³ ¬a † ‡ § ¶ ¿", "?0.5 x?1 y?9 5? 10??? ?a ? ? ? ? ?"},
+		// a zero-width rune rides in the cell before it, which the sweep passed over when
+		// its first rune was ASCII: a soft hyphen and NFD text (e + U+0308, as macOS file
+		// names and git print them) leaked into the frame; they fold into the letter
+		{"soft\u00ADhyphen", "softhyphen"},
+		{"Zoe\u0308 cafe\u0301 n\u0303\u0301", "Zoe cafe n"},
 	} {
 		cv := NewCanvas(th, 60, 1)
 		cv.Draw(c.in, Rect(0, 0, 60, 1))
 		cv.ASCIIfy()
 		if got := strings.TrimRight(ansi.Strip(cv.String()), " "); got != c.want {
 			t.Errorf("ASCIIfy(%q) = %q, want %q", c.in, got, c.want)
+		}
+		for _, r := range cv.String() {
+			if r >= 128 {
+				t.Errorf("ASCIIfy(%q) leaks %U", c.in, r)
+			}
 		}
 	}
 }

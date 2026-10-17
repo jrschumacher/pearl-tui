@@ -165,12 +165,24 @@ func (c *Canvas) ASCIIfy() {
 			if cell == nil || cell.Content == "" {
 				continue
 			}
-			r := []rune(cell.Content)[0]
-			if r < 128 {
+			rs := []rune(cell.Content)
+			r := rs[0]
+			if r < 128 && !nonASCII(rs[1:]) {
 				continue
 			}
 			nc := *cell
-			nc.Content, nc.Width = asciiRune(r), 1
+			nc.Content, nc.Width = string(r), 1
+			if r >= 128 {
+				nc.Content = asciiRune(r)
+			}
+			// the rest of the cluster rides on the first rune: a combining mark (NFD
+			// "e" + U+0308, as macOS file names and git print them) or a soft hyphen
+			// (U+00AD, zero width) folds into the base letter, never leaks
+			for _, m := range rs[1:] {
+				if m < 128 {
+					nc.Content += string(m)
+				}
+			}
 			c.SetCell(x, y, &nc)
 			if string(r) == theme.Ellipsis { // a bare cut: finish it as "..."
 				c.cutDots(x, y, &nc)
@@ -182,6 +194,15 @@ func (c *Canvas) ASCIIfy() {
 			}
 		}
 	}
+}
+
+func nonASCII(rs []rune) bool {
+	for _, r := range rs {
+		if r >= 128 {
+			return true
+		}
+	}
+	return false
 }
 
 // cutDots finishes a cut the sweep found as a bare "…" (ui.Fit's, a screen's own
@@ -245,7 +266,7 @@ const latin1Letters = "AAAAAAACEEEEIIIIDNOOOOOxOUUUUYTsaaaaaaaceeeeiiiidnooooo/o
 
 var latin1Map = map[rune]string{
 	'\u00A0': " ", '¡': "!", '¢': "c", '£': "L", '¤': "o", '¥': "Y", '¦': "|", '¨': "\"", '©': "c",
-	'ª': "a", '«': "<", '\u00AD': "-", '®': "R", '¯': "-", '°': " ", '´': "'", 'µ': "u", '¸': ",",
+	'ª': "a", '«': "<", '®': "R", '¯': "-", '°': " ", '´': "'", 'µ': "u", '¸': ",",
 	'º': "o", '»': ">", '€': "E", '‚': ",", '„': "\"", '′': "'", '″': "\"", '−': "-", 'Œ': "O",
 	'œ': "o", 'Š': "S", 'š': "s", 'Ž': "Z", 'ž': "z", 'Ÿ': "Y",
 }
