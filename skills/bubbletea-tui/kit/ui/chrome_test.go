@@ -181,4 +181,12 @@ func TestDialogLiftsHintsOnThePanel(t *testing.T) {
 	if c := cellAt(OnPanel(th, th.S.Base.Render("deployed"), th.P.BgPanel), "deployed"); !same8(c.Style.Fg, th.P.Fg) {
 		t.Errorf("fg on the panel draws %v, want fg", c.Style.Fg)
 	}
+	// a span on its own fill is judged there: an unfocused pill keeps fgMuted on bgSubtle
+	if c := cellAt(OnPanel(th, th.S.Subtle.Background(th.P.BgSubtle).Render("Cancel"), th.P.BgPanel), "Cancel"); !same8(c.Style.Fg, th.P.FgSubtle) {
+		t.Errorf("a span with its own fill draws %v, want its own fgSubtle", c.Style.Fg)
+	}
+	// a bold hint is a hint: lifted with its weight kept
+	if c := cellAt(OnPanel(th, th.S.Subtle.Bold(true).Render("hint"), th.P.BgPanel), "hint"); !same8(c.Style.Fg, th.P.FgMuted) || c.Style.Attrs&uv.AttrBold == 0 {
+		t.Errorf("a bold subtle hint draws %v bold=%v, want fgMuted and bold", c.Style.Fg, c.Style.Attrs&uv.AttrBold != 0)
+	}
 }

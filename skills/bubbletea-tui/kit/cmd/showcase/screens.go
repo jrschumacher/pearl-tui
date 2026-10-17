@@ -567,7 +567,7 @@ func (m *app) palette(c *ui.Canvas) {
 		}
 	} else {
 		sel := min(m.palSel, len(items)-1)
-		m.palOff = ui.Follow(sel, m.palOff, listH) // the list scrolls to the selection
+		m.palOff = ui.Follow(sel, m.palOff, listH, len(items)) // the list scrolls to the selection
 		body = append(body, ui.List(t, items, sel, m.palOff, inner, listH, true)...)
 	}
 	// no help line inside: the footer above the scrim carries the dialog's keys

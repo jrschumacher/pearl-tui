@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image/color"
+	"regexp"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -17,8 +18,10 @@ const panelFloor = 2.3
 // under 2.3:1 on fill takes the next level up (fgSubtle to fgMuted, fgMuted to fgSoft or
 // fg), so hints stay readable on bgPanel and bgOverlay whatever step the theme chose.
 // ToolCall and Thinking draw their hints muted for the same reason; Dialog and Popover
-// apply it to every row they hold. The hue roles are left alone: a state's colour on a
-// panel is the theme's own contrast decision.
+// apply it to every row they hold. A span that sets its own background (a filled
+// button, a filled tag, a selected row) sits on that fill, not the panel's, and keeps
+// its ink; the hue roles are left alone everywhere, a state's colour on a panel being
+// the theme's own contrast decision.
 func OnPanel(t *theme.Theme, s string, fill color.Color) string {
 	// judged as the terminal shows them: at 16 or 256 colours a level and the fill can
 	// land on one index (both ANSI 8), which truecolour contrast would call readable
@@ -36,6 +39,7 @@ func OnPanel(t *theme.Theme, s string, fill color.Color) string {
 		return !same8(cc, cf) && theme.Contrast(cc, cf) >= panelFloor
 	}
 	levels := []color.Color{t.P.FgSubtle, t.P.FgMuted, t.P.FgSoft, t.P.Fg}
+	lift := map[string]string{}
 	for i, c := range levels[:3] {
 		if holds(c) {
 			continue
@@ -47,18 +51,63 @@ func OnPanel(t *theme.Theme, s string, fill color.Color) string {
 				break
 			}
 		}
-		s = strings.ReplaceAll(s, sgrFg(c), sgrFg(to))
+		lift[fgParam(c)] = fgParam(to)
 	}
-	return s
+	if len(lift) == 0 {
+		return s
+	}
+	return sgrRe.ReplaceAllStringFunc(s, func(seq string) string {
+		params := sgrParams(seq[2 : len(seq)-1])
+		for _, p := range params {
+			if strings.HasPrefix(p, "48;") || p == "48" || (len(p) == 2 && p[0] == '4' && p[1] >= '0' && p[1] <= '7') || (len(p) == 3 && strings.HasPrefix(p, "10")) {
+				return seq // its own fill: judged there, not on the panel
+			}
+		}
+		for i, p := range params {
+			if to, ok := lift[p]; ok {
+				params[i] = to
+			}
+		}
+		return "\x1b[" + strings.Join(params, ";") + "m"
+	})
 }
 
-// sgrFg is the foreground sequence Lip Gloss writes for c ("\x1b[38;2;R;G;Bm" for a
-// hex, "\x1b[90m" for a role pinned to one of the 16 colours), so a replacement
-// matches what the styles wrote and nothing else.
-func sgrFg(c color.Color) string {
+var sgrRe = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
+// sgrParams splits an SGR parameter string into its attributes, keeping a colour and
+// its arguments (38;2;R;G;B, 38;5;N, 48;…) as one.
+func sgrParams(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ";")
+	var out []string
+	for i := 0; i < len(parts); i++ {
+		p := parts[i]
+		if (p == "38" || p == "48" || p == "58") && i+1 < len(parts) {
+			n := 0
+			switch parts[i+1] {
+			case "2":
+				n = 4
+			case "5":
+				n = 2
+			}
+			end := min(len(parts)-1, i+1+n)
+			p = strings.Join(parts[i:end+1], ";")
+			i = end
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// fgParam is the SGR parameter Lip Gloss writes for a foreground c ("38;2;R;G;B" for a
+// hex, "90" for a role pinned to one of the 16 colours), so a replacement matches what
+// the styles wrote and nothing else.
+func fgParam(c color.Color) string {
 	s := lipgloss.NewStyle().Foreground(c).Render("x")
 	seq, _, _ := strings.Cut(s, "x")
-	return seq
+	return strings.TrimSuffix(strings.TrimPrefix(seq, "\x1b["), "m")
 }
 
 // rgb8 is c as Lip Gloss writes it, 8 bits a channel.

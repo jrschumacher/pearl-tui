@@ -40,7 +40,9 @@
    "info": "#2E5E8C"
   }
  },
- "glyphs": {},
+ "glyphs": {
+  "pending": "◌"
+ },
  "expressions": {
   "header": "rule",
   "wordmark": "solid",

@@ -44,16 +44,17 @@ func List(t *theme.Theme, items []Item, sel, offset, w, h int, focused bool) []s
 	return out
 }
 
-// Follow is the offset that keeps sel on screen in a list h rows tall: offset when sel is
-// already visible, else the smallest move that shows it (sel at the top when it was above
-// the window, at the bottom when it was below). Call it before List on every render, so
-// a selection moved by a key or a filter scrolls into view and a list that fits never
-// scrolls.
-func Follow(sel, offset, h int) int {
+// Follow is the offset that keeps sel on screen in a list of n items, h rows tall:
+// offset when sel is already visible, else the smallest move that shows it (sel at the
+// top when it was above the window, at the bottom when it was below), never past n-h,
+// so a list that shrinks under a filter shows its last items and no blank rows. Call it
+// before List on every render, so a selection moved by a key or a filter scrolls into
+// view and a list that fits never scrolls.
+func Follow(sel, offset, h, n int) int {
 	if h <= 0 {
 		return 0
 	}
-	offset = max(0, offset)
+	offset = min(max(0, offset), max(0, n-h))
 	switch {
 	case sel < offset:
 		return max(0, sel)

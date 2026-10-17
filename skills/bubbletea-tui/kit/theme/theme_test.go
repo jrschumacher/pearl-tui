@@ -445,3 +445,38 @@ func TestASCIISpinnerTurns(t *testing.T) {
 		}
 	}
 }
+
+// themes/ink.json and Default are one fallback in two forms (the embedded theme the
+// showcase draws with no flag, and what a partial theme's gaps resolve to): they
+// resolve to the same palette, glyphs and expressions in both modes, at truecolour and
+// at 16 colours, where ink's pins apply. A project that copied the kit has its own
+// themes/, so the file is looked for and the test passes without it.
+func TestInkIsTheDefault(t *testing.T) {
+	var ink string
+	for _, p := range []string{"../themes/ink.json", "../../themes/ink.json"} {
+		if _, err := os.Stat(p); err == nil {
+			ink = p
+		}
+	}
+	if ink == "" {
+		t.Skip("no themes/ink.json: a copied project carries its own theme")
+	}
+	f, err := Load(ink)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, dark := range []bool{true, false} {
+		for _, p := range []colorprofile.Profile{colorprofile.TrueColor, colorprofile.ANSI} {
+			a, b := ResolveProfile(f, dark, false, p), ResolveProfile(Default(), dark, false, p)
+			if !reflect.DeepEqual(a.P, b.P) {
+				t.Errorf("dark=%v %v: ink.json and Default() resolve to different palettes", dark, p)
+			}
+			if !reflect.DeepEqual(a.G, b.G) {
+				t.Errorf("dark=%v %v: glyphs differ:\n%+v\n%+v", dark, p, a.G, b.G)
+			}
+			if !reflect.DeepEqual(a.X, b.X) {
+				t.Errorf("dark=%v %v: expressions differ:\n%+v\n%+v", dark, p, a.X, b.X)
+			}
+		}
+	}
+}

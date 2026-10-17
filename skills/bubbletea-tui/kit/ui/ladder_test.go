@@ -65,7 +65,7 @@ func TestLadderRoles(t *testing.T) {
 		seen := map[string]string{}
 		for _, r := range Rungs {
 			glyph := strings.Fields(ansi.Strip(Mark(g, r.Slot)))[0]
-			if o, dup := seen[glyph]; dup && !(r.Slot == "pending" || o == "pending") {
+			if o, dup := seen[glyph]; dup {
 				t.Errorf("%s ascii: %s and %s are both %q", filepath.Base(f), o, r.Slot, glyph)
 			}
 			seen[glyph] = r.Slot
