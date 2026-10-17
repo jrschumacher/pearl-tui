@@ -48,8 +48,11 @@ Run `-golden` at both sizes. It must pass while the screens are still stubs.
 ## 3. Screens, One At A Time
 
 For each screen in `TUI.md` § First slice, in that order, then the `Then:` list: draw the
-fixed chrome, then the body into rectangles from its § Screens block; use the components
-it names; add the states; wire the keys and the help. Write in the screen's § Screens
+fixed chrome, then the body into rectangles from its § Screens block (both sizes: the
+120×40 block names the pane that exists only there, and `layout.md` § Use The Room is
+the rule, since a sidebar of blank rows and 40 unused columns beside the body is the
+80×24 design stretched, the critics' most common P1 after a cut at 80×24); use the
+components it names; add the states; wire the keys and the help. Write in the screen's § Screens
 block which frame its identity (`shape` step 7, the read's `remember` move) shows on: the
 default frame is the one the critic's first question is asked of, so a move that only a
 sent turn or a filled form draws is moved, or joined by one, onto it. After each screen,
