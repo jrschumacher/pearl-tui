@@ -114,14 +114,14 @@ func packFooterReserving(items []string, w, reserveMore int) (shown, dropped []s
 	for i, it := range items {
 		if len(items) > 1 && pins(it) {
 			pinned = it
-			w -= ansi.StringWidth(pinned) + hintSep
+			w -= hintWidth(pinned) + hintSep
 			items = append(items[:i:i], items[i+1:]...)
 			break
 		}
 	}
 	used := 0
 	for i, it := range items {
-		need := ansi.StringWidth(it)
+		need := hintWidth(it)
 		if len(shown) > 0 {
 			need += hintSep
 		}
@@ -159,9 +159,31 @@ func hintsWidth(items []string) int {
 		if i > 0 {
 			n += hintSep
 		}
-		n += ansi.StringWidth(it)
+		n += hintWidth(it)
 	}
 	return n
+}
+
+// hintWidth is the width ui.Help draws a hint in. A key token that pairs a key some
+// terminals can't tell apart (legacy) with its fallback, `shift+enter/ctrl+j`, is drawn
+// as one alternative (ui.HelpKey: ctrl+j, or shift+enter where the terminal
+// disambiguates keys), so it counts as the widest single one; any other token is drawn
+// whole.
+func hintWidth(item string) int {
+	tok, desc, _ := strings.Cut(item, " ")
+	alts := splitAlts(tok)
+	widest, ambiguous := 0, false
+	for _, a := range alts {
+		for _, k := range expandAlt(a) {
+			_, _, ok := legacy(k)
+			ambiguous = ambiguous || !ok
+		}
+		widest = max(widest, ansi.StringWidth(a))
+	}
+	if len(alts) < 2 || !ambiguous {
+		return ansi.StringWidth(item)
+	}
+	return widest + 1 + ansi.StringWidth(desc)
 }
 
 // footerFit checks each state's footer against the 80-column footer the kit draws,

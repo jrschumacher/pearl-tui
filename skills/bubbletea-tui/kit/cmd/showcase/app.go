@@ -51,6 +51,7 @@ type app struct {
 	t       *theme.Theme
 	ascii   bool
 	profile colorprofile.Profile // the terminal's colour profile (tea.ColorProfileMsg)
+	keys    bool                 // the terminal disambiguates keys (tea.KeyboardEnhancementsMsg)
 	w, h    int
 
 	screen screen
@@ -187,6 +188,10 @@ func (m *app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.screen == scrSetup && m.setup.form != nil {
 			return m, m.goStep(m.setup.step)
 		}
+	case tea.KeyboardEnhancementsMsg:
+		// shift+enter is told apart from enter: help draws it rather than its fallback
+		m.keys = msg.SupportsKeyDisambiguation()
+		m.resolve(m.t.Dark)
 	case tea.BackgroundColorMsg:
 		m.resolve(msg.IsDark())
 		if m.screen == scrSetup && m.setup.form != nil {
@@ -652,6 +657,7 @@ func (m *app) command(title string) tea.Cmd {
 // resolve rebuilds the theme for a mode, keeping the ASCII choice and the profile.
 func (m *app) resolve(dark bool) {
 	m.t = theme.ResolveProfile(m.file, dark, m.ascii, m.profile)
+	m.t.KeyDisambiguation = m.keys
 }
 
 func (m *app) footerBindings() []key.Binding {

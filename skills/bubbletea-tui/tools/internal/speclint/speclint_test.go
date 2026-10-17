@@ -149,6 +149,9 @@ func TestRules(t *testing.T) {
 		{"a writing state overflowing", table("| tour-writing | tour | ↑↓/jk scroll · pgup/pgdn page · g/G top/bottom · tab next section · shift+tab previous section · r write the rest · esc stop writing · ? help |", ""), map[string]int{"S-FOOTER": 1}},
 		{"ctrl+g opens help while typing", table("| reply | overlay | enter send · ctrl+j newline · esc cancel · ctrl+g help ‖ ctrl+o attach |", ""), nil},
 		{"76 columns exactly fit", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 42)+" |", ""), nil},
+		// ui.Help draws `shift+enter/ctrl+j` as one alternative (ctrl+j, or shift+enter where
+		// the terminal disambiguates keys), so S-FOOTER measures the widest one, not all 18
+		{"a newline fallback is one alternative wide", table("| compose | conversation | **enter send** · **shift+enter/ctrl+j newline** · **ctrl+o attach** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), nil},
 		{"77 columns don't", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 43)+" |", ""), map[string]int{"S-FOOTER": 1}},
 		{"Global keys are not in the footer", table("| list | list | ↑↓ move · enter open · ? help |", "ctrl+c quit · ctrl+p palette · ctrl+o switch · ctrl+s save · ctrl+r reload · ctrl+t theme · f1 manual"), nil},
 		{"an empty cell has no footer", table("| splash | splash | — |", ""), nil},
@@ -421,6 +424,9 @@ func TestPackFooter(t *testing.T) {
 		{"a one · b two · ? help", 13, "b two"},            // ? help pinned: 13 - 8 = 5 for the rest
 		{"a one · ? help · b two", 13, "b two"},            // ? help pinned from the middle too
 		{"a very long first hint", 10, "a very long first hint"},
+		{"shift+enter/ctrl+j newline · b two", 26, ""}, // measured as shift+enter newline: 19 + 2 + 5
+		{"shift+enter/ctrl+j newline · b two", 25, "b two"},
+		{"↑↓/jk move · b two", 13, "b two"}, // alternatives every terminal sends are all drawn
 	}
 	for _, c := range cases {
 		_, dropped := packFooter(strings.Split(c.items, " · "), c.w)

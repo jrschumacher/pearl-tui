@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -159,13 +160,14 @@ func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 	pinned := ""
 	if i := helpBinding(bindings); i >= 0 && len(bindings) > 1 {
 		h := bindings[i].Help()
-		pinned = t.S.Key.Render(h.Key) + " " + t.S.KeyDesc.Render(h.Desc)
+		pinned = t.S.Key.Render(HelpKey(t, h.Key)) + " " + t.S.KeyDesc.Render(h.Desc)
 		w -= lipgloss.Width(pinned) + 2
 		bindings = append(bindings[:i:i], bindings[i+1:]...)
 	}
 	var parts []string
 	used := 0
 	more := t.S.Subtle.Render(t.G.Ellipsis)
+	hint := func(h key.Help) string { return t.S.Key.Render(HelpKey(t, h.Key)) + " " + t.S.KeyDesc.Render(h.Desc) }
 	// room for the separator and the ellipsis as the theme draws it: "  …" is 3 cells,
 	// the ASCII "  ..." is 5
 	reserveMore := 2 + lipgloss.Width(more)
@@ -173,8 +175,7 @@ func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 		if !b.Enabled() {
 			continue
 		}
-		h := b.Help()
-		part := t.S.Key.Render(h.Key) + " " + t.S.KeyDesc.Render(h.Desc)
+		part := hint(b.Help())
 		pw := lipgloss.Width(part)
 		need := pw
 		if len(parts) > 0 {
@@ -198,6 +199,59 @@ func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 		return line + sep + pinned
 	}
 	return line
+}
+
+// HelpKey is a help key as this terminal can press it. A token that pairs a key some
+// terminals can't tell apart from another (shift+enter arrives as enter where the
+// terminal doesn't disambiguate keys: tmux, most SSH sessions) with its fallback,
+// "shift+enter/ctrl+j", is drawn as one alternative: the first, once the terminal
+// reported key disambiguation (t.KeyDisambiguation), else the first every terminal
+// sends. Any other token ("↑↓/jk", "?/f1") is drawn whole.
+func HelpKey(t *theme.Theme, k string) string {
+	alts := strings.Split(k, "/")
+	if len(alts) < 2 || !slices.ContainsFunc(alts, ambiguousKey) {
+		return k
+	}
+	if t.KeyDisambiguation {
+		return alts[0]
+	}
+	if i := slices.IndexFunc(alts, func(a string) bool { return a != "" && !ambiguousKey(a) }); i >= 0 {
+		return alts[i]
+	}
+	return k
+}
+
+// ambiguousKey reports a key a terminal without key disambiguation delivers as another
+// key or not at all: ctrl or shift on enter, backspace or esc (one byte each), ctrl+tab,
+// shift+space, ctrl+m and ctrl+i (enter's and tab's bytes), ctrl+shift+<letter>, ctrl
+// on a digit or punctuation other than \ ] ^ _, and super, hyper or meta on anything.
+// tuilint spec's S-KEYAMBIG holds the same model.
+func ambiguousKey(k string) bool {
+	parts := strings.Split(k, "+")
+	base, mods := parts[len(parts)-1], parts[:len(parts)-1]
+	ctrl, shift := slices.Contains(mods, "ctrl"), slices.Contains(mods, "shift")
+	if slices.ContainsFunc(mods, func(m string) bool { return m == "super" || m == "hyper" || m == "meta" }) {
+		return true
+	}
+	switch base {
+	case "enter", "backspace", "esc":
+		return ctrl || shift
+	case "tab":
+		return ctrl
+	case "space":
+		return shift
+	}
+	if !ctrl || len([]rune(base)) != 1 {
+		return false
+	}
+	r := []rune(base)[0]
+	switch {
+	case r >= 'a' && r <= 'z':
+		return shift || r == 'm' || r == 'i'
+	case r >= 'A' && r <= 'Z':
+		return true
+	}
+	return !strings.ContainsRune(`\]^_`, r)
 }
 
 // helpBinding is the index of the first enabled binding whose help key is ? or ctrl+g
@@ -342,7 +396,7 @@ func TooSmall(t *theme.Theme, w, h, minW, minH int, bindings []key.Binding) stri
 	var keys []string
 	for _, b := range bindings {
 		if b.Enabled() {
-			keys = append(keys, t.S.Key.Render(b.Help().Key)+" "+t.S.KeyDesc.Render(b.Help().Desc))
+			keys = append(keys, t.S.Key.Render(HelpKey(t, b.Help().Key))+" "+t.S.KeyDesc.Render(b.Help().Desc))
 		}
 	}
 	msg := Wordmark(t, t.AppName()) + "\n\n" + t.S.Soft.Render(t.Copy("Terminal too small")) + "\n" + t.S.Muted.Render(

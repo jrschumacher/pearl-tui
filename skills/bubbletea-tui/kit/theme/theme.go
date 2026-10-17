@@ -707,6 +707,12 @@ type Theme struct {
 	// twin: G itself unless ASCII. What a component reads to decide by the theme's own
 	// glyphs rather than their twins (ui.BusyAnimates judges the spinner frames' width).
 	Unicode Glyphs
+	// KeyDisambiguation is what the terminal reported in tea.KeyboardEnhancementsMsg
+	// (SupportsKeyDisambiguation): shift+enter arrives as itself, not as enter. ui.Help
+	// reads it to draw "shift+enter/ctrl+j" as the one alternative that works here.
+	// Resolve leaves it false (ctrl+j, which every terminal sends); set it again after
+	// every Resolve once the message has arrived.
+	KeyDisambiguation bool
 }
 
 // Resolve picks the dark or light roles, fills gaps, and builds every style, for a
