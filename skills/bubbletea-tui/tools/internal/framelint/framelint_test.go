@@ -540,3 +540,229 @@ func TestLevelsSkipsColourlessFrames(t *testing.T) {
 		t.Errorf("one-grey colour frame: %d F-LEVELS, want 1", n)
 	}
 }
+
+// contrastHits returns the F-CONTRAST findings of a run.
+func contrastHits(t *testing.T, args ...string) []Finding {
+	t.Helper()
+	fs, _, _ := run(t, args...)
+	var out []Finding
+	for _, f := range fs {
+		if f.Rule == "F-CONTRAST" {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// A "dialog": "rules" panel (two rule rows of one span around a filled panel) and an
+// ASCII +--+ box are dialogs: their inside is judged for contrast as a bordered box's
+// is, and the scrim around them is not. testdata/overlays holds the kit's quire confirm
+// (rules), quire help under --ascii (rules in -) and halyard confirm under --ascii
+// (+--+); a "dialog": "none" palette (moss) still gets the P2 note, since it has no edge.
+func TestOverlayDialogsAreFound(t *testing.T) {
+	dir := t.TempDir()
+	mutate := func(src, dst, old, new string) string {
+		data, err := os.ReadFile(src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(data), old) {
+			t.Fatalf("%s: no %q to replace", src, old)
+		}
+		p := filepath.Join(dir, dst)
+		if err := os.WriteFile(p, []byte(strings.Replace(string(data), old, new, 1)), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	// the kit's frames pass as they are, with no "checked only by eye" note
+	for _, c := range []struct {
+		file  string
+		ascii bool
+	}{{"rules-confirm-80x24.ansi", false}, {"rules-ascii-help-80x24.ansi", true}, {"box-ascii-confirm-80x24.ansi", true}} {
+		args := []string{"testdata/overlays/" + c.file, "--theme", "testdata/themes/quire.json"}
+		if c.ascii {
+			args = append(args, "--ascii")
+		}
+		if hits := contrastHits(t, args...); len(hits) != 0 {
+			t.Errorf("%s: %+v, want no F-CONTRAST", c.file, hits)
+		}
+	}
+	if hits := contrastHits(t, "testdata/overlays/none-palette-80x24.ansi"); len(hits) != 1 || hits[0].Sev != "P2" || !strings.Contains(hits[0].Msg, "checked only by eye") {
+		t.Errorf("a dialog: none palette: %+v, want the P2 note", hits)
+	}
+	// a low-contrast cell inside the rules panel fails; the same cell in the scrim doesn't
+	// (quire: panel bg #22201C, page bg #17181B; #2A2A2E is 1.3:1 on either)
+	inside := mutate("testdata/overlays/rules-confirm-80x24.ansi", "confirm-in-80x24.ansi",
+		"\x1b[38;2;178;175;171mprod returns", "\x1b[38;2;42;42;46mprod returns")
+	if hits := contrastHits(t, inside); len(hits) != 1 || hits[0].Sev != "P1" || hits[0].Where != "r7c13" {
+		t.Errorf("low contrast inside a rules dialog: %+v, want one P1 at r7c13", hits)
+	}
+	outside := mutate("testdata/overlays/rules-confirm-80x24.ansi", "confirm-out-80x24.ansi",
+		"\x1b[38;2;54;53;52mnow", "\x1b[38;2;20;21;24mnow")
+	if hits := contrastHits(t, outside); len(hits) != 0 {
+		t.Errorf("low contrast in the scrim beside a rules dialog: %+v, want none", hits)
+	}
+	// the same inside an ASCII +--+ box (halyard ascii confirm: box bg #142030)
+	boxed := mutate("testdata/overlays/box-ascii-confirm-80x24.ansi", "confirm-box-80x24.ansi",
+		"prod returns to the last healthy version.", "\x1b[38;2;24;34;48mprod returns to the last healthy version.")
+	if hits := contrastHits(t, boxed, "--ascii"); len(hits) != 1 || hits[0].Sev != "P1" {
+		t.Errorf("low contrast inside an ASCII box: %+v, want one P1", hits)
+	}
+}
+
+// A synthetic rules dialog, built here so the shape is explicit: a title in the top rule,
+// a bottom rule over the same columns, a filled panel between, a scrim around.
+func TestRulesDialogShape(t *testing.T) {
+	const (
+		page  = "\x1b[48;2;22;22;26m"
+		panel = "\x1b[48;2;36;34;30m"
+		dim   = "\x1b[38;2;40;40;44m" // 1.3:1 on either background
+		ink   = "\x1b[38;2;200;200;200m"
+		reset = "\x1b[0m"
+	)
+	scrim := page + dim + "scrim text scrim text   " + reset
+	var rows []string
+	rows = append(rows, scrim+page+strings.Repeat(" ", 16)+reset) // 0
+	rows = append(rows, scrim+panel+ink+"── Roll back? ──"+reset) // 1: top rule, title
+	rows = append(rows, scrim+panel+ink+"  are you sure  "+reset) // 2
+	rows = append(rows, scrim+panel+dim+"  faint hint    "+reset) // 3: low contrast inside
+	rows = append(rows, scrim+panel+ink+"────────────────"+reset) // 4: bottom rule
+	rows = append(rows, page+ink+strings.Repeat(" ", 40)+reset)   // 5: footer
+	write := func(name string, rows []string) string {
+		p := filepath.Join(t.TempDir(), name)
+		if err := os.WriteFile(p, []byte(strings.Join(rows, "\n")+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	hits := contrastHits(t, write("confirm-40x6.ansi", rows))
+	if len(hits) != 1 || hits[0].Sev != "P1" || hits[0].Where != "r3c26" {
+		t.Errorf("rules dialog: %+v, want one P1 at r3c26 (the hint inside), none for the scrim", hits)
+	}
+	// without the panel fill it is two rules on a page, not a dialog: the note stays
+	flat := make([]string, len(rows))
+	for i, r := range rows {
+		flat[i] = strings.ReplaceAll(r, panel, page)
+	}
+	if hits := contrastHits(t, write("confirm-flat-40x6.ansi", flat)); len(hits) != 1 || hits[0].Sev != "P2" {
+		t.Errorf("two rules without a fill: %+v, want the P2 note", hits)
+	}
+	// a table header row (columns, 3+ spaces apart) and a footer rule are not a dialog
+	rows[1] = scrim + panel + ink + "──  name    size" + reset
+	if hits := contrastHits(t, write("confirm-table-40x6.ansi", rows)); len(hits) != 1 || hits[0].Sev != "P2" {
+		t.Errorf("a header rule and a footer rule: %+v, want the P2 note", hits)
+	}
+}
+
+// Status marks (● ◆ ▶ ○ ◐ •) carry meaning, so they are judged for contrast as text;
+// box drawing, blocks, braille (a sparkline) and rule runs (────, ····) are decoration.
+func TestContrastJudgesStatusMarks(t *testing.T) {
+	dir := t.TempDir()
+	const faint = "\x1b[38;2;42;42;46m" // 1.26:1 on #16161A
+	write := func(name, text string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	for _, c := range []struct {
+		name, text string
+		hits       int
+	}{
+		{"marks-20x1.ansi", faint + "● ◆ ▶ ○ ◐ • ■       \x1b[0m", 1},
+		{"bullet-20x1.ansi", "  " + faint + "•\x1b[0m item            ", 1},
+		{"spark-20x1.ansi", faint + "⣀⣠⣤⣶⣿⣿⣶⣤⣀⣀⣀⣀⣀⣀      \x1b[0m", 0},
+		{"blocks-20x1.ansi", faint + "▁▂▃▄▅▆▇█ ░▒▓ ─━│┃  \x1b[0m", 0},
+		{"dots-20x1.ansi", faint + "moss ·········· prod\x1b[0m", 1}, // the words, not the dotted rule
+		{"dotrule-20x1.ansi", faint + "····················\x1b[0m", 0},
+	} {
+		hits := contrastHits(t, write(c.name, c.text))
+		if len(hits) != c.hits {
+			t.Errorf("%s: %d F-CONTRAST, want %d: %+v", c.name, len(hits), c.hits, hits)
+		}
+	}
+	// the words in dots-20x1 are the only cells counted: 8 letters, not the 10 dots
+	if hits := contrastHits(t, filepath.Join(dir, "dots-20x1.ansi")); len(hits) == 1 && !strings.HasPrefix(hits[0].Msg, "8 text cells") {
+		t.Errorf("dotted rule: %s", hits[0].Msg)
+	}
+}
+
+// F-EMPTY and F-BOLD are not judged on a splash: the kit's ink splash at 120x40 (a
+// wordmark on an empty page) lints with no warnings, and the same frame under another
+// name still trips F-EMPTY.
+func TestSplashIsNotEmpty(t *testing.T) {
+	fs, stdout, code := run(t, "testdata/kit/ink-dark/splash-120x40.ansi", "--theme", "testdata/themes/ink.json")
+	if code != 0 || len(fs) != 0 || !strings.Contains(stdout, "OK  0 blocking, 0 warnings") {
+		t.Errorf("ink splash: exit %d, %d findings\n%s", code, len(fs), stdout)
+	}
+	data, err := os.ReadFile("testdata/kit/ink-dark/splash-120x40.ansi")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(t.TempDir(), "home-120x40.ansi")
+	if err := os.WriteFile(p, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	fs, _, _ = run(t, p, "--theme", "testdata/themes/ink.json")
+	if len(fs) != 1 || fs[0].Rule != "F-EMPTY" {
+		t.Errorf("the same frame as home: %+v, want F-EMPTY", fs)
+	}
+}
+
+// --max-warnings N fails the run (exit 1) when more than N warnings remain, names the
+// limit on the verdict line, and rejects a value that is not a count (exit 2).
+func TestMaxWarnings(t *testing.T) {
+	const frame = "testdata/synthetic/all-bold.ansi" // F-BOLD and F-LEVELS: 2 warnings, 0 blocking
+	_, stdout, code := run(t, frame, "--max-warnings", "2")
+	if code != 0 || !strings.HasSuffix(stdout, "OK  0 blocking, 2 warnings\n") {
+		t.Errorf("at the limit: exit %d\n%s", code, stdout)
+	}
+	_, stdout, code = run(t, frame, "--max-warnings", "1")
+	if code != 1 || !strings.HasSuffix(stdout, "FAIL  0 blocking, 2 warnings (more than --max-warnings 1)\n") {
+		t.Errorf("over the limit: exit %d\n%s", code, stdout)
+	}
+	var out, errb bytes.Buffer
+	if code := Main([]string{frame, "--max-warnings", "two"}, &out, &errb); code != 2 || !strings.Contains(errb.String(), "--max-warnings") {
+		t.Errorf("a bad count: exit %d, stderr %q", code, errb.String())
+	}
+}
+
+// F-RAINBOW isn't judged on a 256-colour frame: downsampling scatters a gradient's steps
+// over hues the design never chose, and the truecolour render is where hues are judged.
+// The synthetic rainbow trips it in truecolour and not when its colours are indexed.
+func TestRainbowSkipsIndexedFrames(t *testing.T) {
+	data, err := os.ReadFile("testdata/synthetic/rainbow.ansi")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// re-express each truecolour fg as the nearest xterm-256 index (a coarse map is enough:
+	// the point is the SGR kind, 38;5;N, which marks the frame as indexed)
+	re := regexp.MustCompile(`([34])8;2;(\d+);(\d+);(\d+)`)
+	indexed := re.ReplaceAllStringFunc(string(data), func(m string) string {
+		var k, r, g, b int
+		fmt.Sscanf(m, "%d8;2;%d;%d;%d", &k, &r, &g, &b)
+		return fmt.Sprintf("%d8;5;%d", k, 16+36*(r/51)+6*(g/51)+b/51)
+	})
+	rainbow := func(name, text string) int {
+		p := filepath.Join(t.TempDir(), name)
+		if err := os.WriteFile(p, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		fs, _, _ := run(t, p)
+		n := 0
+		for _, f := range fs {
+			if f.Rule == "F-RAINBOW" {
+				n++
+			}
+		}
+		return n
+	}
+	if n := rainbow("rainbow-80x24.ansi", string(data)); n != 1 {
+		t.Errorf("truecolour rainbow: %d F-RAINBOW, want 1", n)
+	}
+	if n := rainbow("rainbow-256-80x24.ansi", indexed); n != 0 {
+		t.Errorf("the same frame in 256 colours: %d F-RAINBOW, want 0", n)
+	}
+}
