@@ -65,7 +65,8 @@
         "a stacked pair at 80×24 (the queue list over its detail, or a summary over a log) shares rows by content, the upper taking what it fills and the lower the rest: no region holds five or more blank rows while the one under it cuts content",
         "at 80×24 the queue list (the surface the user acts on) keeps at least half the body rows; the throughput and failure readings above or beside it fold onto shared rows before taking rows from the list",
         "a throughput or failure sparkline drawn taller than one row grows upward from its label's row: the label, the current value and the bar's base share the bottom row and the peaks rise above it; the label is never on one row with the bar alone on the next",
-        "a reading past its warning level (a failure rate or retry ratio in the amber band) carries the theme's warn mark beside its value and a reading in the error band the fail mark, so the band survives NO_COLOR and 16 colours where amber is the text colour or red's slot; the ladder frame shows both marks"
+        "a reading past its warning level (a failure rate or retry ratio in the amber band) carries the theme's warn mark beside its value and a reading in the error band the fail mark, so the band survives NO_COLOR and 16 colours where amber is the text colour or red's slot; the ladder frame shows both marks",
+        "the queue poll is a product clock with its own message and gen, separate from the frame clock: the handler that changes its interval or pauses and resumes it returns the new arm cmd (never a gen bump alone), the poll keeps running when a spinner starting or stopping bumps the frame clock's gen, and a behaviour test like the kit's TestClockSurvivesSettingChange delivers the armed tick and asserts it syncs and re-arms"
       ]
     },
     {
