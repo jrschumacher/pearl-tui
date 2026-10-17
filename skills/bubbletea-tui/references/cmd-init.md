@@ -189,7 +189,8 @@ fakes: <service> → <fake>, one per external CLI or API; no render or test touc
 
 ### Async and the clock
 <work> → <cmd> → <msg>; cancel: <context>; stale results: <id or generation>.
-One gen-stamped tick, armed only while <what> animates.
+Frame clock: one gen-stamped tick, armed only while <what> animates; a stale tick dies.
+Product clock: <none | a poll, a sample, a sync every <interval>>, its own msg and gen; the handler that changes it (interval, pause) returns the new arm cmd, never a gen bump alone.
 largest: <realistic worst case, e.g. 50k log lines, 5k rows> → <virtual list | render cache keyed by …>
 
 ### Size floor

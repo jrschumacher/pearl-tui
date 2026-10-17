@@ -77,7 +77,8 @@ fakes: the deploy API is an in-memory `fakeDeployer`, kubectl a recorded transcr
 
 ### Async and the clock
 deploy → deployCmd → deployDoneMsg; cancel: the context in m.cancel; stale results: gen.
-One gen-stamped tick, armed only while a deploy animates.
+Frame clock: one gen-stamped tick, armed only while a deploy animates; a stale tick dies.
+Product clock: a poll of service health every 5s, its own msg and gen; the handler that changes it (interval, pause) returns the new arm cmd, never a gen bump alone.
 
 ### Size floor
 Below 60×18: ui.TooSmall. Below 110 columns: the detail pane collapses to a summary line.

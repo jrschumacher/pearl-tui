@@ -1,4 +1,4 @@
-# Motion: one clock, deterministic frames, motion only when something moves
+# Motion: one frame clock, deterministic frames, motion only when something moves
 
 Motion in a terminal means "something is happening". If nothing is happening, nothing
 moves. Every frame is bytes through a pty, and over SSH at 60 fps a full-screen shimmer
@@ -25,6 +25,14 @@ case tickMsg:
 - All spinners and pulses read `m.frame`. Never one `tea.Tick` per spinner.
 - Re-arm the clock (with a new `gen`) when something starts animating. It stops itself
   when `animating()` turns false.
+- Only the frame clock may die stale, because the next key press re-arms it. A product
+  clock (a poll, a sample, a sync) has its own message and no second chance: the handler
+  that changes its interval or pauses and resumes it returns the new arm cmd, never a
+  `gen` bump alone, or it stops for good with nothing on screen to say so
+  (`TestClockSurvivesSettingChange`, copied with the kit; TUI.md § Async names both).
+  A poll's result handler re-arms only if the result's `gen` is current, or a setting
+  change mid-fetch starts a second chain; a tick that finds a fetch in flight re-arms
+  instead of skipping, so a stale result can't strand the clock.
 - `ui.FrameInterval` is 50 ms (20 fps). Spinners can advance every 2nd frame (100 ms).
 
 ## Deterministic Frames

@@ -107,7 +107,7 @@ Huh v2.0.3 quirks the kit already works around (each is a test; don't undo it):
 | no descriptions beside options | `ui.Options(ui.Choice{Name, Desc, Value}...)` |
 | the spinner is `#F780E2`, says "Loading...", no gap before the title | `ui.HuhSpinner(t, title)`; `ui.BubblesSpinner(t)` for Bubbles |
 | accessible prompts print theme colours as raw escapes | `NewForm` uses Huh's colourless base theme when accessible |
-| the input's cursor blink runs its own timer | accepted: the one exception to one clock |
+| the input's cursor blink runs its own timer | accepted: the one exception to one frame clock |
 | `Select.Value` before `Options` selects nothing | call `Options` first |
 
 - Rebuild the form when a choice changes which fields exist. Bound values must be
