@@ -44,8 +44,10 @@ func Wordmark(t *theme.Theme, name string) string {
 //	banner   the multi-row wordmark (theme.wordmark.rows) then the details row
 //
 // details is pre-styled (use Details to build it). h is the terminal height:
-// a banner costs rows, so below 30 rows it collapses to the rule header.
-func Header(t *theme.Theme, w, h int, brand, details string) []string {
+// a banner costs rows, so below 30 rows it collapses to the rule header. right is an
+// optional pre-styled part at the right edge (a count, a status) that minimal draws
+// after "brand · details"; the other headers carry details at the right already.
+func Header(t *theme.Theme, w, h int, brand, details string, right ...string) []string {
 	g := t.X.Gutter
 	inner := w - 2*g
 	pad := strings.Repeat(" ", g)
@@ -66,7 +68,17 @@ func Header(t *theme.Theme, w, h int, brand, details string) []string {
 		}
 		return []string{bar.Render(pad) + bar.Bold(true).Render(name) + bar.Render(strings.Repeat(" ", gap)+d+pad)}
 	case "minimal":
-		return []string{Fit(pad+Wordmark(t, brand)+"  "+details, w)}
+		left := pad + Wordmark(t, brand)
+		if details != "" {
+			left += t.S.Subtle.Render(" "+t.G.Sep+" ") + details
+		}
+		r := strings.Join(right, " ")
+		if r == "" {
+			return []string{Fit(left, w)}
+		}
+		room := inner - lipgloss.Width(r) - 2 // the right part keeps 2 cells from the details
+		left = Trunc(t, left, max(0, room+g))
+		return []string{Fit(left+strings.Repeat(" ", max(0, w-g-lipgloss.Width(left)-lipgloss.Width(r)))+r, w-g) + pad}
 	case "stamp":
 		st := lipgloss.NewStyle().Background(t.P.Primary).Foreground(t.P.OnPrimary).Bold(true).Padding(0, 1).Render(strings.ToUpper(brand))
 		gap := max(1, inner-lipgloss.Width(details)-lipgloss.Width(st))

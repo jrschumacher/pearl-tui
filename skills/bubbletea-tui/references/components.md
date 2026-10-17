@@ -3,13 +3,14 @@
 Every component here exists in `kit/ui`. Copy it and change what the task needs. Each
 entry gives the anatomy, the rules that a cold rebuild got wrong, and the kit function.
 
-## Header — `ui.Header(t, w, h, brand, details)`
+## Header — `ui.Header(t, w, h, brand, details[, right])`
 
 One row (or a banner, if the brand earns it and h ≥ 30): the wordmark, the brand motif
 filling the gap, and details on the right (`env · region · selection`, the first part
 in fg and the rest muted). It is drawn per `expressions.header`: `rule`, `bar` (a filled
-strip), `minimal`, `stamp` (the name as an inverse stamp at the right), or `banner`.
-Details truncate before the brand does.
+strip), `minimal` (`brand · details`, and `right` at the edge: a count, a status),
+`stamp` (the name as an inverse stamp at the right), or `banner`. Details truncate
+before the brand does.
 
 ## Tabs — `ui.Tabs`
 
