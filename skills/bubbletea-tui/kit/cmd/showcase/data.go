@@ -34,7 +34,7 @@ var commands = []command{
 	{"Silence alerts", "mute for 1h, 4h or until resolved", ""},
 	{"Switch environment", "prod, staging or dev", "e"},
 	{"Copy service URL", "", "y"},
-	{"Refresh rate", "sync every 1s, 2s, 5s, 15s or 1m", ""},
+	{"Refresh rate", "cycles 1s, 2s, 5s, 15s, 1m", ""},
 	{"Toggle theme", "dark or light", ""},
 	{"Status legend", "every mark in its role", ""},
 }
