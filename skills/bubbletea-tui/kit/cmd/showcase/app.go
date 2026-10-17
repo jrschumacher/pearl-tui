@@ -126,7 +126,14 @@ type refreshState struct {
 	syncs int // syncs so far (for tests)
 }
 
-var refreshRates = []time.Duration{time.Second, 2 * time.Second, 5 * time.Second, 15 * time.Second, time.Minute}
+// refreshRate is one interval with its label as the palette and the toast print it:
+// "1m", where time.Duration's String gives "1m0s".
+type refreshRate struct {
+	every time.Duration
+	label string
+}
+
+var refreshRates = []refreshRate{{time.Second, "1s"}, {2 * time.Second, "2s"}, {5 * time.Second, "5s"}, {15 * time.Second, "15s"}, {time.Minute, "1m"}}
 
 type refreshMsg struct{ gen int }
 type connectedMsg struct{}
@@ -201,7 +208,7 @@ func (m *app) armRefresh() tea.Cmd {
 		return nil
 	}
 	gen := m.refresh.gen
-	return tea.Tick(refreshRates[m.refresh.rate], func(time.Time) tea.Msg { return refreshMsg{gen} })
+	return tea.Tick(refreshRates[m.refresh.rate].every, func(time.Time) tea.Msg { return refreshMsg{gen} })
 }
 
 // sync is one refresh of the live list: each sparkline takes its next sample.
@@ -684,7 +691,7 @@ func (m *app) command(title string) tea.Cmd {
 		return tea.SetClipboard("https://" + s.Name + ".prod.internal")
 	case "Refresh rate":
 		m.refresh.rate = (m.refresh.rate + 1) % len(refreshRates)
-		m.say("info", "REFRESH", "every "+refreshRates[m.refresh.rate].String())
+		m.say("info", "REFRESH", "every "+refreshRates[m.refresh.rate].label)
 		return m.armRefresh() // a changed interval re-arms the product clock
 	case "Toggle theme":
 		m.resolve(!m.t.Dark)

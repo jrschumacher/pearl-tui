@@ -169,7 +169,7 @@ func TestOneClock(t *testing.T) {
 // the generation, or arms a tick stamped with the old one, never syncs again and fails.
 func TestClockSurvivesSettingChange(t *testing.T) {
 	saved := refreshRates
-	refreshRates = []time.Duration{time.Millisecond, 2 * time.Millisecond, 3 * time.Millisecond}
+	refreshRates = []refreshRate{{time.Millisecond, "1ms"}, {2 * time.Millisecond, "2ms"}, {3 * time.Millisecond, "3ms"}}
 	t.Cleanup(func() { refreshRates = saved })
 	m := fixture(t, "services")
 	m.refresh.rate = 0
@@ -192,7 +192,7 @@ func TestClockSurvivesSettingChange(t *testing.T) {
 	for range refreshRates {
 		pending := m.refresh.gen
 		arm := m.command("Refresh rate")
-		what := "a rate change (now " + refreshRates[m.refresh.rate].String() + ")"
+		what := "a rate change (now " + refreshRates[m.refresh.rate].label + ")"
 		if _, cmd := m.Update(refreshMsg{gen: pending}); cmd != nil || m.refresh.syncs != 0 {
 			t.Fatalf("%s: the old interval's tick ran as well as the new one", what)
 		}
@@ -212,6 +212,29 @@ func TestClockSurvivesSettingChange(t *testing.T) {
 		t.Fatal("resume should unpause the list")
 	}
 	deliver("resume", resume)
+}
+
+// The rate a toast names is the one the palette lists, as people write it: "every 1m",
+// never time.Duration's "every 1m0s".
+func TestRefreshRateToastNamesTheRate(t *testing.T) {
+	m := fixture(t, "services")
+	i := slices.IndexFunc(commands, func(c command) bool { return c.Title == "Refresh rate" })
+	if i < 0 {
+		t.Fatal("the palette has no Refresh rate command")
+	}
+	for range refreshRates {
+		m.command("Refresh rate")
+		r := refreshRates[m.refresh.rate]
+		if m.toast == nil || m.toast.msg != "every "+r.label {
+			t.Fatalf("the toast for %s reads %+v, want \"every %s\"", r.every, m.toast, r.label)
+		}
+		if strings.HasSuffix(r.label, "0s") && r.every >= time.Minute {
+			t.Errorf("the %s label %q prints the zero seconds", r.every, r.label)
+		}
+		if !strings.Contains(commands[i].Desc, r.label) {
+			t.Errorf("the palette's %q does not list the %s rate", commands[i].Desc, r.label)
+		}
+	}
 }
 
 // ASCII mode emits ASCII, whatever a screen or a fixture typed.
