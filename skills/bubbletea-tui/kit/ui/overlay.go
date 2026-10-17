@@ -112,13 +112,14 @@ func (c *Canvas) isBlank(x, y int) bool {
 	return strings.TrimSpace(c.text(x, y)) == ""
 }
 
-// blank empties the cell at x, y and keeps its background, so a cleared cell on a
-// filled row stays part of the fill.
+// blank empties the cell at x, y to the page's background: bg when the app paints the
+// terminal, else none (the terminal's own). Not the background the cell had: a chip,
+// a status strip or a selection band emptied by the clear would stay a solid block
+// with nothing in it. Under a scrim the cleared cell is dimmed with the page after it.
 func (c *Canvas) blank(x, y int) {
-	cell := c.CellAt(x, y)
 	nc := uv.EmptyCell
-	if cell != nil {
-		nc.Style.Bg = cell.Style.Bg
+	if c.T.X.PaintBg {
+		nc.Style.Bg = c.T.P.Bg
 	}
 	c.SetCell(x, y, &nc)
 }

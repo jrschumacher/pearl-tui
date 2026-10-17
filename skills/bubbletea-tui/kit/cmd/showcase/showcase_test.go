@@ -193,6 +193,9 @@ func TestNoUnstyledText(t *testing.T) {
 // that profile (a borderless dialog's edge depends on it, ui TestEveryDialog…). No scrim
 // is drawn there, so the rows the dialog spans are cleared across: a help dialog sat
 // between live list rows ("● acme/w ── keys · inbox ── mitri · 5h"), read as a collage.
+// A cleared cell takes the page's background, not the one it had: a red 502s strip or
+// a FAILING chip emptied by the clear stayed a solid block beside the dialog, and a
+// selection band left a grey stub at its left.
 func TestOverlaysInReducedProfiles(t *testing.T) {
 	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)
@@ -203,13 +206,15 @@ func TestOverlaysInReducedProfiles(t *testing.T) {
 			name, flag, noColor string
 			explicit            bool
 			p                   colorprofile.Profile
-		}{{"-profile ansi", "ansi", "", true, colorprofile.ANSI}, {"NO_COLOR=1", "truecolor", "1", false, colorprofile.Ascii}} {
+			ascii               bool
+		}{{"-profile ansi", "ansi", "", true, colorprofile.ANSI, false}, {"NO_COLOR=1", "truecolor", "1", false, colorprofile.Ascii, false},
+			{"-ascii", "truecolor", "", false, colorprofile.TrueColor, true}} {
 			prof, err := renderProfile(pr.flag, pr.explicit, pr.noColor)
 			if err != nil || prof != pr.p {
 				t.Fatalf("%s: renderProfile = %v %v, want %v", pr.name, prof, err, pr.p)
 			}
 			for _, dark := range []bool{true, false} {
-				m := newApp(tf, dark, false)
+				m := newApp(tf, dark, pr.ascii)
 				m.profile = prof
 				for _, s := range []string{"palette", "confirm", "help"} {
 					m.setState(s)
@@ -223,6 +228,16 @@ func TestOverlaysInReducedProfiles(t *testing.T) {
 					}
 					if x, y, ok := pageBeside(c, m.ovRect, 80); ok {
 						t.Errorf("%s %s %s dark=%v: no scrim, and the page shows %q at %d,%d beside the dialog", filepath.Base(f), s, pr.name, dark, c.CellAt(x, y).Content, x, y)
+					}
+					r := m.ovRect
+				rows:
+					for y := r.Min.Y; y < r.Max.Y; y++ {
+						for x := range 80 {
+							if cell := c.CellAt(x, y); cell != nil && !uv.Pos(x, y).In(r) && !sameRGB(cell.Style.Bg, m.t.P.Bg) {
+								t.Errorf("%s %s %s dark=%v: a cleared cell at %d,%d keeps a background %v, not the page's %v", filepath.Base(f), s, pr.name, dark, x, y, cell.Style.Bg, m.t.P.Bg)
+								break rows
+							}
+						}
 					}
 				}
 			}
