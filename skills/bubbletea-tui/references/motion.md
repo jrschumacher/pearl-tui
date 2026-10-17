@@ -60,9 +60,9 @@ wall-clock (`time.Since(start)`) only for things that must stay in sync with rea
 
 Put the theme's choice in `glyphs.spinner`. One hero animation per screen, and row-level
 spinners in the primary colour. A spinner always has a subject ("deploying 2/3 pods",
-not "Loading...") and, after ~3 s, an elapsed time. One subject, one clock: the running
-tool's head carries the elapsed time or the working line under it does, never both, since
-two counters for one job (`shell go test … 6s` over `working 6s`) read as two jobs.
+not "Loading...") and, after ~3 s, an elapsed time. One subject, one elapsed time: the
+running tool's head carries it or the working line under it does, never both, since two
+counters for one job (`shell go test … 6s` over `working 6s`) read as two jobs.
 
 ## The Hero Animation (Crush's Pattern)
 
