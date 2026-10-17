@@ -61,6 +61,9 @@ collapses to one summary line under the list.
   the tabs and a row of air above the footer) and scrolls its body when it doesn't fit
   (`ui.Clip`: `↑ n more` above, `… n more` below; `DialogScrolled` for a screen with an
   offset, `DialogBodyRows` and `ClipMax` to clamp it), so no dialog reaches the footer.
+- A dialog's status (the sending dots, `3 of 12`) is set right-aligned into its bottom
+  edge, as a rules title is into the top one, so it takes no row and never crowds the
+  buttons (`ui.DialogStatus`).
 - Palette: a prompt input with a caret, then a fixed-height list (it doesn't jump while
   typing), with fuzzy matches underlined and shortcuts right-aligned.
 - Only the front dialog takes input. `esc` closes it. The scrim dims the rest, and

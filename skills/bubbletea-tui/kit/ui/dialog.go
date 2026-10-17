@@ -66,13 +66,23 @@ func Dialog(t *theme.Theme, w, h int, title string, body []string, buttons strin
 // in h (Clip: an "↑ n more" row above, a "… n more" row below). ClipMax(len(body),
 // DialogBodyRows(t, h, …)) is the last offset that still shows a row.
 func DialogScrolled(t *theme.Theme, w, h int, title string, body []string, off int, buttons string, help string) string {
-	return dialog(t, t.S.Dialog, t.P.BgPanel, w, h, title, body, off, buttons, help)
+	return dialog(t, t.S.Dialog, t.P.BgPanel, w, h, title, body, off, buttons, help, "")
+}
+
+// DialogStatus is DialogScrolled with a status (the sending dots, "3 of 12", "saved")
+// set into the bottom edge, right-aligned, as a rules dialog's title is set into its top
+// one. It takes no row, so DialogBodyRows holds for it; a status longer than the edge
+// has room for is cut.
+//
+//	────────────────────────────── sending ··· ──
+func DialogStatus(t *theme.Theme, w, h int, title, status string, body []string, off int, buttons string, help string) string {
+	return dialog(t, t.S.Dialog, t.P.BgPanel, w, h, title, body, off, buttons, help, status)
 }
 
 // Popover is a Dialog on bgOverlay, the ramp's step for what pops over the page: a
 // command palette, completions. Draw it with Canvas.Popover.
 func Popover(t *theme.Theme, w, h int, title string, body []string, buttons string, help string) string {
-	return dialog(t, t.S.Popover, t.P.BgOverlay, w, h, title, body, 0, buttons, help)
+	return dialog(t, t.S.Popover, t.P.BgOverlay, w, h, title, body, 0, buttons, help, "")
 }
 
 // DialogBodyRows is how many body rows a Dialog h rows tall shows: h less the rows its
@@ -84,10 +94,10 @@ func DialogBodyRows(t *theme.Theme, h int, title, buttons, help string) int {
 
 // dialogFrame is the rows a dialog takes beyond its body.
 func dialogFrame(t *theme.Theme, st lipgloss.Style, fill color.Color, w int, title, buttons, help string) int {
-	return lipgloss.Height(dialog(t, st, fill, w, 0, title, []string{""}, 0, buttons, help)) - 1
+	return lipgloss.Height(dialog(t, st, fill, w, 0, title, []string{""}, 0, buttons, help, "")) - 1
 }
 
-func dialog(t *theme.Theme, st lipgloss.Style, fill color.Color, w, h int, title string, body []string, off int, buttons string, help string) string {
+func dialog(t *theme.Theme, st lipgloss.Style, fill color.Color, w, h int, title string, body []string, off int, buttons string, help string, status string) string {
 	if h > 0 {
 		if avail := h - dialogFrame(t, st, fill, w, title, buttons, help); len(body) > avail {
 			body = Clip(t, body, avail, off)
@@ -112,10 +122,35 @@ func dialog(t *theme.Theme, st lipgloss.Style, fill color.Color, w, h int, title
 	if t.X.Dialog == "rules" {
 		pw := w - st.GetHorizontalMargins()
 		top, bottom := dialogRules(t, title, pw, fill)
+		if status != "" {
+			bottom = edgeStatus(t, bottom, status, 2, fill)
+		}
 		panel := top + "\n" + st.UnsetMargins().Render(block) + "\n" + bottom
 		return lipgloss.NewStyle().Margin(st.GetMargin()).MarginBackground(t.P.Bg).Render(panel)
 	}
-	return st.Render(block)
+	d := st.Render(block)
+	if status == "" {
+		return d
+	}
+	// a border's bottom row: the status before its last two cells and the corner
+	edge := strings.Split(d, "\n")
+	edge[len(edge)-1] = edgeStatus(t, edge[len(edge)-1], status, 3, fill)
+	return strings.Join(edge, "\n")
+}
+
+// edgeStatus sets status into an edge row, right-aligned with tail cells of the edge
+// after it and a cell of air on each side, cut to the room the edge has.
+func edgeStatus(t *theme.Theme, edge, status string, tail int, fill color.Color) string {
+	w := lipgloss.Width(edge)
+	room := w - tail - 2 - 2 // two cells of edge before it, a cell of air each side
+	if room < 1 {
+		return edge
+	}
+	status = Trunc(t, status, room)
+	on := lipgloss.NewStyle().Background(fill)
+	set := on.Render(" ") + OnPanel(t, status, fill) + on.Render(" ")
+	at := w - tail - lipgloss.Width(set)
+	return ansi.Cut(edge, 0, at) + set + ansi.Cut(edge, w-tail, w)
 }
 
 // Clip cuts rows to h: all of them when they fit, else the rows from off on, under an
