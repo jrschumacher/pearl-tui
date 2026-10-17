@@ -22,8 +22,7 @@ one method, or the build agent follows whichever it read last.
 ## Round 2, architecture
 
 - Screens: yes to the list you propose, as long as it keeps inbox, thread, reply, note
-  and the quick switcher, and says where morning triage (bulk mark-done, snooze) and
-  acknowledging a Beacon page from anywhere happen. Defer by name whatever v1 can't carry.
+  and the quick switcher.
 - Forms: the default (Huh, themed from the brand).
 - Slow work and the floor: Forge and Beacon calls take seconds and must be cancellable;
   the AI summary can take a minute. 80×24 floor; nobody runs it smaller.

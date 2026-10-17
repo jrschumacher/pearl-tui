@@ -20,7 +20,8 @@ repository. Items move from here into issues when someone picks them up.
   **three dogfood runs**: a `restyle` of a real CLI's Huh setup wizard, which came back a
   recolour, with Huh's default colours, flipping button order, a stalled step counter and
   a sign-in wait with no fallback; and two `init` runs on a project with a spec, the
-  second scoring 12 of 13 on the spec case and linting clean. Each miss is now an eval
+  second scoring 12 of the 13 assertions the spec case then had (now split into cases 7
+  and 8) and linting clean. Each miss is now an eval
   case, a lint rule (F-DEFAULT for Huh's colours, C-HUHTHEME, the `tuilint spec` rules)
   or kit code (`ui.NewForm`, the wizard).
 - **Not yet verified:** a re-run of that restyle with the fixes, and a cold eval baseline:
@@ -47,7 +48,9 @@ Build real apps with it and turn every miss into a fix.
    - Which anti-patterns appeared anyway?
    - Did `TestHelpIsHandled` exist in its app?
 5. **Run the evals** in `evals/evals.json` (at the repo root, outside the shipped skill)
-   with skill-creator pointed at `skills/bubbletea-tui`: with the skill, without it, and
+   with skill-creator pointed at `skills/bubbletea-tui` and told the cases are
+   `evals/evals.json` at the repo root, with `files` relative to the repo root (it looks
+   for `evals/` inside the skill directory by default): with the skill, without it, and
    with the previous version, three runs per case. Grade by hand first, then check that
    `tuilint` agrees with your grades. The linter earns trust only when it matches a human
    on apps it has never seen. Cases still missing: Law 3, `shape`, `audit`, `polish`,

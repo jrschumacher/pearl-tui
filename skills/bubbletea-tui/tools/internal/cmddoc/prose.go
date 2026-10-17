@@ -87,8 +87,13 @@ func Invocations(file, text string, tools []string) []Invocation {
 	return out
 }
 
-// isLabel reports a step label a fenced loop line may start with: "3." or "LINT".
+// isLabel reports a word that may precede the tool's name in a command: a step label a
+// fenced loop line starts with ("3.", "LINT"), or the interpreter a script runs under
+// ("python3 scripts/wordmark.py …" is still an invocation of wordmark.py).
 func isLabel(w string) bool {
+	if w == "python" || w == "python3" || w == "-I" {
+		return true
+	}
 	if strings.HasSuffix(w, ".") && len(w) > 1 {
 		w = w[:len(w)-1]
 		for _, r := range w {
@@ -166,11 +171,14 @@ func (s Spec) Check(inv Invocation) []string {
 	args := inv.Args
 	if len(s.Modes) > 0 && len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		mode := args[0]
-		if !isWord(mode) {
-			return nil // "palette <the hues…>": a template line, not a command
-		}
 		mf, ok := s.ModeFlags[mode]
 		if !ok {
+			// "palette <the hues…>", "palette warm, tinted neutrals": prose that opens
+			// with the tool's name is a command only when it also carries a flag or a
+			// path-like argument; a plain word followed by plain words is a sentence
+			if !isWord(mode) || !commandLike(args[1:]) {
+				return nil
+			}
 			return []string{"unknown mode " + mode + " (one of " + strings.Join(s.Modes, "|") + ")"}
 		}
 		flags = mf
@@ -211,6 +219,17 @@ func (s Spec) Check(inv Invocation) []string {
 		}
 	}
 	return bad
+}
+
+// commandLike reports arguments that read as a command line rather than a sentence: a
+// flag, or something with a path separator, a dot or a glob in it.
+func commandLike(args []string) bool {
+	for _, a := range args {
+		if strings.HasPrefix(a, "-") || strings.ContainsAny(a, "/.*") {
+			return true
+		}
+	}
+	return false
 }
 
 // isWord reports a plain lowercase word, the only thing a choice can be.

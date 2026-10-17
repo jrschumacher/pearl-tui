@@ -90,9 +90,9 @@ func tools(s map[string]cmddoc.Spec) []string {
 }
 
 // known lists invocations the prose gets wrong on purpose, or that another change in
-// flight fixes: file, then a substring of the span. Remove an entry when its line is
+// flight fixes: file, then substrings of the spans. Remove an entry when its line is
 // fixed; empty means every invocation must pass.
-var known = map[string]string{}
+var known = map[string][]string{}
 
 // TestProseInvocations holds every tool command written in SKILL.md, references/, the
 // README and AGENTS.md to the tools as they are: a mode word the tool has, flags its -h
@@ -114,7 +114,7 @@ func TestProseInvocations(t *testing.T) {
 		for _, inv := range cmddoc.Invocations(f, read(t, f), names) {
 			seen++
 			for _, p := range s[inv.Tool].Check(inv) {
-				if sub, ok := known[f]; ok && strings.Contains(inv.Text, sub) {
+				if allowed(f, inv.Text) {
 					t.Logf("%s:%d: %s (known: %s)", f, inv.Line, p, strings.TrimSpace(inv.Text))
 					continue
 				}
@@ -189,6 +189,11 @@ func TestCheckCatches(t *testing.T) {
 		{"```" + "\n│   ├── tuilint   slop + correctness lint\n" + "```", ""},                 // a tree listing, not a command
 		{"```" + "\npalette   <the hues, measured>\npalette / tone / geometry\n" + "```", ""}, // a template, not a command
 		{"`tuivet ./...` and `tuilint code .`", ""},
+		{"`python3 scripts/wordmark.py \"name\" --style blocks --rows 4`", "--style blocks is not one of half|shade|ascii|tracked"},
+		{"`python3 -I scripts/logo2cells.py logo.png --mode quads`", "--mode quads is not one of half|shade|quad"},
+		{"```" + "\npalette warm, tinted neutrals and one accent\n" + "```", ""},            // fenced prose opening with a tool's name
+		{"```" + "\npalette warm --tint 0.02 themes/x.json\n" + "```", "unknown mode warm"}, // a flag makes it a command
+		{"`palette tune themes/x.json`", "unknown mode tune"},                               // so does a path
 	}
 	for _, c := range cases {
 		invs := cmddoc.Invocations("x.md", c.text, tools(s))
@@ -219,6 +224,16 @@ func TestInvocationsLines(t *testing.T) {
 	if got[2].Line != 8 {
 		t.Errorf("fenced line = %d, want 8", got[2].Line)
 	}
+}
+
+// allowed reports a span that known lists for its file.
+func allowed(file, text string) bool {
+	for _, sub := range known[file] {
+		if strings.Contains(text, sub) {
+			return true
+		}
+	}
+	return false
 }
 
 func keys(m map[string][]string) []string {

@@ -36,8 +36,10 @@ directory).
 
 **Fresh clones.** A cloud container clones your project without the skill. Commit what
 `npx skills add` wrote under `.claude/skills/bubbletea-tui` (a copy, or a link into
-`.agents/skills/`), or commit `skills-lock.json` and run `npx skills experimental_install`
-after cloning; SKILL.md § Setup says which to pick and what each pins.
+`.agents/skills/`), or commit `skills-lock.json` plus a
+`.claude/skills/bubbletea-tui -> ../../.agents/skills/bubbletea-tui` link and run
+`npx skills experimental_install` after cloning (it restores `.agents/skills/` only);
+SKILL.md § Setup says which to pick and what each pins.
 
 ### Install as a Claude Code plugin (adds the lint hook)
 
