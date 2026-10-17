@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"image/color"
 	"os"
 	"path/filepath"
@@ -368,8 +369,10 @@ func TestCheckFailsStateClashesAt16Colours(t *testing.T) {
 			`warning: `, `dark: warning #F28C6B draws as ANSI 9 at 16 colours (-profile ansi), error's red, so it reads as an error there; "ansi16": {"dark": {"warning": 3}} moves it`}},
 		{"focus fg, pinned", `, "expressions": {"focus": "fg"}, "ansi16": {"dark": {"primary": 11, "warning": 3}, "light": {"primary": 3, "warning": 5}}`, 0, nil},
 		// under focus "primary" the hue is the kit's emphasis: on error's red it is a
-		// warning (focus reads as an error there), not a failure
-		{"focus primary", ``, 0, []string{`warning: `, `dark: primary #D99A3B draws as ANSI 9 at 16 colours (-profile ansi), error's red, so focus and selection read as errors there; "ansi16": {"dark": {"primary": 11}} moves it`}},
+		// warning (focus reads as an error there), not a failure; warning, also on red,
+		// takes its own yellow first and primary the nearest free hue
+		{"focus primary", ``, 0, []string{`warning: `, `dark: primary #D99A3B draws as ANSI 9 at 16 colours (-profile ansi), error's red, so focus and selection read as errors there; "ansi16": {"dark": {"primary": 13}} moves it`,
+			`dark: warning #F28C6B draws as ANSI 9 at 16 colours (-profile ansi), error's red, so it reads as an error there; "ansi16": {"dark": {"warning": 11}} moves it`}},
 		// a clash between two status roles off red: a warning
 		{"status clash", `, "ansi16": {"dark": {"primary": 11, "warning": 10}, "light": {"primary": 3, "warning": 3}}`, 0, []string{`warning: `, `dark: warning #F28C6B draws as ANSI 10 at 16 colours (-profile ansi), as success #6ACB82 does, so those states differ there only by glyph and word`}},
 	} {
@@ -390,7 +393,7 @@ func TestCheckFailsStateClashesAt16Colours(t *testing.T) {
 		if c.stderr == nil && errb.String() != "" {
 			t.Errorf("%s: stderr %q, want no clash with primary", c.name, errb.String())
 		}
-		if c.code == 1 && !strings.Contains(out.String(), "FAIL (0 contrast problems, 2 state colour clashes at 16 colours)") {
+		if c.code == 1 && !strings.Contains(out.String(), "FAIL (0 contrast problems, 2 problems at 16 colours)") {
 			t.Errorf("%s: verdict %q", c.name, out.String())
 		}
 	}
@@ -444,6 +447,52 @@ func TestCheckRejectsUnknownExpressions(t *testing.T) {
 		}
 		if code != 2 || !strings.Contains(errb.String(), c.err) {
 			t.Errorf("%s: check exit %d (%q), want exit 2 with %q", c.expressions, code, errb.String(), c.err)
+		}
+	}
+}
+
+// The engine draws every neutral on a grey at 16 colours, so only a pin puts one on a
+// hue or two of the text ramp on one grey: check fails a neutral on error's red (hints
+// read as errors) and warns on another hue or a shared grey, each with the grey to pin.
+// (warning is pinned throughout: the kit's default warning lands on red.)
+func TestCheckReportsNeutralsAt16Colours(t *testing.T) {
+	roles := `{"dark": {"bg": "#17181B", "fg": "#CFCDCA", "fgMuted": "#87827D", "fgSubtle": "#615D57", "primary": "#4BC5FF"}, "light": {"bg": "#FAF9F6", "fg": "#333230", "fgMuted": "#73706D", "fgSubtle": "#9C9894", "primary": "#006C94"}}`
+	for _, c := range []struct {
+		name, pins string
+		code       int
+		stderr     []string
+	}{
+		{"no pins", `{"dark": {"warning": 11}, "light": {"warning": 3}}`, 0, nil},
+		{"hints on red", `{"dark": {"warning": 11, "fgSubtle": 9}, "light": {"warning": 3, "fgMuted": 1}}`, 1, []string{
+			`palette: ` + "%s" + `: dark: fgSubtle #615D57 draws as ANSI 9 at 16 colours (-profile ansi), error's red, so hints reads as an error there: pin it with "ansi16": {"dark": {"fgSubtle": 8}}`,
+			`light: fgMuted #73706D draws as ANSI 1 at 16 colours (-profile ansi), error's red, so secondary text reads as an error there: pin it with "ansi16": {"light": {"fgMuted": 8}}`,
+			"FAIL (0 contrast problems, 2 problems at 16 colours)"}},
+		{"page and text on a hue", `{"dark": {"warning": 11}, "light": {"warning": 3, "bg": 11, "fg": 4}}`, 0, []string{
+			`palette: warning: ` + "%s" + `: light: bg #FAF9F6 draws as ANSI 11 at 16 colours (-profile ansi), a hue, so the page reads as a state there; "ansi16": {"light": {"bg": 15}} moves it`,
+			`light: fg #333230 draws as ANSI 4 at 16 colours (-profile ansi), a hue, so body text reads as a state there; "ansi16": {"light": {"fg": 0}} moves it`}},
+		{"two levels on one grey", `{"dark": {"warning": 11, "fgMuted": 8}, "light": {"warning": 3}}`, 0, []string{
+			`palette: warning: ` + "%s" + `: dark: fgSubtle #615D57 draws as ANSI 8 at 16 colours (-profile ansi), as fgMuted #87827D does, so hints read as secondary text there; "ansi16": {"dark": {"fgSubtle": 7}} separates them`}},
+		{"a pin on the right grey", `{"dark": {"warning": 11, "fgMuted": 7, "fgSubtle": 8, "bg": 0}, "light": {"warning": 3}}`, 0, nil},
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		if err := os.WriteFile(path, []byte(`{"roles": `+roles+`, "ansi16": `+c.pins+`}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		if code != c.code {
+			t.Errorf("%s: exit %d, want %d\n%s%s", c.name, code, c.code, out.String(), errb.String())
+		}
+		for _, want := range c.stderr {
+			if strings.Contains(want, "%s") {
+				want = fmt.Sprintf(want, path)
+			}
+			if !strings.Contains(out.String()+errb.String(), want) {
+				t.Errorf("%s: output %q, want %q", c.name, errb.String()+out.String(), want)
+			}
+		}
+		if c.stderr == nil && errb.String() != "" {
+			t.Errorf("%s: stderr %q, want nothing", c.name, errb.String())
 		}
 	}
 }

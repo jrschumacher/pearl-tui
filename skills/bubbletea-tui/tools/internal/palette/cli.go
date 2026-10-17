@@ -3,6 +3,7 @@ package palette
 import (
 	"encoding/json"
 	"fmt"
+	"image/color"
 	"io"
 	"os"
 	"reflect"
@@ -157,7 +158,7 @@ func check(path string, stdout, stderr io.Writer) int {
 	}
 	clashes := Clashes16(tf, path, stderr)
 	if clashes > 0 {
-		fmt.Fprintf(stdout, "FAIL (%d contrast problems, %d state colour clashes at 16 colours)\n", bad, clashes)
+		fmt.Fprintf(stdout, "FAIL (%d contrast problems, %d problems at 16 colours)\n", bad, clashes)
 		return 1
 	}
 	fmt.Fprintln(stdout, verdict(bad))
@@ -167,8 +168,33 @@ func check(path string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-// Clashes16 reports on stderr how the theme's state roles read at 16 colours, after its
-// ansi16 pins, each with the pin that fixes it, and returns how many fail:
+// Finding16 is one thing a 16-colour terminal reads wrong in a theme, after its ansi16
+// pins, with the pin that fixes it (Findings16).
+type Finding16 struct {
+	Mode, Role string
+	Col        string // the role as the theme writes it, truecolour hex
+	What       string // the finding, without the path or the pin
+	Fail       bool   // check exits 1 on it
+	Pin        int    // the ansi16 colour that fixes it
+	kind       kind16
+}
+
+type kind16 int
+
+const (
+	red16   kind16 = iota // a state role on red, or error off it (theme.ANSI16Red)
+	clash16               // two state roles on one colour (theme.ANSI16Clashes)
+	hue16                 // a neutral on a hue (theme.ANSI16Neutrals)
+	share16               // two levels of the text ramp on one grey (theme.ANSI16Neutrals)
+)
+
+// PinJSON is the ansi16 block that applies the finding's pin.
+func (x Finding16) PinJSON() string {
+	return fmt.Sprintf(`"ansi16": {%q: {%q: %d}}`, x.Mode, x.Role, x.Pin)
+}
+
+// Findings16 is how the theme reads at 16 colours, after its ansi16 pins, each finding
+// with the pin that fixes it:
 //
 //   - error off red (theme.ANSI16Red): a grey error beside a red warning reverses them.
 //     Fails.
@@ -180,23 +206,24 @@ func check(path string, stdout, stderr io.Writer) int {
 //   - two state roles on one colour (theme.ANSI16Clashes): under focus "fg" a clash with
 //     primary fails, since the theme promised its hue means one state (amber = new); any
 //     other is a warning, as the glyph and the word still tell the two apart.
+//   - a neutral role on a hue (theme.ANSI16Neutrals): the engine puts every neutral on a
+//     grey, so only a pin moves one off. On red it fails (hints read as errors); on
+//     another hue it warns.
+//   - two levels of the text ramp on one grey (theme.ANSI16Neutrals): a warning; the pin
+//     is the grey the engine would have used.
 //
 // Which slot reads well on the page is the terminal's palette, so a pin is a suggestion:
 // a status role to its own slot, else the nearest free hue, never red for a non-error and
-// never a colour another suggestion took.
-func Clashes16(f theme.File, path string, stderr io.Writer) int {
+// never a colour another suggestion took; a neutral to its grey (theme.GreySlot16).
+// Failures come first, then the roles the 16 colours own before the brand's, and each
+// suggestion is taken before the next, so following them all never makes a new problem.
+func Findings16(f theme.File) []Finding16 {
 	type key struct{ mode, role string }
-	type finding struct {
-		key
-		col, what string
-		fail, red bool
-	}
 	fg := f.Expressions.Focus == "fg"
-	var found []finding
+	var found []Finding16
 	covered := map[key]bool{}
 	for _, r := range theme.ANSI16Red(f) {
-		k := key{r.Mode, r.Role}
-		covered[k] = true
+		covered[key{r.Mode, r.Role}] = true
 		what := fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), error's red, so it reads as an error there", r.Mode, r.Role, hexOf(r.Col), r.Index)
 		switch {
 		case r.Role == "error":
@@ -204,7 +231,7 @@ func Clashes16(f theme.File, path string, stderr io.Writer) int {
 		case r.Role == "primary" && !fg:
 			what = fmt.Sprintf("%s: primary %s draws as ANSI %d at 16 colours (-profile ansi), error's red, so focus and selection read as errors there", r.Mode, hexOf(r.Col), r.Index)
 		}
-		found = append(found, finding{k, hexOf(r.Col), what, r.Role == "error" || (r.Role == "primary" && fg), true})
+		found = append(found, Finding16{Mode: r.Mode, Role: r.Role, Col: hexOf(r.Col), What: what, Fail: r.Role == "error" || (r.Role == "primary" && fg), kind: red16})
 	}
 	clash := map[key][]string{}
 	col := map[key]string{}
@@ -231,40 +258,117 @@ func Clashes16(f theme.File, path string, stderr io.Writer) int {
 		}
 		withPrimary := k.role == "primary" || slices.ContainsFunc(clash[k], func(o string) bool { return strings.HasPrefix(o, "primary ") })
 		what := fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), as %s %s", k.mode, k.role, col[k], theme.ANSI16Index(f, k.mode, k.role), others, verb)
-		found = append(found, finding{k, col[k], what, fg && withPrimary, false})
+		found = append(found, Finding16{Mode: k.mode, Role: k.role, Col: col[k], What: what, Fail: fg && withPrimary, kind: clash16})
 	}
-	// failures first, and each suggestion taken before the next, so following them all
-	// never makes a new problem
-	sort.SliceStable(found, func(i, j int) bool { return found[i].fail && !found[j].fail })
-	used := map[string]map[int]bool{}
-	failed := 0
-	for _, x := range found {
-		if used[x.mode] == nil {
-			used[x.mode] = map[int]bool{1: true, 9: true} // red is error's alone
-			for _, r := range theme.StateRoles {
-				used[x.mode][theme.ANSI16Index(f, x.mode, r)] = true
-			}
-		}
-		n := Pin16(x.role, x.col, x.mode != "light", used[x.mode])
-		if x.role == "error" {
-			n = 1
-			if x.mode != "light" {
-				n = 9
-			}
-		}
-		used[x.mode][n] = true
-		pin := fmt.Sprintf(`"ansi16": {%q: {%q: %d}}`, x.mode, x.role, n)
+	for _, n := range theme.ANSI16Neutrals(f) {
+		x := Finding16{Mode: n.Mode, Role: n.Role, Col: hexOf(n.Col), kind: hue16}
 		switch {
-		case x.fail && !x.red:
-			failed++
-			fmt.Fprintf(stderr, "palette: %s: %s; under focus \"fg\" primary is a state, so they read as one: pin %s with %s\n", path, x.what, x.role, pin)
-		case x.fail:
-			failed++
-			fmt.Fprintf(stderr, "palette: %s: %s: pin it with %s\n", path, x.what, pin)
-		case x.red:
-			fmt.Fprintf(stderr, "palette: warning: %s: %s; %s moves it\n", path, x.what, pin)
+		case n.With != "":
+			x.kind = share16
+			x.What = fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), as %s %s does, so %s read as %s there",
+				n.Mode, n.Role, x.Col, n.Index, n.With, roleHex(f, n.Mode, n.With), neutralText[n.Role], neutralText[n.With])
+		case n.Index == 1 || n.Index == 9:
+			x.Fail = true
+			x.What = fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), error's red, so %s reads as an error there", n.Mode, n.Role, x.Col, n.Index, neutralText[n.Role])
 		default:
-			fmt.Fprintf(stderr, "palette: warning: %s: %s, so those states differ there only by glyph and word; %s separates them\n", path, x.what, pin)
+			x.What = fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), a hue, so %s reads as a state there", n.Mode, n.Role, x.Col, n.Index, neutralText[n.Role])
+		}
+		found = append(found, x)
+	}
+	// failures first, then the roles the 16 colours own (keepRank: error, success,
+	// warning) before the brand's, so a status role takes its own slot and primary the
+	// nearest free hue, not the other way round
+	rank := func(x Finding16) int {
+		if x.kind == hue16 || x.kind == share16 {
+			return len(keepRank)
+		}
+		return keepRank[x.Role]
+	}
+	sort.SliceStable(found, func(i, j int) bool {
+		if found[i].Fail != found[j].Fail {
+			return found[i].Fail
+		}
+		return rank(found[i]) < rank(found[j])
+	})
+	used := map[string]map[int]bool{}
+	for i, x := range found {
+		if used[x.Mode] == nil {
+			used[x.Mode] = map[int]bool{1: true, 9: true} // red is error's alone
+			for _, r := range theme.StateRoles {
+				used[x.Mode][theme.ANSI16Index(f, x.Mode, r)] = true
+			}
+		}
+		dark := x.Mode != "light"
+		switch {
+		case x.kind == hue16 || x.kind == share16:
+			found[i].Pin = greyPin(f, x.Mode, x.Role)
+			continue
+		case x.Role == "error":
+			found[i].Pin = 1
+			if dark {
+				found[i].Pin = 9
+			}
+		default:
+			found[i].Pin = Pin16(x.Role, x.Col, dark, used[x.Mode])
+		}
+		used[x.Mode][found[i].Pin] = true
+	}
+	return found
+}
+
+// neutralText is what each neutral role carries on screen, for a finding's sentence.
+var neutralText = map[string]string{
+	"bg": "the page", "bgPanel": "panels", "bgSubtle": "the background step", "bgOverlay": "overlays", "border": "every rule",
+	"fg": "body text", "fgSoft": "prose", "fgMuted": "secondary text", "fgSubtle": "hints",
+}
+
+// roleHex is a text ramp role of mode as the theme draws it at truecolour.
+func roleHex(f theme.File, mode, role string) string {
+	p := theme.Resolve(f, mode != "light", false).P
+	return hexOf(map[string]color.Color{"fg": p.Fg, "fgMuted": p.FgMuted, "fgSubtle": p.FgSubtle}[role])
+}
+
+// greyPin is the grey to pin neutral role to in mode: its own (theme.GreySlot16), unless
+// another level of the text ramp already draws there; then the other text grey, then
+// fg's. The page's grey is never offered for text.
+func greyPin(f theme.File, mode, role string) int {
+	dark := mode != "light"
+	own := theme.GreySlot16(role, dark)
+	if !slices.Contains(theme.TextRamp, role) {
+		return own
+	}
+	taken := map[int]bool{theme.GreySlot16("bg", dark): true}
+	for _, other := range theme.TextRamp {
+		if other != role {
+			taken[theme.ANSI16Index(f, mode, other)] = true
+		}
+	}
+	for _, n := range []int{own, theme.GreySlot16("fgMuted", dark), theme.GreySlot16("fgSubtle", dark), theme.GreySlot16("fg", dark)} {
+		if !taken[n] {
+			return n
+		}
+	}
+	return own
+}
+
+// Clashes16 prints Findings16 on stderr, each with its pin, and returns how many fail.
+func Clashes16(f theme.File, path string, stderr io.Writer) int {
+	failed := 0
+	for _, x := range Findings16(f) {
+		pin := x.PinJSON()
+		switch {
+		case x.Fail && x.kind == clash16:
+			failed++
+			fmt.Fprintf(stderr, "palette: %s: %s; under focus \"fg\" primary is a state, so they read as one: pin %s with %s\n", path, x.What, x.Role, pin)
+		case x.Fail:
+			failed++
+			fmt.Fprintf(stderr, "palette: %s: %s: pin it with %s\n", path, x.What, pin)
+		case x.kind == clash16:
+			fmt.Fprintf(stderr, "palette: warning: %s: %s, so those states differ there only by glyph and word; %s separates them\n", path, x.What, pin)
+		case x.kind == share16:
+			fmt.Fprintf(stderr, "palette: warning: %s: %s; %s separates them\n", path, x.What, pin)
+		default:
+			fmt.Fprintf(stderr, "palette: warning: %s: %s; %s moves it\n", path, x.What, pin)
 		}
 	}
 	return failed

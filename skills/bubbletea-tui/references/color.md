@@ -117,8 +117,11 @@ and look at the PNGs. What usually breaks:
 
 - the `bg`/`bgSubtle` step merges at 256 colours, so selection disappears. Move it further
   apart, or add the glyph marker.
-- `fgMuted` and `fgSubtle` collapse to one grey at 16 colours. Acceptable if nothing
-  depends on the difference.
+- a tinted neutral downsamples by distance onto a hue at 16 colours: a warm page lands on
+  yellow, warm hints on red, and three cool text levels on one blue. The kit puts every
+  neutral on a grey there (`bg` 0/15, `fg` the opposite, `fgMuted` 7/8, `fgSubtle` and
+  `bgSubtle` 8/7, `border` beside the page); `palette check` fails a pin that puts one
+  back on red and warns on any other hue or two text levels on one grey.
 - `border`, a step off `bg`, lands on `bg` itself at 16 colours and every rule vanishes.
   `theme.ResolveProfile` moves a rule or border colour that isn't `Distinct` from bg to
   ANSI 8 (dark) or 7 (light); keep the profile from `tea.ColorProfileMsg` and pass it, or
@@ -142,6 +145,8 @@ and look at the PNGs. What usually breaks:
   | under `focus: fg`, primary on red or on another state role's colour | fails (exit 1) |
   | under `focus: primary`, primary on red: focus and selection read as errors | warns |
   | warning, success or info on red, or two of them on one colour | warns |
+  | a neutral (`bg`, `fg`, `fgMuted`, `fgSubtle`, their steps, `border`) pinned onto red | fails (exit 1) |
+  | a neutral pinned onto another hue, or two of `fg`/`fgMuted`/`fgSubtle` on one grey | warns |
 
   A warning is not a pass to ignore: the glyph and word still tell the states apart, but
   pin it unless the brand accepts it in its read. Pin bright (9-14) on dark, normal (1-6)

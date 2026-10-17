@@ -40,7 +40,12 @@
 // on red or on another state role's colour (amber = new must not read as error). It warns
 // on primary on red under "focus": "primary" (focus reads as an error), on warning,
 // success or info on red, and on two of those on one colour: their glyphs and words still
-// differ. A pin that names no role, no mode or no colour 0-15 exits 2, as theme.Load does.
+// differ. The neutrals (bg, fg, fgMuted, fgSubtle, their steps, border) draw on the four
+// greys there (the kit assigns them: page 0 or 15, text the opposite, fgMuted 7 or 8,
+// fgSubtle 8 or 7), so only a pin moves one: a neutral on red exits 1 (hints read as
+// errors), on another hue or two text levels on one grey it warns, each with the grey to
+// pin instead. A pin that names no role, no mode or no colour 0-15 exits 2, as
+// theme.Load does.
 //
 // Thresholds (WCAG 2 contrast ratio against the role's background):
 //
@@ -58,8 +63,8 @@
 // On a mid-tone fill where neither ink clears its floor, derive deepens the ink toward
 // black or white along its hue (the engine does the same), so the brand keeps its hex.
 //
-// Exit status: 0 OK, 1 contrast problems or a state clash under focus "fg", 2 usage or
-// input errors.
+// Exit status: 0 OK, 1 contrast problems, error off red, a state clash under focus "fg"
+// or a neutral on red at 16 colours; 2 usage or input errors.
 package main
 
 import (

@@ -102,7 +102,11 @@ func TestLoadRejectsBadANSI16(t *testing.T) {
 
 // What palette check fails at 16 colours, every kit theme and test theme passes: error
 // on red (1 or 9), and under focus "fg", where the hue is a state, primary neither on
-// red nor on another state role's colour.
+// red nor on another state role's colour. And every neutral (NeutralRoles) on a grey,
+// with fg, fgMuted and fgSubtle three different greys: before derive snapped them, a
+// tinted neutral downsampled by distance to a hue (halyard's light fg, fgMuted and
+// fgSubtle all ANSI 4; moss's light page 11 and its hints 1, error's red) and six of
+// seven themes drew fgMuted and fgSubtle as one grey.
 func TestThemesReadRightAt16Colours(t *testing.T) {
 	var files []string
 	for _, dir := range []string{"../themes", "../../themes"} {
@@ -127,6 +131,73 @@ func TestThemesReadRightAt16Colours(t *testing.T) {
 				t.Errorf("%s: %s", filepath.Base(path), c)
 			}
 		}
+		for _, n := range ANSI16Neutrals(f) {
+			t.Errorf("%s: %s", filepath.Base(path), n)
+		}
+		for _, mode := range []string{"dark", "light"} {
+			for _, role := range NeutralRoles {
+				if i := ANSI16Index(f, mode, role); !Grey16(i) {
+					t.Errorf("%s %s: %s is ANSI %d, want a grey (0, 7, 8, 15)", filepath.Base(path), mode, role, i)
+				}
+			}
+			seen := map[int]string{}
+			for _, role := range TextRamp {
+				i := ANSI16Index(f, mode, role)
+				if other, dup := seen[i]; dup {
+					t.Errorf("%s %s: %s and %s both ANSI %d", filepath.Base(path), mode, other, role, i)
+				}
+				seen[i] = role
+			}
+		}
+	}
+}
+
+// At 16 colours a neutral draws on its grey (GreySlot16) whatever hex the theme wrote,
+// a pin still wins, the roles derived from a neutral follow it, and truecolour and 256
+// colours keep the theme's own tints.
+func TestNeutralsSnapToGreysAt16Colours(t *testing.T) {
+	// moss's light neutrals: a warm page that downsampled to ANSI 11 and hints to 1
+	f := File{Roles: map[string]Roles{
+		"light": {Bg: "#F6F1E7", BgSubtle: "#E1D8C7", Fg: "#312D26", FgSoft: "#454036", FgMuted: "#756C5A", FgSubtle: "#9D927D", Primary: "#2F5D46"},
+		"dark":  {Bg: "#1A1C19", BgSubtle: "#223129", Fg: "#C7D2CC", FgMuted: "#768A7E", FgSubtle: "#50665A", Primary: "#86C29F"},
+	}}
+	for _, mode := range []string{"dark", "light"} {
+		dark := mode == "dark"
+		for _, role := range NeutralRoles {
+			if got, want := ANSI16Index(f, mode, role), GreySlot16(role, dark); got != want {
+				t.Errorf("%s %s: ANSI %d, want %d", mode, role, got, want)
+			}
+		}
+		// border is derived from bg and fg: a grey too, and edge keeps it off the page
+		th := ResolveProfile(f, dark, false, colorprofile.ANSI)
+		if i := index16(t, th, "border"); !Grey16(i) || !th.Distinct(th.P.Border, th.P.Bg) {
+			t.Errorf("%s: border is ANSI %d", mode, i)
+		}
+		for _, p := range []colorprofile.Profile{colorprofile.TrueColor, colorprofile.ANSI256} {
+			a, b := ResolveProfile(f, dark, false, p).P, derive(f.Roles[mode], dark, nil)
+			if !sameRGB(a.Bg, b.Bg) || !sameRGB(a.FgMuted, b.FgMuted) || !sameRGB(a.FgSubtle, b.FgSubtle) {
+				t.Errorf("%s %v: neutrals moved; the snap is for 16 colours only", mode, p)
+			}
+		}
+	}
+	f.ANSI16 = map[string]map[string]int{"dark": {"fgMuted": 7, "fgSubtle": 7, "bg": 4}}
+	if got := ANSI16Index(f, "dark", "fgSubtle"); got != 7 {
+		t.Errorf("a pinned fgSubtle is ANSI %d, want its pin 7", got)
+	}
+	var got []string
+	for _, n := range ANSI16Neutrals(f) {
+		got = append(got, n.String())
+	}
+	for _, want := range []string{"dark: bg draws as ANSI 4, a hue", "dark: fgMuted and fgSubtle both ANSI 7"} {
+		if !slices.Contains(got, want) {
+			t.Errorf("ANSI16Neutrals = %q, want %q", got, want)
+		}
+	}
+	if len(got) != 2 {
+		t.Errorf("ANSI16Neutrals = %q, want 2 findings", got)
+	}
+	if GreySlot16("primary", true) != -1 {
+		t.Error("primary has a grey slot")
 	}
 }
 

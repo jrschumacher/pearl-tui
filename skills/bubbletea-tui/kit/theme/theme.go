@@ -356,6 +356,60 @@ func ANSI16Index(f File, mode, role string) int {
 	return -1
 }
 
+// NeutralRoles are the roles that carry no state: the page, its steps, its rules and
+// the text ramp. At 16 colours they belong on the four greys (0, 7, 8, 15): on a hue,
+// body text reads as a state and the page as a fill; on red, hints read as errors.
+var NeutralRoles = []string{"bg", "bgPanel", "bgSubtle", "bgOverlay", "border", "fg", "fgSoft", "fgMuted", "fgSubtle"}
+
+// TextRamp are the text levels that must stay three at 16 colours, or metadata and
+// hints read as body text. fgSoft is prose and may share fg's grey.
+var TextRamp = []string{"fg", "fgMuted", "fgSubtle"}
+
+// NeutralSlot is a neutral role misplaced at 16 colours: on a hue, or sharing a grey with
+// another level of the text ramp.
+type NeutralSlot struct {
+	Mode  string      // dark | light
+	Role  string      // role key
+	Col   color.Color // as the theme writes it (truecolour)
+	Index int         // the ANSI colour it lands on
+	With  string      // the text ramp role it shares Index with; "" when Index is a hue
+}
+
+func (n NeutralSlot) String() string {
+	if n.With != "" {
+		return fmt.Sprintf("%s: %s and %s both ANSI %d", n.Mode, n.With, n.Role, n.Index)
+	}
+	return fmt.Sprintf("%s: %s draws as ANSI %d, a hue", n.Mode, n.Role, n.Index)
+}
+
+// Grey16 reports whether i is one of the four greys at 16 colours.
+func Grey16(i int) bool { return i == 0 || i == 7 || i == 8 || i == 15 }
+
+// ANSI16Neutrals reports, per mode, the neutral roles (NeutralRoles) a 16-colour terminal
+// draws on a hue, and the pairs of the text ramp (TextRamp) that draw as one grey, after
+// the theme's ansi16 pins. derive puts every neutral on its grey (GreySlot16), so only a
+// pin moves one off; palette check fails a neutral on red and warns on the rest, each with
+// the pin that puts it back.
+func ANSI16Neutrals(f File) []NeutralSlot {
+	var out []NeutralSlot
+	for _, mode := range modes16(f) {
+		tc := ResolveProfile(f, mode != "light", false, colorprofile.TrueColor).P
+		for _, role := range NeutralRoles {
+			if i := ANSI16Index(f, mode, role); i >= 0 && !Grey16(i) {
+				out = append(out, NeutralSlot{mode, role, paletteRole(tc, role), i, ""})
+			}
+		}
+		for i, a := range TextRamp {
+			for _, b := range TextRamp[i+1:] {
+				if ia, ib := ANSI16Index(f, mode, a), ANSI16Index(f, mode, b); ia >= 0 && ia == ib {
+					out = append(out, NeutralSlot{mode, b, paletteRole(tc, b), ib, a})
+				}
+			}
+		}
+	}
+	return out
+}
+
 func sameColor(a, b color.Color) bool {
 	if a == nil || b == nil {
 		return a == b
@@ -436,8 +490,10 @@ func Resolve(f File, dark, ascii bool) *Theme {
 }
 
 // ResolveProfile is Resolve for the colour profile the terminal reports
-// (tea.ColorProfileMsg: 16 colours, 256, or none under NO_COLOR). At 16 colours the
-// theme's ansi16 pins replace the roles they name. Where a
+// (tea.ColorProfileMsg: 16 colours, 256, or none under NO_COLOR). At 16 colours every
+// neutral role draws on one of the four greys (GreySlot16: the page 0 or 15, body text
+// the opposite, fgMuted and fgSubtle on 7 and 8) and the theme's ansi16 pins replace
+// the roles they name. Where a
 // background step the styles separate things with can't be told from the page at
 // that profile (Distinct), they add an edge instead: a borderless dialog gets a rule
 // above and below. A rule or border colour that lands on bg moves to the nearest one
@@ -456,7 +512,7 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 	t := &Theme{File: f, Dark: dark, ASCII: ascii, Profile: profile}
 	var pins map[string]int
 	if profile == colorprofile.ANSI {
-		pins = f.ANSI16[mode]
+		pins = pins16(f, mode, dark)
 	}
 	t.P = derive(r, dark, pins)
 	t.G = glyphDefaults(f.Glyphs)
