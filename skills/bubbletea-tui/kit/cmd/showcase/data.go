@@ -21,7 +21,7 @@ var services = []service{
 	{"notifications-worker-eu-west", "prod", "v0.9.14", "warning", "v0.9.13", []float64{60, 64, 70, 82, 95, 110, 120, 118, 121, 130, 127, 133}, "0.92%", "growth", "1d ago"},
 	{"ledger", "prod", "v7.1.0", "ok", "v7.0.9", []float64{150, 149, 152, 151, 150, 148, 153, 150, 149, 151, 150, 152}, "0.01%", "payments", "21d ago"},
 	{"image-resizer", "prod", "v2.0.3", "ok", "v2.0.2", []float64{210, 205, 230, 220, 215, 225, 218, 222, 219, 221, 217, 220}, "0.05%", "media", "5d ago"},
-	{"recommendations", "prod", "v4.4.4", "idle", "v4.4.3", []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, "—", "discovery", "34d ago"},
+	{"recommendations", "prod", "v4.4.4", "idle", "v4.4.3", []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, "-", "discovery", "34d ago"},
 }
 
 type command struct{ Title, Desc, Key string }
@@ -32,9 +32,9 @@ var commands = []command{
 	{"Tail logs", "stream logs from every pod", "l"},
 	{"Open dashboard", "Grafana for the selected service", "o"},
 	{"Silence alerts", "mute for 1h, 4h or until resolved", ""},
-	{"Switch environment", "prod · staging · dev", "e"},
+	{"Switch environment", "prod, staging or dev", "e"},
 	{"Copy service URL", "", "y"},
-	{"Toggle theme", "dark ↔ light", ""},
+	{"Toggle theme", "dark or light", ""},
 }
 
 var chatUser = "checkout-api is throwing 502s since the last deploy. what changed?"

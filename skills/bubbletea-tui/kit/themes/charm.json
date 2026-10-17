@@ -64,7 +64,11 @@
   "todo": "○",
   "fail": "×",
   "fieldA": "╱",
-  "fieldB": "╱"
+  "fieldB": "╱",
+  "caret": "▏",
+  "more": "↑",
+  "progressFill": "━",
+  "progressEmpty": "╌"
  },
  "expressions": {
   "header": "rule",

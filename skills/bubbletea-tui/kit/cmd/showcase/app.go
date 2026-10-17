@@ -328,9 +328,12 @@ func (m *app) actions() []action {
 	case ovPalette:
 		return []action{
 			{bind([]string{"enter"}, "enter", "run"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return m.runCommand() }},
-			{bind([]string{"up", "ctrl+k"}, "↑", "up"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.palSel = max(0, m.palSel-1); return nil }},
-			{bind([]string{"down", "ctrl+j"}, "↓", "down"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
-				m.palSel = min(max(0, len(m.filtered())-1), m.palSel+1)
+			{bind([]string{"up", "ctrl+k", "down", "ctrl+j"}, m.t.G.UpDown, "move"), true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
+				if msg.String() == "up" || msg.String() == "ctrl+k" {
+					m.palSel = max(0, m.palSel-1)
+				} else {
+					m.palSel = min(max(0, len(m.filtered())-1), m.palSel+1)
+				}
 				return nil
 			}},
 			esc("close", func(m *app) { m.ov = ovNone }),
@@ -350,7 +353,7 @@ func (m *app) actions() []action {
 				m.ov = ovNone
 				return nil
 			}},
-			{bind([]string{"left", "right", "tab", "h", "l"}, "←→", "switch"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.btn = 1 - m.btn; return nil }},
+			{bind([]string{"left", "right", "tab", "h", "l"}, m.t.G.LeftRight, "switch"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.btn = 1 - m.btn; return nil }},
 			{bind([]string{"r"}, "r", "roll back to "+s.Prev), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.rollback(); m.ov = ovNone; return nil }},
 			{bind([]string{"c"}, "c", "cancel"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.ov = ovNone; return nil }},
 			esc("cancel", func(m *app) { m.ov = ovNone }),
@@ -382,7 +385,7 @@ func (m *app) actions() []action {
 			// in a field, enter already says "next field": tab joins the footer only on the buttons
 			{bind([]string{"tab", "down"}, "tab", "next field"), m.focus == 4, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.focus = (m.focus + 1) % 5; return nil }},
 			{bind([]string{"shift+tab", "up"}, "shift+tab", "previous"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.focus = (m.focus + 4) % 5; return nil }},
-			{bind([]string{"left", "right"}, "←→", "choose"), m.focus != 1, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
+			{bind([]string{"left", "right"}, m.t.G.LeftRight, "choose"), m.focus != 1, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
 				d := 1
 				if msg.String() == "left" {
 					d = -1
@@ -438,7 +441,7 @@ func (m *app) actions() []action {
 		return []action{
 			{bind([]string{"n"}, "n", "declare incident"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
 				m.declared = true
-				m.say("warning", "DECLARED", "INC-2041 checkout-api 502s · paging payments on-call")
+				m.say("warning", "DECLARED", "INC-2041 checkout-api 502s "+m.t.G.Sep+" paging payments on-call")
 				return nil
 			}},
 			{bind([]string{"h"}, "h", "history"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
@@ -449,7 +452,7 @@ func (m *app) actions() []action {
 		}
 	}
 	// services and deploys: a list
-	move := action{bind([]string{"up", "k", "down", "j"}, "↑↓", "select"), true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
+	move := action{bind([]string{"up", "k", "down", "j"}, m.t.G.UpDown, "select"), true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
 		up := msg.String() == "up" || msg.String() == "k"
 		if m.screen == scrDeploys {
 			if up {
@@ -522,7 +525,7 @@ func (m *app) deploy() tea.Cmd {
 	}
 	s.Prev, s.State, s.Version = s.Version, "deploying", m.version
 	m.logEvent(event{"now", s.Name, "prod", m.version, "@you", "busy"}, "deploying "+s.Name+" "+m.version)
-	m.say("info", "DEPLOYING", s.Name+" "+m.version+" to prod · "+how)
+	m.say("info", "DEPLOYING", s.Name+" "+m.version+" to prod "+m.t.G.Sep+" "+how)
 	name := s.Name
 	return tea.Tick(4*time.Second, func(time.Time) tea.Msg { return deployDoneMsg{name} })
 }
@@ -539,8 +542,8 @@ func (m *app) finishDeploy(name string) {
 			m.events[k].State = "ok"
 		}
 	}
-	m.feed = append([][4]string{{"now", "deployed " + name + " " + s.Version + " · 3/3 pods healthy", "@you", "ok"}}, m.feed...)
-	m.say("ok", "DEPLOYED", name+" "+s.Version+" · 3/3 pods healthy")
+	m.feed = append([][4]string{{"now", "deployed " + name + " " + s.Version + " " + m.t.G.Sep + " 3/3 pods healthy", "@you", "ok"}}, m.feed...)
+	m.say("ok", "DEPLOYED", name+" "+s.Version+" "+m.t.G.Sep+" 3/3 pods healthy")
 }
 
 // askRollback opens the confirm, or says why there is nothing to roll back to.
@@ -560,7 +563,7 @@ func (m *app) rollback() {
 	from := s.Version
 	s.Version, s.Prev, s.State, s.ErrRate, s.Deployed = s.Prev, "", "ok", "0.03%", "now"
 	s.P99 = []float64{140, 132, 128, 125, 124, 123, 122, 121, 122, 121, 120, 121}
-	m.logEvent(event{"now", s.Name, "prod", s.Version, "@you", "ok"}, "rolled back "+s.Name+" "+from+" → "+s.Version)
+	m.logEvent(event{"now", s.Name, "prod", s.Version, "@you", "ok"}, "rolled back "+s.Name+" "+from+" "+m.t.G.Arrow+" "+s.Version)
 	m.say("ok", "DONE", "Rolled back "+s.Name+" from "+from+" to "+s.Version)
 }
 
@@ -617,9 +620,9 @@ func (m *app) View() tea.View {
 	c := m.render(m.w, m.h)
 	v := tea.NewView(c.String())
 	v.AltScreen = true
-	v.WindowTitle = m.t.AppName() + " · " + m.svcs[m.sel].Name
+	v.WindowTitle = m.t.AppName() + " " + m.t.G.Sep + " " + m.svcs[m.sel].Name
 	if m.screen == scrSetup {
-		v.WindowTitle = m.t.AppName() + " · setup"
+		v.WindowTitle = m.t.AppName() + " " + m.t.G.Sep + " setup"
 	}
 	if m.t.X.PaintBg {
 		v.BackgroundColor = m.t.P.Bg

@@ -188,7 +188,7 @@ func (m *app) services(c *ui.Canvas, r uv.Rectangle) {
 			t.S.Subtle.Render("  deployed ") + t.S.Soft.Render(s.Deployed)
 		c.Draw(line, uv.Rect(main.Min.X+2, y, main.Dx()-2, 1))
 		if s.State == "error" && y+2 < main.Max.Y {
-			c.Draw(ui.Alert(t, "error", "502s", "4.8% of checkout requests failing since 14:02 · r roll back", main.Dx()-2), uv.Rect(main.Min.X+2, y+2, main.Dx()-2, 1))
+			c.Draw(ui.Alert(t, "error", "502s", "4.8% of checkout requests failing since 14:02 "+t.G.Sep+" r roll back", main.Dx()-2), uv.Rect(main.Min.X+2, y+2, main.Dx()-2, 1))
 		}
 	}
 }
@@ -215,7 +215,7 @@ func (m *app) serviceDetail(c *ui.Canvas, r uv.Rectangle) {
 	last := s.P99[len(s.P99)-1]
 	trend := t.S.Base.Render(itoa(int(last)) + "ms")
 	if s.P99[0] > 0 && last/s.P99[0] > 2 {
-		trend += "  " + t.S.Err.Render(t.G.Arrow+" "+ftoa(last/s.P99[0])+"× since 14:00")
+		trend += "  " + t.S.Err.Render(t.G.Arrow+" "+ftoa(last/s.P99[0])+"x since 14:00")
 	}
 	rows = append(rows, trend)
 	// Recent: this service's lines from the live feed
@@ -335,7 +335,7 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 		case "\x00done":
 			s = append(s, "")
 			s = append(s, ui.ToolCall(t, ui.Tool{Name: "Deploy", Param: "checkout-api v2.4.1", Opts: [][2]string{{"strategy", "rolling"}},
-				State: ui.ToolDone, Body: []string{"3/3 pods healthy · error rate 0.02% · p99 124ms"}}, w, false)...)
+				State: ui.ToolDone, Body: []string{"3/3 pods healthy " + t.G.Sep + " error rate 0.02% " + t.G.Sep + " p99 124ms"}}, w, false)...)
 		case "\x00canceled":
 			s = append(s, "", "  "+t.S.Subtle.Render("Canceled."))
 		default:
@@ -352,7 +352,7 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 	end := max(0, len(s)-m.scroll)
 	if end > streamH {
 		hidden := end - streamH + 1
-		s = append([]string{"  " + t.S.Subtle.Render("↑ "+itoa(hidden)+" more lines  ") + t.S.Key.Render("pgup")}, s[hidden:end]...)
+		s = append([]string{"  " + t.S.Subtle.Render(t.G.More+" "+itoa(hidden)+" more lines  ") + t.S.Key.Render("pgup")}, s[hidden:end]...)
 	} else {
 		s = s[:end]
 	}
@@ -367,11 +367,11 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 	line := prompt + t.S.Base.Render(text)
 	switch {
 	case m.busy:
-		line += t.S.Subtle.Render("working… esc to stop")
+		line += t.S.Subtle.Render("working" + t.G.Ellipsis + " esc to stop")
 	case text == "":
-		line += t.S.Prompt.Render("▏") + t.S.Subtle.Render("ask, or tell it what to do")
+		line += t.S.Prompt.Render(t.G.Caret) + t.S.Subtle.Render("ask, or tell it what to do")
 	default:
-		line += t.S.Prompt.Render("▏")
+		line += t.S.Prompt.Render(t.G.Caret)
 	}
 	c.Draw(strings.Join([]string{ui.Rule(t, w), line}, "\n"), uv.Rect(main.Min.X, ey, w, editorH))
 }
@@ -386,7 +386,7 @@ func (m *app) sessionSidebar(c *ui.Canvas, r uv.Rectangle) {
 	w := r.Dx()
 	rows := []string{
 		t.S.Bold.Render("checkout 502s"),
-		t.S.Subtle.Render("started 14:06 · " + itoa(3+len(m.sent)) + " turns"),
+		t.S.Subtle.Render("started 14:06 " + t.G.Sep + " " + itoa(3+len(m.sent)) + " turns"),
 		"",
 		ui.Section(t, "Model", w, ""),
 		t.S.Muted.Render(t.G.Todo+" ") + t.S.Base.Render("opus") + t.S.Subtle.Render(" via anthropic"),
@@ -450,7 +450,7 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 	field(0, "Environment", "", choice([]string{"prod", "staging", "dev"}, m.env, m.focus == 0))
 	input := t.S.Prompt.Render(t.G.Prompt) + " " + t.S.Base.Render(m.version)
 	if m.focus == 1 {
-		input += t.S.Prompt.Render("▏")
+		input += t.S.Prompt.Render(t.G.Caret)
 	}
 	field(1, "Version", "tag or commit; latest is v2.4.1 (2 min ago)", input)
 	strategies := [][2]string{{"Rolling", "one pod at a time"}, {"Canary", "10% for 15 min, then all"}, {"Blue/green", "switch traffic at once"}}
@@ -545,15 +545,15 @@ func (m *app) palette(c *ui.Canvas) {
 	for _, h := range hits {
 		items = append(items, ui.Item{Title: h.c.Title, Desc: h.c.Desc, Right: h.c.Key, Match: h.idx})
 	}
-	input := t.S.Prompt.Render(t.G.Prompt) + " " + t.S.Base.Render(m.query) + t.S.Prompt.Render("▏")
+	input := t.S.Prompt.Render(t.G.Prompt) + " " + t.S.Base.Render(m.query) + t.S.Prompt.Render(t.G.Caret)
 	if m.query == "" {
-		input = t.S.Prompt.Render(t.G.Prompt) + " " + t.S.Prompt.Render("▏") + t.S.Subtle.Render("type to filter")
+		input = t.S.Prompt.Render(t.G.Prompt) + " " + t.S.Prompt.Render(t.G.Caret) + t.S.Subtle.Render("type to filter")
 	}
 	// the list fits its results (min 3); the top edge stays put while typing
 	listH := min(max(3, len(hits)), len(commands), max(3, c.Bounds().Dy()-12))
 	body := []string{input, ""}
 	if len(items) == 0 {
-		body = append(body, t.S.Muted.Render("  no command matches “"+m.query+"”"))
+		body = append(body, t.S.Muted.Render("  no command matches \""+m.query+"\""))
 		for range listH - 1 {
 			body = append(body, "")
 		}
@@ -608,7 +608,7 @@ func (m *app) keysOverlay(c *ui.Canvas) {
 	case scrSetup:
 		name = "Setup"
 	}
-	d := ui.Dialog(t, w, "Keys · "+name, body, "", "")
+	d := ui.Dialog(t, w, "Keys "+t.G.Sep+" "+name, body, "", "")
 	c.Overlay(d, dialogTop(c, lipgloss.Height(d)))
 }
 
@@ -656,12 +656,12 @@ func (m *app) splash(c *ui.Canvas) {
 func bannerTone(t *theme.Theme, r string) string {
 	var sb strings.Builder
 	for _, ch := range r {
-		switch ch {
-		case '▓':
-			sb.WriteString(t.S.Primary.Render("▓"))
-		case '▒':
-			sb.WriteString(t.S.Muted.Render("▒"))
-		case ' ':
+		switch string(ch) {
+		case theme.ShadeDark:
+			sb.WriteString(t.S.Primary.Render(theme.ShadeDark))
+		case theme.ShadeMid:
+			sb.WriteString(t.S.Muted.Render(theme.ShadeMid))
+		case " ":
 			sb.WriteRune(' ')
 		default:
 			sb.WriteString(t.S.Accent.Render(string(ch)))

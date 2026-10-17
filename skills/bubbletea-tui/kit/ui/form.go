@@ -210,10 +210,7 @@ func chosenButton(t *theme.Theme, label string) string {
 }
 
 func arrowBack(t *theme.Theme) string {
-	if t.ASCII {
-		return "<-"
-	}
-	return "←"
+	return t.G.Back
 }
 
 // FormKeys is Huh's keymap with the keys that open unthemed widgets turned
