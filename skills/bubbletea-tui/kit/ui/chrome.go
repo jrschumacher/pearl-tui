@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -43,8 +44,10 @@ func Wordmark(t *theme.Theme, name string) string {
 //	banner   the multi-row wordmark (theme.wordmark.rows) then the details row
 //
 // details is pre-styled (use Details to build it). h is the terminal height:
-// a banner costs rows, so below 30 rows it collapses to the rule header.
-func Header(t *theme.Theme, w, h int, brand, details string) []string {
+// a banner costs rows, so below 30 rows it collapses to the rule header. right is an
+// optional pre-styled part at the right edge (a count, a status) that minimal draws
+// after "brand · details"; the other headers carry details at the right already.
+func Header(t *theme.Theme, w, h int, brand, details string, right ...string) []string {
 	g := t.X.Gutter
 	inner := w - 2*g
 	pad := strings.Repeat(" ", g)
@@ -65,7 +68,17 @@ func Header(t *theme.Theme, w, h int, brand, details string) []string {
 		}
 		return []string{bar.Render(pad) + bar.Bold(true).Render(name) + bar.Render(strings.Repeat(" ", gap)+d+pad)}
 	case "minimal":
-		return []string{Fit(pad+Wordmark(t, brand)+"  "+details, w)}
+		left := pad + Wordmark(t, brand)
+		if details != "" {
+			left += t.S.Subtle.Render(" "+t.G.Sep+" ") + details
+		}
+		r := strings.Join(right, " ")
+		if r == "" {
+			return []string{Fit(left, w)}
+		}
+		room := inner - lipgloss.Width(r) - 2 // the right part keeps 2 cells from the details
+		left = Trunc(t, left, max(0, room+g))
+		return []string{Fit(left+strings.Repeat(" ", max(0, w-g-lipgloss.Width(left)-lipgloss.Width(r)))+r, w-g) + pad}
 	case "stamp":
 		st := lipgloss.NewStyle().Background(t.P.Primary).Foreground(t.P.OnPrimary).Bold(true).Padding(0, 1).Render(strings.ToUpper(brand))
 		gap := max(1, inner-lipgloss.Width(details)-lipgloss.Width(st))
@@ -154,18 +167,19 @@ func Rule(t *theme.Theme, w int) string {
 // it had to drop hints, so the user knows there is more (full help).
 func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 	sep := t.S.Subtle.Render("  ")
-	// the key that opens full help is pinned last: the … promises more, so the
-	// way to see it must survive truncation
+	// the key that opens full help is pinned last, wherever the table lists it: the …
+	// promises more, so the way to see it must survive truncation
 	pinned := ""
-	if n := len(bindings); n > 1 && (bindings[n-1].Help().Key == "?" || bindings[n-1].Help().Key == "ctrl+g") {
-		h := bindings[n-1].Help()
-		pinned = t.S.Key.Render(h.Key) + " " + t.S.KeyDesc.Render(h.Desc)
+	if i := helpBinding(bindings); i >= 0 && len(bindings) > 1 {
+		h := bindings[i].Help()
+		pinned = t.S.Key.Render(HelpKey(t, h.Key)) + " " + t.S.KeyDesc.Render(h.Desc)
 		w -= lipgloss.Width(pinned) + 2
-		bindings = bindings[:n-1]
+		bindings = append(bindings[:i:i], bindings[i+1:]...)
 	}
 	var parts []string
 	used := 0
 	more := t.S.Subtle.Render(t.G.Ellipsis)
+	hint := func(h key.Help) string { return t.S.Key.Render(HelpKey(t, h.Key)) + " " + t.S.KeyDesc.Render(h.Desc) }
 	// room for the separator and the ellipsis as the theme draws it: "  …" is 3 cells,
 	// the ASCII "  ..." is 5
 	reserveMore := 2 + lipgloss.Width(more)
@@ -173,8 +187,7 @@ func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 		if !b.Enabled() {
 			continue
 		}
-		h := b.Help()
-		part := t.S.Key.Render(h.Key) + " " + t.S.KeyDesc.Render(h.Desc)
+		part := hint(b.Help())
 		pw := lipgloss.Width(part)
 		need := pw
 		if len(parts) > 0 {
@@ -198,6 +211,70 @@ func Help(t *theme.Theme, bindings []key.Binding, w int) string {
 		return line + sep + pinned
 	}
 	return line
+}
+
+// HelpKey is a help key as this terminal can press it. A token that pairs a key some
+// terminals can't tell apart from another (shift+enter arrives as enter where the
+// terminal doesn't disambiguate keys: tmux, most SSH sessions) with its fallback,
+// "shift+enter/ctrl+j", is drawn as one alternative: the first, once the terminal
+// reported key disambiguation (t.KeyDisambiguation), else the first every terminal
+// sends. Any other token ("↑↓/jk", "?/f1") is drawn whole.
+func HelpKey(t *theme.Theme, k string) string {
+	alts := strings.Split(k, "/")
+	if len(alts) < 2 || !slices.ContainsFunc(alts, ambiguousKey) {
+		return k
+	}
+	if t.KeyDisambiguation {
+		return alts[0]
+	}
+	if i := slices.IndexFunc(alts, func(a string) bool { return a != "" && !ambiguousKey(a) }); i >= 0 {
+		return alts[i]
+	}
+	return k
+}
+
+// ambiguousKey reports a key a terminal without key disambiguation delivers as another
+// key or not at all: ctrl or shift on enter, backspace or esc (one byte each), ctrl+tab,
+// shift+space, ctrl+m and ctrl+i (enter's and tab's bytes), ctrl+shift+<letter>, ctrl
+// on a digit or punctuation other than \ ] ^ _, and super, hyper or meta on anything.
+// tuilint spec's S-KEYAMBIG holds the same model.
+func ambiguousKey(k string) bool {
+	parts := strings.Split(k, "+")
+	base, mods := parts[len(parts)-1], parts[:len(parts)-1]
+	ctrl, shift := slices.Contains(mods, "ctrl"), slices.Contains(mods, "shift")
+	if slices.ContainsFunc(mods, func(m string) bool { return m == "super" || m == "hyper" || m == "meta" }) {
+		return true
+	}
+	switch base {
+	case "enter", "backspace", "esc":
+		return ctrl || shift
+	case "tab":
+		return ctrl
+	case "space":
+		return shift
+	}
+	if !ctrl || len([]rune(base)) != 1 {
+		return false
+	}
+	r := []rune(base)[0]
+	switch {
+	case r >= 'a' && r <= 'z':
+		return shift || r == 'm' || r == 'i'
+	case r >= 'A' && r <= 'Z':
+		return true
+	}
+	return !strings.ContainsRune(`\]^_`, r)
+}
+
+// helpBinding is the index of the first enabled binding whose help key is ? or ctrl+g
+// (the key that opens full help), or -1.
+func helpBinding(bindings []key.Binding) int {
+	for i, b := range bindings {
+		if k := b.Help().Key; b.Enabled() && (k == "?" || k == "ctrl+g") {
+			return i
+		}
+	}
+	return -1
 }
 
 // Footer is the bottom row(s) per expressions.footer: bare keys, keys on a
@@ -324,10 +401,20 @@ func Tabs(t *theme.Theme, names []string, active int, counts []string) []string 
 }
 
 // TooSmall is the whole screen when the terminal is below the minimum: the wordmark,
-// "Terminal too small" in the theme's case, the sizes, the one key.
-func TooSmall(t *theme.Theme, w, h, minW, minH int) string {
+// "Terminal too small" in the theme's case, the sizes, and the keys the too-small
+// state binds (its action table's footer bindings, usually one: q quit), so the hint
+// is never a key the app doesn't handle.
+func TooSmall(t *theme.Theme, w, h, minW, minH int, bindings []key.Binding) string {
+	var keys []string
+	for _, b := range bindings {
+		if b.Enabled() {
+			keys = append(keys, t.S.Key.Render(HelpKey(t, b.Help().Key))+" "+t.S.KeyDesc.Render(b.Help().Desc))
+		}
+	}
 	msg := Wordmark(t, t.AppName()) + "\n\n" + t.S.Soft.Render(t.Sentence("Terminal too small")) + "\n" + t.S.Muted.Render(
-		strconv.Itoa(w)+"x"+strconv.Itoa(h)+", needs "+strconv.Itoa(minW)+"x"+strconv.Itoa(minH)) + "\n\n" +
-		t.S.Key.Render("q") + " " + t.S.KeyDesc.Render("quit")
+		strconv.Itoa(w)+"x"+strconv.Itoa(h)+", needs "+strconv.Itoa(minW)+"x"+strconv.Itoa(minH))
+	if len(keys) > 0 {
+		msg += "\n\n" + Trunc(t, strings.Join(keys, "  "), w)
+	}
 	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, lipgloss.JoinVertical(lipgloss.Center, strings.Split(msg, "\n")...))
 }

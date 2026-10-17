@@ -331,6 +331,10 @@ func TestCheckRejectsGlyphsWithNoASCIITwin(t *testing.T) {
 		{`{"pending": "◔", "ascii": {"◔": "*"}}`, `glyphs.current "●" and glyphs.pending "◔" both draw as "*"`},
 		{`{"pending": "◔", "ascii": {"◔": "~"}}`, ""},
 		{`{"todo": "◦"}`, ""}, // the kit's map has it
+		// under selection "caret" the prompt may not be the cursor (CheckSelectionGlyphs)
+		{`{"cursor": "›", "prompt": "›"}, "expressions": {"selection": "caret"}`, `glyphs.prompt "›" is glyphs.cursor under selection "caret"`},
+		{`{"cursor": "›", "prompt": "»"}, "expressions": {"selection": "caret"}`, ""},
+		{`{"cursor": "›", "prompt": "›"}, "expressions": {"selection": "bar"}`, ""},
 	} {
 		path := filepath.Join(t.TempDir(), "theme.json")
 		js := `{"roles": {"dark": {"bg": "#201F26", "fg": "#DFDBDD"}}, "glyphs": ` + c.glyphs + `}`

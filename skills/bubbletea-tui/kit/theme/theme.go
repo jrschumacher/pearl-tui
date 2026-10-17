@@ -31,7 +31,7 @@ import (
 type Roles struct {
 	Primary   string `json:"primary"`   // the brand hue: focus, current, selected rows, header rule (under expressions.focus "fg": only what the theme or app asks for)
 	Secondary string `json:"secondary"` // second hue: primary buttons, gradient end, subtitles
-	Tertiary  string `json:"tertiary"`  // prompts, cursors, input carets
+	Tertiary  string `json:"tertiary"`  // a third voice: inline code, links; prompts and carets where primary doesn't read on bgOverlay
 	Accent    string `json:"accent"`    // section titles, headings; reads as "heading", never "alert"
 
 	Bg        string `json:"bg"`        // the background the brand expects
@@ -72,7 +72,7 @@ type Glyphs struct {
 	HeaderRule string   `json:"headerRule"` // fills the header after the wordmark: ╱ ─ ═ · ━ ╌ ~ (or "")
 	Rule       string   `json:"rule"`       // section rules: ─ ━ ╌ ┄ ═ ·
 	FocusBar   string   `json:"focusBar"`   // left marker of the focused block: ▌ ┃ │ ▎ ❯
-	BlurBar    string   `json:"blurBar"`    // the same position, unfocused ("" = padding only)
+	BlurBar    string   `json:"blurBar"`    // the same position, unfocused: ╎ ┆ ┊, ASCII : ("" = ╎ beside a blurred selection, Theme.BlurBar; padding only in a stream or form); never the focus bar
 	Cursor     string   `json:"cursor"`     // selection cursor in lists/selects: › ❯ > ▸ →
 	Prompt     string   `json:"prompt"`     // input prompt: > $ ❯ ›
 	Done       string   `json:"done"`       // ✓ ✔ ■ ◆ x
@@ -707,6 +707,14 @@ type Theme struct {
 	// twin: G itself unless ASCII. What a component reads to decide by the theme's own
 	// glyphs rather than their twins (ui.BusyAnimates judges the spinner frames' width).
 	Unicode Glyphs
+	// KeyDisambiguation is what the terminal reported in tea.KeyboardEnhancementsMsg
+	// (SupportsKeyDisambiguation): shift+enter arrives as itself, not as enter. ui.Help
+	// reads it to draw "shift+enter/ctrl+j" as the one alternative that works here.
+	// Resolve leaves it false (ctrl+j, which every terminal sends); set it again after
+	// every Resolve once the message has arrived.
+	KeyDisambiguation bool
+
+	promptTertiary bool // the focus ink doesn't read on bgOverlay: the prompt keeps tertiary (build)
 }
 
 // Resolve picks the dark or light roles, fills gaps, and builds every style, for a
@@ -742,6 +750,14 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 		pins = pins16(f, mode, dark)
 	}
 	t.P = derive(r, dark, pins)
+	// the prompt takes the focus ink, unless that ink is under 3:1 on bgOverlay, where
+	// a palette's filter input sits (Charm's #6B50FF on #4D4C57 is 1.7:1): judged on the
+	// colours as written, so one theme and mode draws one prompt colour in every profile
+	tc := t.P
+	if pins != nil {
+		tc = derive(r, dark, nil)
+	}
+	t.promptTertiary = Contrast(tc.Primary, tc.BgOverlay) < promptFloor
 	t.Unicode = glyphDefaults(f.Glyphs)
 	t.G = t.Unicode
 	if ascii {
@@ -838,6 +854,20 @@ func (t *Theme) LadderGlyph(r LadderRung) string {
 		return twin(t.File.Glyphs.ASCII, r.Glyph)
 	}
 	return r.Glyph
+}
+
+// BlurBar is the marker a blurred selection keeps (ui.List, ui.Table): glyphs.blurBar,
+// or when the theme leaves it unset ╎ (ASCII :). It is never the focus bar's glyph:
+// a blurred and a focused selection differ in shape, so NO_COLOR and ASCII still show
+// one focus (CheckGlyphs refuses a blurBar that is the focusBar).
+func (t *Theme) BlurBar() string {
+	if t.G.BlurBar != "" {
+		return t.G.BlurBar
+	}
+	if t.ASCII {
+		return blurFallbackASCII
+	}
+	return blurFallback
 }
 
 // AppName is the brand name the theme declares.

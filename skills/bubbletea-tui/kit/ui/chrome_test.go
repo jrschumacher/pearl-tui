@@ -202,3 +202,29 @@ func TestASCIIfyCaret(t *testing.T) {
 		t.Errorf("ASCIIfy(ro▏▌) = %q, want ro'|", got)
 	}
 }
+
+// header "minimal" joins the brand and details with the theme's separator and takes a
+// right part at the edge (a count, a status): it joined them with two spaces and had no
+// right, so an app drew its own header row.
+func TestMinimalHeaderRight(t *testing.T) {
+	f := theme.Default()
+	f.Expressions.Header = "minimal"
+	th := theme.Resolve(f, true, false)
+	for _, w := range []int{60, 80, 120} {
+		row := ansi.Strip(Header(th, w, 24, "quill", Details(th, "inbox"), th.S.Warn.Render("5 new"))[0])
+		pad := strings.Repeat(" ", th.X.Gutter)
+		if n := ansi.StringWidth(row); n != w {
+			t.Errorf("w=%d: header is %d cells: %q", w, n, row)
+		}
+		if want := pad + "quill " + th.G.Sep + " inbox"; !strings.HasPrefix(row, want) {
+			t.Errorf("w=%d: header %q, want it to start %q", w, row, want)
+		}
+		if !strings.HasSuffix(row, "5 new"+pad) {
+			t.Errorf("w=%d: header %q, want 5 new at the right edge", w, row)
+		}
+	}
+	// without a right part the row reads as before, brand then details
+	if row := ansi.Strip(Header(th, 60, 24, "quill", Details(th, "inbox"))[0]); !strings.Contains(row, "quill "+th.G.Sep+" inbox") {
+		t.Errorf("header %q, want the separator between brand and details", row)
+	}
+}

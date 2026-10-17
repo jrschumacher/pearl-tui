@@ -31,7 +31,9 @@
 // meaning (done/current/todo/pending/partial/warn/fail, radio on/off, check on/off,
 // thumb/track, focus/blur bar) that share a twin under -ascii, or a spinner frame that
 // is, or whose cells hold, a status mark, a bar or the caret (a "···" spinner beside a
-// "·" pending). And on its expressions
+// "·" pending), or a blurBar that is the focusBar; and under selection "caret", a prompt
+// that is the cursor or draws as its twin (theme.CheckSelectionGlyphs: a filter input
+// above a caret-selected list would show one glyph twice). And on its expressions
 // (theme.CheckExpressions): a key the kit doesn't read or a value it doesn't know, which
 // theme.Load draws as the default silently ("dialog": "rule" for "rules"), named with
 // the values the kit knows. A key under roles.<mode>, glyphs or wordmark the kit doesn't

@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -28,6 +29,9 @@ func press(k string) tea.KeyPressMsg {
 	named := map[string]rune{"enter": tea.KeyEnter, "esc": tea.KeyEscape, "tab": tea.KeyTab, "up": tea.KeyUp,
 		"down": tea.KeyDown, "left": tea.KeyLeft, "right": tea.KeyRight, "backspace": tea.KeyBackspace,
 		"space": tea.KeySpace, "pgup": tea.KeyPgUp, "pgdown": tea.KeyPgDown, "home": tea.KeyHome, "end": tea.KeyEnd}
+	for i := range 12 { // f1 … f12: the help key where ? would be typed
+		named["f"+strconv.Itoa(i+1)] = tea.KeyF1 + rune(i)
+	}
 	if r, ok := named[k]; ok {
 		return tea.KeyPressMsg{Code: r, Mod: mod}
 	}
@@ -36,6 +40,22 @@ func press(k string) tea.KeyPressMsg {
 		return tea.KeyPressMsg{Code: r, Mod: mod}
 	}
 	return tea.KeyPressMsg{Code: r, Text: k}
+}
+
+// press names every key an action table may bind, the function keys among them: f1 is
+// the spec's help key where ? would be typed, and press("f1") was the letter f with the
+// text "f1", a key no terminal sends.
+func TestPressNamesKeys(t *testing.T) {
+	for _, k := range []string{"f1", "f5", "f12", "shift+f2", "ctrl+f3", "enter", "ctrl+j", "shift+tab", "?", "q"} {
+		if got := press(k).String(); got != k {
+			t.Errorf("press(%q) is %q", k, got)
+		}
+	}
+	for i := range 12 {
+		if p := press("f" + strconv.Itoa(i+1)); p.Code != tea.KeyF1+rune(i) || p.Text != "" {
+			t.Errorf("press(\"f%d\") is code %d text %q, want tea.KeyF%d", i+1, p.Code, p.Text, i+1)
+		}
+	}
 }
 
 func fixture(t *testing.T, state string) *app {
@@ -50,9 +70,6 @@ func fixture(t *testing.T, state string) *app {
 // its handler. This is the test that keeps help honest.
 func TestHelpIsHandled(t *testing.T) {
 	for _, s := range states {
-		if s == "toosmall" {
-			continue
-		}
 		for _, a := range fixture(t, s).actions() {
 			for _, k := range a.b.Keys() {
 				m := fixture(t, s)
@@ -62,6 +79,33 @@ func TestHelpIsHandled(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// The too-small screen's key is the toosmall action table's, drawn from it: ui.TooSmall
+// hard-coded "q quit" and TestHelpIsHandled skipped toosmall, so an app whose table
+// bound only ctrl+c showed q quit, a help lie in a lint-clean frame.
+func TestTooSmallKeysAreTheTable(t *testing.T) {
+	m := fixture(t, "toosmall")
+	var want []string
+	for _, a := range m.actions() {
+		if a.show {
+			want = append(want, a.b.Help().Key+" "+a.b.Help().Desc)
+		}
+	}
+	if len(want) == 0 {
+		t.Fatal("toosmall: no key in the footer: the screen must say how to leave")
+	}
+	w, h := frameSize("toosmall", 80, 24)
+	rows := strings.Split(ansi.Strip(m.render(w, h).String()), "\n")
+	last := ""
+	for _, r := range rows {
+		if r = strings.TrimSpace(r); r != "" {
+			last = r
+		}
+	}
+	if got := strings.Join(strings.Fields(last), " "); got != strings.Join(want, " ") {
+		t.Errorf("toosmall %dx%d: the key row reads %q, the toosmall action table shows %q", w, h, last, strings.Join(want, "  "))
 	}
 }
 

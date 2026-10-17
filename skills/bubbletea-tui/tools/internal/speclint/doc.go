@@ -23,7 +23,10 @@
 // The footer shows a state's keys in table order. A cell marks which ones in one of two
 // ways: its **bold** items are the footer, or the items before a ‖ are. The other keys
 // are help-only (show: false in the action table, listed by ? help). A cell with
-// neither marker is all footer, so older tables read as before.
+// neither marker is all footer, so older tables read as before. A state whose footer
+// carries a badge (ui.Footer's left: a mode, PLAN) names it as the cell's first item,
+// `[plan] · **enter send** · …`; it is no key, and it takes its width and a space from
+// the footer.
 //
 // A key token may list alternatives with "/" (`shift+enter/ctrl+j`, `↑↓/jk`, `1-9`), and
 // an item may list more tokens before its action: `j/k, ↑/↓ move`, `h/l or ←/→ switch`,
@@ -69,11 +72,15 @@
 //	                  fit the footer the kit draws at 80 columns: ui.Help packs `key action` hints
 //	                  two spaces apart into the 76 columns inside the kit's default 2-cell gutters
 //	                  (it assumes them: a theme with a 1-cell gutter has 2 more columns), keeps 3
-//	                  for "…" while hints remain, pins a last `?` or `ctrl+g` hint, and drops the
-//	                  rest. The message names what it drops and suggests a footer that fits, with
-//	                  the state's way out (esc, quit, back, close, cancel) and its one main action
-//	                  kept and the other keys moved out from the end. Global keys are not in a
-//	                  state's footer; a mode badge or status text on the row takes more.
+//	                  for "…" while hints remain, pins the first `?` or `ctrl+g` hint last wherever
+//	                  it sits, and drops the rest. A token pairing a key some terminals can't tell
+//	                  apart with its fallback (`shift+enter/ctrl+j`) counts as its widest single
+//	                  alternative: ui.HelpKey draws only the one that works. A badge the cell
+//	                  names first (`[plan] · …`) takes its width and a space from the 76; status
+//	                  text on the row takes more. The message names what it drops and suggests a
+//	                  footer that fits, with the state's way out (esc, quit, back, close, cancel)
+//	                  and its one main action kept and the other keys moved out from the end.
+//	                  Global keys are not in a state's footer.
 //	             [P2] a state with a marked footer and help-only keys whose footer shows no key
 //	                  that opens help (`?`, ctrl+g, an action that says help), when Global doesn't
 //	                  bind one: nobody finds the help-only keys.

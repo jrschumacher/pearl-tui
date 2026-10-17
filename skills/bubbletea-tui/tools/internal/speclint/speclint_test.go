@@ -153,6 +153,14 @@ func TestRules(t *testing.T) {
 		{"a writing state overflowing", table("| tour-writing | tour | ↑↓/jk scroll · pgup/pgdn page · g/G top/bottom · tab next section · shift+tab previous section · r write the rest · esc stop writing · ? help |", ""), map[string]int{"S-FOOTER": 1}},
 		{"ctrl+g opens help while typing", table("| reply | overlay | enter send · ctrl+j newline · esc cancel · ctrl+g help ‖ ctrl+o attach |", ""), nil},
 		{"76 columns exactly fit", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 42)+" |", ""), nil},
+		// ui.Help draws `shift+enter/ctrl+j` as one alternative (ctrl+j, or shift+enter where
+		// the terminal disambiguates keys), so S-FOOTER measures the widest one, not all 18
+		{"a newline fallback is one alternative wide", table("| compose | conversation | **enter send** · **shift+enter/ctrl+j newline** · **ctrl+o attach** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), nil},
+		// a footer badge (ui.Footer's left: a mode, PLAN) takes its width and a space from
+		// the 76 columns; a row names it as its first item
+		{"a badge's row fits without it", table("| chat | chat | **enter send** · **ctrl+s sessions** · **ctrl+t toggle tools** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), nil},
+		{"a badge takes its share of the footer", table("| chat-plan | chat | [plan] · **enter send** · **ctrl+s sessions** · **ctrl+t toggle tools** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), map[string]int{"S-FOOTER": 1}},
+		{"a badge is no key", table("| chat-plan | chat | `[plan]` · **enter send** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), nil},
 		{"77 columns don't", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 43)+" |", ""), map[string]int{"S-FOOTER": 1}},
 		{"Global keys are not in the footer", table("| list | list | ↑↓ move · enter open · ? help |", "ctrl+c quit · ctrl+p palette · ctrl+o switch · ctrl+s save · ctrl+r reload · ctrl+t theme · f1 manual"), nil},
 		{"an empty cell has no footer", table("| splash | splash | — |", ""), nil},
@@ -417,7 +425,7 @@ func TestUsageIsTheDocComment(t *testing.T) {
 }
 
 // packFooter lays hints out as kit/ui Help does: two spaces apart, 3 columns kept for
-// "…" while hints remain, and a last ? or ctrl+g hint pinned.
+// "…" while hints remain, and the first ? or ctrl+g hint pinned last, wherever it is.
 func TestPackFooter(t *testing.T) {
 	cases := []struct {
 		items   string
@@ -429,8 +437,11 @@ func TestPackFooter(t *testing.T) {
 		{"a one · b two · c three", 16, "c three"},         // a one + b two = 12, + reserve 3 = 15 ≤ 16, then c three needs 9
 		{"a one · b two · c three", 14, "b two · c three"}, // 12 + reserve 3 > 14
 		{"a one · b two · ? help", 13, "b two"},            // ? help pinned: 13 - 8 = 5 for the rest
-		{"a one · ? help · b two", 13, "? help · b two"},   // ? help not last, so not pinned
+		{"a one · ? help · b two", 13, "b two"},            // ? help pinned from the middle too
 		{"a very long first hint", 10, "a very long first hint"},
+		{"shift+enter/ctrl+j newline · b two", 26, ""}, // measured as shift+enter newline: 19 + 2 + 5
+		{"shift+enter/ctrl+j newline · b two", 25, "b two"},
+		{"↑↓/jk move · b two", 13, "b two"}, // alternatives every terminal sends are all drawn
 	}
 	for _, c := range cases {
 		_, dropped := packFooter(strings.Split(c.items, " · "), c.w)
@@ -506,7 +517,7 @@ func TestSuggestCut(t *testing.T) {
 			"↑↓/jk move · enter open · d deploy · r roll back · q quit · ? help", "ctrl+p commands · l logs · c copy id · s sort by status"},
 	}
 	for _, c := range cases {
-		front, back := suggestCut(hints(c.cell))
+		front, back := suggestCut(hints(c.cell), footerBudget)
 		if got, want := strings.Join(front, " · ")+" ‖ "+strings.Join(back, " · "), c.front+" ‖ "+c.back; got != want {
 			t.Errorf("%s:\n got %s\nwant %s", c.name, got, want)
 		}

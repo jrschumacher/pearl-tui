@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/bubbles/v2/key"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
 	uv "github.com/charmbracelet/ultraviolet"
@@ -242,8 +243,11 @@ func TestFixedCopyFollowsTheme(t *testing.T) {
 				t.Errorf("%s: %s %q, want %q", c.name, what, got[what], want)
 			}
 		}
-		if small := ansi.Strip(TooSmall(th, 52, 16, 60, 18)); !strings.Contains(small, c.small) || !strings.Contains(small, "52x16, needs 60x18") {
+		quit := key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "quit"))
+		if small := ansi.Strip(TooSmall(th, 52, 16, 60, 18, []key.Binding{quit})); !strings.Contains(small, c.small) || !strings.Contains(small, "52x16, needs 60x18") {
 			t.Errorf("%s: TooSmall draws %q, want %q and the sizes", c.name, strings.TrimSpace(small), c.small)
+		} else if !strings.Contains(small, "ctrl+c quit") {
+			t.Errorf("%s: TooSmall draws %q, want the key it was given (ctrl+c quit), not a fixed q quit", c.name, strings.TrimSpace(small))
 		}
 	}
 }

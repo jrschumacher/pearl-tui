@@ -32,7 +32,7 @@ func (m *app) draw(w, h int) *ui.Canvas {
 	t := m.t
 	c := ui.NewCanvas(t, w, h)
 	if w < minW || h < minH {
-		c.Draw(ui.TooSmall(t, w, h, minW, minH), c.Bounds())
+		c.Draw(ui.TooSmall(t, w, h, minW, minH, m.footerBindings()), c.Bounds())
 		return c
 	}
 	if m.screen == scrSplash {

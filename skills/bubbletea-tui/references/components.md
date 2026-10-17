@@ -3,13 +3,14 @@
 Every component here exists in `kit/ui`. Copy it and change what the task needs. Each
 entry gives the anatomy, the rules that a cold rebuild got wrong, and the kit function.
 
-## Header — `ui.Header(t, w, h, brand, details)`
+## Header — `ui.Header(t, w, h, brand, details[, right])`
 
 One row (or a banner, if the brand earns it and h ≥ 30): the wordmark, the brand motif
 filling the gap, and details on the right (`env · region · selection`, the first part
 in fg and the rest muted). It is drawn per `expressions.header`: `rule`, `bar` (a filled
-strip), `minimal`, `stamp` (the name as an inverse stamp at the right), or `banner`.
-Details truncate before the brand does.
+strip), `minimal` (`brand · details`, and `right` at the edge: a count, a status),
+`stamp` (the name as an inverse stamp at the right), or `banner`. Details truncate
+before the brand does.
 
 ## Tabs — `ui.Tabs`
 
@@ -28,9 +29,15 @@ the border colour, and right info is subtle. This is how regions separate.
 - The marker column is always 2 cells, so selecting never shifts text.
 - Selection follows `expressions.selection`: `bar` (▌ + bold), `fill` (a full-width
   primary bar; every span carries the bg), `caret` (› + primary), `inverse`.
-- Blurred lists keep the selection visible in a quieter style.
+- Blurred lists keep the selection visible in a quieter style and its own shape:
+  `t.BlurBar()` (`glyphs.blurBar`, else `╎`, ASCII `:`) in fgSubtle, never the focus bar
+  or cursor in grey, which under NO_COLOR is a second focus. `CheckGlyphs` refuses a
+  `blurBar` that is the `focusBar`.
 - Title in fg, description muted after it (dropped first when tight), right-aligned
   hint in subtle, fuzzy matches underlined.
+- Before the title, a status column (`Item.Mark`, a rung of the theme's ladder by its
+  meaning, else `Item.State`'s Dot) and a muted `Item.Lead` column (a repo#n, an id) as
+  wide as the widest lead, so titles line up. Don't hand-write a row for either.
 - The scrollbar column appears only when the list overflows.
 - Empty list: an empty state, never a blank area.
 
@@ -73,7 +80,7 @@ the keys; hue stays for state (color.md).
   typing), with fuzzy matches underlined and shortcuts right-aligned.
 - Only the front dialog takes input. `esc` closes it. The scrim dims the rest. Draw the
   page under it unfocused (`focused=false` to its lists, tables and fields, no caret in
-  its input): one focus per frame, and a list keeps its selection in the blur ink.
+  its input): one focus per frame, and a list keeps its selection under the blurred mark.
   `Canvas.Overlay` (and `Popover`) clears what would still read as live beside it: a
   one-cell halo, a word the dialog cuts, whole, with an ellipsis where its phrase was
   cut (`▲ notifications-…`, not `igh` or `1s` at the edge), a page rule on the dialog's
@@ -104,7 +111,7 @@ reversible.
 ```
 ▌ Version                                   ← label: bold when focused, muted when not
 ▌ tag or commit; latest is v2.4.1           ← hint in subtle, always visible
-▌ > v2.4.1▏                                 ← input: prompt in tertiary, caret
+▌ > v2.4.1▏                                 ← input: prompt in the focus ink, caret
 ```
 
 The gutter bar (`ui.Gutter`) marks the focused field and spans all its rows. Radios
@@ -172,7 +179,9 @@ returns. Never a new row, never a modal.
 
 An optional left badge (mode, `PROD`, `PLAN`), the help packed from `key.Binding`s by
 importance, and right status text (`synced 4s ago`). Per `expressions.footer`: bare,
-on a filled strip, or under a rule. Full help (`?`) expands into columns, grouped.
+on a filled strip, or under a rule. Full help (`?`) expands into columns, grouped. The
+badge's width and a space come out of the keys' 76 columns at 80: name it first in the
+state's keys cell (`[plan] · **enter send** · …`) so `tuilint spec` [S-FOOTER] counts it.
 
 ## Stream (chat, logs, events) — `ui.Transcript`, `ui.UserMessage`, `ui.AssistantMessage`, `ui.ToolCall`, `ui.Thinking`, `ui.TurnFooter`
 
@@ -190,7 +199,9 @@ on a filled strip, or under a rule. Full help (`?`) expands into columns, groupe
 
 ## Editor / Prompt
 
-A rule above, a prompt glyph in tertiary (bold when focused, muted when not),
+A rule above, a prompt glyph in the focus ink (`t.S.Prompt`: primary, or bold fg under
+`focus: fg`; tertiary where primary is under 3:1 on `bgOverlay`; muted when not
+focused), since where you type is the focus,
 continuation lines with a subtle `:`, and the real cursor via `View.Cursor`. Grow from 1
 to ~8 rows with content, then scroll. The placeholder says what to type, in the brand's
 voice.
@@ -198,8 +209,9 @@ voice.
 ## Status Column — `ui.Dot`, `ui.Busy`
 
 One cell per row, before the name. `ui.Dot(t, state)` draws each state in its own shape
-and role colour: ok `done`, busy `partial`, warning `warn`, error `fail`, idle `todo`,
-so the shape says it under NO_COLOR too, and `●` (`current`) keeps one meaning: now. A
+and role colour: ok `done`, current `current` (the open or loaded one: ● in the focus
+ink), busy `partial`, warning `warn`, error `fail`, idle `todo`, so the shape says it
+under NO_COLOR too, and `●` (`current`) keeps one meaning: now. A
 state of the product's own (`new`, `reviewed`) is a rung of the theme's `ladder`, drawn
 with `ui.Mark(t, "new")` (brand.md §4). A row in progress takes `ui.Busy(t, frame)`: the
 theme's spinner when its frames are one cell, else the still partial glyph (in unicode
@@ -243,6 +255,8 @@ for steps, nested agents and dependencies.
 See `cell-art.md`. Mark, wordmark, spinner with subject, version bottom-left, quit hint
 bottom-right, brand field behind with a clearing. It is shown only while something loads.
 
-## Too Small — `ui.TooSmall`
+## Too Small — `ui.TooSmall(t, w, h, minW, minH, bindings)`
 
-One centred line with the actual and the needed size. Nothing else.
+One centred line with the actual and the needed size, then the keys of the `toosmall`
+row of the action table (`m.footerBindings()` while the size is below the minimum),
+never a key typed into the screen: `TestHelpIsHandled` presses every one. Nothing else.

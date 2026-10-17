@@ -57,7 +57,9 @@ func (m *model) View() tea.View {                            // returns tea.View
 - `tea.Suspend` (ctrl+z), `tea.ExecProcess` (open `$EDITOR`), `tea.SetClipboard`
   (OSC 52).
 - `tea.KeyboardEnhancementsMsg.SupportsKeyDisambiguation()` tells you whether
-  `shift+enter` can be told apart from `enter`. Change your help when it can.
+  `shift+enter` can be told apart from `enter`. Set `t.KeyDisambiguation` from it after
+  every `Resolve` (the showcase's `resolve` does), and `ui.Help` draws a
+  `shift+enter/ctrl+j` help key as the alternative that works.
 
 ### Lip Gloss v2
 

@@ -228,8 +228,8 @@ func dialogRules(t *theme.Theme, title string, w int, fill color.Color) (string,
 //
 // Draw the page under a dialog unfocused: pass focused=false to its lists, tables and
 // fields while the dialog is up. The dialog has the focus, and a focused list's bar
-// beside the dialog's own reads as two; unfocused, a list keeps its selection in the
-// blur ink, so the user still sees where they were.
+// beside the dialog's own reads as two; unfocused, a list keeps its selection under the
+// blurred mark (t.BlurBar(), in the blur ink), so the user still sees where they were.
 //
 //	tbl := ui.Table(t, header, rows, widths, align, sel, w, m.ov == ovNone)
 func (c *Canvas) Overlay(dialog string, anchor *uv.Position) uv.Rectangle {
