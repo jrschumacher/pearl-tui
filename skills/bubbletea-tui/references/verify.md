@@ -34,8 +34,11 @@ screenshot.
             (globs, not a state list: toosmall renders at its own size, 50x14, and a
             named list drops it)
             → Read the PNGs. Run the slop test (anti-patterns.md) on each.
-5. CRITIQUE spawn a critic subagent (below) with the PNGs, goldens, TUI.md and code
-6. FIX      one change per defect; re-run 1–4; resume the SAME critic for round 2
+5. CRITIQUE a critic that has not seen your reasoning (below): a subagent given the PNGs,
+            goldens, TUI.md and code, or, with no subagent tool, a fresh message holding
+            only the prompt, the PNGs and the goldens
+6. FIX      one change per defect; re-run 1–4; round 2 goes to the SAME critic (resume the
+            subagent, or send the same message again with its last verdict and the new sheets)
 ```
 
 Expect 2–4 rounds. Stop when the critic says ship and your own slop test passes.
@@ -66,10 +69,14 @@ room. That's the critic's job, and yours.
 
 ## The Critic
 
-Spawn a fresh subagent. It has not seen your reasoning, so it judges the screen, not the
-intent. Give it the files, not a description. No subagent tool: re-read only the PNGs
-and goldens (not your code) in a fresh message with the prompt below, and say so in the
-hand-off, because a self-review that has the code in context grades the intent.
+The critic is whoever has not seen your reasoning, so it judges the screen, not the
+intent. Two forms, equal in standing, and the hand-off says which ran:
+
+- a fresh subagent, given the files (not a description) and the prompt below;
+- no subagent tool (most sessions): a fresh message that holds the prompt below, the
+  PNGs and the goldens, and nothing else: not your code and not the transcript, because a
+  self-review that has the code in context grades the intent. Read the sheets again in
+  that message as if for the first time, then write the verdict in the prompt's format.
 
 ```
 You are reviewing a terminal UI built with Bubble Tea. Be adversarial: your job is to
@@ -107,8 +114,10 @@ Output:
   - anything you suspect is a behaviour bug the renders hide
 ```
 
-For round two, resume the **same** critic (SendMessage to it) with the new renders and
-"here is what changed". It grades its own items, which keeps the bar from moving.
+For round two, go back to the **same** critic with the new renders and "here is what
+changed": resume the subagent (SendMessage to it), or send the fresh message again with
+its own last verdict pasted in above the new sheets. It grades its own items, which
+keeps the bar from moving.
 
 ## Reporting To The User
 
