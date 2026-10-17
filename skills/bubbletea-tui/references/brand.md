@@ -207,9 +207,11 @@ Put it beside the baseline (`ink`) and one other brand. Ask:
 
 1. With the colour stripped, can you still tell which brand it is? If not, identity is
    only in the palette. Move the expressions.
-2. Is the "remember" line from the read visible in the first second? The showcase's
-   `ladder` state draws every status rung in its role, the spinner, a step row and the
-   tags on one frame: judge a signature that lives in the marks there, in every profile.
+2. Is the "remember" line from the read visible in the first second, on the main
+   screen's default frame (the state the app opens in, nothing pressed), not only on the
+   sketch, beside a sent turn or in a filled form? The showcase's `ladder` state draws
+   every status rung in its role, the spinner, a step row and the tags on one frame:
+   judge a signature that lives in the marks there, in every profile.
 3. Does every choice in the read trace to something on screen?
 4. Does the light set look like the same brand, not a different app?
 

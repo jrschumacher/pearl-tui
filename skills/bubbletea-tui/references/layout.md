@@ -16,6 +16,10 @@ row 23     footer / help (1)         footer (1)
 cols       gutter 2 | 76 | gutter 2  gutter 2 | 116 | gutter 2
 ```
 
+The footer is one row bare or on a bar and two under `footer: rule` (the rule, then
+the keys: rows 22–23 at 80×24), so a rule-footer brand's body budget is one row shorter.
+Measure it, `len(ui.Footer(…))`, rather than writing 1.
+
 Every pane's outer width, inner width and text width are integers that sum to the
 parent. If you can't write this table, you can't build the screen. It is also the first
 thing to check when a frame tears.
@@ -29,7 +33,7 @@ Decide what changes and at which width, and write it down:
 | < 60 or < 18 rows | `ui.TooSmall`: "Terminal too small", "52×16, needs 60×18", "q quit", centred, nothing else |
 | 60–109 | single column. The detail pane becomes one summary line under the list. The sidebar becomes a header row. Long help becomes short help. |
 | ≥ 110 | detail pane / sidebar on the right (30–40 cols) |
-| ≥ 140 | diffs go side by side |
+| ≥ 140 | diffs default to side by side. A toggle (`t unified`) may offer it narrower; below ~100 columns each half gets < 45 cells, so cut long lines with `…` |
 | h ≥ 30 | a banner header is allowed; below that it collapses to one row |
 
 The rule: **one design at every size, more or less room**. Nothing exists at one size
@@ -59,6 +63,17 @@ child components only when a rectangle changes.
 Draw (or measure) the header and footer first. The body gets whatever is left. Never
 let body content push the footer off the screen. Overflow scrolls inside the body, with a
 visible "↑ 25 more lines" affordance.
+
+## Rows Go By Content
+
+- **DO** let a stacked pair share rows by content: the upper region takes the rows it
+  fills (capped at a share), the lower takes the rest. **DON'T** give each a fixed
+  half: a five-row collection over a long response leaves rows 6–10 blank while the
+  response is cut at row 11.
+- **DO** keep the working surface (the list the user acts on) at least half the body
+  rows at the floor, and fold a readings panel's secondary rows into the row above
+  (`cpu 42% · mem 61%`, not two rows) before taking rows from it. **DON'T** let "one
+  row per reading" win: at 80×24 it takes a 13-row list down to 8.
 
 ## Gutters And Rhythm
 
