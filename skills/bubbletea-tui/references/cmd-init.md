@@ -56,6 +56,9 @@ Huh on its default theme) as a `gap:` line, which `restyle` then closes.
 - **Stop at two rounds** (a step-0 conflict round doesn't count) unless an answer
   changes the design. Whatever is still unknown takes its default and goes under
   `## Assumed`.
+- **Never assumed: who uses it, the brand words, the screens.** Ask those even when
+  everything else is inferred: a bare repo can't answer them, and a brand read inferred
+  from a package name ships under `## Assumed` without anyone deciding it.
 
 Round 1, design (skip what the repo answered):
 
@@ -65,7 +68,7 @@ Round 1, design (skip what the repo answered):
 3. **Brand assets**: primary colours (hex), the logo file, the typeface, a reference
    product ("like Crush but calmer").
 
-Round 2, architecture (only what the code didn't answer):
+Round 2, architecture (screens always; the rest only what the code didn't answer):
 
 1. **Screens and the job of each. Always ask it**, even when a spec lists them, because
    screens are the backbone every later command reads (`shape`, the harness states,
@@ -81,7 +84,10 @@ Round 2, architecture (only what the code didn't answer):
    60×18 floor, designed at 80×24.
 
 No brand: write two short brand reads that differ in kind (not in colour) and let the
-user pick. Never fall back to the default theme silently.
+user pick. If the user can't pick, take the read matching the session's tone (hours on
+call: calm and compact; seconds in a split pane: terse and plain), put the other under
+`## Assumed` as the alternative, and say so in the hand-off. Never fall back to the
+default theme silently.
 
 ## 3. Write TUI.md
 
@@ -113,7 +119,20 @@ glyphs: <glyph> <meaning> (ascii <twin>), one line each; twins the kit lacks go 
 themes/<brand>.json   (palette derive from <measured hexes, source>)
 
 ### Screens
-<screen> — <its job in one line>
+One block per screen: `shape` fills it, `craft` builds it in § First slice order.
+
+#### <screen> — <its job in one line, and what the eye lands on first>
+80×24:  <region> <x,y w×h> · <region> <x,y w×h> · footer 0,23 80×1     (outer widths; text width = outer − gutters)
+120×40: <region> <x,y w×h> · <the pane that exists only here> · footer 0,39 120×1
+collapse: < 110 cols <what becomes what>; < 30 rows <what goes>
+components: <ui.Table, ui.Dot, …>; new: <none | name, and why no kit component draws it>
+fixtures: <count, the longest name, the failing row, the empty list>
+sketch (exactly 80 wide, real content):
+```
+<row 0>
+…
+<row 23>
+```
 
 ### Motion
 hero: <the one long-running action> → <its animation, ≤ 30 cells, from the brand motif>
@@ -156,6 +175,7 @@ Footer keys are **bold** (in a long cell, ‖ after the last of them does the sa
 | services             | services         | **↑↓ move** · **enter open** · **d deploy** · **r roll back** · **/ filter** · **q quit** · **? help** · l logs · c copy id · s sort by status |
 | services-empty       | services         | r refresh · ? help · q quit |
 | confirm              | overlay          | ←→ choose · enter confirm · esc cancel |
+| toosmall             | any              | q quit |
 
 Global: ctrl+c quit
 
@@ -225,7 +245,7 @@ checks:
 
 - **State names equal harness names.** `-state services-empty` must render the row
   called `services-empty`, so the critic, the harness and this file talk about the same
-  frame.
+  frame. The kit's too-small state is `toosmall`, one row for the whole app.
 - **Keys here are the action tables.** If the table and `actions()` disagree, the code
   wins and this file is fixed in the same change; `TestHelpIsHandled` holds the code.
   The help-only keys (not bold, or after ‖) are the actions with `show: false`.
@@ -234,7 +254,8 @@ checks:
 
 ## 4. Lint It Before Handing Off
 
-`tuilint spec TUI.md` must exit 0. It fails a key that terminals without key
+`tuilint spec TUI.md` must exit 0. It fails a table not in the template's format
+[S-TABLE], because nothing else can be checked without one; a key that terminals without key
 disambiguation deliver as another, with no fallback in the cell (`shift+enter` arrives
 as `enter` in tmux: write `shift+enter/ctrl+j newline`) [S-KEYAMBIG], and one key with
 two actions in one state's cell or in Global [S-KEYDUP]. A state that binds a Global

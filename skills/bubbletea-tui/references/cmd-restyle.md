@@ -14,8 +14,12 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
 0. **Read `TUI.md` first.** If it's missing, run `init` (or its short form, saying what
    you assumed): restyling without the brand read and the screen plan only recolours.
 1. **Get eyes on it first** (`cmd-critique.md` §1) and save the "before" sheets.
-2. **Add the harness**: `render(w, h)`, `setState`, `-golden`/`-out` flags and the
-   footprint test. Fix footprint failures before anything visual.
+2. **Add the harness from the kit.** Copy `theme/` and `ui/` with the README block
+   (`cmd-craft.md` §1; skip `cmd/showcase`, the app exists), then lift `main.go`'s
+   harness (`render(w, h)`, `setState`, the `-golden`/`-out` flags) and
+   `showcase_test.go`/`behaviour_test.go` into the app's package. Written by hand, the
+   harness loses the kit's tests (`TestHelpIsHandled`, footprint, contrast). Fix
+   footprint failures before anything visual.
 3. **Migrate to v2** if it's on v1 (`architecture.md`): import paths, `View() tea.View`,
    `tea.KeyPressMsg`, the AltScreen/mouse view fields, Lip Gloss colours, Bubbles style
    setters. Use the official upgrade guides for the mechanics. The renders must match

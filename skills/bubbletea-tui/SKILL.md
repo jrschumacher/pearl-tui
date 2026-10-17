@@ -156,9 +156,11 @@ Would someone who lives in a terminal look at this and say "a model made this"? 
 
 ## Commands
 
-The user may name a command (`/bubbletea-tui critique`), or you route from intent. Load
-the reference, follow it, and hand off to the next command when it says so. Never
-auto-run a command the user didn't ask for; suggest it.
+The user may name a command (`/bubbletea-tui critique`, or your agent's equivalent), or
+you route from intent. Load the reference, follow it, and hand off to the next command
+when it says so. Never auto-run a command the user didn't ask for; suggest it. The one
+exception is `init`'s short form, which any command runs when `TUI.md` is missing, because
+a build with no plan invents its regions and keys screen by screen.
 
 | Command | Use when | Reference |
 |---|---|---|

@@ -13,7 +13,7 @@ The fix has three parts: a **brand read** (decisions, with reasons), a **theme f
 
 Gather what exists: logo files, the site's CSS, the style guide, the typeface, the
 product's own words, screenshots of its other surfaces. Measure; don't guess. Then write
-`<brand>.read.md`:
+`TUI.md` § Brand read (the only copy; the theme's `read` field holds it condensed):
 
 ```
 palette   <the hues, measured, and which one does the pointing>

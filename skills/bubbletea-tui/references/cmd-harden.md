@@ -11,7 +11,8 @@ Each item becomes a harness state or a test, so it stays fixed.
 
 ## Data
 
-- [ ] Empty, one item, 10,000 items (virtualise; measure render time).
+- [ ] Empty, one item, and `TUI.md` § Async `largest:` (10,000 items if it names none):
+      virtualise; measure render time. The user's worst case, not a round number.
 - [ ] The longest realistic name (60+ chars), CJK names (2 cells per rune), emoji in
       user data (render it, but never let it break a column: truncate by cells).
 - [ ] Multi-line values, tabs, ANSI escape codes inside user data (strip or remap them),
@@ -34,7 +35,8 @@ Each item becomes a harness state or a test, so it stays fixed.
 - [ ] Network down and network slow (10 s): errors say what and offer retry; no frozen UI.
 - [ ] Double-submit: Enter twice on Deploy does one deploy.
 - [ ] Paste a 5,000-line blob into an input: bounded, no hang.
-- [ ] `ctrl+z` and `fg` restore the screen; `ctrl+c` during a write asks first.
+- [ ] `ctrl+z` (bound to `tea.Suspend`) and `fg` restore the screen; `ctrl+c` during a
+      write asks first.
 - [ ] Panics restore the terminal and print the error after exit, not in the frame.
 - [ ] Not a TTY (`app | cat`): plain output or a clear error, never escape-code soup.
 

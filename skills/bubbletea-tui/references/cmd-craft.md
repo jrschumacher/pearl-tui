@@ -28,21 +28,24 @@ Before any real screen:
 - `setState(name)` for every state in the spec, using fixtures
 - flags: `-golden -w -h`, `-state`, `-out -sizes`, `-theme`, `-light`, `-ascii`,
   `-profile`, `-frame`
-- `_test.go` asserting the footprint at 80×24, 100×30, 120×40 and 200×60
+- `_test.go` asserting the footprint at the kit's five sizes (60×18, 80×24, 100×30,
+  120×40, 200×60); trimming it to four loses the floor
 
 Run `-golden` at both sizes. It must pass while the screens are still stubs.
 
 ## 3. Screens, One At A Time
 
-For each screen in the spec: draw the fixed chrome, then the body into rectangles from
-the budget; use kit components; add the states; wire the keys and the help. After each
-screen, run the loop below on that screen before starting the next.
+For each screen in `TUI.md` § First slice, in that order, then the `Then:` list: draw the
+fixed chrome, then the body into rectangles from its § Screens block; use the components
+it names; add the states; wire the keys and the help. After each screen, run the loop
+below on that screen before starting the next. The slice is the order because it is the
+main loop the design gets judged on; the integrations wait behind it.
 
 ## 4. The Loop (`verify.md`)
 
 Render all states (dark, light, ascii, 256, 16, NO_COLOR) → golden → `tuilint frames` and
-`tuilint code` → contact sheets → read the PNGs → slop test → critic subagent → fix →
-again. Two to four rounds.
+`tuilint code` → contact sheets → read the PNGs → slop test → critic subagent (or its
+fallback in `verify.md` § The Critic) → fix → again. Two to four rounds.
 
 ## 5. Behaviour Checks The Renders Hide
 
@@ -59,5 +62,8 @@ again. Two to four rounds.
 
 ## 6. Show The User
 
-The contact sheets (80×24, 120×40, light), the run command, the critic's verdict, and
-what you chose not to do. Append decisions to `TUI.md`.
+Show it after the first slice, before the rest, so the design is judged before the
+integrations eat the effort: the contact sheets (80×24, 120×40, light), the run command,
+the critic's verdict, and what you chose not to do. Append decisions to `TUI.md`.
+
+Next: `audit` (mechanics), then `polish`; `harden` before a release.
