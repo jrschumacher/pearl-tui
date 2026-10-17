@@ -25,10 +25,6 @@ case tickMsg:
 - All spinners and pulses read `m.frame`. Never one `tea.Tick` per spinner.
 - Re-arm the clock (with a new `gen`) when something starts animating. It stops itself
   when `animating()` turns false.
-- A product clock (sampling, polling, a countdown) is not the frame clock and does not
-  die with it: it has its own message, and the handler that changes its interval
-  returns the new tick, because a gen bump that orphans the pending sample tick stops
-  the sampling for good with nothing on screen to say so.
 - `ui.FrameInterval` is 50 ms (20 fps). Spinners can advance every 2nd frame (100 ms).
 
 ## Deterministic Frames
