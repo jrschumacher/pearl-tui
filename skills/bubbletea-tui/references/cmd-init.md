@@ -275,7 +275,8 @@ because the state's table is dispatched first. Fix its warnings or justify each 
 § Decisions: a Global key a text box eats (`ctrl+k` deletes to end of line in a Bubbles
 textarea) [S-KEYSHADOW], an ambiguous-width glyph with no ASCII twin [S-GLYPHWIDTH], and
 a state whose footer keys overflow the 76 columns an 80-column footer has inside the
-kit's gutters, where `ui.Help` drops the tail behind `…` [S-FOOTER], a marked footer with
+kit's gutters, where `ui.Help` drops the tail behind `…` (a footer badge is the cell's
+first item, `[plan] · **enter send** · …`, and takes its width and a space) [S-FOOTER], a marked footer with
 help-only keys and no help key in it (end it with `? help`, or `ctrl+g help` in a row
 with a text box, as the template's `reply` does: a Global ctrl+g is the textarea's
 select-all [S-KEYSHADOW]) [S-FOOTER], and a line that

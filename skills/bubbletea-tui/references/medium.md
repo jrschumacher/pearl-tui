@@ -135,4 +135,4 @@ hit in split panes), then **120×40** (a comfortable laptop pane), and check **2
 Decide in advance what collapses (sidebar → row, long help → short help, details
 column → hidden) and at which width. Below the minimum (the kit's is 60×18), show a
 centred block (`ui.TooSmall`): the wordmark, "Terminal too small", "52×16, needs 60×18",
-"q quit", never a garbled layout.
+the `toosmall` row's key from its action table, never a garbled layout.
