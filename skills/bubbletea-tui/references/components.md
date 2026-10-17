@@ -171,7 +171,11 @@ on a filled strip, or under a rule. Full help (`?`) expands into columns, groupe
 - Actions use the tool-call grammar (`idiom.md` §6). Collapsed output gets an honest
   "N lines hidden" affordance.
 - Follow mode pins to the bottom. When scrolled up, show "↑ N more lines" at the top and
-  a "new below" hint.
+  a "new below" hint. The cut falls on a block boundary: the first visible row is a
+  block's head (`● Bash go test ./…`) or the marker row, never a body line whose head is
+  off-screen, because a headless `… (115 lines hidden)` or a bare `package main` row
+  reads as a block of nothing. When the newest block is taller than the view, the
+  marker row carries its head (`■ write csv.go · ↑ 24 more`).
 - A turn ends with a section-rule footer (model, provider, duration).
 
 ## Editor / Prompt
