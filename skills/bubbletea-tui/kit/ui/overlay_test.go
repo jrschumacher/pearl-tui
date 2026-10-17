@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
 	uv "github.com/charmbracelet/ultraviolet"
 
@@ -246,6 +247,39 @@ func TestOverlayLeavesNoPageBesideIt(t *testing.T) {
 						}
 					}
 				}
+			}
+		}
+	}
+}
+
+// A chip the dialog cuts goes whole, its padding too: "FAILING" was cleared and its
+// filled padding stayed beside the dialog, an empty block of the chip's colour. Under a
+// scrim, at every column the chip can sit across either edge, a side of the chip's row
+// with no text left keeps no background but the page's.
+func TestOverlayLeavesNoEmptyChip(t *testing.T) {
+	const W, H = 70, 9
+	th := theme.ResolveProfile(theme.Default(), true, false, colorprofile.TrueColor)
+	d := Dialog(th, 44, 0, "Roll back checkout-api?", []string{"It goes back to v2.3.0."}, "", "")
+	chip := Tag(th, "error", "FAILING")
+	for x0 := 0; x0 < W-lipgloss.Width(chip); x0++ {
+		c := NewCanvas(th, W, H)
+		c.Draw(strings.Repeat(" ", x0)+chip, uv.Rect(0, 4, W, 1))
+		r := c.Overlay(d, &uv.Position{X: -1, Y: 2})
+		for _, side := range [][2]int{{0, r.Min.X}, {r.Max.X, W}} {
+			text, filled := false, -1
+			for x := side[0]; x < side[1]; x++ {
+				cell := c.CellAt(x, 4)
+				if cell == nil {
+					continue
+				}
+				if strings.TrimSpace(cell.Content) != "" {
+					text = true
+				} else if cell.Style.Bg != nil && !sameColor(cell.Style.Bg, th.P.Bg) && filled < 0 {
+					filled = x
+				}
+			}
+			if !text && filled >= 0 {
+				t.Errorf("chip at %d: an empty chip at %d beside the dialog", x0, filled)
 			}
 		}
 	}

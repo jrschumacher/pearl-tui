@@ -59,7 +59,15 @@ func (c *Canvas) clearPage(r uv.Rectangle, dialog string, band bool) {
 // whole and no ellipsis is drawn.
 func (c *Canvas) clearCut(h, y, dx int) {
 	b := c.Bounds()
-	if h < b.Min.X || h >= b.Max.X || c.isBlank(h, y) {
+	if h < b.Min.X || h >= b.Max.X {
+		return
+	}
+	if c.isBlank(h, y) {
+		// a chip's padding at the halo: the rest of the padding goes with it
+		for x := h; x >= b.Min.X && x < b.Max.X && c.isBlank(x, y) && !c.onPage(x, y); x += dx {
+			c.blank(x, y)
+		}
+		c.blank(h, y)
 		return
 	}
 	if c.shape(h, y) {
@@ -98,7 +106,12 @@ func (c *Canvas) clearCut(h, y, dx int) {
 		case dx > 0 && joint(end) && word(next):
 			at = end
 		case !c.isBlank(next, y) || !in(next) || !word(next+dx):
-			return // a column gap, the row's edge or a graphic: the phrase is gone whole
+			// a column gap, the row's edge or a graphic: the phrase is gone whole, and so
+			// is a chip's padding after it (an empty FAILING chip read as a bug)
+			for x := next; in(x) && c.isBlank(x, y) && !c.onPage(x, y); x += dx {
+				c.blank(x, y)
+			}
+			return
 		default:
 			at = next
 		}
@@ -111,6 +124,17 @@ func (c *Canvas) clearCut(h, y, dx int) {
 		c.ellipsis(at, y)
 		return
 	}
+}
+
+// onPage reports a cell on the page's own background, not a chip's or a band's.
+func (c *Canvas) onPage(x, y int) bool {
+	cell := c.CellAt(x, y)
+	if cell == nil || cell.Style.Bg == nil {
+		return true
+	}
+	r1, g1, b1, _ := cell.Style.Bg.RGBA()
+	r2, g2, b2, _ := c.T.P.Bg.RGBA()
+	return c.T.X.PaintBg && r1 == r2 && g1 == g2 && b1 == b2
 }
 
 // ellipsis draws the theme's ellipsis at x, y in the ink of the kept text beside it,
