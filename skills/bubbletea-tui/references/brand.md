@@ -222,10 +222,10 @@ Put it beside the baseline (`ink`) and one other brand. Ask:
   file (`TUI.md`, written by `init`). Every later change reads it first.
 - `tuilint code` fails on hex outside the theme package [C-HEX], on emoji [C-EMOJI],
   on a glyph typed in a screen [C-GLYPH] and on a cut made with the bare `theme.Ellipsis`
-  [C-ELLIPSIS]: cut with `t.G.Ellipsis` (`ui.Trunc`), the brand's glyph with its ASCII
-  twin `...`, where the sweep draws the constant as one `.`. `tuilint frames --theme` fails on any
-  rendered colour that isn't a role or a blend of two roles [F-OFFPAL], and judges the
-  inside of a bordered, `+--+` or `rules` dialog (a `none` dialog has no edge to find, so
-  its frames carry a P2 note to check by eye).
+  [C-ELLIPSIS]: cut with `ui.Trunc(t, s, w)`, which fits the brand's glyph
+  `t.G.Ellipsis` and its ASCII twin `...` inside the width. `tuilint frames --theme` fails
+  on any rendered colour that isn't a role or a blend of two roles [F-OFFPAL], and judges
+  the inside of a bordered, `+--+` or `rules` dialog (a `none` dialog has no edge to find,
+  so its frames carry a P2 note to check by eye).
 - New component? It takes `*theme.Theme` and nothing else. If it needs a new colour, the
   contract gets a new role, with a reason in the read.

@@ -16,8 +16,8 @@
 //	                 brand can change them and ASCII gets a twin. Text is not a glyph: letters
 //	                 and digits of any script, quotation marks and dashes (it’s, «q», a — b),
 //	                 currency (£5) and units, marks and maths (72°F © ® ™ × ÷ ± ≥ ≤ ≠ ¹ ² ³ ½ µ)
-//	C-ELLIPSIS  [P1] the bare theme.Ellipsis outside the ui package: the kit's constant, which ASCII
-//	                 sweeps to one cell; cut with t.G.Ellipsis (ui.Trunc) for the theme's glyph and twin
+//	C-ELLIPSIS  [P1] the bare theme.Ellipsis outside the ui package: cut with ui.Trunc(t, s, w), which
+//	                 fits the theme's glyph t.G.Ellipsis and its ASCII twin inside w
 //	C-V1        [P1] Bubble Tea / Lip Gloss / Bubbles / Huh v1 import paths
 //	C-SIZE      [P1] a program whose code never handles tea.WindowSizeMsg
 //	C-VIEWIO    [P1] os, net/http or os/exec I/O reachable from View
@@ -84,8 +84,8 @@ files are analysed syntax-only and stderr says so.
                    literal of a package-level var named *ascii*): screens take glyphs from
                    the theme. Text is not a glyph: other scripts, quotes and dashes (it’s,
                    «q», a — b), currency (£5), units and maths (72°F © ™ × ± ≥ ½ µ)
-  C-ELLIPSIS  [P1] the bare theme.Ellipsis outside the ui package: cut with t.G.Ellipsis
-                   (ui.Trunc) so ASCII draws the theme's twin, not the sweep's one cell
+  C-ELLIPSIS  [P1] the bare theme.Ellipsis outside the ui package: cut with
+                   ui.Trunc(t, s, w), which fits the theme's glyph and its twin inside w
   C-V1        [P1] Bubble Tea / Lip Gloss / Bubbles / Huh v1 import paths
   C-SIZE      [P1] a program whose code never handles tea.WindowSizeMsg
   C-VIEWIO    [P1] os, net/http or os/exec I/O reachable from View

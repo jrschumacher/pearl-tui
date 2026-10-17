@@ -25,7 +25,7 @@ func view() string {
 	// punctuation, currency, units and maths are text a screen prints, not marks it draws
 	text := "it’s «quoted» — a dash – and “curly” quotes; £5, €3, 72°F, ©2026 ™, 3×4 ÷ 2 ± 1 ≥ ½ µs ²"
 	marks := "✓ done"                                    // want "C-GLYPH: glyph '✓'"
-	cut := ui.Fit("a long title", true) + theme.Ellipsis // want `C-ELLIPSIS: theme.Ellipsis is the kit's constant`
+	cut := ui.Fit("a long title", true) + theme.Ellipsis // want `C-ELLIPSIS: cut with ui.Trunc\(t, s, w\)`
 	spark := "⣀⣤⣿"                                       // want "C-GLYPH: glyph '⣀'"
 	return sep + string(arrow) + caret + more + prose + text + marks + spark + cut + theme.Caret + ui.Twin(theme.Caret)
 }

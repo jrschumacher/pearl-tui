@@ -579,7 +579,7 @@ func runGlyph(pass *analysis.Pass) (any, error) {
 
 // EllipsisAnalyzer reports the bare theme.Ellipsis outside the ui package (C-ELLIPSIS).
 var EllipsisAnalyzer = newAnalyzer("tuiellipsis",
-	"C-ELLIPSIS: theme.Ellipsis outside the ui package; cut with t.G.Ellipsis (ui.Trunc), the theme's glyph with its ASCII twin",
+	"C-ELLIPSIS: theme.Ellipsis outside the ui package; cut with ui.Trunc(t, s, w), which fits t.G.Ellipsis, the theme's glyph with its ASCII twin, inside w",
 	runEllipsis)
 
 // runEllipsis flags a use of the theme package's Ellipsis constant in any package but
@@ -603,7 +603,7 @@ func runEllipsis(pass *analysis.Pass) (any, error) {
 					return true
 				}
 				if once.first(pass.Fset, "C-ELLIPSIS", x.Pos()) {
-					report(pass, x.Pos(), "C-ELLIPSIS", "theme.Ellipsis is the kit's constant, not the brand's glyph: cut with t.G.Ellipsis (ui.Trunc), so ASCII draws the theme's twin \"...\" and not the sweep's \".\"")
+					report(pass, x.Pos(), "C-ELLIPSIS", "cut with ui.Trunc(t, s, w): it fits the theme's glyph t.G.Ellipsis (ASCII \"...\", three cells) inside w; theme.Ellipsis is the kit's constant, not the brand's glyph, and t.G.Ellipsis pasted after a cut to w-1 overflows")
 				}
 			}
 			return true
