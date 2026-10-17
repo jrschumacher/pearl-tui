@@ -171,16 +171,17 @@ Bubbles: <textarea, viewport, …>. Kit ui: <List, Table, Dialog, Footer, …>.
 ### States and keys
 One action table per state; footer and dispatcher both read it. Every screen that
 loads data has its empty, loading, error and partial (some sources failed) rows.
-Footer keys are **bold** (in a long cell, ‖ after the last of them does the same): main actions first, then the way out and ? help. The rest are help-only.
+Footer keys are **bold** (in a long cell, ‖ after the last of them does the same): main actions first, then the way out and ? help (ctrl+g help where a text box types ?). The rest are help-only.
 
 | state (harness name) | screen / overlay | keys |
 |---|---|---|
 | services             | services         | **↑↓ move** · **enter open** · **d deploy** · **r roll back** · **/ filter** · **q quit** · **? help** · l logs · c copy id · s sort by status |
 | services-empty       | services         | r refresh · ? help · q quit |
+| reply                | reply (textarea) | **ctrl+s send** · **esc cancel** · **ctrl+g help** · shift+enter/ctrl+j newline |
 | confirm              | overlay          | ←→ choose · enter confirm · esc cancel |
 | toosmall             | any              | q quit |
 
-Global: ctrl+c quit · ctrl+g help
+Global: ctrl+c quit
 
 ### Harness and fixtures
 cmd/<app>/fixtures.go feeds setState for the harness (-state, -out) and every test.
@@ -260,8 +261,8 @@ checks:
 
 ## 4. Lint It Before Handing Off
 
-`tuilint spec TUI.md` must exit 0. A cell is `key action` items joined by `·`, one key
-per item with the key first (`ctrl+c twice quit now`, not a sentence), because `ui.Help`
+`tuilint spec TUI.md` must exit 0. A cell is `key action` items joined by `·`, one binding
+per item (alternates joined by `/`) with the key first (`ctrl+c twice quit now`, not a sentence), because `ui.Help`
 draws the cell as written and the lint reads the first token as the key. It fails a
 table not in the template's format
 [S-TABLE], because nothing else can be checked without one; a key that terminals without key
@@ -274,10 +275,9 @@ because the state's table is dispatched first. Fix its warnings or justify each 
 textarea) [S-KEYSHADOW], an ambiguous-width glyph with no ASCII twin [S-GLYPHWIDTH], and
 a state whose footer keys overflow the 76 columns an 80-column footer has inside the
 kit's gutters, where `ui.Help` drops the tail behind `…` [S-FOOTER], a marked footer with
-help-only keys and no key that opens help when Global binds none (the template's
-`Global: … ctrl+g help` covers every state, so an overlay row `**enter confirm** ·
-**esc cancel** · y yes` passes without spending 11 cells of each overlay's footer on
-`ctrl+g help`) [S-FOOTER], and a line that
+help-only keys and no help key in it (end it with `? help`, or `ctrl+g help` in a row
+with a text box, as the template's `reply` does: a Global ctrl+g is the textarea's
+select-all [S-KEYSHADOW]) [S-FOOTER], and a line that
 puts "the accent" or "primary" on something the `accents:` line didn't give it
 [S-ACCENT]. Fix that one by
 marking the footer, bold or ‖: the state's main actions and its way out, then `? help`,

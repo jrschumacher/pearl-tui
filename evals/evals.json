@@ -206,7 +206,7 @@
         "TUI.md's colour line says what separates dialogs and overlays from the page where the background step is gone (16 colours, NO_COLOR, -profile ascii), e.g. a hairline rule or border, although SPEC.md asks for borderless filled panels",
         "tuilint spec reports no S-ACCENT on TUI.md: once the accents: line gives the hue its one meaning (amber = new), no other line puts 'the accent' or 'the primary hue' on the wordmark, a spinner, a ramp or anything else; a brief that does trips S-ACCENT and is fixed before the hand-off",
         "every overlay state's harness name in the key table carries one of dialog, palette, confirm, modal, overlay, popup, help or keys (confirm-sending, not sending; quick-switcher-palette, not switcher), because tuilint frames finds a dialog by the frame's name and lints the scrimmed page behind any other, failing F-CONTRAST on every dimmed cell",
-        "the Global line binds a help key (ctrl+g help, as the template does) or every marked overlay row ends with ? help, so a confirm row with a help-only `y yes` trips no S-FOOTER help-key warning and no overlay footer spends 11 cells on its own `ctrl+g help`; each key cell is `key action` items with one key per item, the key first (`ctrl+c twice quit now`)"
+        "every marked row with help-only keys shows its own help key: `? help`, or `ctrl+g help` in the Reply and Note rows, whose text boxes type `?`; Global binds no ctrl+g, which a focused textarea takes as select-all (no S-KEYSHADOW), and a confirm row with `y yes` either shows every key or ends `? help` (no S-FOOTER); each key cell is `key action` items, one binding per item with the key first (`ctrl+c twice quit now`)"
       ]
     },
     {
