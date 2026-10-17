@@ -52,7 +52,8 @@
         "the clock ticks only while a visible cell changes (Law 8): a theme whose spinner frames are wider than one cell draws a deploying row as the still partial mark and the clock stops (ui.BusyAnimates), and -ascii agrees with unicode for that theme (both animate a one-cell spinner, or both hold the partial mark)",
         "the kit's fixed copy follows the theme's case: tab names, 'Terminal too small', a tool call's 'Canceled.' and 'Waiting for permission', Thinking's 'Thought for' take labelCase when set, else titleCase (quire: `services / deploys`, `canceled.`); Huh field titles are the app's own text, written in the brand's case by the app",
         "a dialog never reaches the footer: ui.Dialog takes the rows it may use and scrolls its body (an ↑ n more row above, a … n more row below) when it doesn't fit, so the help dialog at 80×24 and 60×18 ends at least one row above the footer rule in every theme, with ↑↓ in its footer only when there is more to see",
-        "ASCII twins never collide across meanings: the input caret's twin (▏ → ') is not the focus bar's |, and the ASCII sparkline ramp holds no status twin (no * or +), so a caret never reads as a focused block and a peak never as a done or current mark"
+        "ASCII twins never collide across meanings: the input caret's twin (▏ → ') is not the focus bar's |, and the ASCII sparkline ramp holds no status twin (no * or +), so a caret never reads as a focused block and a peak never as a done or current mark",
+        "the queue poll is a product clock with its own message and gen, separate from the frame clock: the handler that changes its interval or pauses and resumes it returns the new arm cmd (never a gen bump alone), the poll keeps running when a spinner starting or stopping bumps the frame clock's gen, and a behaviour test like the kit's TestClockSurvivesSettingChange delivers the armed tick and asserts it syncs and re-arms"
       ]
     },
     {
@@ -88,7 +89,6 @@
       "assertions": [
         "tool calls use status glyph + name + main param + k=v options and an indented panel body; a collapsed tool call shows the hidden line count and the key that expands it",
         "one shared animation clock that stops when idle (tick returns nil in idle states)",
-        "a product clock (a poll, a sample, a sync) outlives a setting change: the handler that changes its interval or pauses and resumes it returns the new arm cmd, and a behaviour test like the kit's TestClockSurvivesSettingChange proves it",
         "the working indicator says what is happening (no 'Loading...'/'Thinking...' alone without subject or elapsed time)",
         "diversity: loom differs from the charm study theme on >= 8 axes (not Crush recoloured)",
         "prose is capped at a measure (<= 100 cells) at 200 columns",
