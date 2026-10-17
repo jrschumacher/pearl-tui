@@ -16,7 +16,11 @@ Run the copy block in `kit/README.md` § Copying it into a project, as written: 
 `theme/`, `ui/` and `cmd/showcase` (as `cmd/<app>`, tests included), the donor theme as
 `themes/<brand>.json` with `themes/embed.go` (the binary carries the theme: no `-theme`
 flag, no path that breaks when it moves), rewrites the import paths and pins the
-versions, and CI proves it passes in a fresh module. Then read
+versions, and CI proves it passes in a fresh module. `brand` has usually run first:
+then `themes/<brand>.json` exists and the `<closest>.json` line is skipped, or the
+derived theme is overwritten by a kit donor. The README also says what to delete once
+your screens replace the showcase's (the wizard, its fixtures and the tests that name
+them) and what to keep (the harness and the tests that press the action tables). Then read
 `cmd/<app>/{app.go,screens.go,main.go}`: the model, `render(w,h)`, the harness. A cold rebuild from these references loses half the idiom at once
 (the focus gutter, the filled-row backgrounds, the help truncation, the scrim order).
 The code already has them.

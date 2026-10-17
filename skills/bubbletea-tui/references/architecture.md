@@ -216,7 +216,7 @@ size below the floor (50×14 in the kit).
 cmd/<app>/main.go        flags, harness, tea.NewProgram
 cmd/<app>/app.go         the root model: state, Update, the action tables, the clock
 cmd/<app>/screens.go     render(w,h): every region into its rectangle, overlays last
-cmd/<app>/fixtures.go    realistic data for every state (the showcase's data.go, renamed)
+cmd/<app>/fixtures.go    realistic data for every state (replaces the showcase's data.go)
 cmd/<app>/*_test.go      the footprint, contrast and behaviour tests, copied with the kit
 internal/theme/          the kit's theme package (copied); themes/<brand>.json, embedded by themes/embed.go
 internal/ui/             the kit's components (copied), plus your own
