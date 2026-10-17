@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"math"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -412,29 +413,78 @@ func ASCII(g Glyphs) Glyphs {
 	return g
 }
 
-func exprDefaults(x Expressions) Expressions {
-	d := func(p *string, v string) {
-		if *p == "" {
-			*p = v
+// exprValues are the values the kit draws for each string expression, by JSON key; the
+// first is the default. Anything else (unset, a typo, a value from a newer kit) resolves
+// to the default, so a theme always renders; CheckExpressions names it.
+var exprValues = map[string][]string{
+	"header":       {"rule", "bar", "minimal", "stamp", "banner"},
+	"wordmark":     {"gradient", "solid", "inverse", "tracked", "bracket", "upper", "plain"},
+	"sectionTitle": {"accent", "primary", "muted-upper", "fg"},
+	"titleCase":    {"sentence", "upper", "lower"},
+	"selection":    {"bar", "fill", "caret", "inverse"},
+	"button":       {"pill", "bracket", "underline", "inverse"},
+	"tag":          {"filled", "bracket", "bold"},
+	"dialog":       {"rounded", "square", "double", "heavy", "none", "rules"},
+	"dialogTitle":  {"rule", "plain", "bar"},
+	"tabs":         {"underline", "pill", "bracket", "slash"},
+	"footer":       {"keys", "bar", "rule"},
+	"keys":         {"inline", "boxed"},
+	"density":      {"airy", "compact"},
+	"backdrop":     {"none", "field"},
+	"working":      {"spinner", "scramble"},
+	"scrim":        {"dim", "none"},
+	"focus":        {"primary", "fg"},
+}
+
+// ExpressionValues are the values the kit knows for expression key (its JSON name),
+// the default first; nil for a key that takes no word (gutter, measure, paintBg).
+func ExpressionValues(key string) []string { return exprValues[key] }
+
+// ExpressionKey reports whether key is an expression the kit reads.
+func ExpressionKey(key string) bool {
+	t := reflect.TypeOf(Expressions{})
+	for i := range t.NumField() {
+		if k, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ","); k == key {
+			return true
 		}
 	}
-	d(&x.Header, "rule")
-	d(&x.Wordmark, "gradient")
-	d(&x.SectionTitle, "accent")
-	d(&x.TitleCase, "sentence")
-	d(&x.Selection, "bar")
-	d(&x.Button, "pill")
-	d(&x.Tag, "filled")
-	d(&x.Dialog, "rounded")
-	d(&x.DialogTitle, "rule")
-	d(&x.Tabs, "underline")
-	d(&x.Footer, "keys")
-	d(&x.Keys, "inline")
-	d(&x.Density, "airy")
-	d(&x.Backdrop, "none")
-	d(&x.Scrim, "dim")
-	d(&x.Working, "spinner")
-	d(&x.Focus, "primary")
+	return false
+}
+
+// exprFields calls fn with every string expression's JSON key and a pointer to it.
+func exprFields(x *Expressions, fn func(key string, p *string)) {
+	v, t := reflect.ValueOf(x).Elem(), reflect.TypeOf(*x)
+	for i := range t.NumField() {
+		if t.Field(i).Type.Kind() != reflect.String {
+			continue
+		}
+		key, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ",")
+		fn(key, v.Field(i).Addr().Interface().(*string))
+	}
+}
+
+// CheckExpressions reports an expression value the kit doesn't know, with the values it
+// does: a typo ("rule" for dialog "rules") or a theme written for a newer kit would
+// otherwise render the default silently. palette check and the kit's tests fail on it;
+// theme.Load doesn't, so an app always starts (Resolve draws the default).
+func CheckExpressions(x Expressions) error {
+	var err error
+	exprFields(&x, func(key string, p *string) {
+		if err != nil || *p == "" || len(exprValues[key]) == 0 || slices.Contains(exprValues[key], *p) {
+			return
+		}
+		err = fmt.Errorf("expressions.%s %q is not a value the kit knows: %s (it would draw %s)",
+			key, *p, strings.Join(exprValues[key], " | "), exprValues[key][0])
+	})
+	return err
+}
+
+func exprDefaults(x Expressions) Expressions {
+	exprFields(&x, func(key string, p *string) {
+		if vals := exprValues[key]; len(vals) > 0 && !slices.Contains(vals, *p) {
+			*p = vals[0]
+		}
+	})
 	if x.Gutter == 0 {
 		x.Gutter = 2
 	}

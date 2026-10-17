@@ -64,6 +64,13 @@ func check(path string, stdout, stderr io.Writer) int {
 			return fail(stderr, fmt.Errorf("%s: %w", path, err))
 		}
 	}
+	// expressions: a key the kit doesn't read, or a value it doesn't know, renders the
+	// default silently (theme.Load loads it so an app starts); this is the gate
+	if raw, ok := top["expressions"]; ok {
+		if err := checkExpressions(raw); err != nil {
+			return fail(stderr, fmt.Errorf("%s: %w", path, err))
+		}
+	}
 	// the theme as the engine reads it, for its ansi16 pins and the 16-colour clashes
 	var tf theme.File
 	_ = json.Unmarshal(data, &tf) // a shape error surfaces below, with the role that has it
@@ -220,6 +227,36 @@ func Clashes16(f theme.File, path string, stderr io.Writer) int {
 // everywhere, success green, warning yellow; primary and info are the brand's and
 // move first.
 var keepRank = map[string]int{"error": 0, "success": 1, "warning": 2, "primary": 3, "info": 4}
+
+// checkExpressions fails an expression key the kit doesn't read, then a value it
+// doesn't know (theme.CheckExpressions), each with what it does know.
+func checkExpressions(raw json.RawMessage) error {
+	keys, err := pyfmt.Keys(raw)
+	if err != nil {
+		return fmt.Errorf("expressions: %w", err)
+	}
+	for _, k := range keys {
+		if !theme.ExpressionKey(k) {
+			return fmt.Errorf("expressions.%s is not a key the kit reads (%s): a typo, or a key from a newer kit, is drawn as if unset", k, strings.Join(exprKeys(), ", "))
+		}
+	}
+	var x theme.Expressions
+	if err := json.Unmarshal(raw, &x); err != nil {
+		return fmt.Errorf("expressions: %w", err)
+	}
+	return theme.CheckExpressions(x)
+}
+
+// exprKeys are the expression keys the kit reads, in the contract's order.
+func exprKeys() []string {
+	t := reflect.TypeOf(theme.Expressions{})
+	out := make([]string, 0, t.NumField())
+	for i := range t.NumField() {
+		k, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ",")
+		out = append(out, k)
+	}
+	return out
+}
 
 // roleKeys are the role names the engine reads (theme.Roles' JSON keys). check
 // validates each of them, not only the ones a contrast check reads, so it fails

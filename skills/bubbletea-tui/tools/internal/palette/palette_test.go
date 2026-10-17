@@ -403,3 +403,35 @@ func TestCheckFailsStateClashesAt16Colours(t *testing.T) {
 		t.Errorf("bad pin: exit %d %q", code, errb.String())
 	}
 }
+
+// An expression value the kit doesn't know (a typo, or a theme written for a newer kit)
+// renders the default silently, so check fails it and lists the values the kit draws;
+// an expression key it doesn't read fails the same way. theme.Load loads both.
+func TestCheckRejectsUnknownExpressions(t *testing.T) {
+	for _, c := range []struct{ expressions, err string }{
+		{`{"dialog": "rule"}`, `expressions.dialog "rule" is not a value the kit knows: rounded | square | double | heavy | none | rules`},
+		{`{"wordmark": "plane", "focus": "fg"}`, `expressions.wordmark "plane" is not a value the kit knows: gradient | solid | inverse | tracked | bracket | upper | plain`},
+		{`{"dailog": "rules"}`, `expressions.dailog is not a key the kit reads`},
+		{`{"dialog": "rules", "wordmark": "plain", "focus": "fg", "gutter": 1, "paintBg": true}`, ""},
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		js := `{"roles": {"dark": {"bg": "#201F26", "fg": "#DFDBDD"}}, "expressions": ` + c.expressions + `}`
+		if err := os.WriteFile(path, []byte(js), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		if _, err := theme.Load(path); err != nil {
+			t.Errorf("%s: theme.Load %v, want it to load", c.expressions, err)
+		}
+		if c.err == "" {
+			if code != 0 {
+				t.Errorf("%s: check exit %d (%q), want 0", c.expressions, code, errb.String())
+			}
+			continue
+		}
+		if code != 2 || !strings.Contains(errb.String(), c.err) {
+			t.Errorf("%s: check exit %d (%q), want exit 2 with %q", c.expressions, code, errb.String(), c.err)
+		}
+	}
+}

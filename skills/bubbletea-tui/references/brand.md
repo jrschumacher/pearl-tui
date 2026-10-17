@@ -129,7 +129,9 @@ the kit draws it for a busy `ui.Dot` and a running tool call, which would otherw
 another state's glyph in another colour, and one mark under NO_COLOR.
 
 Missing roles are derived, and missing glyphs and expressions default, so a theme can
-start small. Write every role as `#RRGGBB` or `#RGB`, `#` included: Lip Gloss reads
+start small. An expression the kit doesn't know (`"dialog": "rule"` for `rules`, a key
+from a newer kit) also draws the default, so `palette check` fails it and lists the
+values it knows; `theme.Load` loads it, so an app never refuses to start over a word. Write every role as `#RRGGBB` or `#RGB`, `#` included: Lip Gloss reads
 `6B50FF` as an ANSI index or no colour, so `theme.Load` and `palette check` reject it. A theme that keeps a role below the contrast floors on purpose (a brand's
 exact hex, used mostly as a fill) says so in writing, and `palette check` reports it
 as ACCEPT instead of FAIL:
