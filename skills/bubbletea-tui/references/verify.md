@@ -21,7 +21,8 @@ screenshot.
             tuilint frames frames/light --theme themes/<brand>.json --bg <light bg>
             (lint every directory you rendered: light, 256, 16, no colour and ASCII break where dark
             truecolour passes, and LOOK at the overlays there: a dialog's edge is the first to go;
-            --ascii fails any glyph that leaked into an ASCII frame [F-ASCII])
+            --ascii fails any glyph that leaked into an ASCII frame [F-ASCII]; a ruled or
+            borderless overlay failing F-CONTRAST on its scrim may be misnamed: cmd-shape.md step 3)
             tuilint code .                                                (tuivet ./... in go vet or an editor: same rules)
             tuilint spec TUI.md                                           (after any key-table change)
 4. LOOK     cellshot frames/*-80x24.ansi frames/toosmall-*.ansi --sheet sheet-80.png
@@ -31,7 +32,7 @@ screenshot.
             (globs, not a state list: toosmall renders at its own size, 50x14, and a
             named list drops it)
             → Read the PNGs. Run the slop test (anti-patterns.md) on each.
-5. CRITIQUE spawn a critic subagent (below) with the PNGs, goldens, TUI.md and code
+5. CRITIQUE spawn a critic subagent (below; or its fallback) with the PNGs, goldens, TUI.md and code
 6. FIX      one change per defect; re-run 1–4; resume the SAME critic for round 2
 ```
 
@@ -64,9 +65,12 @@ room. That's the critic's job, and yours.
 ## The Critic
 
 Spawn a fresh subagent. It has not seen your reasoning, so it judges the screen, not the
-intent. Give it the files, not a description. No subagent tool: re-read only the PNGs
-and goldens (not your code) in a fresh message with the prompt below, and say so in the
-hand-off, because a self-review that has the code in context grades the intent.
+intent. Give it the files, not a description. With no subagent tool, the documented
+fallback is a fresh message of your own: re-read the PNGs and goldens under the prompt
+below and write the verdict in its format, citing only rows and cells you can see there.
+It can hold you to the rubric and to what the frames show; it cannot forget your code
+and reasoning, which stay in context in one session, so it grades the intent more than a
+subagent would. Say in the hand-off which critic ran.
 
 ```
 You are reviewing a terminal UI built with Bubble Tea. Be adversarial: your job is to
@@ -90,7 +94,8 @@ Rubric (score each 0–4, cite rows/cells, not impressions; 0 = a default or a b
      back; help keys match what the screen actually does in this state (read the code;
      a toggle's label names the next state).
   4. Layout: budgets respected; 80×24, 120×40 and 200×60 are the same design; room
-     used, not stretched; nothing touching edges; no box soup.
+     used, not stretched (layout.md § Use The Room: a blank sidebar or unused columns
+     beside the body at 120×40 is a stretch); nothing touching edges; no box soup.
   5. States: empty, loading, error, partial, too-small all designed; copy says what
      happened and what to do.
   6. Terminal craft: NO_COLOR and ASCII still readable; light set reviewed; no holes in
@@ -103,8 +108,9 @@ Output:
   - anything you suspect is a behaviour bug the renders hide
 ```
 
-For round two, resume the **same** critic (SendMessage to it) with the new renders and
-"here is what changed". It grades its own items, which keeps the bar from moving.
+For round two, resume the **same** critic (SendMessage to it; the fallback pastes its
+last verdict above the new sheets) with the new renders and "here is what changed". It
+grades its own items, which keeps the bar from moving.
 
 ## Reporting To The User
 

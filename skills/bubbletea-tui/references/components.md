@@ -48,6 +48,11 @@ muted and values in fg), then sections for the next most useful things (a sparkl
 its last value and trend, recent events). It appears at ≥ 110 columns. Below that it
 collapses to one summary line under the list.
 
+A body viewer in it (JSON, code, a response, a log) levels its text at two lightnesses:
+names and keys in fg, punctuation and values in muted (or the reverse, chosen once),
+never one flat level and never a rainbow of token colours. Two levels let the eye find
+the keys; hue stays for state (color.md).
+
 ## Dialog / Command Palette — `ui.Dialog` + `Canvas.Overlay`
 
 - The title row per `expressions.dialogTitle` (the motif rule in a gradient, plain, or a
@@ -202,8 +207,16 @@ says the state in words.
 
 - Progress: `━━━━╸╌╌╌` with the fill in a short gradient, then the fraction and what is
   progressing ("3/5 pods"). Indeterminate work gets a spinner, not a fake bar.
+- A reading (a meter, a rate, a percentage) past its warning level carries the theme's
+  warn mark beside the value (`ui.Mark(t, "warn")`, `t.G.Warn`: `▲`, ascii `!`), and
+  past its error level the fail mark, not only amber or red: at 16 colours amber is often
+  red's slot and under NO_COLOR it is the text colour, so the band is the mark's to say.
+  The `ladder` frame shows the marks a reading can carry.
 - Sparkline: `▁▂▃▅▇` over a fixed column, coloured by state, with a flat series kept
-  flat. Always print the current value beside it.
+  flat. Always print the current value beside it. A sparkline taller than one row grows
+  upward from the label's row: label, value and the bar's base share the bottom row,
+  the rows above hold the peaks, so a two-row graph never splits the label from the
+  bar it names (a `▂▆▆▂` fragment alone on a row reads as noise).
 
 ## Empty, Loading, Error — `ui.Empty`
 

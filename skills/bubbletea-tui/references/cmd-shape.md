@@ -16,6 +16,9 @@ No Go yet.
 3. **States**: populated, empty, loading, error, partial (a chat screen adds thinking
    with no tool call yet, and prose streaming in), plus every overlay (palette,
    confirm, help). Each becomes a harness state name; `toosmall` is one row for the app.
+   An overlay's name carries `dialog`, `palette`, `confirm`, `modal`, `overlay`, `popup`,
+   `help` or `keys` (`confirm-sending`, not `sending`): `tuilint frames` finds a ruled,
+   ASCII or borderless dialog only by that name, and otherwise lints its scrim [F-CONTRAST].
 4. **Keys**: the bindings, the help order, what `esc` does, and where focus starts and
    moves.
 5. **Content**: realistic fixture data, including the longest name, the failing row and

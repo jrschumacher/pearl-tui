@@ -16,7 +16,8 @@ Run the copy block in `kit/README.md` § Copying it into a project, as written: 
 `theme/`, `ui/` and `cmd/showcase` (as `cmd/<app>`, tests included), the donor theme as
 `themes/<brand>.json` with `themes/embed.go` (the binary carries the theme: no `-theme`
 flag, no path that breaks when it moves), rewrites the import paths and pins the
-versions, and CI proves it passes in a fresh module. Then read
+versions, and CI proves it passes in a fresh module. Follow its notes on skipping the
+`<closest>.json` line when `brand` ran first and on what to delete once your screens are in. Then read
 `cmd/<app>/{app.go,screens.go,main.go}`: the model, `render(w,h)`, the harness. A cold rebuild from these references loses half the idiom at once
 (the focus gutter, the filled-row backgrounds, the help truncation, the scrim order).
 The code already has them.
@@ -32,19 +33,21 @@ Before any real screen:
 - `setState(name)` for every state in the spec, using fixtures
 - flags: `-golden -w -h`, `-state`, `-out -sizes`, `-theme`, `-light`, `-ascii`,
   `-profile`, `-frame`
-- `_test.go` asserting the footprint at the kit's five sizes (60×18, the floor at which
-  every ordinary state still renders, then 80×24, 100×30, 120×40, 200×60); trimming it
-  to four loses the floor. `toosmall` is `-golden`/`-out`'s, at 50×14
+- `_test.go` asserting the footprint at the floor `TUI.md` § Size floor names (60×18 in
+  the kit) and the four sizes above it (80×24, 100×30, 120×40, 200×60), and `toosmall`
+  one size below it (50×14 in the kit, checked by `-golden`/`-out`)
 
 Run `-golden` at both sizes. It must pass while the screens are still stubs.
 
 ## 3. Screens, One At A Time
 
 For each screen in `TUI.md` § First slice, in that order, then the `Then:` list: draw the
-fixed chrome, then the body into rectangles from its § Screens block; use the components
-it names; add the states; wire the keys and the help. After each screen, run the loop
-below on that screen before starting the next. The slice is the order because it is the
-main loop the design gets judged on; the integrations wait behind it.
+fixed chrome, then the body into rectangles from its § Screens block at both sizes
+(`layout.md` § Use The Room); use the components it names; add the states; wire the keys
+and the help. Name in its § Screens block the frame its `remember` move shows on
+(`brand.md` §6, question 2). After each screen, run the loop below on that screen before
+starting the next. The slice is the order because it is the main loop the design gets
+judged on; the integrations wait behind it.
 
 ## 4. The Loop (`verify.md`)
 
