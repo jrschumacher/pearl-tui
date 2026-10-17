@@ -9,7 +9,8 @@ built) both go in `TUI.md`. Every command reads that file first; a second file g
 skipped, and then the screens drift from the model that draws them. Never split it into
 an `ARCH.md`.
 
-**`TUI.md` is the only file `init` writes.** The project's own docs (a spec, PRD, design
+**`TUI.md` is the only file `init` writes** (apart from `.tuitools/` and the `.gitignore`
+line Setup step 4 adds). The project's own docs (a spec, PRD, design
 doc, README), if it has any, are the user's: an answer that changes one goes in the
 hand-off as a proposed edit, applied only when they say yes, because a silent rewrite
 hides who decided what. Layout, keys, colours and screens never leave `TUI.md`; a

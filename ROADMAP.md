@@ -10,18 +10,23 @@ repository. Items move from here into issues when someone picks them up.
 - A compiling Bubble Tea v2 kit with seven themes and a reference app with two faces: an
   ops dashboard and a first-run setup wizard built on Huh, themed from the brand. Its tests
   cover footprint, contrast, unstyled text, ASCII, honest help, behaviour, button order and
-  no library-default colours. CI lints every theme in dark, light, ASCII, 256 and 16 colours
-  and NO_COLOR.
+  no library-default colours. CI renders and lints every theme in the variants
+  `.github/workflows/ci.yml` lists (seven today: dark, light, ASCII, 256, 16 colours dark
+  and light, and NO_COLOR).
 - Tools, in Go and built in one step: an ANSI renderer (`cellshot`), a frame and code
   linter (`tuilint`, and `tuivet` for `go vet`), a palette deriver and checker, and a
   theme-distance lint. Python remains only for the wordmark and logo converters.
 - Verified by an adversarial critic over three rounds (12 → 18 → 20/24) on the kit, and by
-  **one dogfood run**: a `restyle` of a real CLI's Huh setup wizard. It came back a
+  **three dogfood runs**: a `restyle` of a real CLI's Huh setup wizard, which came back a
   recolour, with Huh's default colours, flipping button order, a stalled step counter and
-  a sign-in wait with no fallback. Each miss is now an eval case (5 and 6), a lint rule
-  (F-DEFAULT for Huh's colours, C-HUHTHEME) or kit code (`ui.NewForm`, the wizard).
-- **Not yet verified:** a re-run of that restyle with the fixes, and a cold eval baseline
-  (no case in `evals/evals.json` has been run with and without the skill).
+  a sign-in wait with no fallback; and two `init` runs on a project with a spec, the
+  second scoring 12 of the 13 assertions the spec case then had (now split into cases 7
+  and 8) and linting clean. Each miss is now an eval
+  case, a lint rule (F-DEFAULT for Huh's colours, C-HUHTHEME, the `tuilint spec` rules)
+  or kit code (`ui.NewForm`, the wizard).
+- **Not yet verified:** a re-run of that restyle with the fixes, and a cold eval baseline:
+  no case in `evals/evals.json` has been run without the skill. The init cases carry an
+  `answers.md` fixture so they run unattended under skill-creator's one-turn runner.
 
 ## Phase 1: Dogfood (now)
 
@@ -30,8 +35,8 @@ Build real apps with it and turn every miss into a fix.
 1. **Build one app you actually need** in a fresh session with only the skill installed.
    Start with `/bubbletea-tui init`, then `brand`, `shape` and `craft` (or `restyle` for
    an existing app). A good first target is a CLI with a brand you already own. The first
-   run restyled tructl's setup wizard; its screenshots are the "before" for the re-run.
-   Keep that brand's theme in the app's repo, not in this one.
+   run restyled a real CLI's setup wizard; its screenshots are the "before" for the
+   re-run. Keep that brand's theme in the app's repo, not in this one.
 2. **Don't help the agent.** If it asks a question, answer only as a real user would. A
    question is itself a finding: the skill was unclear.
 3. **Record each miss** with the *Skill feedback* issue template: what you asked, the
@@ -42,10 +47,14 @@ Build real apps with it and turn every miss into a fix.
    - How many critic rounds did it take to reach SHIP?
    - Which anti-patterns appeared anyway?
    - Did `TestHelpIsHandled` exist in its app?
-5. **Run the evals** in `skills/bubbletea-tui/evals/evals.json` with skill-creator: with
-   the skill, without it, and with the previous version, three runs per case. Grade by
-   hand first, then check that `tuilint` agrees with your grades. The linter earns trust
-   only when it matches a human on apps it has never seen.
+5. **Run the evals** in `evals/evals.json` (at the repo root, outside the shipped skill)
+   with skill-creator pointed at `skills/bubbletea-tui` and told the cases are
+   `evals/evals.json` at the repo root, with `files` relative to the repo root (it looks
+   for `evals/` inside the skill directory by default): with the skill, without it, and
+   with the previous version, three runs per case. Grade by hand first, then check that
+   `tuilint` agrees with your grades. The linter earns trust only when it matches a human
+   on apps it has never seen. Cases still missing: Law 3, `shape`, `audit`, `polish`,
+   `harden` and `animate` have no case of their own.
 
 Exit criterion: two consecutive cold runs that you'd ship, with the automated checks
 agreeing with your grades line for line.

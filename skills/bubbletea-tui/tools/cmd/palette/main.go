@@ -74,5 +74,11 @@ import (
 var src string
 
 func main() {
-	os.Exit(palette.Main(os.Args[1:], cmddoc.Text(src), os.Stdout, os.Stderr))
+	args := os.Args[1:]
+	// `palette derive -h` and `palette check -h` are help too, not a hex colour or a
+	// theme path: the package doc is the one -h text, for the bare command and each mode.
+	if len(args) == 2 && (args[0] == "derive" || args[0] == "check") && (args[1] == "-h" || args[1] == "--help") {
+		args = args[1:]
+	}
+	os.Exit(palette.Main(args, cmddoc.Text(src), os.Stdout, os.Stderr))
 }

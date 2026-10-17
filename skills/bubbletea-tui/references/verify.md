@@ -22,7 +22,7 @@ screenshot.
             (lint every directory you rendered: light, 256, 16, no colour and ASCII break where dark
             truecolour passes, and LOOK at the overlays there: a dialog's edge is the first to go;
             --ascii fails any glyph that leaked into an ASCII frame [F-ASCII])
-            tuilint code .
+            tuilint code .                                                (tuivet ./... in go vet or an editor: same rules)
             tuilint spec TUI.md                                           (after any key-table change)
 4. LOOK     cellshot frames/*-80x24.ansi frames/toosmall-*.ansi --sheet sheet-80.png
             cellshot frames/*-120x40.ansi --sheet sheet-120.png --cell 8x16

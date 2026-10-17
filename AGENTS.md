@@ -17,18 +17,24 @@ skills/bubbletea-tui/
   tools/          Go module `tuitools`: cellshot, tuilint, tuivet, palette, diversity (the build loop)
   scripts/        wordmark, logo2cells (Python 3 + Pillow/numpy; brand-asset conversion only)
   kit/            Go module `tuikit`: theme/, ui/, themes/*.json, cmd/showcase (reference app + harness)
-  evals/          evals.json (skill-creator format) + fixtures (each Go fixture its own module)
 .claude-plugin/   plugin.json + marketplace.json: the repo root is a Claude Code plugin that
                   bundles skills/bubbletea-tui (default skills/ scan) and hooks/
 hooks/            hooks.json (PostToolUse on Edit|Write|MultiEdit) → tuilint-edit.sh, which
                   builds the tools once and runs `tuilint hook`; test.sh tests it end to end
+evals/            evals.json (skill-creator format) + fixtures (each Go fixture its own module)
 tools/gallery.sh  regenerates docs/images from the kit
 ROADMAP.md        what's next, and the open problems
 ```
 
+Everything under `skills/bubbletea-tui/` ships: `npx skills add` copies that directory
+whole, with no ignore mechanism, and the plugin bundles it. That is why `evals/` (the
+prompts and graded assertions, which a cold agent under evaluation must not be able to
+read) lives at the repo root; skill-creator takes the path.
+
 Leave `version` out of `.claude-plugin/plugin.json` and `marketplace.json`: Claude Code
-then versions the plugin by commit SHA, so every push to `main` reaches installed users.
-A set version pins them to the cached copy until someone bumps it, and nothing here does.
+then versions the plugin by commit SHA, so every `claude plugin update` (or auto-update,
+which users must enable for this marketplace) picks up the latest commit on `main`. A set
+version pins them to the cached copy until someone bumps it, and nothing here does.
 
 ## Commands
 
@@ -36,7 +42,7 @@ A set version pins them to the cached copy until someone bumps it, and nothing h
 cd skills/bubbletea-tui/kit && go vet ./... && go test ./...      # footprint, contrast, behaviour
 cd skills/bubbletea-tui/kit && go run ./cmd/showcase               # the reference app, live
 cd skills/bubbletea-tui/tools && go vet ./... && go test ./...    # the tools, held to Python-era goldens
-go -C skills/bubbletea-tui/tools build -o "$HOME/.cache/tuitools/" ./cmd/... && export PATH="$HOME/.cache/tuitools:$PATH"
+go -C skills/bubbletea-tui/tools build -o "$PWD/.tuitools/" ./cmd/... && export PATH="$PWD/.tuitools:$PATH"   # per checkout, gitignored
 tuilint code skills/bubbletea-tui/kit
 tuilint spec skills/bubbletea-tui/tools/internal/speclint/testdata/template-example.md   # init's template, filled in (CI: covered by the tools tests on the template)
 diversity skills/bubbletea-tui/kit/themes/*.json
@@ -45,16 +51,21 @@ skills-ref validate skills/bubbletea-tui                           # pip install
 tools/gallery.sh                                                   # after any change to what the kit renders
 hooks/test.sh                                                      # the plugin's lint hook, end to end
 claude plugin validate .                                           # plugin, marketplace and hooks manifests
+jq -e '.skill_name=="bubbletea-tui"' evals/evals.json && jq -r '.evals[].files[]' evals/evals.json | xargs -n1 test -f   # the evals parse and their fixtures exist
 ```
 
 CI (`.github/workflows/ci.yml`) runs all of these plus a render-and-lint pass over every
-theme (and the test themes in `kit/theme/testdata`) in six variants: dark, `-light`,
-`-ascii` (linted with `--ascii`), `-profile ansi256`, `-profile ansi` and `NO_COLOR=1`.
-Light, ASCII, 256 and 16 colours and no colour are where footers, rules, background steps
-and downsampled roles break first, so lint the variant you touched before pushing, not
-only dark. It also runs `kit/README.md`'s copy
-block, as written, in a fresh module, because a kit test that names a kit path passes here
-and fails in every project that copied the kit. `.github/workflows/conventional.yml`
+theme (and the test themes in `kit/theme/testdata`) in the variants its loop lists, seven
+today: dark, `-light`, `-ascii` (linted with `--ascii`), `-profile ansi256`,
+`-profile ansi`, `-light -profile ansi` and `NO_COLOR=1`. Light, ASCII, 256 and 16
+colours and no colour are where footers, rules, background steps and downsampled roles
+break first, so lint the variant you touched before pushing, not only dark. It also runs
+`kit/README.md`'s copy block, as written, in a fresh module, because a kit test that
+names a kit path passes here and fails in every project that copied the kit; checks that
+every tool invocation in SKILL.md and `references/` names a real mode and flag (the
+`cmddoc` test in `tools/`), that every `references/cmd-*.md` has a row in SKILL.md's
+command table, and that `evals/evals.json` parses and its fixtures exist; and runs each
+Python script once for real on the quarry fixture. `.github/workflows/conventional.yml`
 checks the PR title and commit subjects (§ Commits).
 
 ## How the skill improves (the loop)
@@ -133,7 +144,6 @@ type(scope)!: description        e.g.  fix(kit): keep the focus bar on resize
   | `tools` | the Go tools in `tools/` |
   | `scripts` | the Python brand-asset converters |
   | `evals` | `evals/` and its fixtures |
-  | `site` | the landing page |
   | `plugin` | the Claude Code plugin: `hooks/` and `.claude-plugin/` |
 
   Work that spans the repo takes no scope: `ci: …`, `docs: …`, `chore: …`. Dependency
