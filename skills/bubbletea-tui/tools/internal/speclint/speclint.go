@@ -132,6 +132,7 @@ type row struct {
 	helpOnly      []string // the other items: in ? help, not in the footer
 	marker        string   // how the cell marks its footer: "", "‖" or "bold"
 	mixed         bool     // the cell uses both markers
+	badge         string   // the footer badge the cell names first (`[plan]`), or ""
 }
 
 type spec struct {
@@ -254,11 +255,12 @@ func parse(file, src string) *spec {
 			}
 			return ""
 		}
-		keys := get(keysCol)
-		r := row{line: i + 1, state: get(stateCol), screen: get(screenCol), keys: keys, bindings: parseKeys(keys)}
+		badge, keys := cutBadge(get(keysCol))
+		r := row{line: i + 1, state: get(stateCol), screen: get(screenCol), keys: keys, bindings: parseKeys(keys), badge: badge}
 		raw := splitRaw(t)
 		if keysCol < len(raw) {
-			r.footer, r.helpOnly, r.marker, r.mixed = footerItems(raw[keysCol])
+			_, cell := cutBadge(raw[keysCol])
+			r.footer, r.helpOnly, r.marker, r.mixed = footerItems(cell)
 		}
 		if globalCell.MatchString(r.state) {
 			r.global = true

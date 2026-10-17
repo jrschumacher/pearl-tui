@@ -1,6 +1,7 @@
 package speclint
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -23,6 +24,21 @@ const (
 	asciiReserve = hintSep + 3 // and for "  ..." when the theme is resolved for ASCII
 	footerBudget = footerWidth - 2*kitGutter
 )
+
+// badgeItem is a keys cell's first item when it is a footer badge, a bracketed word
+// alone (`[plan]`, **[PROD]**): ui.Footer's left, drawn before the keys. "[ ] back" is
+// keys, not a badge.
+var badgeItem = regexp.MustCompile("^\\s*((?:\\*\\*|`)?\\[[^\\]\\s][^\\]]*\\](?:\\*\\*|`)?)\\s*(?:[·•]|$)")
+
+// cutBadge splits a keys cell into the badge it names first (as the footer draws it,
+// markup removed) and the rest of the cell.
+func cutBadge(cell string) (badge, rest string) {
+	m := badgeItem.FindStringSubmatchIndex(cell)
+	if m == nil {
+		return "", cell
+	}
+	return clean(cell[m[2]:m[3]]), cell[m[1]:]
+}
 
 // footerItems splits a keys cell, as written, into the items the footer shows and the
 // help-only rest, each as the kit renders a hint: `key desc`, single-spaced. A cell
@@ -196,7 +212,12 @@ func (s *spec) footerFit(add func(string, int, string, ...any)) {
 		}
 	}
 	for _, r := range s.rows {
-		_, dropped := packFooter(r.footer, footerBudget)
+		budget, beside := footerBudget, ""
+		if r.badge != "" { // ui.Footer draws the badge, then a space, then the keys
+			budget -= ansi.StringWidth(r.badge) + 1
+			beside = fmt.Sprintf(", %d beside its `%s` badge", budget, r.badge)
+		}
+		_, dropped := packFooter(r.footer, budget)
 		if len(dropped) > 0 {
 			what, fix := "its footer keys are", "Bold the keys the footer shows (or put ‖ after them)"
 			switch r.marker {
@@ -205,13 +226,13 @@ func (s *spec) footerFit(add func(string, int, string, ...any)) {
 			case string(footerCut):
 				what, fix = "its footer keys before ‖ are still", "Move ‖ left"
 			}
-			front, back := suggestCut(r.footer)
+			front, back := suggestCut(r.footer, budget)
 			eg := strings.Join(front, " · ") + " ‖ " + strings.Join(append(back, r.helpOnly...), " · ")
 			if r.marker != string(footerCut) {
 				eg = boldCell(front, append(back, r.helpOnly...))
 			}
-			add("S-FOOTER", r.line, "%s: %s %d columns, and an %d-column footer has %d inside the kit's default %d-cell gutters (a theme with a 1-cell gutter has 2 more), so ui.Help drops `%s` behind …. %s, the state's main actions and its way out first; the other keys are help-only (show: false in the action table; ? help lists them), e.g. `%s`",
-				r.state, what, hintsWidth(r.footer), footerWidth, footerBudget, kitGutter,
+			add("S-FOOTER", r.line, "%s: %s %d columns, and an %d-column footer has %d inside the kit's default %d-cell gutters (a theme with a 1-cell gutter has 2 more)%s, so ui.Help drops `%s` behind …. %s, the state's main actions and its way out first; the other keys are help-only (show: false in the action table; ? help lists them), e.g. `%s`",
+				r.state, what, hintsWidth(r.footer), footerWidth, footerBudget, kitGutter, beside,
 				strings.Join(dropped, " · "), fix, eg)
 			continue
 		}
@@ -265,7 +286,7 @@ func navigation(item string) bool {
 // suggestCut picks a footer that fits: the help key last (or `? help` added), the ways
 // out and the state's only action other than navigation kept, and the other items
 // moved behind ‖ from the end of the cell, so the cut hides secondary keys first.
-func suggestCut(items []string) (front, back []string) {
+func suggestCut(items []string, budget int) (front, back []string) {
 	help := ""
 	var rest []string
 	for _, it := range items {
@@ -306,7 +327,7 @@ func suggestCut(items []string) (front, back []string) {
 				f = append(f, it)
 			}
 		}
-		_, d := packFooter(append(f, help), footerBudget)
+		_, d := packFooter(append(f, help), budget)
 		return len(d) == 0
 	}
 	// drop unkept items from the end first, then kept ones if that is still too wide

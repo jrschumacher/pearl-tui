@@ -152,6 +152,11 @@ func TestRules(t *testing.T) {
 		// ui.Help draws `shift+enter/ctrl+j` as one alternative (ctrl+j, or shift+enter where
 		// the terminal disambiguates keys), so S-FOOTER measures the widest one, not all 18
 		{"a newline fallback is one alternative wide", table("| compose | conversation | **enter send** · **shift+enter/ctrl+j newline** · **ctrl+o attach** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), nil},
+		// a footer badge (ui.Footer's left: a mode, PLAN) takes its width and a space from
+		// the 76 columns; a row names it as its first item
+		{"a badge's row fits without it", table("| chat | chat | **enter send** · **ctrl+s sessions** · **ctrl+t toggle tools** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), nil},
+		{"a badge takes its share of the footer", table("| chat-plan | chat | [plan] · **enter send** · **ctrl+s sessions** · **ctrl+t toggle tools** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), map[string]int{"S-FOOTER": 1}},
+		{"a badge is no key", table("| chat-plan | chat | `[plan]` · **enter send** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), nil},
 		{"77 columns don't", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 43)+" |", ""), map[string]int{"S-FOOTER": 1}},
 		{"Global keys are not in the footer", table("| list | list | ↑↓ move · enter open · ? help |", "ctrl+c quit · ctrl+p palette · ctrl+o switch · ctrl+s save · ctrl+r reload · ctrl+t theme · f1 manual"), nil},
 		{"an empty cell has no footer", table("| splash | splash | — |", ""), nil},
@@ -502,7 +507,7 @@ func TestSuggestCut(t *testing.T) {
 			"↑↓/jk move · enter open · d deploy · r roll back · q quit · ? help", "ctrl+p commands · l logs · c copy id · s sort by status"},
 	}
 	for _, c := range cases {
-		front, back := suggestCut(hints(c.cell))
+		front, back := suggestCut(hints(c.cell), footerBudget)
 		if got, want := strings.Join(front, " · ")+" ‖ "+strings.Join(back, " · "), c.front+" ‖ "+c.back; got != want {
 			t.Errorf("%s:\n got %s\nwant %s", c.name, got, want)
 		}
