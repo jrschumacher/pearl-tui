@@ -58,7 +58,8 @@
         "every expression axis moved after a diversity failure carries its product reason in the brand read and TUI.md § Decisions, and none reads 'to pass diversity' or 'for the distance' as its only reason: an axis the lint alone moved (a scrim dropped, a dialog edge swapped) was moved back and the distance found in a move the read asked for",
         "the brand read's remember move is visible on the main screen's default frame as rendered (the queue list with nothing pressed), not only in the sketch or in a state the user has to reach, and the screen's § Screens block names the frame its identity shows on",
         "a stacked pair at 80×24 (the queue list over its detail, or a summary over a log) shares rows by content, the upper taking what it fills and the lower the rest: no region holds five or more blank rows while the one under it cuts content",
-        "at 80×24 the queue list (the surface the user acts on) keeps at least half the body rows; the throughput and failure readings above or beside it fold onto shared rows before taking rows from the list"
+        "at 80×24 the queue list (the surface the user acts on) keeps at least half the body rows; the throughput and failure readings above or beside it fold onto shared rows before taking rows from the list",
+        "a throughput or failure sparkline drawn taller than one row grows upward from its label's row: the label, the current value and the bar's base share the bottom row and the peaks rise above it; the label is never on one row with the bar alone on the next"
       ]
     },
     {

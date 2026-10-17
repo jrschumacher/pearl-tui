@@ -198,7 +198,10 @@ says the state in words.
 - Progress: `━━━━╸╌╌╌` with the fill in a short gradient, then the fraction and what is
   progressing ("3/5 pods"). Indeterminate work gets a spinner, not a fake bar.
 - Sparkline: `▁▂▃▅▇` over a fixed column, coloured by state, with a flat series kept
-  flat. Always print the current value beside it.
+  flat. Always print the current value beside it. A sparkline taller than one row grows
+  upward from the label's row: label, value and the bar's base share the bottom row,
+  the rows above hold the peaks, so a two-row graph never splits the label from the
+  bar it names (a `▂▆▆▂` fragment alone on a row reads as noise).
 
 ## Empty, Loading, Error — `ui.Empty`
 
