@@ -139,9 +139,12 @@ func TestOneClock(t *testing.T) {
 	}
 	// a deploying row animates only where Busy does (Law 8: tick while something visible
 	// moves): with a spinner wider than one cell the row holds the still partial mark,
-	// in unicode and under ASCII alike, and the clock stays off
+	// in unicode and under ASCII alike, and the clock stays off. Both spinners are set
+	// here: a copied project's one theme may have either (lumen's is three cells)
 	for _, ascii := range []bool{false, true} {
-		one := newApp(testTheme(t, "charm.json"), true, ascii)
+		f := testTheme(t, "charm.json")
+		f.Glyphs.Spinner = []string{"◜", "◠", "◝", "◞", "◡", "◟"}
+		one := newApp(f, true, ascii)
 		one.setState("services")
 		if !one.hasDeploying() {
 			t.Fatal("the services fixture has no deploying row")
@@ -149,7 +152,6 @@ func TestOneClock(t *testing.T) {
 		if one.startClock() == nil {
 			t.Errorf("ascii=%v: a deploying row with a one-cell spinner should tick", ascii)
 		}
-		f := testTheme(t, "charm.json")
 		f.Glyphs.Spinner = []string{"·  ", " · ", "  ·"}
 		wide := newApp(f, true, ascii)
 		wide.setState("services")
