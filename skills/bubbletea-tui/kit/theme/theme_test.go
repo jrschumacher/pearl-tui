@@ -300,3 +300,45 @@ func TestDefaultPartialKeepsOutOfTheThemesWay(t *testing.T) {
 		t.Errorf("the default wrote into the theme's own map: %v", f.Glyphs.ASCII)
 	}
 }
+
+// A working spinner sits in a status column beside the state marks, and beside focus
+// bars. Under ASCII its frames were | / - \, and "|" is the focus bar's twin: a row with
+// a spinner read as focused. ASCII's frames leave out any frame a focus bar or a state
+// mark draws as, and CheckGlyphs fails a theme spinner frame that is one of those marks.
+func TestSpinnerNeverDrawsAnotherMark(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	test, _ := filepath.Glob(filepath.Join("testdata", "*.json"))
+	for _, path := range append(files, test...) {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, ascii := range []bool{false, true} {
+			g := Resolve(f, true, ascii).G
+			marks := map[string]string{"focusBar": g.FocusBar, "blurBar": g.BlurBar, "done": g.Done, "current": g.Current,
+				"todo": g.Todo, "pending": g.Pending, "partial": g.Partial, "warn": g.Warn, "fail": g.Fail}
+			if len(g.Spinner) < 2 {
+				t.Errorf("%s ascii=%v: spinner %q has no motion", filepath.Base(path), ascii, g.Spinner)
+			}
+			for _, fr := range g.Spinner {
+				for name, m := range marks {
+					if m != "" && strings.TrimSpace(fr) == m {
+						t.Errorf("%s ascii=%v: spinner frame %q is glyphs.%s", filepath.Base(path), ascii, fr, name)
+					}
+				}
+			}
+		}
+	}
+	f, err := Load(writeTheme(t, `{"glyphs": {"spinner": ["◐", "◓", "◑", "◒"]}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CheckGlyphs(f.Glyphs); err == nil || !strings.Contains(err.Error(), `glyphs.spinner frame "◐" is also glyphs.partial`) {
+		t.Errorf("CheckGlyphs(spinner with ◐) = %v", err)
+	}
+}

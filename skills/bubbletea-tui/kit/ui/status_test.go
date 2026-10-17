@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
@@ -107,6 +108,67 @@ func TestLabelCase(t *testing.T) {
 		for what, want := range map[string]string{"header": c.header, "tag": c.tag, "toast": c.toast, "strip": c.strip} {
 			if got[what] != want {
 				t.Errorf("labelCase %q: %s %q, want %q", c.labelCase, what, got[what], want)
+			}
+		}
+	}
+}
+
+// A status column holds one cell: the dot of each row, and the working mark of a row in
+// progress. Spinner draws the theme's frames, which may be wider (lumen's "···"), so
+// that row's name sat two cells right of the rest. Busy is one cell in every theme.
+func TestBusyIsOneCell(t *testing.T) {
+	files := append(testThemes(t), filepath.Join("..", "theme", "testdata", "quire.json"))
+	for _, f := range files {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, ascii := range []bool{false, true} {
+			th := theme.Resolve(tf, true, ascii)
+			for n := range 12 {
+				if w := lipgloss.Width(Busy(th, n)); w != 1 {
+					t.Errorf("%s ascii=%v frame %d: Busy is %d cells (%q)", filepath.Base(f), ascii, n, w, ansi.Strip(Busy(th, n)))
+				}
+			}
+		}
+	}
+}
+
+// selection "bar" and "caret" mark the selected row with a glyph and bold text, as List
+// and Huh's selects do (theme.Styles.SelRow). Table drew only the glyph, so under focus
+// "fg", where the glyph is fg too, a selected table row was one bar away from the rest.
+func TestTableEmphasisesTheSelectedRow(t *testing.T) {
+	for _, sel := range []string{"bar", "caret"} {
+		f := quire(t)
+		f.Expressions.Selection = sel
+		th := theme.Resolve(f, true, false)
+		rows := Table(th, []string{"service", "when"}, [][]string{{th.S.Base.Render("ledger"), th.S.Subtle.Render("2d")}, {"auth", "8d"}}, []int{10, 0}, "lr", 0, 30, true)
+		buf := uv.NewScreenBuffer(30, len(rows))
+		uv.NewStyledString(strings.Join(rows, "\n")).Draw(buf, buf.Bounds())
+		bold := func(y int, word string) bool {
+			x := strings.Index(ansi.Strip(rows[y]), word)
+			c := buf.CellAt(len([]rune(ansi.Strip(rows[y])[:x])), y)
+			return c != nil && c.Style.Attrs&uv.AttrBold != 0
+		}
+		if !bold(2, "ledger") || !bold(2, "2d") {
+			t.Errorf("selection %s: the selected row's text isn't bold", sel)
+		}
+		if bold(3, "auth") {
+			t.Errorf("selection %s: an unselected row is bold", sel)
+		}
+	}
+}
+
+// Under focus "fg" the active tab is marked in fg and weight in every tab style, the
+// underline row included (quire's own tabs are slash, which has none).
+func TestFocusFgTabs(t *testing.T) {
+	for _, tabs := range []string{"underline", "pill", "bracket", "slash"} {
+		f := quire(t)
+		f.Expressions.Tabs = tabs
+		for _, p := range []colorprofile.Profile{colorprofile.TrueColor, colorprofile.ANSI256, colorprofile.ANSI} {
+			th := theme.ResolveProfile(f, true, false, p)
+			if hits := primaryCells(th, strings.Join(Tabs(th, []string{"Inbox", "Saved"}, 0, nil), "\n"), p); len(hits) > 0 {
+				t.Errorf("tabs %s %v: primary at %v", tabs, p, hits)
 			}
 		}
 	}

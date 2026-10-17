@@ -148,7 +148,7 @@ func (m *app) services(c *ui.Canvas, r uv.Rectangle) {
 	for i, s := range m.svcs {
 		name := ui.Dot(t, s.State) + " " + t.S.Base.Render(s.Name)
 		if s.State == "deploying" {
-			name = ui.Spinner(t, m.frame/2) + " " + t.S.Base.Render(s.Name)
+			name = ui.Busy(t, m.frame/2) + " " + t.S.Base.Render(s.Name)
 		}
 		// red lives on the dot and the number; the sparkline stays quiet
 		spark := t.S.Muted
@@ -259,7 +259,7 @@ func (m *app) deploys(c *ui.Canvas, r uv.Rectangle) {
 	for _, e := range m.events {
 		st := ui.Dot(t, e.State)
 		if e.State == "busy" {
-			st = ui.Spinner(t, m.frame/2)
+			st = ui.Busy(t, m.frame/2)
 		}
 		name := t.S.Base.Render(e.Svc)
 		if e.Env != "prod" {

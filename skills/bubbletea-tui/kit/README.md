@@ -4,14 +4,15 @@ A compiling Bubble Tea v2 module. Copy from it; don't re-derive it from the refe
 
 ```
 theme/          theme.go (the JSON contract), derive.go (fills missing roles, ASCII glyphs),
-                styles.go (every style from the palette, Grad, Case, Gap)
+                styles.go (every style from the palette, Grad, Case, Label, Gap)
 ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, PaintBackground, ASCIIfy, Fit, OnBg
                 chrome.go   Wordmark, Header, Details, Section, Rule, Help, Footer, Toast, Tabs, TooSmall
                 controls.go Button(s), Tag, Alert, Dot, KV, Progress, Sparkline, Scrollbar, Count, Empty
                 list.go     List (selection styles, fuzzy underline, scrollbar), Table (borderless)
                 dialog.go   DialogTitle, Dialog, Canvas.Overlay
                 chat.go     Gutter, UserMessage, AssistantMessage, ToolCall, Thinking, TurnFooter, Tree
-                anim.go     FrameInterval, Anim (brand spinner or the Crush scramble), Spinner
+                anim.go     FrameInterval, Anim (brand spinner or the Crush scramble), Spinner,
+                            Busy (the one-cell working mark for a status column)
                 field.go    Field: the two-glyph brand backdrop
                 form.go     Huh, themed: HuhTheme, NewForm, Resize, NewInput, Confirm, Options,
                             Actions (button rows), HuhSpinner, BubblesSpinner, Settle, Accessible

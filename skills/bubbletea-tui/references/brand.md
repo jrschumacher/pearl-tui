@@ -130,6 +130,18 @@ primary shares a 16-colour slot with error, warning, success or info.
 the kit draws it for a busy `ui.Dot` and a running tool call, which would otherwise be
 another state's glyph in another colour, and one mark under NO_COLOR.
 
+**Keep a state's glyph and hue exclusive.** The kit's own components draw the same slots
+with the same meanings: `ui.Steps` done/current/todo/fail, `ui.ToolCall`
+pending/partial/done/fail, `ui.Dot` current (ok), partial (busy), warn, fail and todo
+(idle), and `ui.Busy` the spinner (one cell, the partial glyph when the frames are wider).
+So a ladder mapped onto the slots by meaning stays consistent everywhere. Where a rung
+means something no kit component means (welp's `●` is "new", and `ui.Dot` draws
+`current` for "healthy"), keep that component off the ladder's screens, or give the rung
+its own field in the copied `Glyphs` (`ASCII` maps it and `CheckGlyphs` checks its twin;
+add it to `glyphMeanings`' status set so the rungs stay apart). The hue stays off the
+kit's chrome with `focus: fg`; a spinner frame may not be a status or focus mark
+(`CheckGlyphs`), and under `-ascii` the kit's spinner leaves out the focus bar's `|`.
+
 Missing roles are derived, and missing glyphs and expressions default, so a theme can
 start small. An expression the kit doesn't know (`"dialog": "rule"` for `rules`, a key
 from a newer kit) also draws the default, so `palette check` fails it and lists the

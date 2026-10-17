@@ -94,6 +94,25 @@ func listRow(t *theme.Theme, it Item, selected, focused bool, w int) string {
 	return line
 }
 
+// bolden draws pre-styled cells in bold throughout, keeping each one's colour: every
+// span's style ends in a reset, so bold is set again after each SGR sequence.
+func bolden(s string) string {
+	on := ansi.Style{}.Bold().String()
+	var b strings.Builder
+	b.WriteString(on)
+	var state byte
+	for len(s) > 0 {
+		seq, _, n, next := ansi.DecodeSequence(s, state, nil)
+		b.WriteString(seq)
+		if ansi.HasCsiPrefix(seq) && strings.HasSuffix(seq, "m") {
+			b.WriteString(on)
+		}
+		s, state = s[n:], next
+	}
+	b.WriteString(ansi.Style{}.Normal().String())
+	return b.String()
+}
+
 // filledRow is a selected row on a filled bar. Every span, the padding
 // included, carries the bar's style: one bare space would punch a hole.
 func filledRow(t *theme.Theme, it Item, w int) string {
@@ -190,9 +209,14 @@ func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 			bar := t.S.FocusBar
 			if !focused {
 				bar = t.S.BlurBar
+			} else {
+				line = bolden(line) // SelRow: bold text beside the bar, as List draws it
 			}
 			out = append(out, Fit(bar.Render(t.G.FocusBar)+" "+line, w))
 		case selected && mode == "caret":
+			if focused {
+				line = bolden(line)
+			}
 			out = append(out, Fit(t.S.Focus.Render(t.G.Cursor)+" "+line, w))
 		case selected:
 			out = append(out, lipgloss.NewStyle().Background(t.P.BgSubtle).Render(Fit("  "+line, w)))

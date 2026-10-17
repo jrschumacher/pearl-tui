@@ -376,6 +376,15 @@ func CheckGlyphs(g Glyphs) error {
 		k, _, _ := strings.Cut(f.Tag.Get("json"), ",")
 		return k
 	}
+	sv0 := reflect.ValueOf(src)
+	for _, fr := range src.Spinner {
+		for _, m := range spinnerMarks {
+			if g := sv0.FieldByName(m).String(); g != "" && strings.TrimSpace(fr) == g {
+				return fmt.Errorf("glyphs.spinner frame %q is also glyphs.%s: a working row beside it would read as that mark; pick frames no state or focus mark uses",
+					fr, jsonKey(m))
+			}
+		}
+	}
 	for _, set := range glyphMeanings {
 		for i, a := range set {
 			for _, b := range set[i+1:] {
@@ -396,7 +405,6 @@ func CheckGlyphs(g Glyphs) error {
 // font without the glyphs. Every glyph the theme defines must survive this.
 func ASCII(g Glyphs) Glyphs {
 	glyphFields(&g, func(_, _ string, p *string) { *p = twin(g.ASCII, *p) })
-	g.Spinner = []string{"|", "/", "-", "\\"}
 	// status glyphs must stay distinct in shape, or ok/warn/error become one mark
 	g.Warn, g.Fail = "!", "x"
 	if g.Todo == g.Current {
@@ -405,6 +413,7 @@ func ASCII(g Glyphs) Glyphs {
 	if g.Current == g.Warn || g.Current == g.Fail {
 		g.Current = "*"
 	}
+	g.Spinner = asciiSpinner(g)
 	// ┃ thumb and │ track both twin to "|": without colour the scrollbar would have no
 	// position, so the thumb becomes the solid block it stands for
 	if g.Thumb == g.Track && g.Thumb != "" {
@@ -482,6 +491,33 @@ func CheckExpressions(x Expressions) error {
 			key, *p, strings.Join(known, " | "), def)
 	})
 	return err
+}
+
+// spinnerMarks are the glyphs a working spinner sits beside, in a status column or next
+// to a focus bar: no frame may be one of them, or a working row reads as that mark.
+var spinnerMarks = []string{"FocusBar", "BlurBar", "Done", "Current", "Todo", "Fail", "Warn", "Pending", "Partial"}
+
+// asciiSpinner is the line spinner | / - \ without the frames g's marks already draw
+// as (the "|" of a focus bar twinned from ▌): a turning line still, a frame short. If
+// the marks take more than two of them, a pulse . : instead.
+func asciiSpinner(g Glyphs) []string {
+	v := reflect.ValueOf(g)
+	taken := map[string]bool{}
+	for _, m := range spinnerMarks {
+		taken[v.FieldByName(m).String()] = true
+	}
+	for _, frames := range [][]string{{"|", "/", "-", "\\"}, {".", ":", "'", ":"}} {
+		var out []string
+		for _, f := range frames {
+			if !taken[f] {
+				out = append(out, f)
+			}
+		}
+		if len(out) >= 2 {
+			return out
+		}
+	}
+	return []string{"|", "/", "-", "\\"}
 }
 
 func exprDefaults(x Expressions) Expressions {

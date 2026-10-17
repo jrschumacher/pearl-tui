@@ -91,3 +91,15 @@ func (a *Anim) Frame(n int, elapsed string) string {
 func Spinner(t *theme.Theme, n int) string {
 	return t.S.Mark.Render(t.G.Spinner[n%len(t.G.Spinner)])
 }
+
+// Busy is the working mark for a status column, one cell like the Dot beside it: the
+// theme's spinner at frame n when its frames are one cell, else Dot's busy mark (the
+// partial glyph, still), so a row in progress never pushes its name out of line.
+func Busy(t *theme.Theme, n int) string {
+	for _, f := range t.G.Spinner {
+		if lipgloss.Width(f) != 1 {
+			return Dot(t, "busy")
+		}
+	}
+	return Spinner(t, n)
+}
