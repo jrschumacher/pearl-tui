@@ -44,6 +44,45 @@ func List(t *theme.Theme, items []Item, sel, offset, w, h int, focused bool) []s
 	return out
 }
 
+// Follow is the offset that keeps sel on screen in a list h rows tall: offset when sel is
+// already visible, else the smallest move that shows it (sel at the top when it was above
+// the window, at the bottom when it was below). Call it before List on every render, so
+// a selection moved by a key or a filter scrolls into view and a list that fits never
+// scrolls.
+func Follow(sel, offset, h int) int {
+	if h <= 0 {
+		return 0
+	}
+	offset = max(0, offset)
+	switch {
+	case sel < offset:
+		return max(0, sel)
+	case sel >= offset+h:
+		return sel - h + 1
+	}
+	return offset
+}
+
+// Fuzzy matches q as a subsequence of s, the way a command palette filters: the matched
+// rune indices (Item.Match underlines them) and whether every rune of q was found, in
+// order. Lower-case both for a case-insensitive filter.
+func Fuzzy(s, q string) ([]int, bool) {
+	var idx []int
+	rs := []rune(s)
+	j := 0
+	for _, qr := range q {
+		for j < len(rs) && rs[j] != qr {
+			j++
+		}
+		if j == len(rs) {
+			return nil, false
+		}
+		idx = append(idx, j)
+		j++
+	}
+	return idx, true
+}
+
 func listRow(t *theme.Theme, it Item, selected, focused bool, w int) string {
 	mode := t.X.Selection
 	// the marker column is always 2 cells, focused or not, so selecting a row

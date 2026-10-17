@@ -63,6 +63,7 @@ type app struct {
 	// palette
 	query  string
 	palSel int
+	palOff int // the list's scroll offset (ui.Follow keeps palSel on screen)
 	// confirm
 	btn int // 0 = the action, 1 = cancel (the default)
 	// deploy form
@@ -311,11 +312,11 @@ func (m *app) actions() []action {
 		return nil
 	}}
 	tabs := action{bind([]string{"tab"}, "tab", "next view"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
-		m.screen = (m.screen + 1) % 4
+		m.screen = (m.screen + 1) % screen(len(tabNames))
 		return nil
 	}}
 	tabsBack := action{bind([]string{"shift+tab"}, "shift+tab", "previous view"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
-		m.screen = (m.screen + 3) % 4
+		m.screen = (m.screen + screen(len(tabNames)) - 1) % screen(len(tabNames))
 		return nil
 	}}
 	bs := action{bind([]string{"backspace"}, "backspace", "delete"), false, backspace}

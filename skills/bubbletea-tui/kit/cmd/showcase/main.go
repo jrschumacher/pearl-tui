@@ -2,7 +2,7 @@
 // with an assistant) drawn entirely from the theme, so the same screens can
 // be rendered in any brand. It doubles as the verification harness.
 //
-//	go run ./cmd/showcase                              interactive (alt screen)
+//	go run ./cmd/showcase                              interactive (alt screen), the embedded theme
 //	go run ./cmd/showcase -theme themes/x.json         another brand
 //	go run ./cmd/showcase -first-run                   start with the setup wizard (ACCESSIBLE=1: plain prompts)
 //	go run ./cmd/showcase -golden -w 80 -h 24          every state as plain text; fails on any row ≠ W cells
@@ -29,6 +29,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
+	"tuikit/themes"
 	"tuikit/ui"
 )
 
@@ -111,7 +112,7 @@ func (m *app) setupState(s string, frame int) {
 }
 
 func main() {
-	themePath := flag.String("theme", "", "theme JSON (default: the built-in ink theme)")
+	themePath := flag.String("theme", "", "theme JSON (default: the embedded theme, themes.Default)")
 	light := flag.Bool("light", false, "use the light role set")
 	ascii := flag.Bool("ascii", false, "ASCII glyphs (TERM=linux, --ascii)")
 	state := flag.String("state", "", "render one state as ANSI and exit")
@@ -125,13 +126,13 @@ func main() {
 	firstRun := flag.Bool("first-run", false, "start with the setup wizard")
 	flag.Parse()
 
-	f := theme.Default()
+	f, err := embeddedTheme()
 	if *themePath != "" {
-		var err error
-		if f, err = theme.Load(*themePath); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
+		f, err = theme.Load(*themePath)
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 	if *state == "" && !*golden && *out == "" && *firstRun && ui.Accessible() {
 		if err := runAccessibleSetup(theme.Resolve(f, !*light, true), os.Stdin, os.Stdout, 2*time.Second); err != nil {
@@ -214,6 +215,16 @@ func main() {
 		}
 		fmt.Fprintf(os.Stderr, "wrote %d frames (%d states × %s) to %s (bg %s)\n", len(written), len(states), *sizes, *out, hex(m.t))
 	}
+}
+
+// embeddedTheme is the theme the binary carries (themes/embed.go): the brand draws with
+// no flag, wherever the binary is run from, instead of a path that breaks when it moves.
+func embeddedTheme() (theme.File, error) {
+	b, err := themes.Default()
+	if err != nil {
+		return theme.File{}, err
+	}
+	return theme.Parse(b)
 }
 
 // frameSize is the size a state renders at for a requested w×h: the too-small

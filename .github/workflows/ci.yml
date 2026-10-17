@@ -51,7 +51,8 @@ jobs:
           go-version-file: skills/bubbletea-tui/kit/go.mod
           cache-dependency-path: skills/bubbletea-tui/kit/go.sum
       # The copy path breaks silently when a kit test hard-codes a kit path; run the
-      # block a user runs, as written, then again with the project's own theme name.
+      # block a user runs, as written. The project then holds one theme under its own
+      # name, and its binary draws that theme with no flag.
       - name: run kit/README.md's copy block in a fresh module
         run: |
           skill="$GITHUB_WORKSPACE/skills/bubbletea-tui"
@@ -59,13 +60,14 @@ jobs:
           mkdir -p "$app" && cd "$app"
           go mod init example.com/brandapp
           awk '/^## Copying it into a project/{f=1} f&&/^```sh/{b=1;next} b&&/^```/{exit} b' "$skill/kit/README.md" \
-            | sed -e "s#<skill>#$skill#g" -e 's#<app>#brandapp#g' -e 's#<closest>#lumen#g' \
+            | sed -e "s#<skill>#$skill#g" -e 's#<app>#brandapp#g' -e 's#<closest>#lumen#g' -e 's#<brand>#brand#g' \
                   -e 's#<your/module>#example.com/brandapp#g' > "$RUNNER_TEMP/copy.sh"
           cat "$RUNNER_TEMP/copy.sh"
           sh -e "$RUNNER_TEMP/copy.sh"
           go vet ./...
-          mv themes/lumen.json themes/brand.json
+          test "$(ls themes/*.json)" = themes/brand.json
           go test ./...
+          go run ./cmd/brandapp -golden -w 80 -h 24 | grep -q lumen
 
   render-and-lint:
     name: render every theme + lint

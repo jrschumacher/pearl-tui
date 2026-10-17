@@ -506,29 +506,11 @@ func (m *app) filtered() []hit {
 	var out []hit
 	q := strings.ToLower(m.query)
 	for _, c := range commands {
-		if idx, ok := fuzzy(strings.ToLower(c.Title), q); ok {
+		if idx, ok := ui.Fuzzy(strings.ToLower(c.Title), q); ok {
 			out = append(out, hit{c, idx})
 		}
 	}
 	return out
-}
-
-// fuzzy matches q as a subsequence of s, returning the matched rune indices.
-func fuzzy(s, q string) ([]int, bool) {
-	var idx []int
-	rs := []rune(s)
-	j := 0
-	for _, qr := range q {
-		for j < len(rs) && rs[j] != qr {
-			j++
-		}
-		if j == len(rs) {
-			return nil, false
-		}
-		idx = append(idx, j)
-		j++
-	}
-	return idx, true
 }
 
 // dialogTop keeps dialogs below the header and tabs.
@@ -561,7 +543,9 @@ func (m *app) palette(c *ui.Canvas) {
 			body = append(body, "")
 		}
 	} else {
-		body = append(body, ui.List(t, items, min(m.palSel, len(items)-1), 0, inner, listH, true)...)
+		sel := min(m.palSel, len(items)-1)
+		m.palOff = ui.Follow(sel, m.palOff, listH) // the list scrolls to the selection
+		body = append(body, ui.List(t, items, sel, m.palOff, inner, listH, true)...)
 	}
 	// no help line inside: the footer above the scrim carries the dialog's keys
 	d := ui.Dialog(t, w, "Commands", body, "", "")
@@ -604,7 +588,7 @@ func (m *app) keysOverlay(c *ui.Canvas) {
 		body = append(body, t.S.Key.Render(ui.Fit(h.Key, 12))+t.S.Soft.Render(h.Desc))
 	}
 	body = append(body, t.S.Key.Render(ui.Fit("ctrl+c", 12))+t.S.Soft.Render("quit from anywhere"))
-	name := tabNames[min(int(m.screen), 3)]
+	name := tabNames[min(int(m.screen), len(tabNames)-1)]
 	switch m.screen {
 	case scrDeploy:
 		name = "Deploy"

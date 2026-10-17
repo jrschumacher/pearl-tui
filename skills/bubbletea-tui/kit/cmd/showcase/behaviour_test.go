@@ -382,3 +382,28 @@ func TestBreakpoints(t *testing.T) {
 		}
 	}
 }
+
+// The palette's list scrolls: on a short terminal the selection stays on screen as it
+// moves past the rows the list has (ui.Follow), and comes back when it moves up.
+func TestPaletteScrollsToSelection(t *testing.T) {
+	m := fixture(t, "palette")
+	m.query = ""
+	last := commands[len(commands)-1].Title
+	first := commands[0].Title
+	frame := func() string { return strings.ToLower(ansi.Strip(m.render(60, 18).String())) }
+	if strings.Contains(frame(), strings.ToLower(last)) {
+		t.Skipf("every command fits at 60x18: nothing to scroll")
+	}
+	for range len(commands) - 1 {
+		m.key(press("down"))
+	}
+	if f := frame(); !strings.Contains(f, strings.ToLower(last)) {
+		t.Fatalf("the selected last command is off screen:\n%s", f)
+	}
+	for range len(commands) - 1 {
+		m.key(press("up"))
+	}
+	if f := frame(); !strings.Contains(f, strings.ToLower(first)) {
+		t.Fatalf("the selected first command is off screen after scrolling back:\n%s", f)
+	}
+}

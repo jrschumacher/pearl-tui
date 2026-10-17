@@ -158,17 +158,28 @@ type File struct {
 	ANSI16 map[string]map[string]int `json:"ansi16,omitempty"`
 }
 
-// Load reads a theme file. Every role colour must be "#RGB" or "#RRGGBB" (see
-// CheckHex), or empty to be derived: Lip Gloss draws anything else as a different
-// colour or none, so a theme that would render wrong fails here instead.
+// Load reads a theme file: Parse on its bytes, errors named by the path.
 func Load(path string) (File, error) {
-	var f File
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return f, err
+		return File{}, err
 	}
-	if err := json.Unmarshal(b, &f); err != nil {
+	f, err := Parse(b)
+	if err != nil {
 		return f, fmt.Errorf("%s: %w", path, err)
+	}
+	return f, nil
+}
+
+// Parse reads a theme from its JSON, as Load does from a file: for a theme the binary
+// carries (go:embed, see themes/embed.go) or one fetched at run time. Every role colour
+// must be "#RGB" or "#RRGGBB" (see CheckHex), or empty to be derived: Lip Gloss draws
+// anything else as a different colour or none, so a theme that would render wrong fails
+// here instead.
+func Parse(b []byte) (File, error) {
+	var f File
+	if err := json.Unmarshal(b, &f); err != nil {
+		return f, err
 	}
 	modes := make([]string, 0, len(f.Roles))
 	for m := range f.Roles {
@@ -177,11 +188,11 @@ func Load(path string) (File, error) {
 	sort.Strings(modes)
 	for _, m := range modes {
 		if err := f.Roles[m].check(); err != nil {
-			return f, fmt.Errorf("%s: roles.%s.%w", path, m, err)
+			return f, fmt.Errorf("roles.%s.%w", m, err)
 		}
 	}
 	if err := CheckANSI16(f); err != nil {
-		return f, fmt.Errorf("%s: %w", path, err)
+		return f, err
 	}
 	return f, nil
 }
