@@ -15,7 +15,7 @@ screenshot.
             NO_COLOR=1 go run ./cmd/<app> -out frames/nocolor
             go run ./cmd/<app> -out frames/ascii -profile ascii -ascii
 2. GOLDEN   go run ./cmd/<app> -golden -w 80 -h 24 && … -w 120 -h 40      (exit 0 or stop)
-            go test ./...                                                 (footprint at 4 sizes × themes)
+            go test ./...                                                 (footprint at the kit's 5 sizes × themes)
 3. LINT     tuilint frames frames frames/256 frames/16 frames/nocolor --theme themes/<brand>.json --bg <bg>
             tuilint frames frames/ascii --ascii --theme themes/<brand>.json --bg <bg>
             tuilint frames frames/light --theme themes/<brand>.json --bg <light bg>
@@ -24,10 +24,14 @@ screenshot.
             --ascii fails any glyph that leaked into an ASCII frame [F-ASCII])
             tuilint code .
             tuilint spec TUI.md                                           (after any key-table change)
-4. LOOK     cellshot frames/<state>-80x24.ansi … --sheet sheet-80.png
-            cellshot frames/<state>-120x40.ansi … --sheet sheet-120.png --cell 8x16
+4. LOOK     cellshot frames/*-80x24.ansi frames/toosmall-*.ansi --sheet sheet-80.png
+            cellshot frames/*-120x40.ansi --sheet sheet-120.png --cell 8x16
+            cellshot frames/light/*-80x24.ansi --sheet sheet-light.png --light
+            cellshot frames/ascii/*-80x24.ansi --sheet sheet-ascii.png
+            (globs, not a state list: toosmall renders at its own size, 50x14, and a
+            named list drops it)
             → Read the PNGs. Run the slop test (anti-patterns.md) on each.
-5. CRITIQUE spawn a critic subagent (below) with the PNGs, goldens, brand read and code
+5. CRITIQUE spawn a critic subagent (below) with the PNGs, goldens, TUI.md and code
 6. FIX      one change per defect; re-run 1–4; resume the SAME critic for round 2
 ```
 
@@ -60,7 +64,9 @@ room. That's the critic's job, and yours.
 ## The Critic
 
 Spawn a fresh subagent. It has not seen your reasoning, so it judges the screen, not the
-intent. Give it the files, not a description.
+intent. Give it the files, not a description. No subagent tool: re-read only the PNGs
+and goldens (not your code) in a fresh message with the prompt below, and say so in the
+hand-off, because a self-review that has the code in context grades the intent.
 
 ```
 You are reviewing a terminal UI built with Bubble Tea. Be adversarial: your job is to
@@ -71,23 +77,26 @@ Files:
   - sheet-80.png, sheet-120.png: every state at 80×24 and 120×40 (honest renders)
   - sheet-light.png, sheet-ascii.png: the light role set; ASCII glyphs with no colour
   - golden-80x24.txt: the plain-text frames
-  - <brand>.read.md and themes/<brand>.json: what the brand is supposed to be
+  - TUI.md (§ Brand read, § Never, § Screens) and themes/<brand>.json: what the brand
+    and the screens are supposed to be
   - the app's render code: <paths>
-Rubric (score each 0–4, cite rows/cells, not impressions):
+Rubric (score each 0–4, cite rows/cells, not impressions; 0 = a default or a break,
+2 = works but surprises, 4 = designed):
   1. Identity: with colour stripped, is it recognisably this brand? Is the read's
      "remember" line visible? Any default (pink-purple, emoji, figlet, Loading...)?
   2. Hierarchy: 3–4 text levels used correctly; what the eye lands on first is what
      matters most; one alert at most.
   3. Focus and flow: exactly one visible focus; where am I, what can I do, how do I go
-     back; help keys match what the screen actually does (read the code for this).
-  4. Layout: budgets respected; 80×24 and 120×40 are the same design; room used, not
-     stretched; nothing touching edges; no box soup.
-  5. States: empty, loading, error, too-small all designed; copy says what happened and
-     what to do.
+     back; help keys match what the screen actually does in this state (read the code;
+     a toggle's label names the next state).
+  4. Layout: budgets respected; 80×24, 120×40 and 200×60 are the same design; room
+     used, not stretched; nothing touching edges; no box soup.
+  5. States: empty, loading, error, partial, too-small all designed; copy says what
+     happened and what to do.
   6. Terminal craft: NO_COLOR and ASCII still readable; light set reviewed; no holes in
      filled bars; nothing animates while idle.
 Output:
-  - verdict first: SHIP / FIX / RETHINK, and a total out of 24
+  - verdict first: SHIP (20+) / FIX (14–19) / RETHINK (below 14), and a total out of 24
   - ≤ 10 defects ranked P0 (broken) → P3 (polish), each with the state, the cells, why,
     and the fix in renderer terms (which component, which theme key)
   - the one change that would help most

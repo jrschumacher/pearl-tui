@@ -7,17 +7,18 @@ every colour (`kit/themes/*.json`), and `theme.Resolve` turns it into styles. If
 needs a colour the roles can't express, add a role to the contract. Do not reach for a
 literal.
 
-| Role | Job | Floor (WCAG vs its bg) |
+| Role | Job | Floor (WCAG vs its bg; `palette check`'s, see `palette -h`) |
 |---|---|---|
 | `primary` | the brand hue: focus bar, selection, current, header motif | 3.5 as text |
 | `secondary` | second voice: primary button fill, gradient end | 3.0 |
 | `tertiary` | prompts and carets | 4.5 |
 | `accent` | section titles: reads "heading", never "alert" | 4.5 |
-| `bg › bgPanel › bgSubtle › bgOverlay` | the background ramp | border/bgSubtle 1.15–1.9 |
-| `fg › fgSoft › fgMuted › fgSubtle` | the text ramp | 7 › 8 › 4.5 › 2.6 |
-| `border` | rules: barely there, but there | 1.15–1.9 |
-| `success error warning info` | state only | 3.5 |
-| `onPrimary onSecondary onError…` | text on a filled role | 4.5 |
+| `bg › bgPanel › bgSubtle › bgOverlay` | the background ramp | bgSubtle 1.1–2.2 |
+| `fg › fgSoft › fgMuted › fgSubtle` | the text ramp | 7 › (unchecked) › 4.5 › 2.6; on bgSubtle fg 4.5, fgMuted 3.0 |
+| `border` / `borderFocus` | rules: barely there, but there / the one dialog's border | 1.14–1.9 / unchecked |
+| `success error warning` / `info` | state only | 3.5 / 3.0 |
+| `onPrimary onWarning` / `onSecondary onError onSuccess` | text on a filled role | 4.5 / 3.5 |
+| `fgSelected` | text on the primary selection fill | 3.5 (not under `focus: fg`) |
 
 ## Derive The Palette From The Brand, Then Check It
 
@@ -134,19 +135,12 @@ and look at the PNGs. What usually breaks:
   "ansi16": { "dark": { "primary": 11 }, "light": { "primary": 3 } }
   ```
 
-  `palette check` names each problem and the pin that fixes it (stderr). Red is error's:
-
-  | at 16 colours | `palette check` |
-  |---|---|
-  | error off red (not 1 or 9): a grey error beside a red warning reads reversed | fails (exit 1) |
-  | under `focus: fg`, primary on red or on another state role's colour | fails (exit 1) |
-  | under `focus: primary`, primary on red: focus and selection read as errors | warns |
-  | warning, success or info on red, or two of them on one colour | warns |
-
-  A warning is not a pass to ignore: the glyph and word still tell the states apart, but
-  pin it unless the brand accepts it in its read. Pin bright (9-14) on dark, normal (1-6)
-  on light, error to 9/1, a status role to its own slot (warning 3/11, success 2/10, info
-  4/12 or 6/14), never a grey; the user's terminal palette decides the exact colour.
+  `palette check` names each clash and the pin that fixes it (stderr): it fails error
+  off red and, under `focus: fg`, primary on red or on another state's colour, and warns
+  on the rest (`palette -h` lists them). A warning is not a pass to ignore: pin it unless
+  the brand accepts it in its read. Pin bright (9-14) on dark, normal (1-6) on light,
+  error to 9/1, a status role to its own slot (warning 3/11, success 2/10, info 4/12 or
+  6/14), never a grey; the user's terminal palette decides the exact colour.
 
 ## DO / DON'T
 

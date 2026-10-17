@@ -43,7 +43,10 @@ func constString(t *testing.T, src, name string) string {
 // copy of a flag list: when a flag is renamed in a tool, this changes with it.
 func specs(t *testing.T) map[string]cmddoc.Spec {
 	t.Helper()
-	free := func(doc string) map[string][]string { return cmddoc.Free(cmddoc.FlagsIn(doc)) }
+	// every tool and mode takes -h/--help, whether or not its doc spells it out
+	free := func(doc string) map[string][]string {
+		return cmddoc.Free(append(cmddoc.FlagsIn(doc), "-h", "--help"))
+	}
 	lint := cmddoc.Text(read(t, "tools/cmd/tuilint/main.go"))
 	frames := constString(t, read(t, "tools/internal/framelint/framelint.go"), "usage")
 	code := constString(t, read(t, "tools/internal/codelint/codelint.go"), "usage")
@@ -68,7 +71,7 @@ func specs(t *testing.T) map[string]cmddoc.Spec {
 			Modes: []string{"frames", "code", "spec", "hook", "help"},
 			Flags: free(lint),
 			ModeFlags: map[string]map[string][]string{
-				"frames": free(frames), "code": free(code), "spec": free(spec), "hook": {}, "help": {},
+				"frames": free(frames), "code": free(code), "spec": free(spec), "hook": free(""), "help": free(""),
 			},
 		},
 		"tuivet":        {Flags: vet},
@@ -86,13 +89,10 @@ func tools(s map[string]cmddoc.Spec) []string {
 	return out
 }
 
-// known lists invocations the prose gets wrong on purpose or that another change fixes:
-// file, then a substring of the span. Remove an entry when its line is fixed.
-var known = map[string]string{
-	// cell-art.md names a wordmark style the script never had; fixed in the skill-text
-	// round-2 PR, so this entry goes when that merges.
-	"references/cell-art.md": "--style blocks|",
-}
+// known lists invocations the prose gets wrong on purpose, or that another change in
+// flight fixes: file, then a substring of the span. Remove an entry when its line is
+// fixed; empty means every invocation must pass.
+var known = map[string]string{}
 
 // TestProseInvocations holds every tool command written in SKILL.md, references/, the
 // README and AGENTS.md to the tools as they are: a mode word the tool has, flags its -h

@@ -26,7 +26,7 @@ to all three. A half-applied idiom reads as noise.
 1. **Read `TUI.md`.** If it exists at the project root, read it: the design half holds
    the brand read, the theme and the screens; the architecture half holds the stack, the
    regions, the forms library, the states and the keys per state. If it doesn't exist,
-   run `init` first (or, for a one-off screen, its short form in
+   suggest `init` (or, for a one-off screen, run its short form in
    `references/cmd-init.md`: 2–3 questions, then say what you assumed).
 2. **Load the command's reference** from the table below, plus the domain references it
    names. Load nothing else up front.
@@ -41,9 +41,9 @@ to all three. A half-applied idiom reads as noise.
    `frames/` and `out/`). A per-project directory because two projects can hold two
    versions of the skill, and a shared `$HOME/.cache` lets one overwrite the other's
    `tuilint` with nothing to show which rules you are linting with. That gives
-   `cellshot`, `tuilint`, `palette`, `diversity` and `tuivet`. The modules need
-   Go ≥ 1.26.7; if `go` says "requires go >= 1.26.7", prefix the command with
-   `GOTOOLCHAIN=auto` and Go fetches it.
+   `cellshot`, `tuilint`, `palette`, `diversity` and `tuivet`. The kit's and the
+   tools' `go.mod` pin Go 1.26.7; if `go` says "requires go >= 1.26.7", prefix the
+   command with `GOTOOLCHAIN=auto` and Go fetches it.
 5. **Never show the user anything you haven't rendered and looked at** with
    `cellshot`. Never ask them for a screenshot.
 
@@ -113,7 +113,8 @@ signals, or holes in filled bars.
 ### Components → *Consult `references/components.md`*
 **DO** copy `kit/ui`: Header, Tabs, Section, List, Table, KV, Dialog + Overlay, Button,
 Tag, Alert, Toast, Footer/Help, ToolCall, Thinking, Progress, Sparkline, Tree, Empty,
-TooSmall.
+TooSmall; for wizards and status, Steps, Summary, Form/Confirm, Dot/Busy, Anim, Field,
+Canvas.
 **DON'T** leave a bare "No items", focus the destructive button, or let a blurred list
 lose its selection.
 
@@ -166,9 +167,11 @@ Would someone who lives in a terminal look at this and say "a model made this"? 
 ## Commands
 
 The user may name a command (`/bubbletea-tui critique`, or your agent's equivalent), or
-you route from intent. Load
-the reference, follow it, and hand off to the next command when it says so. Never
-auto-run a command the user didn't ask for; suggest it.
+you route from intent. Load the reference, follow it, and hand off to the next command
+when it says so. Never auto-run a command the user didn't ask for; suggest it. The one
+exception: when `TUI.md` is missing and the job is one screen, run `init`'s short form
+(`references/cmd-init.md`); otherwise suggest `init`, because a build with no plan
+invents its regions and keys screen by screen.
 
 | Command | Use when | Reference |
 |---|---|---|
@@ -194,7 +197,7 @@ checking in with the user after `shape`. An existing app: `init` → `restyle`.
 | Tool | Does |
 |---|---|
 | `cellshot` | ANSI → PNG/GIF/contact sheet, drawn like a modern terminal; reports tofu, emoji, uneven rows |
-| `tuilint` | `frames`: width, emoji, default palette, off-palette, contrast, boxes, rainbow, levels… `code`: len(), blocking, hex, emoji, v1, resize, ticks, Print, keys. `spec`: TUI.md's keys (indistinguishable, duplicated, eaten by a text box) and ambiguous-width glyphs |
+| `tuilint` | `frames`: width, emoji, default palette, off-palette, contrast, boxes, rainbow, levels, ASCII leaks… `code`: len(), blocking, hex, emoji, v1, resize, ticks, Print, keys, a Huh form or spinner on its default theme, no NO_COLOR/profile handling. `spec`: TUI.md's keys (indistinguishable, duplicated, eaten by a text box), ambiguous-width glyphs, a footer that doesn't fit 80 columns |
 | `palette` | `derive` a dark+light role set from brand hexes (OKLCH, tinted neutrals, contrast-tuned); `check` a theme |
 | `diversity` | how different are these themes from each other and from the default |
 | `scripts/wordmark.py` | the brand name in cells, from a real font: half / shade / ascii / tracked |
