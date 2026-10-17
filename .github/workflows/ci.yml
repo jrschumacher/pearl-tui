@@ -78,10 +78,11 @@ jobs:
           cache-dependency-path: |
             skills/bubbletea-tui/kit/go.sum
             skills/bubbletea-tui/tools/go.sum
+      # Setup step 4's command: a per-checkout .tuitools/ (gitignored)
       - name: build the tools
         run: |
-          go -C skills/bubbletea-tui/tools build -o "$RUNNER_TEMP/tuitools/" ./cmd/...
-          echo "$RUNNER_TEMP/tuitools" >> "$GITHUB_PATH"
+          go -C skills/bubbletea-tui/tools build -o "$GITHUB_WORKSPACE/.tuitools/" ./cmd/...
+          echo "$GITHUB_WORKSPACE/.tuitools" >> "$GITHUB_PATH"
       - name: code lint
         run: tuilint code skills/bubbletea-tui/kit
       - name: palettes and diversity
@@ -140,6 +141,17 @@ jobs:
             python3 -m py_compile "$s"
             python3 "$s" --help > /dev/null
           done
+      # --help proves the argparse block; one real run each proves the sampling still
+      # works on a real logo and a real font (the runner has DejaVu).
+      - name: one real run of each script on the quarry fixture
+        run: |
+          cd "$RUNNER_TEMP"
+          python3 "$GITHUB_WORKSPACE/skills/bubbletea-tui/scripts/logo2cells.py" \
+            "$GITHUB_WORKSPACE/evals/fixtures/quarry/logo.png" --cols 40 --mode half --out quarry | tee logo.out
+          test -s quarry.txt && test -s quarry.ansi
+          test "$(awk 'length($0) > 0' quarry.txt | wc -l)" -ge 8
+          python3 "$GITHUB_WORKSPACE/skills/bubbletea-tui/scripts/wordmark.py" quarry --style half --rows 4 | tee wordmark.out
+          test "$(grep -c '[^[:space:]]' wordmark.out)" -ge 4
 
   plugin:
     name: Claude Code plugin (manifests + lint hook)
@@ -155,6 +167,9 @@ jobs:
           for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json hooks/hooks.json; do
             jq empty "$f" || { echo "::error file=$f::not valid JSON"; exit 1; }
           done
+      # the plugin bundles whatever is under skills/: it must be this one skill and nothing else
+      - name: skills/ holds exactly bubbletea-tui
+        run: test "$(ls skills)" = bubbletea-tui
       # the official validator: marketplace, the plugin it lists, and hooks/hooks.json. Not
       # --strict: it warns that the repo's CLAUDE.md (for contributors) isn't plugin context
       - name: claude plugin validate
@@ -177,3 +192,30 @@ jobs:
       - run: skills-ref validate skills/bubbletea-tui
       - name: SKILL.md stays under 500 lines
         run: test "$(wc -l < skills/bubbletea-tui/SKILL.md)" -lt 500
+      # AGENTS.md: a new command needs a row in SKILL.md's command table
+      - name: every references/cmd-*.md has a row in SKILL.md's command table
+        run: |
+          cd skills/bubbletea-tui
+          fail=0
+          for f in references/cmd-*.md; do
+            grep -q "| \`$f\` |" SKILL.md || { echo "::error file=$f::no row in SKILL.md's command table"; fail=1; }
+          done
+          exit $fail
+      # evals/ lives outside the skill (installs must not ship it); keep it parsing and
+      # its fixtures present, and the skill name tied to the frontmatter
+      - name: evals.json parses, names this skill, and every fixture exists
+        run: |
+          jq -e '.skill_name=="bubbletea-tui"' evals/evals.json
+          jq -e '[.evals[].id] | length == (unique | length)' evals/evals.json
+          jq -e 'all(.evals[]; has("assertions") and (.assertions | length > 0))' evals/evals.json
+          jq -r '.evals[].files[]' evals/evals.json | sort -u | while read -r f; do
+            test -f "$f" || { echo "::error file=evals/evals.json::fixture missing: $f"; exit 1; }
+          done
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: skills/bubbletea-tui/kit/go.mod
+      - name: every Go fixture is its own module and vets
+        run: |
+          for m in evals/fixtures/*/go.mod; do
+            go -C "$(dirname "$m")" vet ./...
+          done
