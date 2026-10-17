@@ -12,7 +12,8 @@ ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                             Follow (scroll-into-view), Fuzzy (subsequence match with indices)
                 ladder.go   Mark (a status rung in its role), Rungs (the theme's ladder, or the kit's),
                             Ladder (the legend the ladder state draws)
-                dialog.go   DialogTitle, Dialog (on bgPanel), Popover (on bgOverlay), Canvas.Overlay/Popover
+                dialog.go   DialogTitle, Dialog (on bgPanel, at most h rows), DialogScrolled, Popover (on
+                            bgOverlay), Clip (a scrolled body with its "more" rows), Canvas.Overlay/Popover
                 chat.go     Gutter, UserMessage, AssistantMessage, ToolCall, Thinking, TurnFooter, Tree
                 anim.go     FrameInterval, Anim (brand spinner or the Crush scramble), Spinner,
                             Busy (the one-cell working mark for a status column)

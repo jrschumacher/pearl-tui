@@ -57,6 +57,10 @@ collapses to one summary line under the list.
   fill), or `rules`, the editorial one: a filled panel between two hairline rules
   (`── Send reply ──────`), a one-cell margin inside, no sides, the title in the top rule.
   Its edge is glyphs, so it holds in every profile.
+- `ui.Dialog(t, w, h, …)` takes the rows it may use (the showcase passes those between
+  the tabs and a row of air above the footer) and scrolls its body when it doesn't fit
+  (`ui.Clip`: `↑ n more` above, `… n more` below; `DialogScrolled` for a screen with an
+  offset, `DialogBodyRows` and `ClipMax` to clamp it), so no dialog reaches the footer.
 - Palette: a prompt input with a caret, then a fixed-height list (it doesn't jump while
   typing), with fuzzy matches underlined and shortcuts right-aligned.
 - Only the front dialog takes input. `esc` closes it. The scrim dims the rest.

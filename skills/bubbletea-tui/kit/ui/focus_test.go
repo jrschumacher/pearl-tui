@@ -92,7 +92,7 @@ func TestFocusFgKeepsPrimaryOffChrome(t *testing.T) {
 					"spinner":          Spinner(th, 0),
 					"progress":         Progress(th, 0.5, 20),
 					"user turn":        strings.Join(UserMessage(th, "summarise this", 40, false), "\n"),
-					"dialog":           Dialog(th, 40, "Unsubscribe?", []string{"You can come back."}, "", ""),
+					"dialog":           Dialog(th, 40, 0, "Unsubscribe?", []string{"You can come back."}, "", ""),
 					"huh selector":     huh.SelectSelector.Render() + huh.SelectedPrefix.Render() + huh.NextIndicator.Render(),
 					"huh focus border": huh.Base.Render("field"),
 					"huh prompt":       huh.TextInput.Prompt.Render("›") + huh.TextInput.Cursor.Render(" "),

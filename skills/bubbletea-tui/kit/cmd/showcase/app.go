@@ -8,6 +8,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/colorprofile"
+	uv "github.com/charmbracelet/ultraviolet"
 
 	"tuikit/theme"
 	"tuikit/ui"
@@ -67,6 +68,9 @@ type app struct {
 	palOff int // the list's scroll offset (ui.Follow keeps palSel on screen)
 	// confirm
 	btn int // 0 = the action, 1 = cancel (the default)
+	// help: the dialog's body scrolls when the screen's keys don't fit (ui.Clip)
+	helpOff int
+	ovRect  uv.Rectangle // where the last overlay was drawn (tests hold it above the footer)
 	// deploy form
 	focus    int // 0 env, 1 version, 2 strategy, 3 checks, 4 buttons
 	env      int
@@ -335,8 +339,18 @@ func (m *app) actions() []action {
 
 	switch m.ov {
 	case ovHelp:
-		return []action{esc("close", func(m *app) { m.ov = ovNone }),
-			{bind([]string{"?", "ctrl+g"}, "?", "close"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.ov = ovNone; return nil }}}
+		// the body scrolls only when it overflows, and the footer says so only then
+		rows, shown := len(m.helpBody()), m.helpRows()
+		return []action{esc("close", func(m *app) { m.ov = ovNone; m.helpOff = 0 }),
+			{bind([]string{"up", "k", "down", "j"}, m.t.G.UpDown, "scroll"), rows > shown, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
+				if msg.String() == "up" || msg.String() == "k" {
+					m.helpOff = max(0, m.helpOff-1)
+				} else {
+					m.helpOff = min(ui.ClipMax(rows, shown), m.helpOff+1)
+				}
+				return nil
+			}},
+			{bind([]string{"?", "ctrl+g"}, "?", "close"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.ov = ovNone; m.helpOff = 0; return nil }}}
 	case ovPalette:
 		return []action{
 			{bind([]string{"enter"}, "enter", "run"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return m.runCommand() }},

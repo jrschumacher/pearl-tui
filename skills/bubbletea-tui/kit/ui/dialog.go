@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image/color"
+	"strconv"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -48,24 +49,51 @@ func DialogTitle(t *theme.Theme, title string, w int, info string) string {
 }
 
 // Dialog is the one boxed element: title, body rows, an optional button row
-// and a help line, inside the theme's dialog border. w is the outer width.
-// Under expressions.dialog "rules" the box is a filled panel between two rules,
-// the title set in the top one:
+// and a help line, inside the theme's dialog border. w is the outer width; h is the
+// height the dialog may take (0: no limit): pass the rows between the header and the
+// footer, and a body that doesn't fit is cut to them with Clip (a "… n more" row at
+// the bottom), so no dialog runs under the footer. A screen that scrolls the body
+// draws DialogScrolled. Under expressions.dialog "rules" the box is a filled panel
+// between two rules, the title set in the top one:
 //
 //	── Roll back checkout-api? ─────────────
 //	 body…
 //	────────────────────────────────────────
-func Dialog(t *theme.Theme, w int, title string, body []string, buttons string, help string) string {
-	return dialog(t, t.S.Dialog, t.P.BgPanel, w, title, body, buttons, help)
+func Dialog(t *theme.Theme, w, h int, title string, body []string, buttons string, help string) string {
+	return DialogScrolled(t, w, h, title, body, 0, buttons, help)
+}
+
+// DialogScrolled is Dialog with its body scrolled off rows when the body doesn't fit
+// in h (Clip: an "↑ n more" row above, a "… n more" row below). ClipMax(len(body),
+// DialogBodyRows(t, h, …)) is the last offset that still shows a row.
+func DialogScrolled(t *theme.Theme, w, h int, title string, body []string, off int, buttons string, help string) string {
+	return dialog(t, t.S.Dialog, t.P.BgPanel, w, h, title, body, off, buttons, help)
 }
 
 // Popover is a Dialog on bgOverlay, the ramp's step for what pops over the page: a
 // command palette, completions. Draw it with Canvas.Popover.
-func Popover(t *theme.Theme, w int, title string, body []string, buttons string, help string) string {
-	return dialog(t, t.S.Popover, t.P.BgOverlay, w, title, body, buttons, help)
+func Popover(t *theme.Theme, w, h int, title string, body []string, buttons string, help string) string {
+	return dialog(t, t.S.Popover, t.P.BgOverlay, w, h, title, body, 0, buttons, help)
 }
 
-func dialog(t *theme.Theme, st lipgloss.Style, fill color.Color, w int, title string, body []string, buttons string, help string) string {
+// DialogBodyRows is how many body rows a Dialog h rows tall shows: h less the rows its
+// frame takes (edge, padding, the title block, the button row and the help line when
+// set). A screen with scroll state clamps its offset with ClipMax against it.
+func DialogBodyRows(t *theme.Theme, h int, title, buttons, help string) int {
+	return h - dialogFrame(t, t.S.Dialog, t.P.BgPanel, 20, title, buttons, help)
+}
+
+// dialogFrame is the rows a dialog takes beyond its body.
+func dialogFrame(t *theme.Theme, st lipgloss.Style, fill color.Color, w int, title, buttons, help string) int {
+	return lipgloss.Height(dialog(t, st, fill, w, 0, title, []string{""}, 0, buttons, help)) - 1
+}
+
+func dialog(t *theme.Theme, st lipgloss.Style, fill color.Color, w, h int, title string, body []string, off int, buttons string, help string) string {
+	if h > 0 {
+		if avail := h - dialogFrame(t, st, fill, w, title, buttons, help); len(body) > avail {
+			body = Clip(t, body, avail, off)
+		}
+	}
 	inner := w - st.GetHorizontalFrameSize()
 	var rows []string
 	if t.X.Dialog != "rules" {
@@ -89,6 +117,47 @@ func dialog(t *theme.Theme, st lipgloss.Style, fill color.Color, w int, title st
 		return lipgloss.NewStyle().Margin(st.GetMargin()).MarginBackground(t.P.Bg).Render(panel)
 	}
 	return st.Render(block)
+}
+
+// Clip cuts rows to h: all of them when they fit, else the rows from off on, under an
+// "↑ off more" row when off > 0 and over a "… n more" row when rows follow, so what is
+// hidden is said in both directions. off is clamped to ClipMax, so the last page still
+// shows a row. The markers are the theme's more and ellipsis glyphs in subtle; on a
+// panel, OnPanel lifts them as it does any hint.
+func Clip(t *theme.Theme, rows []string, h, off int) []string {
+	if len(rows) <= h {
+		return rows
+	}
+	if h <= 0 {
+		return nil
+	}
+	off = max(0, min(off, ClipMax(len(rows), h)))
+	n := h
+	var out []string
+	if off > 0 {
+		out = append(out, t.S.Subtle.Render(t.G.More+" "+strconv.Itoa(off)+" more"))
+		n--
+	}
+	rest := rows[off:]
+	below := 0
+	if len(rest) > n {
+		n--
+		below = len(rest) - n
+		rest = rest[:n]
+	}
+	out = append(out, rest...)
+	if below > 0 {
+		out = append(out, t.S.Subtle.Render(t.G.Ellipsis+" "+strconv.Itoa(below)+" more"))
+	}
+	return out
+}
+
+// ClipMax is the largest offset Clip shows a row at for n rows in h: 0 when they fit.
+func ClipMax(n, h int) int {
+	if n <= h {
+		return 0
+	}
+	return max(0, n-(h-1))
 }
 
 // dialogRules are a rules dialog's top and bottom edges, w cells each: the theme's
