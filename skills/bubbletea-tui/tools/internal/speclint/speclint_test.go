@@ -85,6 +85,10 @@ func TestRules(t *testing.T) {
 		// S-KEYDUP
 		{"dup in a state", table("| list | list | esc back · esc clear |", ""), map[string]int{"S-KEYDUP": 1}},
 		{"dup across alternatives", table("| list | list | ↑↓/jk move · k kill |", ""), map[string]int{"S-KEYDUP": 1}},
+		{"a modified arrow pair is two keys", table("| chat | chat | **↑↓ line** · **shift+↑↓ message** |", ""), nil},
+		{"the modifier holds across alternatives", table("| chat | chat | ↑/↓ line · shift+↑/↓ by message |", ""), nil},
+		{"a modified pair still duplicates", table("| chat | chat | shift+↑↓ message · shift+↓ jump |", ""), map[string]int{"S-KEYDUP": 1}},
+		{"a modifier stays off a character", table("| list | list | **ctrl+c/q quit** · **q queue** |", ""), map[string]int{"S-KEYDUP": 1}},
 		{"a state overrides a Global key", table("| list | list | ctrl+k kill line |", "ctrl+k switch"), nil},
 		{"overrides of esc, ? and ctrl+c", table("| confirm | overlay | enter confirm · esc cancel |\n| help | overlay | ? close · esc close |\n| creating | wizard | ctrl+c cancel |", "esc back · ? help · ctrl+c quit"), nil},
 		{"one cell, two actions", table("| status | status | c commit · c comment |", ""), map[string]int{"S-KEYDUP": 1}},
@@ -268,6 +272,12 @@ func TestParseToken(t *testing.T) {
 		"↑↓/jk": "up down j k", "shift+enter/ctrl+j": "shift+enter ctrl+j", "/": "/", "ctrl+/": "ctrl+/",
 		"?": "?", "g/G": "g G", "pgup/pgdn": "pgup pgdown", "⏎": "enter", "Ctrl+Shift+K": "ctrl+shift+k",
 		"^C": "ctrl+c", "shift+a": "A", "Esc": "esc", "opt+enter": "alt+enter", "←→": "left right", "tab/shift+tab": "tab shift+tab",
+		// a modifier on an arrow pair holds for each arrow, and carries to a later bare arrow
+		"shift+↑↓": "shift+up shift+down", "shift+↑/↓": "shift+up shift+down", "ctrl+←→": "ctrl+left ctrl+right",
+		"alt+↑↓/←→": "alt+up alt+down alt+left alt+right",
+		// never onto a character or a named key: "ctrl+c/q" is ctrl+c or q
+		"ctrl+c/q": "ctrl+c q", "ctrl+d/f/t": "ctrl+d f t", "shift+a/b": "A b",
+		"ctrl+c/esc": "ctrl+c esc", "ctrl+n/ctrl+p": "ctrl+n ctrl+p", "ctrl+j/↑": "ctrl+j up",
 	}
 	for in, want := range cases {
 		var got []string
@@ -542,5 +552,95 @@ func TestAccentDrift(t *testing.T) {
 		if n := rules(Lint("TUI.md", doc))["S-ACCENT"]; n != 0 {
 			t.Errorf("%s: %d S-ACCENT, want 0:\n%s", name, n, dump(Lint("TUI.md", doc)))
 		}
+	}
+}
+
+// S-GOLDEN: with --frames, each state's footer in <state>-80x24.ansi against its row.
+// The recreate run's empty table advertised its row keys (`↑↓/jk move · enter edit`)
+// while TUI.md's empty row said `a add · esc back`, and TestHelpIsHandled passed.
+// A footer hint is a key drawn in another style than its action, as ui.Help draws it,
+// so status text on the row is not one; ASCII twins (^v, <>) read as their arrows; a
+// row of only a toast compares nothing; a … means Help dropped the rest; a badge drawn
+// one blank before the first hint ("[PROD] enter next field") is not part of it.
+func TestGoldenFooters(t *testing.T) {
+	key, desc, off := "\x1b[1;38;2;230;230;230m", "\x1b[22;38;2;140;140;140m", "\x1b[0m"
+	footer := func(hints ...string) string { // each "key action", drawn as ui.Help does
+		var b strings.Builder
+		b.WriteString("  ")
+		for i, h := range hints {
+			if i > 0 {
+				b.WriteString("  ")
+			}
+			k, d, _ := strings.Cut(h, " ")
+			b.WriteString(key + k + off + " " + desc + d + off)
+		}
+		return b.String()
+	}
+	doc := table(strings.Join([]string{
+		"| list | list | **↑↓/jk move** · **enter open** · **a add** · **? help** · d delete |",
+		"| list-empty | list | **a add** · **esc back** · **? help** |",
+		"| list-busy | list | as list; **x cancel** |",
+		"| list-toast | list | **a add** · **? help** |",
+		"| confirm | overlay | ←→ choose · enter confirm · esc cancel |",
+		"| form | form | enter next field · esc back ‖ tab/shift+tab field |",
+	}, "\n"), "ctrl+c quit")
+	cases := []struct {
+		name, frame string
+		want        []string // substrings of the finding for this state; none when empty
+	}{
+		{"list", footer("↑↓/jk move", "enter open", "a add", "? help") + "  " + desc + "5 rows" + off, nil},
+		{"list-empty", footer("↑↓/jk move", "enter open", "a add", "esc back", "? help"), []string{"shows `↑↓/jk move`, `enter open`, which the row doesn't bind"}},
+		{"list-busy", footer("↑↓/jk move", "enter open", "x cancel", "…", "? help"), nil},
+		{"list-toast", "  " + desc + "copied 6 lines" + off, nil},
+		{"confirm", footer("<> choose", "enter confirm"), []string{"lacks `esc cancel`, which the row puts in the footer"}},
+		// a badge one blank before the first hint, in its own style, is not part of it
+		{"form", "  \x1b[1;38;2;207;162;78m[PROD]" + off + " " + strings.TrimPrefix(footer("enter next field", "esc back"), "  "), nil},
+	}
+	dir := t.TempDir()
+	for _, c := range cases {
+		frame := strings.Repeat("\n", 23) + c.frame + "\n"
+		if err := os.WriteFile(filepath.Join(dir, c.name+"-80x24.ansi"), []byte(frame), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got := map[string]string{}
+	for _, f := range LintFrames("TUI.md", doc, dir) {
+		if f.Rule == "S-GOLDEN" {
+			if f.Sev != "P2" {
+				t.Errorf("S-GOLDEN is %s, want P2", f.Sev)
+			}
+			state, _, _ := strings.Cut(f.Msg, ":")
+			got[state] = f.Msg
+		}
+	}
+	for _, c := range cases {
+		msg, ok := got[c.name]
+		if len(c.want) == 0 && ok {
+			t.Errorf("%s: %s, want no finding", c.name, msg)
+		}
+		if len(c.want) > 0 && !ok {
+			t.Errorf("%s: no finding, want %q", c.name, c.want)
+		}
+		for _, w := range c.want {
+			if ok && !strings.Contains(msg, w) {
+				t.Errorf("%s: %s, want %q", c.name, msg, w)
+			}
+		}
+	}
+	// without --frames nothing is compared, and --frames must name a directory
+	if fs := Lint("TUI.md", doc); rules(fs)["S-GOLDEN"] != 0 {
+		t.Errorf("Lint without frames: %v", rules(fs))
+	}
+	var out, errb bytes.Buffer
+	tui := filepath.Join(dir, "TUI.md")
+	if err := os.WriteFile(tui, []byte(doc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code := Main([]string{tui, "--frames", filepath.Join(dir, "list-80x24.ansi")}, &out, &errb); code != 2 {
+		t.Errorf("--frames on a file: exit %d, want 2", code)
+	}
+	out.Reset()
+	if code := Main([]string{tui, "--frames=" + dir}, &out, &errb); code != 0 || !strings.Contains(out.String(), "S-GOLDEN") {
+		t.Errorf("--frames=dir: exit %d\n%s", code, out.String())
 	}
 }

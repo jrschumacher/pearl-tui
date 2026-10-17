@@ -5,11 +5,14 @@ import (
 	"math"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"tuikit/theme"
 )
 
 // Finding is one rule hit. Its JSON shape is tuilint.py's.
@@ -167,6 +170,11 @@ type corner struct {
 
 // LintFrame applies every frame rule to one parsed frame. cols and rows are
 // the expected size (0 = take the widest row, any height); pal may be nil.
+// boldFloor is the fewest text cells F-BOLD judges: under it a few bold labels (a
+// loading frame's section titles, the wordmark, two footer keys) are a third of the
+// text by arithmetic, not a wall of bold. An 80x24 list holds 600 or more.
+const boldFloor = 200
+
 func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB) []Finding {
 	var out []Finding
 	add := func(rule, sev, where, msg string) {
@@ -500,7 +508,7 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 		add("F-LEVELS", "P2", "frame", fmt.Sprintf("only %d neutral text level(s) on a dense frame: use fg / fgMuted / fgSubtle", len(levels)))
 	}
 	splash := splashName.MatchString(name)
-	if textCells > 0 && float64(bold)/float64(textCells) > 0.30 && !splash {
+	if textCells >= boldFloor && float64(bold)/float64(textCells) > 0.30 && !splash {
 		add("F-BOLD", "P2", "frame", fmt.Sprintf("%d%% of text is bold", 100*bold/textCells))
 	}
 	if nonblankRows > 0 && (float64(edgeLeft) > 0.6*float64(nonblankRows) || float64(edgeRight) > 0.6*float64(nonblankRows)) {
@@ -831,9 +839,16 @@ func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii boo
 	f := parseText(text)
 	out := LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
 	out = append(out, LintTab(filepath.Base(path), normText(text))...)
+	ellipses := []string{theme.Ellipsis}
+	if pal != nil && pal.Ellipsis != "" && pal.Ellipsis != theme.Ellipsis {
+		ellipses = append(ellipses, pal.Ellipsis)
+	}
 	if ascii {
 		out = append(out, LintASCII(filepath.Base(path), f)...)
+		twin, _ := theme.ASCIITwin(theme.Ellipsis)
+		ellipses = append(ellipses, twin)
 	}
+	out = append(out, LintTrunc(filepath.Base(path), f, ellipses)...)
 	return out
 }
 
@@ -912,6 +927,156 @@ func LintASCIIQuestion(name string, asc, uni Frame) []Finding {
 	return []Finding{{"F-ASCII", "P1", name, fmt.Sprintf("r%dc%d", at[0], at[1]),
 		fmt.Sprintf("%d cells draw \"?\" where the unicode frame does not (%s): the ASCII sweep has no one-cell twin for them; give a glyph a theme twin, or write the text in ASCII",
 			n, strings.Join(runes, ", "))}}
+}
+
+// truncMax is how many rows of one column may end in an ellipsis before F-TRUNC: a cut
+// or three is a long name; more is a column budgeted narrower than its content.
+const truncMax = 3
+
+// LintTrunc is F-TRUNC: more than truncMax rows whose text ends in an ellipsis (one of
+// ellipses: the kit's …, the theme's glyphs.ellipsis, ASCII's ...) at one column. A
+// sidebar given 32 cells beside a fixture's 34-character title cuts every long row at
+// the same place; the budget comes from the longest fixture (layout.md), so the column
+// is too narrow. An ellipsis ends text when a non-blank cell precedes it and a blank
+// cell, a rule or box glyph, or the row's end follows. One finding per frame, at the
+// column with the most. A table's last column headed path, file, command or url is
+// skipped (unboundedColumn): no budget fits a path, so cutting it is the design.
+func LintTrunc(name string, f Frame, ellipses []string) []Finding {
+	rowsAt := map[int][]int{} // end column -> rows
+	for y, row := range f.Rows {
+		for _, e := range ellipses {
+			glyph := []string{}
+			for _, r := range e {
+				glyph = append(glyph, string(r))
+			}
+			for end := len(glyph) - 1; end < len(row); end++ {
+				start := end - len(glyph) + 1
+				ok := true
+				for i, g := range glyph {
+					if row[start+i].Ch != g {
+						ok = false
+						break
+					}
+				}
+				before := start - 1
+				for before >= 0 && row[before].Ch == "" { // a wide glyph's continuation
+					before--
+				}
+				if !ok || before < 0 || cutsNothing(row[before].Ch) || row[before].Ch == glyph[0] { // a row of dots is a rule
+					continue
+				}
+				if end+1 < len(row) && !cutsNothing(row[end+1].Ch) {
+					continue
+				}
+				if !slices.Contains(rowsAt[end], y) {
+					rowsAt[end] = append(rowsAt[end], y)
+				}
+			}
+		}
+	}
+	best := -1
+	for x, ys := range rowsAt {
+		if best < 0 || len(ys) > len(rowsAt[best]) || (len(ys) == len(rowsAt[best]) && x < best) {
+			best = x
+		}
+	}
+	if best < 0 || len(rowsAt[best]) <= truncMax {
+		return nil
+	}
+	ys := rowsAt[best]
+	slices.Sort(ys)
+	if unboundedColumn(f, ys, best) {
+		return nil
+	}
+	return []Finding{{"F-TRUNC", "P2", name, fmt.Sprintf("r%dc%d", ys[0], best),
+		fmt.Sprintf("%d rows end in an ellipsis at column %d: widen the column from the longest fixture (layout.md), or, when its content has no bound (paths, URLs, code), say in TUI.md § Decisions that this column cuts", len(ys), best)}}
+}
+
+// unboundedHeaders name a column whose content has no length to budget from.
+var unboundedHeaders = map[string]bool{"path": true, "file": true, "command": true, "cmd": true, "url": true, "uri": true}
+
+// headerCount is what may follow a header word in its cell: a count ("files 12",
+// "files (12)") or a separator.
+var headerCount = regexp.MustCompile(`^(?:[(\[]?\d+[)\]]?|·)$`)
+
+// unboundedColumn reports whether the column cut at x on rows ys is a table's last column
+// under a header in unboundedHeaders: nothing follows x on any cut row, and walking up
+// from the first cut through the column's other rows (text starting where the cut rows'
+// text starts, past at most one rule or blank row), the first row that isn't one holds,
+// at that start, a cell that is the header word alone or with a count ("pid  program
+// command"). A heading ("Recent files") or a hint ("press y to Copy path") is not one.
+func unboundedColumn(f Frame, ys []int, x int) bool {
+	for _, y := range ys {
+		for _, c := range f.Rows[y][x+1:] {
+			if !cutsNothing(c.Ch) {
+				return false
+			}
+		}
+	}
+	// the column starts after the last gap of two blank cells left of the cut, the same
+	// on most cut rows
+	starts := map[int]int{}
+	col := -1
+	for _, y := range ys {
+		row, start := f.Rows[y], 0
+		for i := x - 1; i >= 1; i-- {
+			if cutsNothing(row[i].Ch) && cutsNothing(row[i-1].Ch) && row[i].Ch != "" && row[i-1].Ch != "" {
+				start = i + 1
+				break
+			}
+		}
+		starts[start]++
+		if col < 0 || starts[start] > starts[col] {
+			col = start
+		}
+	}
+	gaps := 0
+	for y := ys[0] - 1; y >= 0; y-- {
+		row := f.Rows[y]
+		if col >= len(row) {
+			return false
+		}
+		if cutsNothing(row[col].Ch) || row[col].Ch == "-" || row[col].Ch == "=" { // a rule (ASCII's too) or a blank row under the header: one at most
+			if gaps++; gaps > 1 {
+				return false
+			}
+			continue
+		}
+		if col > 0 && !cutsNothing(row[col-1].Ch) {
+			return false // text that doesn't start at the column: no header
+		}
+		var cell strings.Builder // the cell: to the next gap of two blank cells
+		for i := col; i < len(row); i++ {
+			if row[i].Ch == "" {
+				continue // a wide glyph's second cell
+			}
+			if cutsNothing(row[i].Ch) && (i+1 >= len(row) || cutsNothing(row[i+1].Ch)) {
+				break
+			}
+			cell.WriteString(row[i].Ch)
+		}
+		words := strings.Fields(cell.String())
+		if unboundedHeaders[strings.TrimSuffix(strings.ToLower(words[0]), "s")] {
+			header := true
+			for _, w := range words[1:] {
+				header = header && headerCount.MatchString(w)
+			}
+			if header {
+				return true
+			}
+		}
+		if gaps > 0 {
+			return false // past a rule or blank, the row is the header or there is none
+		}
+		// another row of the column (a row not cut): keep walking up
+	}
+	return false
+}
+
+// cutsNothing is a cell an ellipsis can't have cut: blank, or a rule or box glyph.
+func cutsNothing(ch string) bool {
+	r := first(ch)
+	return ch == "" || r < 0 || isSpace(r) || strings.ContainsRune(ruleChars, r) || strings.ContainsRune(corners, r) || (0x2500 <= r && r <= 0x257F)
 }
 
 // LintASCII is F-ASCII: in a frame rendered for ASCII (TERM=linux, --ascii) every cell

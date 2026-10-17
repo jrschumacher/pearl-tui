@@ -13,7 +13,9 @@
 //   - one value is used by more than --max-popular of the themes (a house style, not a trait);
 //     two-valued axes are exempt (one of two values always has a majority)
 //   - a theme sits closer than --min-distance axes to a baseline (the default ink theme, the
-//     Crush study): it is the default with a new palette, which is exactly the slop it replaces
+//     Crush study): it is the default with a new palette, which is exactly the slop it replaces.
+//     The failure names the axes it shares with that baseline: move the ones the brand read
+//     gives a reason to move, and say the reason; an axis moved only to pass moves back
 //
 // Dead axes (choices nothing renders) are shown as "-" and never count: headerRule under a
 // bar/stamp/minimal header, wordmark under a banner/stamp header, dialogTitle under a rules

@@ -65,7 +65,7 @@ One action table per state; footer and dispatcher both read it.
 | services             | services         | ↑↓/jk move · enter open · d deploy · r roll back · q quit · ? help ‖ ctrl+p commands |
 | services-empty       | services         | r refresh · ? help · q quit |
 | services-error       | services         | r retry · ? help · q quit |
-| deploy               | deploy           | enter next · tab/shift+tab field · esc back |
+| deploy               | deploy           | enter next field · esc back · ctrl+g help ‖ tab/shift+tab field |
 | palette              | overlay (text input) | enter run · ↑↓ choose · esc close |
 | confirm              | overlay          | ←→ choose · enter confirm · esc cancel |
 

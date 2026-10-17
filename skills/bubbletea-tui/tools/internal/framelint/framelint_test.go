@@ -567,6 +567,178 @@ func TestBasicFrames(t *testing.T) {
 	}
 }
 
+// F-BOLD is a ratio, so it needs a floor: a loading frame of a few labels (the recreate
+// run's overview-loading: ~120 text cells, the wordmark, six bold labels and two footer
+// keys) is 35% bold by arithmetic, not a wall of bold. Under boldFloor text cells it is
+// not judged, as a splash isn't; at the floor the same ratio still fails.
+func TestBoldSkipsSparseFrames(t *testing.T) {
+	dir := t.TempDir()
+	frame := func(name string, cells int) string {
+		var b strings.Builder
+		row, n := 0, 0
+		for row < 24 {
+			line := ""
+			for x := 0; x < 80; x += 10 {
+				if n < cells {
+					word := "abcdefgh"
+					if n%5 < 2 { // 40% bold
+						word = "\x1b[1m" + word + "\x1b[22m"
+					}
+					line += word + "  "
+					n += 8
+				} else {
+					line += "          "
+				}
+			}
+			b.WriteString(line + "\n")
+			row++
+		}
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	bolds := func(path string) int {
+		fs, _, _ := run(t, path)
+		n := 0
+		for _, f := range fs {
+			if f.Rule == "F-BOLD" {
+				n++
+			}
+		}
+		return n
+	}
+	if n := bolds(frame("loading-80x24.ansi", boldFloor-40)); n != 0 {
+		t.Errorf("a sparse frame under the floor: %d F-BOLD, want 0", n)
+	}
+	if n := bolds(frame("list-80x24.ansi", boldFloor+40)); n != 1 {
+		t.Errorf("a frame over the floor at 40%% bold: %d F-BOLD, want 1", n)
+	}
+}
+
+// F-TRUNC: more than truncMax rows that end in an ellipsis at one column is a column
+// budgeted narrower than its content (the recreate run's 32-cell sidebar beside a
+// 34-character fixture title, 5 rows cut). Three cuts are long names; a row of dots
+// under ASCII is a rule, not a cut; the theme's own glyphs.ellipsis counts too.
+func TestTruncatedColumn(t *testing.T) {
+	dir := t.TempDir()
+	frame := func(name string, cut int, ellipsis string) string {
+		var b strings.Builder
+		for y := range 8 {
+			side := "  short title         "
+			if y < cut {
+				side = "  a title that is lon" + ellipsis
+			}
+			b.WriteString(side + "  │ body text\n")
+		}
+		b.WriteString("  " + strings.Repeat(".", 20) + "  │ body text\n")
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	theme := filepath.Join(dir, "theme.json")
+	if err := os.WriteFile(theme, []byte(`{"roles": {"dark": {"bg": "#101010", "fg": "#E0E0E0"}}, "glyphs": {"ellipsis": "⋯"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	truncs := func(args ...string) []Finding {
+		fs, _, _ := run(t, args...)
+		var out []Finding
+		for _, f := range fs {
+			if f.Rule == "F-TRUNC" {
+				out = append(out, f)
+			}
+		}
+		return out
+	}
+	if got := truncs(frame("sidebar-34x9.ansi", 5, "…")); len(got) != 1 || got[0].Sev != "P2" || got[0].Where != "r0c21" || !strings.Contains(got[0].Msg, "5 rows") {
+		t.Errorf("five cut rows: %+v, want one P2 F-TRUNC at r0c21 naming 5 rows", got)
+	}
+	if got := truncs(frame("few-34x9.ansi", truncMax, "…")); len(got) != 0 {
+		t.Errorf("%d cut rows: %+v, want none", truncMax, got)
+	}
+	if got := truncs(frame("ascii-34x9.ansi", 0, "…"), "--ascii"); len(got) != 0 {
+		t.Errorf("a dotted rule under ASCII: %+v, want none", got)
+	}
+	if got := truncs(frame("ascii-cut-36x9.ansi", 5, "..."), "--ascii"); len(got) != 1 {
+		t.Errorf("five rows cut with ... under ASCII: %+v, want one", got)
+	}
+	if got := truncs(frame("own-34x9.ansi", 5, "⋯"), "--theme", theme); len(got) != 1 {
+		t.Errorf("five rows cut with the theme's ⋯: %+v, want one", got)
+	}
+	// a table's last column headed command, path, file or url cuts by design (a process
+	// list's command line); the message says to widen the column or say so in TUI.md
+	table := func(name, header, after string) string {
+		var b strings.Builder
+		b.WriteString("  pid    " + header + strings.Repeat(" ", 16-len(header)) + after + "\n")
+		b.WriteString("  " + strings.Repeat("─", 24) + "\n")
+		for y := range 6 {
+			b.WriteString(fmt.Sprintf("  %-5d  /usr/local/bin/s…%s\n", 100+y, after))
+		}
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	if got := truncs(table("procs-34x9.ansi", "command", "")); len(got) != 0 {
+		t.Errorf("a last column headed command: %+v, want none", got)
+	}
+	if got := truncs(table("paths-34x9.ansi", "Paths", "")); len(got) != 0 {
+		t.Errorf("a last column headed Paths: %+v, want none", got)
+	}
+	if got := truncs(table("titles-34x9.ansi", "title", "")); len(got) != 1 || !strings.Contains(got[0].Msg, "widen the column") || !strings.Contains(got[0].Msg, "§ Decisions") {
+		t.Errorf("a last column headed title: %+v, want one that says widen it or say so in § Decisions", got)
+	}
+	asciiOf := func(p string) string { // the same frame as -ascii draws it: - rules, ... cuts
+		b, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b = []byte(strings.NewReplacer("─", "-", "…", "...").Replace(string(b)))
+		if err := os.WriteFile(p, b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	if got := truncs(asciiOf(table("ascii-procs-36x9.ansi", "command", "")), "--ascii"); len(got) != 0 {
+		t.Errorf("a last column headed command under --ascii: %+v, want none", got)
+	}
+	if got := truncs(table("mid-40x9.ansi", "command", "  ok")); len(got) != 1 {
+		t.Errorf("a command column with a column after it: %+v, want one", got)
+	}
+	// the header heads the column: the cell where the cut rows' text starts, on the row
+	// above them. A sidebar heading or a hint that ends in "files" or "path" is not one.
+	sidebar := func(name string, top ...string) string {
+		var b strings.Builder
+		for _, l := range top {
+			b.WriteString(fmt.Sprintf("%-80s\n", l))
+		}
+		for _, title := range []string{"Add CSV import for bank stat", "Fix rounding in ledger expor", "Refactor the OFX parser into", "Write tests for the importer", "Port the CLI flags to cobra "} {
+			b.WriteString(fmt.Sprintf("%-80s\n", fmt.Sprintf("  %-46s%s…", "body text here", title)))
+		}
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	if got := truncs(sidebar("recent-80x8.ansi", fmt.Sprintf("  %-46s%s", "chat", "Recent files"), "")); len(got) != 1 {
+		t.Errorf("titles under a \"Recent files\" heading: %+v, want one", got)
+	}
+	if got := truncs(sidebar("hint-80x9.ansi", "  press y to Copy path", fmt.Sprintf("  %-46s%s", "chat", "Sessions"), "")); len(got) != 1 {
+		t.Errorf("titles under \"Sessions\" with a \"Copy path\" hint above: %+v, want one", got)
+	}
+	if got := truncs(sidebar("section-80x9.ansi", fmt.Sprintf("  %-46s%s", "chat", "Files"), fmt.Sprintf("  %-46s%s", "body text here", "csv.go"), "", fmt.Sprintf("  %-46s%s", "body text here", "Sessions"))); len(got) != 1 {
+		t.Errorf("titles under \"Sessions\" below a \"Files\" section and a blank: %+v, want one", got)
+	}
+	if got := truncs(sidebar("files-80x7.ansi", fmt.Sprintf("  %-46s%s", "chat", "Files (5)"))); len(got) != 0 {
+		t.Errorf("a column headed \"Files (5)\": %+v, want none", got)
+	}
+}
+
 // F-LEVELS isn't judged on a frame with no colour (NO_COLOR): it has one text level by
 // construction, its levels are weight and glyphs. The same frame in colour still is.
 func TestLevelsSkipsColourlessFrames(t *testing.T) {

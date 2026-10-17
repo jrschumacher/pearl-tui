@@ -25,7 +25,8 @@ screenshot.
             unicode frame of the state has a glyph or a letter [F-ASCII]; a ruled or borderless
             overlay failing F-CONTRAST on its scrim may be misnamed: cmd-shape.md step 3)
             tuilint code .                                                (tuivet ./... in go vet or an editor: same rules)
-            tuilint spec TUI.md                                           (after any key-table change)
+            tuilint spec TUI.md --frames frames                           (after any key-table change;
+            each state's footer in its golden must be its row's keys [S-GOLDEN])
 4. LOOK     cellshot frames/*-80x24.ansi frames/toosmall-*.ansi --sheet sheet-80.png
             cellshot frames/*-120x40.ansi --sheet sheet-120.png --cell 8x16
             cellshot frames/light/*-80x24.ansi --sheet sheet-light.png --light
