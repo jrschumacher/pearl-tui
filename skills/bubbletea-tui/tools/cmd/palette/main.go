@@ -50,13 +50,16 @@
 // on red or on another state role's colour (amber = new must not read as error). It warns
 // on primary on red under "focus": "primary" (focus reads as an error), on warning,
 // success or info on red, and on two of those on one colour: their glyphs and words still
-// differ. The neutrals (bg, fg, fgMuted, fgSubtle, their steps, border) draw on the four
-// greys there (the kit assigns them: page 0 or 15, text the opposite; a dark page keeps
-// three text levels, fgMuted 7 and fgSubtle 8; a light page keeps two, fgMuted and
-// fgSubtle both 8, since ANSI 7 on a white page is below every floor and fgSubtle is
-// never the only carrier of meaning), so only a pin moves one: a neutral on red exits 1 (hints read as
-// errors), on another hue or two text levels on one grey it warns, each with the grey to
-// pin instead. A pin that names no role, no mode or no colour 0-15 exits 2, as
+// differ. The neutrals (bg, fg, fgMuted, fgSubtle, their steps, border, and borderFocus,
+// the dialog's edge) draw on the four greys there (the kit assigns them: page 0 or 15,
+// text the opposite; a dark page keeps three text levels, fgMuted 7 and fgSubtle 8; a
+// light page keeps two, fgMuted and fgSubtle both 8, since ANSI 7 on a white page is
+// below every floor and fgSubtle is never the only carrier of meaning; a rule on 8 or 7
+// beside the page, the dialog's edge a step up on 7 or 8), so only a pin moves one: a
+// neutral on red exits 1 (hints read as errors, a ruled dialog's edge as an error's), on
+// another hue or two text levels on one grey it warns, each with the grey to pin
+// instead; borderFocus pinned onto primary's own slot, the kit's truecolour default, is
+// not reported. A pin that names no role, no mode or no colour 0-15 exits 2, as
 // theme.Load does.
 //
 // Thresholds (WCAG 2 contrast ratio against the role's background):

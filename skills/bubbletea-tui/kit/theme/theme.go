@@ -470,10 +470,13 @@ func ANSI16Index(f File, mode, role string) int {
 	return -1
 }
 
-// NeutralRoles are the roles that carry no state: the page, its steps, its rules and
-// the text ramp. At 16 colours they belong on the four greys (0, 7, 8, 15): on a hue,
-// body text reads as a state and the page as a fill; on red, hints read as errors.
-var NeutralRoles = []string{"bg", "bgPanel", "bgSubtle", "bgOverlay", "border", "fg", "fgSoft", "fgMuted", "fgSubtle"}
+// NeutralRoles are the roles that carry no state: the page, its steps, its rules, the
+// dialog's edge and the text ramp. At 16 colours they belong on the four greys (0, 7, 8,
+// 15): on a hue, body text reads as a state and the page as a fill; on red, hints read
+// as errors and a ruled dialog's edge as an error's. Every role a dialog draws is here
+// (border, borderFocus, bgPanel, bgOverlay, fgSoft for its text), so one notch of
+// lightness in a tinted borderFocus never decides between grey and red.
+var NeutralRoles = []string{"bg", "bgPanel", "bgSubtle", "bgOverlay", "border", "borderFocus", "fg", "fgSoft", "fgMuted", "fgSubtle"}
 
 // TextRamp are the text levels that stay apart at 16 colours: three on a dark page, two
 // on a light one, where fgSubtle shares fgMuted's grey by design (GreySlot16). fgSoft is

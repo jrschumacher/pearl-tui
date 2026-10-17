@@ -118,8 +118,10 @@ func derive(r Roles, dark bool, pins map[string]int) Palette {
 // 1.8:1 on VGA's, below every floor, so a light page keeps two levels (fgSubtle is never
 // the only carrier of meaning). bgSubtle takes the grey nearer bg (8 dark, 7 light);
 // bgPanel sits on the page (Distinct then gives a panel an edge), bgOverlay and border on
-// bgSubtle's grey, the one edge picks for a rule that lands on the page. -1 for a role
-// that isn't a neutral.
+// bgSubtle's grey, the one edge picks for a rule that lands on the page; borderFocus,
+// the one dialog's edge, on fgMuted's grey (7 dark, 8 light), a step up from a rule. A
+// theme that wants its hue on the dialog's edge at 16 colours pins borderFocus to
+// primary's slot. -1 for a role that isn't a neutral.
 // Downsampling by distance puts a tinted neutral on a hue instead (a warm grey on red, a
 // cool one on blue): hints then read as errors and the page turns yellow. palette check
 // reports a pin that undoes this (NeutralRoles, ANSI16Neutrals).
@@ -133,8 +135,8 @@ func GreySlot16(role string, dark bool) int {
 
 // greys16 is GreySlot16's table, by dark.
 var greys16 = map[bool]map[string]int{
-	true:  {"bg": 0, "bgPanel": 0, "bgSubtle": 8, "bgOverlay": 8, "border": 8, "fg": 15, "fgSoft": 15, "fgMuted": 7, "fgSubtle": 8},
-	false: {"bg": 15, "bgPanel": 15, "bgSubtle": 7, "bgOverlay": 7, "border": 7, "fg": 0, "fgSoft": 0, "fgMuted": 8, "fgSubtle": 8},
+	true:  {"bg": 0, "bgPanel": 0, "bgSubtle": 8, "bgOverlay": 8, "border": 8, "borderFocus": 7, "fg": 15, "fgSoft": 15, "fgMuted": 7, "fgSubtle": 8},
+	false: {"bg": 15, "bgPanel": 15, "bgSubtle": 7, "bgOverlay": 7, "border": 7, "borderFocus": 8, "fg": 0, "fgSoft": 0, "fgMuted": 8, "fgSubtle": 8},
 }
 
 // pins16 are the roles derive replaces at 16 colours in mode: every neutral on its grey

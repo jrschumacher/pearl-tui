@@ -126,9 +126,11 @@ and look at the PNGs. What usually breaks:
 - the `bg`/`bgSubtle` step merges at 256 colours, so selection disappears. Move it further
   apart, or add the glyph marker.
 - a tinted neutral downsamples by distance onto a hue at 16 colours: a warm page lands on
-  yellow, warm hints on red, and three cool text levels on one blue. The kit puts every
-  neutral on a grey there (`bg` 0/15, `fg` the opposite, `bgSubtle` and `border` beside
-  the page). Dark keeps three text levels at 16 colours (`fgMuted` 7, `fgSubtle` 8);
+  yellow, warm hints on red, and three cool text levels on one blue; a warm `borderFocus`
+  one notch lighter than its neighbour draws a ruled dialog's edge in error's red. The
+  kit puts every neutral on a grey there (`bg` 0/15, `fg` the opposite, `bgSubtle` and
+  `border` beside the page, `borderFocus` a step up on `fgMuted`'s grey), the roles a
+  dialog draws included. Dark keeps three text levels at 16 colours (`fgMuted` 7, `fgSubtle` 8);
   light keeps two (`fgMuted` and `fgSubtle` both 8), because ANSI 7 on a white page is
   below every floor; `fgSubtle` is never the only carrier of meaning. `palette check`
   fails a pin that puts a neutral back on red and warns on any other hue or two text
@@ -150,7 +152,8 @@ and look at the PNGs. What usually breaks:
 
   `palette check` names each clash and the pin that fixes it (stderr): it fails error
   off red, under `focus: fg` primary on red or on another state's colour, and a neutral
-  (`bg`, `fg`, `fgMuted`, `fgSubtle`, their steps, `border`) pinned onto red; it warns
+  (`bg`, `fg`, `fgMuted`, `fgSubtle`, their steps, `border`, `borderFocus`) pinned onto
+  red; it warns
   on the rest, two of `fg`/`fgMuted`/`fgSubtle` pinned onto one grey included
   (`palette -h` lists them). A warning is not a pass to ignore: pin it unless
   the brand accepts it in its read. Pin bright (9-14) on dark, normal (1-6) on light,

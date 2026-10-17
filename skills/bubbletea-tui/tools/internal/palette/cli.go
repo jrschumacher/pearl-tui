@@ -217,8 +217,10 @@ func (x Finding16) PinJSON() string {
 //     primary fails, since the theme promised its hue means one state (amber = new); any
 //     other is a warning, as the glyph and the word still tell the two apart.
 //   - a neutral role on a hue (theme.ANSI16Neutrals): the engine puts every neutral on a
-//     grey, so only a pin moves one off. On red it fails (hints read as errors); on
-//     another hue it warns.
+//     grey, the roles a dialog draws (border, borderFocus, bgPanel, bgOverlay) included,
+//     so only a pin moves one off. On red it fails (hints read as errors, a dialog's edge
+//     as an error's); on another hue it warns, except borderFocus pinned onto primary's
+//     own slot, the kit's truecolour default.
 //   - two levels of the text ramp on one grey (theme.ANSI16Neutrals): a warning; the pin
 //     is the grey the engine would have used.
 //   - primary sitting on the own slot of a status role that needs a pin (a yellow brand
@@ -274,6 +276,9 @@ func Findings16(f theme.File) []Finding16 {
 		found = append(found, Finding16{Mode: k.mode, Role: k.role, Col: col[k], What: what, Fail: fg && withPrimary, kind: clash16})
 	}
 	for _, n := range theme.ANSI16Neutrals(f) {
+		if n.Role == "borderFocus" && n.Index == theme.ANSI16Index(f, n.Mode, "primary") && n.Index != 1 && n.Index != 9 {
+			continue // the dialog's edge in the brand's own hue is the kit's truecolour default, pinned on purpose
+		}
 		x := Finding16{Mode: n.Mode, Role: n.Role, Col: hexOf(n.Col), kind: hue16}
 		switch {
 		case n.With != "":
@@ -363,7 +368,7 @@ func Findings16(f theme.File) []Finding16 {
 // neutralText is what each neutral role carries on screen, for a finding's sentence
 // (singular, so "reads" follows each).
 var neutralText = map[string]string{
-	"bg": "the page", "bgPanel": "a panel", "bgSubtle": "the background step", "bgOverlay": "an overlay", "border": "every rule",
+	"bg": "the page", "bgPanel": "a panel", "bgSubtle": "the background step", "bgOverlay": "an overlay", "border": "every rule", "borderFocus": "the dialog's edge",
 	"fg": "body text", "fgSoft": "prose", "fgMuted": "secondary text", "fgSubtle": "a hint",
 }
 

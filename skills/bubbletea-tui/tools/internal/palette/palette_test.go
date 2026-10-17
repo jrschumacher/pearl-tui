@@ -712,3 +712,46 @@ func TestOneHueNeverCollapses(t *testing.T) {
 		}
 	}
 }
+
+// A dialog's roles (border, borderFocus, bgPanel, bgOverlay) are neutrals at 16 colours:
+// the engine puts them on a grey, so only a pin moves one. check fails a dialog role
+// pinned onto red (a ruled dialog's edge then reads as an error's) and warns on another
+// hue, each with the grey that puts it back; borderFocus on primary's own slot is the
+// kit's truecolour default, not a stray hue, so that pin is not reported.
+func TestCheckFailsDialogRolesOnRedAt16Colours(t *testing.T) {
+	roles := `{"dark": {"bg": "#17140F", "fg": "#E8E2D6", "fgMuted": "#9A9183", "fgSubtle": "#746B5A", "border": "#2A231A", "borderFocus": "#746B5A", "bgOverlay": "#2E2720", "primary": "#D99A3B"}}`
+	for _, c := range []struct {
+		name, pins string
+		code       int
+		stderr     []string
+	}{
+		{"no pins", `{"dark": {"primary": 11, "warning": 3}}`, 0, nil},
+		{"edge on red", `{"dark": {"primary": 11, "warning": 3, "borderFocus": 9}}`, 1, []string{
+			`palette: ` + "%s" + `: dark: borderFocus #746B5A draws as ANSI 9 at 16 colours (-profile ansi), error's red, so the dialog's edge reads as an error there: pin it with "ansi16": {"dark": {"borderFocus": 7}}`,
+			"FAIL (0 contrast problems, 1 problems at 16 colours)"}},
+		{"overlay on a hue", `{"dark": {"primary": 11, "warning": 3, "bgOverlay": 4}}`, 0, []string{
+			`palette: warning: ` + "%s" + `: dark: bgOverlay #2E2720 draws as ANSI 4 at 16 colours (-profile ansi), a hue, so an overlay reads as a state there; "ansi16": {"dark": {"bgOverlay": 8}} moves it`}},
+		{"edge on the brand", `{"dark": {"primary": 11, "warning": 3, "borderFocus": 11}}`, 0, nil},
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		if err := os.WriteFile(path, []byte(`{"roles": `+roles+`, "ansi16": `+c.pins+`}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		if code != c.code {
+			t.Errorf("%s: exit %d, want %d\n%s%s", c.name, code, c.code, out.String(), errb.String())
+		}
+		for _, want := range c.stderr {
+			if strings.Contains(want, "%s") {
+				want = fmt.Sprintf(want, path)
+			}
+			if !strings.Contains(out.String()+errb.String(), want) {
+				t.Errorf("%s: output %q, want %q", c.name, errb.String()+out.String(), want)
+			}
+		}
+		if c.stderr == nil && errb.String() != "" {
+			t.Errorf("%s: stderr %q, want nothing", c.name, errb.String())
+		}
+	}
+}
