@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -432,8 +433,10 @@ var glyphMeanings = [][]string{
 // CheckGlyphs reports a theme whose glyphs ASCII can't draw faithfully: a twin in
 // glyphs.ascii that isn't ASCII itself, a glyph outside ASCII with no twin in the
 // theme's map or the kit's (it would draw as "?"), or two glyphs of one meaning set
-// (glyphMeanings) that differ but share a twin. palette check and the kit's tests
-// fail on it; theme.Load doesn't, so an app never refuses to start over a glyph.
+// (glyphMeanings) that differ but share a twin; and a spinner frame that is, or whose
+// cells hold, a status mark, a bar or the caret (spinnerMarks), which a working row
+// beside them would read as. palette check and the kit's tests fail on it; theme.Load
+// doesn't, so an app never refuses to start over a glyph.
 func CheckGlyphs(g Glyphs) error {
 	keys := make([]string, 0, len(g.ASCII))
 	for k := range g.ASCII {
@@ -472,6 +475,22 @@ func CheckGlyphs(g Glyphs) error {
 			if mark := sv0.FieldByName(m).String(); mark != "" && strings.TrimSpace(fr) == mark {
 				return fmt.Errorf("glyphs.spinner frame %q is also glyphs.%s: a working row beside it would read as that mark; pick frames no state or focus mark uses",
 					fr, jsonKey(m))
+			}
+		}
+		// a multi-cell frame draws each of its cells beside a status column or a bar:
+		// a dots spinner "···" beside a "·" pending draws the pending mark three times
+		for _, r := range fr {
+			if unicode.IsSpace(r) {
+				continue
+			}
+			for _, m := range spinnerMarks {
+				if m == "Partial" && g.Partial == "" {
+					continue
+				}
+				if mark := sv0.FieldByName(m).String(); mark != "" && string(r) == mark {
+					return fmt.Errorf("glyphs.spinner frame %q contains glyphs.%s %q: a working row beside a status column or the caret would read as that mark; pick frames whose cells are no state or focus mark",
+						fr, jsonKey(m), mark)
+				}
 			}
 		}
 	}
@@ -586,9 +605,11 @@ func CheckExpressions(x Expressions) error {
 	return err
 }
 
-// spinnerMarks are the glyphs a working spinner sits beside, in a status column or next
-// to a focus bar: no frame may be one of them, or a working row reads as that mark.
-var spinnerMarks = []string{"FocusBar", "BlurBar", "Done", "Current", "Todo", "Fail", "Warn", "Pending", "Partial"}
+// spinnerMarks are the glyphs a working spinner sits beside, in a status column, next
+// to a focus bar or at the end of an input: no frame, nor a cell of one, may be one of
+// them, or a working row reads as that mark (the ASCII caret "|" is the line spinner's
+// first frame, so asciiSpinner drops it).
+var spinnerMarks = []string{"FocusBar", "BlurBar", "Done", "Current", "Todo", "Fail", "Warn", "Pending", "Partial", "Caret"}
 
 // asciiSpinner is the line spinner | / - \ without the frames g's marks already draw
 // as (the "|" of a focus bar twinned from ▌): a turning line still, a frame short. If

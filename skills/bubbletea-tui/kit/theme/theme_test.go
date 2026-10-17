@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"unicode"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
@@ -362,10 +363,16 @@ func TestSpinnerNeverDrawsAnotherMark(t *testing.T) {
 			if len(g.Spinner) < 2 {
 				t.Errorf("%s ascii=%v: spinner %q has no motion", filepath.Base(path), ascii, g.Spinner)
 			}
+			marks["caret"] = g.Caret
 			for _, fr := range g.Spinner {
 				for name, m := range marks {
 					if m != "" && strings.TrimSpace(fr) == m {
 						t.Errorf("%s ascii=%v: spinner frame %q is glyphs.%s", filepath.Base(path), ascii, fr, name)
+					}
+					for _, r := range fr { // a multi-cell frame's cells, each beside a status column or a bar
+						if m != "" && !unicode.IsSpace(r) && string(r) == m {
+							t.Errorf("%s ascii=%v: spinner frame %q contains glyphs.%s %q", filepath.Base(path), ascii, fr, name, m)
+						}
 					}
 				}
 			}
@@ -388,6 +395,30 @@ func TestSpinnerNeverDrawsAnotherMark(t *testing.T) {
 	}
 	if g := Resolve(f, true, false).G; slices.Contains(g.Spinner, g.Partial) {
 		t.Errorf("the default partial %q is a spinner frame %q", g.Partial, g.Spinner)
+	}
+	// every rune of a multi-cell frame counts, not only a one-cell frame as a whole: a
+	// dots spinner beside a "·" pending (welp's) draws the pending mark three times in a
+	// working row, and a frame holding the caret or the focus bar draws a focus
+	for _, c := range []struct{ json, want string }{
+		{`{"glyphs": {"pending": "·", "spinner": ["···", "•··", "••·", "•••"]}}`, `glyphs.spinner frame "···" contains glyphs.pending "·"`},
+		{`{"glyphs": {"spinner": ["▏·", "·▏"]}}`, `glyphs.spinner frame "▏·" contains glyphs.caret "▏"`},
+		{`{"glyphs": {"focusBar": "┃", "spinner": ["┃·", "·┃"]}}`, `glyphs.spinner frame "┃·" contains glyphs.focusBar "┃"`},
+	} {
+		f, err := Load(writeTheme(t, c.json))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := CheckGlyphs(f.Glyphs); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("CheckGlyphs(%s) = %v, want %q", c.json, err, c.want)
+		}
+	}
+	// the same dots beside a "◌" pending are fine: no cell is a mark
+	f, err = Load(writeTheme(t, `{"glyphs": {"pending": "◌", "spinner": ["···", "•··", "••·", "•••"]}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CheckGlyphs(f.Glyphs); err != nil {
+		t.Errorf("CheckGlyphs(dots spinner, pending ◌) = %v", err)
 	}
 }
 

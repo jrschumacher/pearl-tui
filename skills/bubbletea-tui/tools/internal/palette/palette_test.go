@@ -724,6 +724,19 @@ func TestOneHueNeverCollapses(t *testing.T) {
 	}
 }
 
+// A spinner whose multi-cell frames contain a status or focus mark exits 2, as a
+// one-cell frame that is one did: welp's dots beside a "·" pending (#29 P7).
+func TestCheckRejectsSpinnerFramesHoldingAMark(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "theme.json")
+	if err := os.WriteFile(path, []byte(`{"roles": {"dark": {"bg": "#17140F", "fg": "#E8E2D6", "primary": "#D99A3B"}}, "ansi16": {"dark": {"primary": 11, "warning": 3}}, "glyphs": {"pending": "·", "spinner": ["···", "•··", "••·", "•••"]}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out, errb bytes.Buffer
+	if code := Main([]string{"check", path}, "", &out, &errb); code != 2 || !strings.Contains(errb.String(), `glyphs.spinner frame "···" contains glyphs.pending "·"`) {
+		t.Errorf("exit %d, stderr %q", code, errb.String())
+	}
+}
+
 // A dialog's roles (border, borderFocus, bgPanel, bgOverlay) are neutrals at 16 colours:
 // the engine puts them on a grey, so only a pin moves one. check fails a dialog role
 // pinned onto red (a ruled dialog's edge then reads as an error's) and warns on another

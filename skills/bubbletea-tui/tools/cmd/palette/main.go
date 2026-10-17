@@ -29,7 +29,9 @@
 // It exits 2 on the theme's glyphs too (theme.CheckGlyphs): a glyph with no ASCII twin
 // (in glyphs.ascii or the kit's map), a twin that isn't ASCII, or two marks of one
 // meaning (done/current/todo/pending/partial/warn/fail, radio on/off, check on/off,
-// thumb/track, focus/blur bar) that share a twin under -ascii. And on its expressions
+// thumb/track, focus/blur bar) that share a twin under -ascii, or a spinner frame that
+// is, or whose cells hold, a status mark, a bar or the caret (a "···" spinner beside a
+// "·" pending). And on its expressions
 // (theme.CheckExpressions): a key the kit doesn't read or a value it doesn't know, which
 // theme.Load draws as the default silently ("dialog": "rule" for "rules"), named with
 // the values the kit knows. A key under roles.<mode>, glyphs or wordmark the kit doesn't
