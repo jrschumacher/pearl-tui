@@ -153,8 +153,9 @@ on a filled strip, or under a rule. Full help (`?`) expands into columns, groupe
 
 ## Stream (chat, logs, events) — `ui.UserMessage`, `ui.AssistantMessage`, `ui.ToolCall`, `ui.Thinking`, `ui.TurnFooter`
 
-- The user's voice carries a primary bar; the assistant's text is indented 2 and wrapped
-  to the measure.
+- The user's voice carries a bar: the focus bar while the turn is focused, the turn bar
+  in muted when it isn't (a bold or coloured bar means focus, and a sent turn has none);
+  the assistant's text is indented 2 and wrapped to the measure.
 - Actions use the tool-call grammar (`idiom.md` §6). Collapsed output gets an honest
   "N lines hidden" affordance.
 - Follow mode pins to the bottom. When scrolled up, show "↑ N more lines" at the top and

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image/color"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -8,6 +9,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
@@ -402,5 +404,59 @@ func TestPaletteScrollsToSelection(t *testing.T) {
 	}
 	if f := frame(); !strings.Contains(f, strings.ToLower(first)) {
 		t.Fatalf("the selected first command is off screen after scrolling back:\n%s", f)
+	}
+}
+
+func sameColor(a, b color.Color) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	r1, g1, b1, _ := a.RGBA()
+	r2, g2, b2, _ := b.RGBA()
+	return r1 == r2 && g1 == g2 && b1 == b2
+}
+
+// A blurred chat turn carries its bar in muted, never the focus ink: in assistant-busy
+// the input is disabled, yet the user's turn drew a bold focus-coloured bar, a focus
+// that wasn't there (under NO_COLOR and ASCII a bold | is the one focus cue). Every
+// theme, both modes, ASCII too.
+func TestBlurredTurnBarIsNotFocus(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, mode := range []struct{ dark, ascii bool }{{true, false}, {false, false}, {true, true}} {
+			m := newApp(tf, mode.dark, mode.ascii)
+			m.setState("assistant-busy")
+			c := m.render(80, 24)
+			bars := 0
+			for y := range 24 {
+				row := ""
+				for x := range 80 {
+					if cell := c.CellAt(x, y); cell != nil {
+						row += cell.Content
+					}
+				}
+				if !strings.Contains(row, "ship it as v2.4.1") {
+					continue
+				}
+				cell := c.CellAt(m.t.X.Gutter, y)
+				if cell == nil || strings.TrimSpace(cell.Content) == "" {
+					t.Errorf("%s dark=%v ascii=%v row %d: no turn bar before the user's text", filepath.Base(f), mode.dark, mode.ascii, y)
+					continue
+				}
+				bars++
+				if cell.Style.Attrs&uv.AttrBold != 0 {
+					t.Errorf("%s dark=%v ascii=%v row %d: the blurred turn bar %q is bold", filepath.Base(f), mode.dark, mode.ascii, y, cell.Content)
+				}
+				if !sameColor(cell.Style.Fg, m.t.P.FgMuted) {
+					t.Errorf("%s dark=%v ascii=%v row %d: the blurred turn bar draws %v, want fgMuted %v", filepath.Base(f), mode.dark, mode.ascii, y, cell.Style.Fg, m.t.P.FgMuted)
+				}
+			}
+			if bars == 0 {
+				t.Errorf("%s dark=%v ascii=%v: the user's turn is not on screen", filepath.Base(f), mode.dark, mode.ascii)
+			}
+		}
 	}
 }
