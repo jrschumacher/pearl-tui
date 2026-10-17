@@ -190,3 +190,15 @@ func TestDialogLiftsHintsOnThePanel(t *testing.T) {
 		t.Errorf("a bold subtle hint draws %v bold=%v, want fgMuted and bold", c.Style.Fg, c.Style.Attrs&uv.AttrBold != 0)
 	}
 }
+
+// The canvas's twin table (ASCIIfy, the last pass over a frame) agrees with the theme's
+// on the caret: a leaked ▏ becomes ', never the focus bar's |.
+func TestASCIIfyCaret(t *testing.T) {
+	th := theme.Resolve(theme.Default(), true, true)
+	c := NewCanvas(th, 4, 1)
+	c.Draw("ro▏▌", c.Bounds())
+	c.ASCIIfy()
+	if got := strings.TrimRight(ansi.Strip(c.String()), " "); got != "ro'|" {
+		t.Errorf("ASCIIfy(ro▏▌) = %q, want ro'|", got)
+	}
+}

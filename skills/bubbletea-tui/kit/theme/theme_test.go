@@ -489,3 +489,44 @@ func TestInkIsTheDefault(t *testing.T) {
 		}
 	}
 }
+
+// Twins never collide across meanings: the caret ▏ drew as "|", the focus bar's twin, so
+// an ASCII input ("> ro|") read as a focused block; and SparkRampASCII "_.-=+*#@" held
+// "*" and "+", the current and done twins, so a sparkline's peaks read as status marks.
+// Every theme, under ASCII: the caret is neither bar, and the ramp holds no twin of a
+// mark that means a state at a glance (done, current, warn, fail); the quiet marks' "."
+// (pending, a todo) is a low bar in a run, which reads as what it is.
+func TestTwinsStayApartAcrossMeanings(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	test, _ := filepath.Glob(filepath.Join("testdata", "*.json"))
+	themes := []File{Default()}
+	for _, path := range append(files, test...) {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		themes = append(themes, f)
+	}
+	for _, f := range themes {
+		g := Resolve(f, true, true).G
+		if g.Caret == g.FocusBar || g.Caret == g.BlurBar || g.Caret == "|" {
+			t.Errorf("%s: the ASCII caret %q is a bar (focus %q, blur %q)", f.Name, g.Caret, g.FocusBar, g.BlurBar)
+		}
+		for name, m := range map[string]string{"done": g.Done, "current": g.Current, "warn": g.Warn, "fail": g.Fail, "caret": g.Caret} {
+			if m != "" && strings.Contains(SparkRampASCII, m) {
+				t.Errorf("%s: SparkRampASCII %q holds the %s twin %q", f.Name, SparkRampASCII, name, m)
+			}
+		}
+	}
+	if len([]rune(SparkRampASCII)) < len([]rune(SparkRamp)) {
+		t.Errorf("SparkRampASCII has %d steps, fewer than SparkRamp's %d", len([]rune(SparkRampASCII)), len([]rune(SparkRamp)))
+	}
+	if tw, _ := ASCIITwin("▏"); tw != "'" {
+		t.Errorf("▏ twins as %q, want ' (not the focus bar's |)", tw)
+	}
+}

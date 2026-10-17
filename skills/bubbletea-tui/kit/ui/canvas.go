@@ -167,10 +167,11 @@ func asciiRune(r rune) string {
 
 // asciiClasses and asciiMap are the twin tables: the one place outside the theme
 // package that spells glyphs (tuilint code C-GLYPH skips their literals). A class maps
-// a run of glyphs to one twin; the map, single glyphs.
+// a run of glyphs to one twin; the map, single glyphs. They agree with theme.ASCIITwin
+// where a glyph carries a meaning: the caret ▏ is ', not the focus bar's |.
 var asciiClasses = []struct{ glyphs, twin string }{
 	{"─━═╌┄┈╍┅┉▔▁╴╶╸╺", "-"},
-	{"│┃║╎┆┊╏┇┋▏▎▍▌▐▕", "|"},
+	{"│┃║╎┆┊╏┇┋▎▍▌▐▕", "|"},
 	{"╱", "/"}, {"╲", "\\"},
 	{"█▓▒▆▇▅▄▀▙▛▜▟", "#"},
 	{"░▂▃▖▗▘▝▚▞", "."},
@@ -180,7 +181,7 @@ var asciiMap = map[rune]string{
 	'↑': "^", '↓': "v", '←': "<", '→': ">", '·': ".", '•': "*", '…': "~", '—': "-", '–': "-",
 	'×': "x", '✕': "x", '✗': "x", '✓': "+", '✔': "+", '●': "*", '○': "o", '◆': "*", '◇': "o",
 	'▲': "^", '△': "^", '▶': ">", '▸': ">", '›': ">", '❯': ">", '‹': "<", '“': "\"", '”': "\"",
-	'‘': "'", '’': "'", '◉': "@", '■': "#", '□': "o", '★': "*", '✦': "*", '◜': "|", '◠': "/",
+	'‘': "'", '’': "'", '▏': "'", '◉': "@", '■': "#", '□': "o", '★': "*", '✦': "*", '◜': "|", '◠': "/",
 	'◝': "-", '◞': "\\", '◡': "|", '◟': "/", '◢': "/", '◣': "\\", '◤': "/", '◥': "\\", '¬': "-",
 }
 

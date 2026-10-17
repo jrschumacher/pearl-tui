@@ -99,7 +99,7 @@ type Glyphs struct {
 	FieldA     string   `json:"fieldA"`     // backdrop field bright glyph ◆ ▲ ╱
 	FieldB     string   `json:"fieldB"`     // backdrop field subtle glyph ◇ △
 
-	Caret         string `json:"caret"`         // input caret after the typed text: ▏ ▌ _ |
+	Caret         string `json:"caret"`         // input caret after the typed text: ▏ ▌ _ (ASCII ', never the focus bar's |)
 	More          string `json:"more"`          // marks lines scrolled off ("↑ 12 more lines"): ↑ ▲ ^
 	UpDown        string `json:"upDown"`        // the arrow-key pair as footers name it: ↑↓ (ascii ^v)
 	LeftRight     string `json:"leftRight"`     // ←→ (ascii <>)
@@ -162,10 +162,11 @@ const (
 const Ellipsis = "…"
 
 // SparkRamp is the eight heights of a sparkline, lowest first, and SparkRampASCII what
-// an ASCII terminal draws in their place (controls.go Sparkline).
+// an ASCII terminal draws in their place (controls.go Sparkline): no "*" or "+", the
+// current and done twins, so a peak never reads as a status mark beside the dots.
 const (
 	SparkRamp      = "▁▂▃▄▅▆▇█"
-	SparkRampASCII = "_.-=+*#@"
+	SparkRampASCII = "_.-=:;%#@"
 )
 
 // Wordmark is an optional multi-row wordmark (scripts/wordmark.py output).
