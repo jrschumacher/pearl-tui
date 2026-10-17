@@ -110,6 +110,7 @@ type Expressions struct {
 	Wordmark     string `json:"wordmark"`     // gradient | solid | inverse | tracked | bracket | upper | plain (fg, bold, no hue)
 	SectionTitle string `json:"sectionTitle"` // accent | primary | muted-upper | fg
 	TitleCase    string `json:"titleCase"`    // sentence | upper | lower
+	LabelCase    string `json:"labelCase"`    // upper | lower | as-is: table headers, tags, toast and summary labels (unset: headers upper, the rest as the kit draws them)
 	Selection    string `json:"selection"`    // bar | fill | caret | inverse  (how a selected/focused row is marked)
 	Button       string `json:"button"`       // pill | bracket | underline | inverse
 	Tag          string `json:"tag"`          // filled | bracket | bold

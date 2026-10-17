@@ -148,7 +148,8 @@ func matchUnderline(s string, idx []int, st lipgloss.Style) string {
 	return b.String()
 }
 
-// Table renders a borderless table: a muted header row, a rule, then rows
+// Table renders a borderless table: a muted header row (upper case unless the theme's
+// labelCase says otherwise), a rule, then rows
 // with aligned columns. widths are cells per column (the last may be 0 =
 // take the rest). align: 'l' or 'r' per column. Selected row per selection.
 func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align string, sel, w int, focused bool) []string {
@@ -171,7 +172,7 @@ func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 	}
 	var h []string
 	for i, c := range header {
-		h = append(h, t.S.Subtle.Render(cell(strings.ToUpper(c), i)))
+		h = append(h, t.S.Subtle.Render(cell(t.Label(c, "upper"), i)))
 	}
 	out := []string{Fit("  "+strings.Join(h, "  "), w), "  " + Rule(t, w-2)}
 	for r, row := range rows {

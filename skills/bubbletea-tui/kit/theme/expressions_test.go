@@ -27,6 +27,8 @@ func TestUnknownExpressionValues(t *testing.T) {
 		{`{"expressions": {"tabs": "underlined"}}`, `expressions.tabs "underlined"`, "Tabs", "underline"},
 		{`{"expressions": {"scrim": "dimmed"}}`, `expressions.scrim "dimmed"`, "Scrim", "dim"},
 		{`{"expressions": {"tag": "fill"}}`, `expressions.tag "fill"`, "Tag", "filled"},
+		// labelCase has no word for its default: unset keeps each component's own case
+		{`{"expressions": {"labelCase": "small"}}`, `expressions.labelCase "small" is not a value the kit knows: upper | lower | as-is (it would draw as if unset)`, "LabelCase", ""},
 	} {
 		f, err := Load(writeTheme(t, c.json))
 		if err != nil {

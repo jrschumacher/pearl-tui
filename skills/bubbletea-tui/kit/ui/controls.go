@@ -80,8 +80,8 @@ func Buttons(t *theme.Theme, w int, align lipgloss.Position, buttons ...string) 
 	return lipgloss.PlaceHorizontal(w, align, row)
 }
 
-// Tag is a state word on a chip: OK, ERROR, WARN, NEW, PLAN, v2.3.1…
-// kind: primary | ok | error | warning | info | muted
+// Tag is a state word on a chip: OK, ERROR, WARN, NEW, PLAN, v2.3.1…, in the theme's
+// labelCase (as written when unset). kind: primary | ok | error | warning | info | muted
 func Tag(t *theme.Theme, kind, text string) string {
 	st := t.S.TagMuted
 	switch kind {
@@ -96,6 +96,7 @@ func Tag(t *theme.Theme, kind, text string) string {
 	case "info":
 		st = t.S.TagInfo
 	}
+	text = t.Label(text, "as-is")
 	if t.X.Tag == "bracket" {
 		return st.Render("[" + text + "]")
 	}

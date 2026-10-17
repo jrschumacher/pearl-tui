@@ -79,3 +79,35 @@ func TestRulesVisibleAt16And256Colours(t *testing.T) {
 		}
 	}
 }
+
+// The kit forced case on a brand: table headers always upper (SERVICE), so a lowercase
+// editorial brand couldn't keep its type there, and tags drew what the app wrote
+// (SETUP). expressions.labelCase sets table headers, tags, toast labels and summary
+// labels together; unset, each keeps the kit's own case, so themes render as before.
+func TestLabelCase(t *testing.T) {
+	base := theme.Default()
+	for _, c := range []struct {
+		labelCase                 string
+		header, tag, toast, strip string
+	}{
+		{"", "SERVICE", "SETUP", "DEPLOYED", "namespace"},
+		{"lower", "service", "setup", "deployed", "namespace"},
+		{"upper", "SERVICE", "SETUP", "DEPLOYED", "NAMESPACE"},
+		{"as-is", "Service", "SETUP", "DEPLOYED", "Namespace"},
+	} {
+		f := base
+		f.Expressions.LabelCase = c.labelCase
+		th := theme.Resolve(f, true, false)
+		got := map[string]string{
+			"header": strings.Fields(ansi.Strip(Table(th, []string{"Service", "when"}, nil, []int{10, 0}, "lr", -1, 40, false)[0]))[0],
+			"tag":    strings.TrimSpace(ansi.Strip(Tag(th, "info", "SETUP"))),
+			"toast":  strings.Fields(ansi.Strip(Toast(th, "ok", "DEPLOYED", "ledger v7.1.0", 60)))[0],
+			"strip":  strings.Fields(ansi.Strip(SummaryStrip(th, []SummaryRow{{Label: "Namespace", Value: "payments", Set: true}}, 60)))[0],
+		}
+		for what, want := range map[string]string{"header": c.header, "tag": c.tag, "toast": c.toast, "strip": c.strip} {
+			if got[what] != want {
+				t.Errorf("labelCase %q: %s %q, want %q", c.labelCase, what, got[what], want)
+			}
+		}
+	}
+}

@@ -69,7 +69,8 @@
         "diversity: loom differs from the charm study theme on >= 8 axes (not Crush recoloured)",
         "prose is capped at a measure (<= 100 cells) at 200 columns",
         "editor uses a real cursor via tea.View.Cursor",
-        "the brand read explains how 'warmer and more editorial' became specific expressions"
+        "the brand read explains how 'warmer and more editorial' became specific expressions",
+        "if the brand read makes the type lowercase, the theme says so for labels too (expressions.labelCase \"lower\"): table headers, tags and toast labels follow it, and no kit-forced SERVICE or SETUP is left on screen"
       ]
     },
     {

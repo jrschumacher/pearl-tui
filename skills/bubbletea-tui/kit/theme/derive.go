@@ -421,6 +421,7 @@ var exprValues = map[string][]string{
 	"wordmark":     {"gradient", "solid", "inverse", "tracked", "bracket", "upper", "plain"},
 	"sectionTitle": {"accent", "primary", "muted-upper", "fg"},
 	"titleCase":    {"sentence", "upper", "lower"},
+	"labelCase":    {"", "upper", "lower", "as-is"}, // "": each component's own case
 	"selection":    {"bar", "fill", "caret", "inverse"},
 	"button":       {"pill", "bracket", "underline", "inverse"},
 	"tag":          {"filled", "bracket", "bold"},
@@ -473,8 +474,12 @@ func CheckExpressions(x Expressions) error {
 		if err != nil || *p == "" || len(exprValues[key]) == 0 || slices.Contains(exprValues[key], *p) {
 			return
 		}
+		known, def := exprValues[key], exprValues[key][0]
+		if def == "" {
+			known, def = known[1:], "as if unset"
+		}
 		err = fmt.Errorf("expressions.%s %q is not a value the kit knows: %s (it would draw %s)",
-			key, *p, strings.Join(exprValues[key], " | "), exprValues[key][0])
+			key, *p, strings.Join(known, " | "), def)
 	})
 	return err
 }
