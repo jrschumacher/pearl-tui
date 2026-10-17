@@ -740,9 +740,11 @@ const asciiRule = "-=~_/\\"
 // asciiRuleCells are the columns of a row that belong to a rule drawn in text glyphs: a
 // run of 3+ of one ASCII rule character in one colour ("-----", "===="), 4+ periods (a
 // dotted rule "...."; "..." is an ellipsis) or 2+ middle dots or bullets ("·····" as a
-// rule, "··" as a stepper's connector; a lone "·" is a separator or a mark and is text).
-// A rule drawn in the border role is decoration exactly as ─ is, so it is not judged as
-// text.
+// rule, "··" as a stepper's connector; a lone "·" is a separator or a mark and is text),
+// and the shorter run of the same character and colour that a titled rule leads with
+// ("-- Commands -----", a rules dialog's top edge under ASCII: its lead is the rule's
+// glyph, not a dash in prose). A rule drawn in the border role is decoration exactly as
+// ─ ━ ▔ are, so it is not judged as text.
 func asciiRuleCells(row []Cell) map[int]bool {
 	out := map[int]bool{}
 	head := func(c Cell) rune {
@@ -752,6 +754,12 @@ func asciiRuleCells(row []Cell) map[int]bool {
 		return -1
 	}
 	sameFG := func(a, b *RGB) bool { return (a == nil) == (b == nil) && (a == nil || *a == *b) }
+	type run struct {
+		ch   rune
+		fg   *RGB
+		x, e int
+	}
+	var runs []run
 	for x := 0; x < len(row); {
 		ch := head(row[x])
 		if ch < 0 || !(strings.ContainsRune(asciiRule, ch) || ch == '.' || ch == '·' || ch == '•') {
@@ -762,19 +770,33 @@ func asciiRuleCells(row []Cell) map[int]bool {
 		for e < len(row) && head(row[e]) == ch && sameFG(row[e].FG, row[x].FG) {
 			e++
 		}
+		runs = append(runs, run{ch, row[x].FG, x, e})
+		x = e
+	}
+	full := func(r run) bool {
 		min := 3
-		switch ch {
+		switch r.ch {
 		case '.':
 			min = 4
 		case '·', '•':
 			min = 2
 		}
-		if e-x >= min {
-			for i := x; i < e; i++ {
+		return r.e-r.x >= min
+	}
+	for _, r := range runs {
+		lead := false
+		if r.e-r.x >= 2 && !full(r) {
+			for _, o := range runs {
+				if o.ch == r.ch && sameFG(o.fg, r.fg) && full(o) {
+					lead = true
+				}
+			}
+		}
+		if full(r) || lead {
+			for i := r.x; i < r.e; i++ {
 				out[i] = true
 			}
 		}
-		x = e
 	}
 	return out
 }

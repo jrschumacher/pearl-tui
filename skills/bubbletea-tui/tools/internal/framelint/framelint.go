@@ -13,7 +13,8 @@
 //	                 A frame with only 16-colour SGR (-profile ansi) is not judged: its 16
 //	                 slots are the terminal's palette, and every role lands on one
 //	F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1. Box drawing and blocks (U+2500–259F),
-//	                 braille, legacy blocks and rule runs (────, ----, ····) are decoration; status
+//	                 braille, legacy blocks and rule runs (────, ----, ====, ····, and the
+//	                 "--" a titled rule leads with) are decoration; status
 //	                 marks (● ◆ ▶ ○ ◐ •) are text. On an overlay frame (named dialog, palette,
 //	                 confirm, modal, overlay, popup, help or keys) only the dialog and the footer
 //	                 are judged: a bordered box, an ASCII +--+ box, or a "dialog": "rules" panel
@@ -67,7 +68,8 @@ every cell must be ASCII: a glyph that leaks through is tofu on a console font.
   F-OFFPAL    [P1] (with --theme) a colour not in, or blended from, the theme's roles
                    (a 16-colour frame, -profile ansi, is not judged: the terminal owns those slots)
   F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1; box drawing, blocks, braille and
-                   rule runs are decoration, status marks (● ◆ ▶ ○ •) are text. On an overlay
+                   rule runs (their ASCII twins too: ----, ====, and a titled rule's "--" lead)
+                   are decoration, status marks (● ◆ ▶ ○ •) are text. On an overlay
                    frame (named dialog|palette|confirm|modal|overlay|popup|help|keys) only the
                    dialog is judged: a bordered box, an ASCII +--+ box or a "dialog": "rules"
                    panel (two rule rows of one span around a filled panel); none found is a
