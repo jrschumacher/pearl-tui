@@ -223,20 +223,23 @@ func (t *Theme) Case(s string) string {
 	return s
 }
 
-// Copy applies the theme's case to the kit's own fixed copy: tab names, "Terminal too
-// small", a tool call's "Canceled." and "Waiting for permission", Thinking's "Thought
-// for". A label (one word: tab names, step names) takes labelCase when the theme sets
-// one, the brand's case for the small words of its UI; a sentence (a space or a full
-// stop: "Canceled.", "Terminal too small") takes titleCase, so a sentence-case brand
-// with lower labels never starts a line with "canceled.". Pass a sentence whole, full
-// stop included. Text the app writes (Huh field titles, labels, prose) is the app's
-// own: write it in the brand's case.
+// Copy applies the theme's case to a label of the kit's own fixed copy: tab names and
+// step names, one word or several ("Pull requests", "Sign in with"). labelCase when the
+// theme sets one (the brand's case for the small words of its UI), else titleCase, so
+// every label in a row takes the same case. A sentence takes Sentence. Text the app
+// writes (Huh field descriptions, prose) is the app's own: write it in the brand's case.
 func (t *Theme) Copy(s string) string {
-	if t.X.LabelCase != "" && !strings.ContainsAny(s, " .") {
+	if t.X.LabelCase != "" {
 		return t.Label(s, "as-is")
 	}
 	return t.Case(s)
 }
+
+// Sentence applies titleCase to a sentence of the kit's own fixed copy: "Terminal too
+// small", a tool call's "Canceled." and "Waiting for permission", Thinking's "Thought
+// for". labelCase is for labels, so a sentence-case brand with lower labels never starts
+// a line with "canceled.". Pass a sentence whole, full stop included.
+func (t *Theme) Sentence(s string) string { return t.Case(s) }
 
 // Label applies the theme's label case (expressions.labelCase) to a table header, tag,
 // toast or summary label; own is the component's case when the theme leaves it unset

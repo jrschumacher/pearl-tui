@@ -13,8 +13,7 @@ Details truncate before the brand does.
 
 ## Tabs — `ui.Tabs`
 
-Text, never boxes, the names in the theme's case (`labelCase` when set, else `titleCase`;
-a name with a space is a sentence and takes `titleCase`).
+Text, never boxes, the names in the theme's case (`labelCase` when set, else `titleCase`).
 The active tab is bold with a marker drawn per `expressions.tabs`
 (a `▔` underline row, a pill, `[brackets]`, or a ` / ` path). Counts sit beside the
 names in subtle; a count is only red if it needs attention now.
@@ -107,9 +106,9 @@ words. The primary button is filled because Enter triggers it, and the footer sa
 
 Huh does the input; the kit does the look and the frame around it. The reference is the
 showcase's first-run setup (`go run ./cmd/showcase -first-run`, harness states `setup-*`).
-Huh field titles are the app's text: the kit re-cases only its own fixed copy (`t.Copy`:
-a one-word tab name in `labelCase`, a sentence such as "Canceled." in `titleCase`), so write
-a field's title in the brand's case.
+Huh field titles are the app's text: the kit re-cases only its own fixed copy (`t.Copy`
+for labels such as tab names in `labelCase`, `t.Sentence` for a sentence such as "Canceled."
+in `titleCase`), so write a field's title in the brand's case.
 
 ```
 H A L Y A R D                                         setup / 2/6 Sign-in

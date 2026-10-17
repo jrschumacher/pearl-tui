@@ -289,22 +289,30 @@ func TestAccessibleSetup(t *testing.T) {
 
 // The wizard's own copy follows the brand's case like the kit's: its step names and the
 // Huh field titles go through t.Copy, so a labelCase lower brand (quire) draws
-// "cluster", "sign-in", "namespace", and a sentence-case one keeps them as written.
+// "cluster", "sign-in", "namespace", and a sentence-case one keeps them as written. A
+// title of several words is a label too: quire's "sign in with" once drew "Sign in with"
+// beside "cluster" and "namespace", because t.Copy took any text with a space for a
+// sentence.
 func TestSetupCopyFollowsTheme(t *testing.T) {
 	q, err := theme.Load(filepath.Join("..", "..", "theme", "testdata", "quire.json"))
 	if err != nil {
 		t.Skip("quire.json is the kit's; a copied project has its own themes")
 	}
 	for _, c := range []struct {
-		name      string
-		f         theme.File
-		step, huh string
+		name            string
+		f               theme.File
+		step, huh, auth string
 	}{
-		{"quire", q, "cluster", "namespace"},
-		{"sentence", testTheme(t, "halyard.json"), "Cluster", "Namespace"},
+		{"quire", q, "cluster", "namespace", "sign in with"},
+		{"sentence", testTheme(t, "halyard.json"), "Cluster", "Namespace", "Sign in with"},
 	} {
 		if c.f.Expressions.LabelCase == "" && c.f.Expressions.TitleCase == "upper" {
 			continue // a copied project's one theme may shout; the quire case still holds
+		}
+		a := newApp(c.f, true, false)
+		a.setState("setup-auth")
+		if frame := ansi.Strip(a.render(100, 30).String()); !strings.Contains(frame, c.auth) {
+			t.Errorf("%s: setup-auth frame lacks %q in its siblings' case:\n%s", c.name, c.auth, frame)
 		}
 		m := newApp(c.f, true, false)
 		m.setState("setup-namespace")

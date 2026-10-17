@@ -326,7 +326,7 @@ func Tabs(t *theme.Theme, names []string, active int, counts []string) []string 
 // TooSmall is the whole screen when the terminal is below the minimum: the wordmark,
 // "Terminal too small" in the theme's case, the sizes, the one key.
 func TooSmall(t *theme.Theme, w, h, minW, minH int) string {
-	msg := Wordmark(t, t.AppName()) + "\n\n" + t.S.Soft.Render(t.Copy("Terminal too small")) + "\n" + t.S.Muted.Render(
+	msg := Wordmark(t, t.AppName()) + "\n\n" + t.S.Soft.Render(t.Sentence("Terminal too small")) + "\n" + t.S.Muted.Render(
 		strconv.Itoa(w)+"x"+strconv.Itoa(h)+", needs "+strconv.Itoa(minW)+"x"+strconv.Itoa(minH)) + "\n\n" +
 		t.S.Key.Render("q") + " " + t.S.KeyDesc.Render("quit")
 	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, lipgloss.JoinVertical(lipgloss.Center, strings.Split(msg, "\n")...))

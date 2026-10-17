@@ -92,8 +92,8 @@ read it too.
     "sectionTitle": "primary",  // accent | primary | muted-upper | fg
     "titleCase": "sentence",    // sentence | upper | lower
     "labelCase": "lower",       // upper | lower | as-is: table headers, tags, toast and summary
-                                //   labels, and the kit's one-word fixed copy (tab names; a
-                                //   sentence, "Canceled.", takes titleCase; unset: headers upper,
+                                //   labels, and the kit's fixed labels (tab names; its
+                                //   sentences, "Canceled.", take titleCase; unset: headers upper,
                                 //   fixed copy in titleCase)
     "selection": "fill",        // bar | fill | caret | inverse
     "button": "bracket",        // pill | bracket | underline | inverse
