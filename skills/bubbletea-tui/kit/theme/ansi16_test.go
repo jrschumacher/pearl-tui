@@ -11,11 +11,11 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// welp is quire with welp's own amber and error (issue #12): at 16 colours
-// colorprofile maps the dark pair both to ANSI 9 and the light pair both to ANSI 1,
-// so "new" and "error" are one colour, and no amber both stays amber at 256 colours
-// and lands on yellow at 16.
-func welp(t *testing.T, ansi16 map[string]map[string]int) File {
+// amberIsAState is quire with the amber and the error of a brand whose amber means "new":
+// at 16 colours colorprofile maps the dark pair both to ANSI 9 and the light pair both
+// to ANSI 1, so "new" and "error" are one colour, and no amber both stays amber at 256
+// colours and lands on yellow at 16.
+func amberIsAState(t *testing.T, ansi16 map[string]map[string]int) File {
 	t.Helper()
 	f, err := Load(filepath.Join("testdata", "quire.json"))
 	if err != nil {
@@ -39,7 +39,7 @@ func index16(t *testing.T, th *Theme, role string) int {
 }
 
 func TestANSI16Overrides(t *testing.T) {
-	f := welp(t, nil)
+	f := amberIsAState(t, nil)
 	var got []string
 	for _, c := range ANSI16Clashes(f) {
 		got = append(got, c.String())
@@ -50,7 +50,7 @@ func TestANSI16Overrides(t *testing.T) {
 		}
 	}
 
-	f = welp(t, map[string]map[string]int{"dark": {"primary": 11}, "light": {"primary": 3}})
+	f = amberIsAState(t, map[string]map[string]int{"dark": {"primary": 11}, "light": {"primary": 3}})
 	for _, c := range ANSI16Clashes(f) {
 		if c.A == "primary" || c.B == "primary" {
 			t.Errorf("after the override: %s", c)
@@ -69,7 +69,7 @@ func TestANSI16Overrides(t *testing.T) {
 		}
 		// the override is for 16 colours only: truecolour and 256 keep the brand's amber
 		for _, p := range []colorprofile.Profile{colorprofile.TrueColor, colorprofile.ANSI256} {
-			if a, b := ResolveProfile(f, m.dark, false, p).P.Primary, Resolve(welp(t, nil), m.dark, false).P.Primary; !sameRGB(a, b) {
+			if a, b := ResolveProfile(f, m.dark, false, p).P.Primary, Resolve(amberIsAState(t, nil), m.dark, false).P.Primary; !sameRGB(a, b) {
 				t.Errorf("dark=%v %v: primary %v, want the theme's own %v", m.dark, p, a, b)
 			}
 		}
@@ -145,7 +145,7 @@ func TestANSI16Red(t *testing.T) {
 	}
 	for _, want := range []string{"dark: primary draws as ANSI 9, error's red", "light: error draws as ANSI 8, not red (1 or 9)", "light: warning draws as ANSI 1, error's red"} {
 		if !slices.Contains(got, want) {
-			t.Errorf("ANSI16Red(welp) = %q, want %q", got, want)
+			t.Errorf("ANSI16Red(quire without pins) = %q, want %q", got, want)
 		}
 	}
 }
