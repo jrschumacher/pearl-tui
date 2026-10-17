@@ -338,6 +338,11 @@ func (m *app) actions() []action {
 		return action{bind([]string{"esc"}, "esc", desc), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { f(m); return nil }}
 	}
 
+	// toosmall: the screen draws no layout, so it takes only what ui.TooSmall shows
+	if m.w < minW || m.h < minH {
+		return []action{quit}
+	}
+
 	// a dialog's body scrolls only when it overflows, and the footer says so only then
 	scroll := func(rows, shown int, off *int) action {
 		return action{bind([]string{"up", "k", "down", "j"}, m.t.G.UpDown, "scroll"), rows > shown, func(m *app, msg tea.KeyPressMsg) tea.Cmd {

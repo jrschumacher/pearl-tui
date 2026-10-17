@@ -335,10 +335,20 @@ func Tabs(t *theme.Theme, names []string, active int, counts []string) []string 
 }
 
 // TooSmall is the whole screen when the terminal is below the minimum: the wordmark,
-// "Terminal too small" in the theme's case, the sizes, the one key.
-func TooSmall(t *theme.Theme, w, h, minW, minH int) string {
+// "Terminal too small" in the theme's case, the sizes, and the keys the too-small
+// state binds (its action table's footer bindings, usually one: q quit), so the hint
+// is never a key the app doesn't handle.
+func TooSmall(t *theme.Theme, w, h, minW, minH int, bindings []key.Binding) string {
+	var keys []string
+	for _, b := range bindings {
+		if b.Enabled() {
+			keys = append(keys, t.S.Key.Render(b.Help().Key)+" "+t.S.KeyDesc.Render(b.Help().Desc))
+		}
+	}
 	msg := Wordmark(t, t.AppName()) + "\n\n" + t.S.Soft.Render(t.Copy("Terminal too small")) + "\n" + t.S.Muted.Render(
-		strconv.Itoa(w)+"x"+strconv.Itoa(h)+", needs "+strconv.Itoa(minW)+"x"+strconv.Itoa(minH)) + "\n\n" +
-		t.S.Key.Render("q") + " " + t.S.KeyDesc.Render("quit")
+		strconv.Itoa(w)+"x"+strconv.Itoa(h)+", needs "+strconv.Itoa(minW)+"x"+strconv.Itoa(minH))
+	if len(keys) > 0 {
+		msg += "\n\n" + Trunc(t, strings.Join(keys, "  "), w)
+	}
 	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, lipgloss.JoinVertical(lipgloss.Center, strings.Split(msg, "\n")...))
 }

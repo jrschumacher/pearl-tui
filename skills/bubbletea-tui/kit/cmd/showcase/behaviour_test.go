@@ -49,9 +49,6 @@ func fixture(t *testing.T, state string) *app {
 // its handler. This is the test that keeps help honest.
 func TestHelpIsHandled(t *testing.T) {
 	for _, s := range states {
-		if s == "toosmall" {
-			continue
-		}
 		for _, a := range fixture(t, s).actions() {
 			for _, k := range a.b.Keys() {
 				m := fixture(t, s)
@@ -61,6 +58,33 @@ func TestHelpIsHandled(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// The too-small screen's key is the toosmall action table's, drawn from it: ui.TooSmall
+// hard-coded "q quit" and TestHelpIsHandled skipped toosmall, so an app whose table
+// bound only ctrl+c showed q quit, a help lie in a lint-clean frame.
+func TestTooSmallKeysAreTheTable(t *testing.T) {
+	m := fixture(t, "toosmall")
+	var want []string
+	for _, a := range m.actions() {
+		if a.show {
+			want = append(want, a.b.Help().Key+" "+a.b.Help().Desc)
+		}
+	}
+	if len(want) == 0 {
+		t.Fatal("toosmall: no key in the footer: the screen must say how to leave")
+	}
+	w, h := frameSize("toosmall", 80, 24)
+	rows := strings.Split(ansi.Strip(m.render(w, h).String()), "\n")
+	last := ""
+	for _, r := range rows {
+		if r = strings.TrimSpace(r); r != "" {
+			last = r
+		}
+	}
+	if got := strings.Join(strings.Fields(last), " "); got != strings.Join(want, " ") {
+		t.Errorf("toosmall %dx%d: the key row reads %q, the toosmall action table shows %q", w, h, last, strings.Join(want, "  "))
 	}
 }
 

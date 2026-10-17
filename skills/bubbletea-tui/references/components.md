@@ -232,6 +232,8 @@ for steps, nested agents and dependencies.
 See `cell-art.md`. Mark, wordmark, spinner with subject, version bottom-left, quit hint
 bottom-right, brand field behind with a clearing. It is shown only while something loads.
 
-## Too Small — `ui.TooSmall`
+## Too Small — `ui.TooSmall(t, w, h, minW, minH, bindings)`
 
-One centred line with the actual and the needed size. Nothing else.
+One centred line with the actual and the needed size, then the keys of the `toosmall`
+row of the action table (`m.footerBindings()` while the size is below the minimum),
+never a key typed into the screen: `TestHelpIsHandled` presses every one. Nothing else.

@@ -73,6 +73,8 @@ func (m *app) setState(s string) {
 		m.busy, m.busySince = true, frame-240
 	case "splash":
 		m.screen = scrSplash
+	case "toosmall":
+		m.w, m.h = frameSize(s, m.w, m.h) // below the minimum: the toosmall action table
 	}
 	if strings.HasPrefix(s, "setup-") {
 		m.setupState(s, frame)
