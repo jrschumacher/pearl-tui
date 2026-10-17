@@ -72,7 +72,7 @@ type Glyphs struct {
 	HeaderRule string   `json:"headerRule"` // fills the header after the wordmark: ╱ ─ ═ · ━ ╌ ~ (or "")
 	Rule       string   `json:"rule"`       // section rules: ─ ━ ╌ ┄ ═ ·
 	FocusBar   string   `json:"focusBar"`   // left marker of the focused block: ▌ ┃ │ ▎ ❯
-	BlurBar    string   `json:"blurBar"`    // the same position, unfocused: ╎ ┆ ▏ ("" = ╎ beside a blurred selection, Theme.BlurBar; padding only in a stream or form); never the focus bar
+	BlurBar    string   `json:"blurBar"`    // the same position, unfocused: ╎ ┆ ┊, ASCII : ("" = ╎ beside a blurred selection, Theme.BlurBar; padding only in a stream or form); never the focus bar
 	Cursor     string   `json:"cursor"`     // selection cursor in lists/selects: › ❯ > ▸ →
 	Prompt     string   `json:"prompt"`     // input prompt: > $ ❯ ›
 	Done       string   `json:"done"`       // ✓ ✔ ■ ◆ x

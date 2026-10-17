@@ -519,7 +519,7 @@ func CheckGlyphs(g Glyphs) error {
 	// shows two focuses once colour is gone
 	switch {
 	case src.BlurBar != "" && src.BlurBar == src.FocusBar:
-		return fmt.Errorf("glyphs.blurBar %q is the focusBar: a blurred selection in the focus bar's shape is a second focus under NO_COLOR and ASCII; pick ╎ ┆ or ▏ (ASCII :), or leave it unset for ╎", src.BlurBar)
+		return fmt.Errorf("glyphs.blurBar %q is the focusBar: a blurred selection in the focus bar's shape is a second focus under NO_COLOR and ASCII; pick ╎ ┆ or ┊ (ASCII :), or leave it unset for ╎", src.BlurBar)
 	case src.BlurBar == "" && (src.FocusBar == blurFallback || out.FocusBar == blurFallbackASCII):
 		return fmt.Errorf("glyphs.focusBar %q is the kit's blurred marker (%s, ASCII %s): set glyphs.blurBar to another glyph, or pick another focus bar", src.FocusBar, blurFallback, blurFallbackASCII)
 	}

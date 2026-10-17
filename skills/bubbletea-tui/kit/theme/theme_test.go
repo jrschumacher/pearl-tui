@@ -529,6 +529,33 @@ func TestASCIISpinnerTurns(t *testing.T) {
 	}
 }
 
+// The glyphs CheckGlyphs recommends for a blurBar pass it: the advice named ▏, whose
+// twin ' is the default caret's, so the next run refused what this one suggested.
+func TestBlurBarAdvicePasses(t *testing.T) {
+	f, err := Load(writeTheme(t, `{"glyphs": {"focusBar": "│", "blurBar": "│"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	msg := CheckGlyphs(f.Glyphs).Error()
+	_, advice, ok := strings.Cut(msg, "pick ")
+	advice, _, _ = strings.Cut(advice, " (ASCII")
+	if !ok || advice == "" {
+		t.Fatalf("no advice in %q", msg)
+	}
+	for _, g := range strings.Fields(strings.ReplaceAll(advice, " or ", " ")) {
+		f, err := Load(writeTheme(t, `{"glyphs": {"focusBar": "▌", "blurBar": "`+g+`"}}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := CheckGlyphs(f.Glyphs); err != nil {
+			t.Errorf("the advice %q names %q, which CheckGlyphs refuses: %v", advice, g, err)
+		}
+		if tw := ASCII(f.Glyphs).BlurBar; tw != ":" {
+			t.Errorf("the advice names %q, whose ASCII twin is %q, not :", g, tw)
+		}
+	}
+}
+
 // The blurred selection's ASCII : is a gutter mark, and a spinner never stands in the
 // gutter, so : stays free for spinner frames: reserving it turned a pulse . : ' : into
 // . ' and would break a dots spinner's :.. ::. ::: twin (#38 item 5).
