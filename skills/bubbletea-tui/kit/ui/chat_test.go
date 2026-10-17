@@ -49,8 +49,8 @@ func TestTranscriptCutsOnBlockHeads(t *testing.T) {
 				}
 			}
 			first := strings.TrimSpace(ansi.Strip(rows[0]))
-			head := strings.HasSuffix(first, " row 0")                                                 // a block's head, whole
-			plain := strings.HasPrefix(first, marker) && strings.HasSuffix(first, " more lines  pgup") // nothing lifted
+			head := strings.HasSuffix(first, " row 0")                                           // a block's head, whole
+			plain := strings.HasPrefix(first, marker) && strings.HasSuffix(first, " more  pgup") // nothing lifted
 			lifted := strings.Contains(first, " row 0") && strings.Contains(first, marker) && strings.HasSuffix(first, " more  pgup")
 			if !head && !plain && !lifted {
 				t.Errorf("h=%d scroll=%d: the first visible row %q is neither a block head nor the marker", h, scroll, first)

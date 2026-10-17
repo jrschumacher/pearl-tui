@@ -320,7 +320,7 @@ func TestRenderProfile(t *testing.T) {
 
 // dialogText is the plain text of the rows a dialog was drawn on (m.ovRect) and the
 // footer: what a test about the dialog judges. The page under it has cut rows of its
-// own ("↑ 12 more lines", "… (6 lines hidden)" in a transcript), and a copied test that
+// own ("↑ 12 more", "… (6 lines hidden)" in a transcript), and a copied test that
 // scanned the whole frame failed under every overlay of an app whose page has one.
 func dialogText(c *ui.Canvas, r uv.Rectangle, fy int) string {
 	rows := strings.Split(ansi.Strip(c.String()), "\n")
@@ -336,7 +336,7 @@ func dialogText(c *ui.Canvas, r uv.Rectangle, fy int) string {
 // and a dialog whose keys don't scroll (confirm, palette) is never cut at the kit's own
 // minimum size, where a rollback confirmation hid its consequences ("… 2 more"). Each
 // overlay is judged over the services list and over the assistant's transcript, whose
-// tail is cut ("↑ n more lines", "… (n lines hidden)"): only the dialog's rows count.
+// tail is cut ("↑ n more", "… (n lines hidden)"): only the dialog's rows count.
 func TestDialogsStayAboveTheFooter(t *testing.T) {
 	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)

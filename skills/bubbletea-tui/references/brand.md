@@ -80,7 +80,7 @@ read it too.
     "treeMid": "├─", "treeEnd": "╰─", "treeRail": "│",   // the rail under a multi-line ui.Tree item
     "thumb": "┃", "track": "│",
     "spinner": ["◢","◣","◤","◥"], "fieldA": "▲", "fieldB": "△",
-    "caret": "▏", "more": "↑",   // the input caret; the "↑ 12 more lines" marker
+    "caret": "▏", "more": "↑",   // the input caret; the "↑ 12 more" marker
     "upDown": "↑↓", "leftRight": "←→", "back": "←",       // key labels in footers and forms
     "progressFill": "━", "progressEmpty": "╌", "progressHead": "╸",
     "turnBar": "│", "tabUnderline": "▔",                  // a blurred chat turn; the active tab

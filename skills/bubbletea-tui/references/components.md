@@ -180,7 +180,7 @@ on a filled strip, or under a rule. Full help (`?`) expands into columns, groupe
   the assistant's text is indented 2 and wrapped to the measure.
 - Actions use the tool-call grammar (`idiom.md` §6). Collapsed output gets an honest
   "N lines hidden" affordance.
-- Follow mode pins to the bottom. When scrolled up, show "↑ N more lines" at the top and
+- Follow mode pins to the bottom. When scrolled up, show "↑ N more" at the top and
   a "new below" hint. The cut falls on a block boundary: where it would split a block, the
   marker row carries that block's head with the count right-aligned
   (`✓ Edit config/timeouts.go        ↑ 25 more  pgup`), so no output shows with its head

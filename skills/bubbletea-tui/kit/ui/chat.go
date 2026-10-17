@@ -306,7 +306,7 @@ func Transcript(t *theme.Theme, blocks [][]string, w, h, scroll int, hint string
 			return append([]string{Fit(cutRow(t, rows[head], room)+"  "+right, w)}, rows[hidden:end]...)
 		}
 	}
-	marker := "  " + t.S.Subtle.Render(t.G.More+" "+strconv.Itoa(hidden)+" more lines") + tail
+	marker := "  " + more(hidden) + tail
 	return append([]string{Fit(marker, w)}, rows[hidden:end]...)
 }
 
