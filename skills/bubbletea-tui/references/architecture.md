@@ -2,8 +2,8 @@
 
 Verified against `charm.land/bubbletea/v2 v2.1.0`, `charm.land/lipgloss/v2 v2.0.6`,
 `charm.land/bubbles/v2 v2.2.1`, `charm.land/huh/v2 v2.0.3` and Ultraviolet
-`v0.0.0-20261008173134-6b8d4baf91b4` (October 2026). Lip Gloss v2.0.6 needs Go ≥ 1.26.7
-(`GOTOOLCHAIN=auto` fetches it). Your training data is mostly v1: the import paths,
+`v0.0.0-20261008173134-6b8d4baf91b4` (October 2026). The kit's `go.mod` pins Go 1.26.7
+(`GOTOOLCHAIN=auto` fetches it; no library needs it). Your training data is mostly v1: the import paths,
 `View()` and the key messages all changed. Copy from the kit, which compiles.
 
 ## Pin These
@@ -204,9 +204,10 @@ go run ./cmd/<app> -out frames -sizes 80x24,120x40  every state × size into fra
 The `states` list names every screen and overlay the app can show (including empty,
 loading, error, too-small). `setState(name)` builds each from scratch with fixture data.
 `View` and the harness share one `render(w, h)`, so the PNG is the program. See
-`kit/cmd/showcase/main.go`. A `_test.go` renders every state at
-80×24/100×30/120×40/200×60 in every theme and mode and asserts the footprint
-(`showcase_test.go`).
+`kit/cmd/showcase/main.go`. A `_test.go` renders every state at 60×18 (the floor, still
+a full layout), 80×24, 100×30, 120×40 and 200×60 in every theme and mode and asserts
+the footprint (`showcase_test.go`); `toosmall` is skipped there and checked by
+`-golden`/`-out` at 50×14.
 
 ## Project Layout
 

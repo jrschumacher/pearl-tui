@@ -48,7 +48,7 @@ Sample geometry in square units (1 col = 1, 1 row = 2) so circles are round.
 
 ## Wordmarks
 
-`scripts/wordmark.py "name" --style blocks|shade|half|ascii --rows N` rasterises a real
+`scripts/wordmark.py "name" --style half|shade|ascii|tracked --rows N` rasterises a real
 font into cells and prints rows, an ANSI preview, and a Go `[]string`.
 
 - **half** (`▀▄█`, two samples per cell): solid ink. Lowercase names with ascenders need
@@ -102,8 +102,8 @@ lattice, one bright and one subtle, angled, with a gradient. It is in the kit as
 
 10. **A colour-field animation changes colour, never shape.** Sweeps, pulses, highlight
     passes and CRT afterglow: precompute the glyph grid once, then restyle cells per
-    frame. Take the phase from wall-clock time with easing. For a mark, hold ~1.8 s and
-    sweep ~0.8 s ease-in-out.
+    frame. Take the phase from the frame index with easing (at 50 ms a frame: hold ~36
+    frames, sweep ~16 ease-in-out for a mark).
 11. **A transform animation (2D/3D) re-quantises every frame.** Apply every still rule to
     every frame, then:
     - Interior edges between two surfaces are **half-blocks with fg/bg** (`▌▐▀▄`), chosen
@@ -135,9 +135,10 @@ lattice, one bright and one subtle, angled, with a gradient. It is in the kit as
     component ticks and restyles; it never computes geometry at runtime unless the clip
     would exceed ~80 frames. Intros play ONCE and hand off to the idle state on an
     identical frame (test that in Go).
-17. **Deterministic frames.** Every animated component has `At(t time.Duration)` that
-    derives phase, drift and spinner frame from `t`, sharing the renderer with `Update`.
-    Goldens and GIFs use `At`. The live program uses ticks.
+17. **Deterministic frames.** Every animated component renders from a frame number, as
+    the kit's `Anim.Frame(n, elapsed)` and `Field{Drift: n/3}` do, sharing the renderer
+    with `Update`. Goldens and GIFs pass `-frame N`; the live program ticks `m.frame`.
+    A wall-clock phase can't be rendered by the harness.
 
 ## Spinners
 

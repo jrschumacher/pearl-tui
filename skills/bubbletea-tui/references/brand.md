@@ -13,7 +13,7 @@ The fix has three parts: a **brand read** (decisions, with reasons), a **theme f
 
 Gather what exists: logo files, the site's CSS, the style guide, the typeface, the
 product's own words, screenshots of its other surfaces. Measure; don't guess. Then write
-`<brand>.read.md`:
+`TUI.md` § Brand read (the only copy; the theme's `read` field holds it condensed):
 
 ```
 palette   <the hues, measured, and which one does the pointing>
@@ -73,9 +73,10 @@ read it too.
     "headerRule": "", "rule": "┄", "focusBar": "▎", "blurBar": "", "cursor": "▸", "prompt": "▸",
     "done": "◆", "current": "▲", "todo": "△", "fail": "✕", "pending": "●",
     "partial": "◭",              // in progress, between current and done (default ◐, ascii ~)
+    "warn": "!",                 // degraded: must differ in shape from current and fail
     "bullet": "▸", "sep": "/", "arrow": "→", "ellipsis": "…",
     "radioOn": "◉", "radioOff": "○", "checkOn": "■", "checkOff": "□",
-    "treeMid": "├─", "treeEnd": "╰─", "thumb": "┃", "track": "│",
+    "treeMid": "├─", "treeEnd": "╰─", "treeRail": "│", "thumb": "┃", "track": "│",
     "spinner": ["◢","◣","◤","◥"], "fieldA": "▲", "fieldB": "△",
     "ascii": { "◭": "~" }         // twins for glyphs the kit's map lacks (theme.ASCIITwin)
   },
@@ -97,6 +98,7 @@ read it too.
     "keys": "boxed",            // inline | boxed
     "density": "compact",       // airy | compact
     "backdrop": "field",        // none | field
+    "working": "spinner",       // spinner | scramble (Crush's hero; without it ui.Anim draws the spinner + label)
     "scrim": "dim",             // dim | none
     "focus": "primary",         // primary | fg (focus, cursor, prompt, selection in fg + bold)
     "paintBg": false,           // own the terminal background
@@ -108,23 +110,17 @@ read it too.
 ```
 
 **`focus: fg` is for a brand whose hue means a state** (amber = new, and nothing else).
-One meaning per hue means focus can't be that hue, so the kit's own emphasis moves to
-fg and weight: the focus bar, cursor, prompt and caret, current step, active tab, chosen
-option and focused button (every button style) in fg + bold, the fill selection inverse,
-and the kit's marks neutral (spinner, progress fill and busy dot in fg; the header rule
-and dialog-title rule in the rule role, a hairline like the section rules; the dialog
-border fgMuted unless `borderFocus` says otherwise). What the theme opts into keeps
-primary, because the brand chose it: a bar or stamp header, a banner, a gradient,
-solid, inverse or tracked wordmark (`plain` is the name in fg), `sectionTitle: primary`,
-`dialogTitle: bar` (the title on a primary strip), filled tags, the field backdrop, the
-scramble. So does what the app asks for
-(`t.S.Primary`, `ui.Tag(t, "primary", …)`): that is the state. At 16 colours the state
-must survive downsampling too: an amber lands on red, error's slot, so pin it with
-`ansi16` (color.md § The Four Palettes); `palette check` fails a focus-fg theme whose
-primary lands on red or shares a 16-colour slot with error, warning, success or info.
+One meaning per hue means focus can't be that hue, so the kit's own emphasis (focus bar,
+cursor, prompt, current step, active tab, focused button, the fill selection) moves to
+fg and weight and its marks go neutral; what the theme opts into (a bar or stamp
+header, a gradient wordmark, `sectionTitle: primary`, filled tags) and what the app asks
+for (`t.S.Primary`) keep primary, because the brand chose it.
+`TestFocusFgKeepsPrimaryOffChrome` holds the kit to that split. At 16 colours pin the
+hue with `ansi16` (color.md § The Four Palettes) so it doesn't land on red, error's slot;
+`palette check` fails a focus-fg theme whose primary shares a slot with a state.
 
-**A state ladder takes the status slots, by meaning.** `● new · ◐ reading · ○ waiting ·
-✓ reviewed` is `current · partial · todo · done`: the app draws `t.G.Current`,
+**A state ladder takes the status slots, by meaning.** `● queued · ◐ running · ○ waiting ·
+✓ done` is `current · partial · todo · done`: the app draws `t.G.Current`,
 `t.G.Partial`, `t.G.Todo`, `t.G.Done`, never literals, so `-ascii` draws `* ~ o +` and
 `palette check` keeps the rungs apart. `partial` is the in-progress rung (default `◐`);
 the kit draws it for a busy `ui.Dot` and a running tool call, which would otherwise be
@@ -135,8 +131,8 @@ with the same meanings: `ui.Steps` done/current/todo/fail, `ui.ToolCall`
 pending/partial/done/fail, `ui.Dot` current (ok), partial (busy), warn, fail and todo
 (idle), and `ui.Busy` the spinner (one cell, the partial glyph when the frames are wider).
 So a ladder mapped onto the slots by meaning stays consistent everywhere. Where a rung
-means something no kit component means (welp's `●` is "new", and `ui.Dot` draws
-`current` for "healthy"), keep that component off the ladder's screens, or give the rung
+means something no kit component means (an app whose `●` means "queued", while `ui.Dot`
+draws `current` for "healthy"), keep that component off the ladder's screens, or give the rung
 its own field in the copied `Glyphs` (`ASCII` maps it and `CheckGlyphs` checks its twin;
 add it to `glyphMeanings`' status set so the rungs stay apart). The hue stays off the
 kit's chrome with `focus: fg`; a spinner frame may not be a status or focus mark
@@ -153,17 +149,15 @@ as ACCEPT instead of FAIL:
 ```json
 "contrastAccept": { "dark.primary": "Charple #6B50FF exactly as Crush ships it; used for fills and bars" }
 ```
- Every glyph maps to an ASCII twin (`theme.ASCII`): the theme's own in `glyphs.ascii`,
-else the kit's map. `palette check` (and the kit's theme tests) fail on a glyph with
-neither, and on two marks of one meaning that share a twin (done/current/todo/pending/
-partial/warn/fail, radio on/off, check on/off, thumb/track, focus/blur bar): a guessed
-fallback lands on another mark's twin (`◔` reading and `●` new both as `*`). `theme.Load`
-doesn't, so an app always starts; at run time an unmapped glyph draws as `?`, which
-`tuilint frames --ascii` fails [F-ASCII]. Half-filled circles take `~` by convention; the
-kit's own `◐` has it already. If you add a key:
-add it to the Go structs, default it, document it here, probe-render it at 80×24 and
-120×40, and decide whether `diversity` should count it. A new glyph field needs nothing
-more for ASCII: `theme.ASCII` maps, and `theme.CheckGlyphs` checks, every string in `Glyphs`.
+
+Every glyph needs an ASCII twin, the theme's own in `glyphs.ascii` or the kit's map;
+`palette check` and the kit's theme tests name a glyph with neither and two marks of one
+meaning that share a twin (half-filled circles take `~` by convention). `theme.Load`
+still loads it, so an app always starts; an unmapped glyph then draws as `?`, which
+`tuilint frames --ascii` fails [F-ASCII]. If you add a key: add it to the Go structs,
+default it, document it here, probe-render it at 80×24 and 120×40, and decide whether
+`diversity` should count it; `theme.ASCII` and `theme.CheckGlyphs` cover every string in
+`Glyphs` on their own.
 
 **What never changes, whatever the brand:** whitespace and rules instead of boxes, one
 box for the floating thing, three to four text levels, exactly one visible focus that

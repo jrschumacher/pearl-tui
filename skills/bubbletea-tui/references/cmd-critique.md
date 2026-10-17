@@ -21,20 +21,16 @@ Then `cellshot --sheet`, `tuilint frames` and `tuilint code`.
 Spawn two critic subagents with the same files but no shared context (`verify.md` has
 the prompt): one with the full rubric, one with only "you are a terminal power user
 seeing this for the first time: what is confusing, slow, ugly or untrustworthy?". Where
-they agree, you have high confidence. Where only one sees it, judge for yourself.
+they agree, you have high confidence. Where only one sees it, judge for yourself. No
+subagent tool: `verify.md` § The Critic's fallback, once per prompt, in two fresh
+messages.
 
 ## 3. Score
 
-| # | Dimension | 0 | 2 | 4 |
-|---|---|---|---|---|
-| 1 | Identity | any default (pink-purple, emoji, figlet) | branded palette only | recognisable with colour stripped |
-| 2 | Hierarchy | one text level, everything bold | levels used inconsistently | the eye lands where it should |
-| 3 | Focus & flow | none or two focuses, lying help | works but surprises | one focus, honest help, esc everywhere |
-| 4 | Layout | tears, box soup, fixed width | works at one size | same design 80×24 → 200×60, room used |
-| 5 | States | blank empty/loading/error | some designed | all designed, useful copy |
-| 6 | Terminal craft | breaks on light/NO_COLOR/ascii | degrades badly | degrades gracefully, idle is still |
-
-Total out of 24. 20+ ship, 14–19 fix, below 14 rethink.
+The rubric in `verify.md` § The Critic: six dimensions (identity, hierarchy, focus and
+flow, layout, states, terminal craft), 0–4 each, total out of 24. Its bands are the
+verdict: 20+ ship, 14–19 fix, below 14 rethink. One rubric, so two critics score the
+same screen against the same bar.
 
 ## 4. Report
 
