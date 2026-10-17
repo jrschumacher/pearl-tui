@@ -16,6 +16,10 @@ row 23     footer / help (1)         footer (1)
 cols       gutter 2 | 76 | gutter 2  gutter 2 | 116 | gutter 2
 ```
 
+The footer is one row bare or on a bar and two under `footer: rule` (the rule, then
+the keys: rows 22–23 at 80×24), so a rule-footer brand's body budget is one row shorter.
+Measure it, `len(ui.Footer(…))`, rather than writing 1.
+
 Every pane's outer width, inner width and text width are integers that sum to the
 parent. If you can't write this table, you can't build the screen. It is also the first
 thing to check when a frame tears.

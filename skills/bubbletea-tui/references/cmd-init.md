@@ -125,6 +125,7 @@ One block per screen: `shape` fills it, `craft` builds it in § First slice orde
 #### <screen> — <its job in one line, and what the eye lands on first>
 80×24:  <region> <x,y w×h> · <region> <x,y w×h> · footer 0,23 80×1     (outer widths; text width = outer − gutters)
 120×40: <region> <x,y w×h> · <the pane that exists only here> · footer 0,39 120×1
+        (footer 0,22 80×2 and 0,38 120×2 under footer: rule, a rule row then the keys: len(ui.Footer(…)) is the height)
 collapse: < 110 cols <what becomes what>; < 30 rows <what goes>
 components: <ui.Table, ui.Dot, …>; new: <none | name, and why no kit component draws it>
 fixtures: <count, the longest name, the failing row, the empty list>
@@ -156,7 +157,7 @@ regions are structs drawn into rectangles (x,y w×h at 80×24):
     header   0,0    80×1
     list     0,2    32×20
     detail   34,2   46×20
-    footer   0,23   80×1
+    footer   0,23   80×1        (0,22 80×2 under footer: rule; the body above it loses the row)
 
 focus: list | detail        overlays: palette, confirm, help (front one gets keys)
 

@@ -220,7 +220,8 @@
         "the brand read's remember line names a move the TUI draws on every screen (the state-dot column, a rule, a gutter, a layout move), not a quality of the content such as 'reads like a well-set page'",
         "the First slice is the main loop's 2–3 screens (inbox, thread, reply) with every state of those on fixtures, not every state of every screen; note, the quick switcher and the rest come after it",
         "TUI.md § Screens holds one block per screen in the template's shape, not one line: the job, regions with x,y w×h at 80×24 and at 120×40, what collapses below 110 columns and 30 rows, the kit components that draw it, the fixture notes (longest name, failing row, empty list) and an 80-wide sketch in a code fence; a filled TUI.md still passes tuilint spec",
-        "TUI.md's architecture half puts the root model, render(w,h), the fixtures and the harness in cmd/<app>/ (where the kit's README copy block puts the showcase and its tests), not in internal/app/; internal/ holds only the copied theme/ and ui/"
+        "TUI.md's architecture half puts the root model, render(w,h), the fixtures and the harness in cmd/<app>/ (where the kit's README copy block puts the showcase and its tests), not in internal/app/; internal/ holds only the copied theme/ and ui/",
+        "each § Screens region line gives the footer the height the theme's footer draws, 80×1 at 0,23 bare or on a bar and 80×2 at 0,22 under footer: rule (a rule row then the keys), with the body budget above it one row shorter in the rule case; no region line writes footer 0,23 80×1 under a rule footer"
       ]
     }
   ]
