@@ -82,6 +82,8 @@ type app struct {
 	scroll    int
 	// incidents
 	declared bool
+	// services: the list refreshes itself unless paused
+	paused bool
 	// deploys log: newest first; depSel is a row, resolved to a service by name
 	events []event
 	depSel int
@@ -429,7 +431,9 @@ func (m *app) actions() []action {
 			}})
 		}
 		return append(acts,
-			action{bind([]string{"ctrl+o"}, "ctrl+o", "expand output"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.expand = !m.expand; return nil }},
+			// a toggle's help names what the key does now: "collapse" while expanded
+			action{bind([]string{"ctrl+o"}, "ctrl+o", map[bool]string{false: "expand output", true: "collapse output"}[m.expand]), true,
+				func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.expand = !m.expand; return nil }},
 			action{bind([]string{"pgup"}, "pgup", "scroll"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.scroll += 5; return nil }},
 			action{bind([]string{"pgdown"}, "pgdn", "scroll down"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.scroll = max(0, m.scroll-5); return nil }},
 			tabs, tabsBack, palette, help, bs,
@@ -470,11 +474,15 @@ func (m *app) actions() []action {
 	if m.screen == scrDeploys {
 		return []action{move, palette, tabs, tabsBack, quit, help}
 	}
+	// a toggle's help names what the key does now (TestToggleHelpIsTruthful): "pause"
+	// while the list is live, "resume" while it is paused
+	pause := action{bind([]string{"p"}, "p", map[bool]string{false: "pause", true: "resume"}[m.paused]), true,
+		func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.paused = !m.paused; return nil }}
 	acts := []action{
 		move,
 		{bind([]string{"d"}, "d", "deploy"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.openDeploy(); return nil }},
 		{bind([]string{"r"}, "r", "roll back"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.askRollback(); return nil }},
-		palette, tabs, tabsBack, quit, help,
+		palette, tabs, tabsBack, pause, quit, help,
 	}
 	// the palette's shortcuts work here too, so the hints it shows are true
 	for _, c := range commands {

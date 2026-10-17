@@ -2,10 +2,12 @@ package main
 
 import (
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
@@ -230,5 +232,153 @@ func TestRollbackOnce(t *testing.T) {
 	m.key(press("r"))
 	if m.ov == ovConfirm {
 		t.Fatal("second rollback opened a confirm with nothing to roll back to")
+	}
+}
+
+// Law 6: a toggle's help names what the key does now. After one press the description
+// must change (pause → resume, expand → collapse) and a second press must bring it back;
+// a footer that still says "pause" while paused lies in one of its two states.
+func TestToggleHelpIsTruthful(t *testing.T) {
+	desc := func(m *app, k string) string {
+		for _, a := range m.actions() {
+			if slices.Contains(a.b.Keys(), k) {
+				return a.b.Help().Desc
+			}
+		}
+		return ""
+	}
+	for _, c := range []struct{ state, key string }{{"services", "p"}, {"assistant", "ctrl+o"}} {
+		m := fixture(t, c.state)
+		before := desc(m, c.key)
+		m.key(press(c.key))
+		after := desc(m, c.key)
+		switch {
+		case before == "":
+			t.Errorf("%s: %s is not bound", c.state, c.key)
+		case after == before:
+			t.Errorf("%s: %s says %q before and after a press: a toggle's help names what the key does now", c.state, c.key, before)
+		}
+		m.key(press(c.key))
+		if got := desc(m, c.key); got != before {
+			t.Errorf("%s: %s says %q after two presses, want %q again", c.state, c.key, got, before)
+		}
+	}
+}
+
+// shape is a frame as layout: ANSI stripped, the focus and selection marks and the input
+// caret blanked, so two frames that differ only in where focus sits compare equal.
+func shape(m *app, w, h int) []string {
+	g := m.t.G
+	var pairs []string
+	for _, mark := range []string{g.FocusBar, g.BlurBar, g.Cursor, caret} {
+		if mark != "" {
+			pairs = append(pairs, mark, strings.Repeat(" ", lipgloss.Width(mark)))
+		}
+	}
+	txt := strings.NewReplacer(pairs...).Replace(ansi.Strip(m.render(w, h).String()))
+	return strings.Split(txt, "\n")
+}
+
+// caret is the input caret the screens draw after the text being edited.
+const caret = "▏"
+
+// tableRows are the rows of the first table in a frame (its header, rule and n rows), cut
+// to the list's own width when a detail pane shares them.
+func tableRows(rows []string, n, w int) []string {
+	for i, r := range rows {
+		if l := strings.ToLower(r); strings.Contains(l, "service") && strings.Contains(l, "version") {
+			out := rows[i:min(len(rows), i+2+n)]
+			if w >= wideW {
+				for k, r := range out {
+					out[k] = string([]rune(r)[:w-45])
+				}
+			}
+			return out
+		}
+	}
+	return nil
+}
+
+// Law 5: moving focus or the selection changes the marker column and the text's weight,
+// never where anything sits. Every focus state of the deploy form, every palette row and
+// every services and deploys row draws onto the same cells, marks and caret aside, in
+// every theme (each selection and button expression) at both sizes.
+func TestFocusKeepsLayout(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := newApp(tf, true, false)
+		name := filepath.Base(f)
+		for _, sz := range [][2]int{{80, 24}, {120, 40}} {
+			w, h := sz[0], sz[1]
+			same := func(what string, base, got []string) {
+				t.Helper()
+				for i := range base {
+					if i < len(got) && got[i] != base[i] {
+						t.Errorf("%s %dx%d %s: row %d moved:\n%q\n%q", name, w, h, what, i, base[i], got[i])
+						return
+					}
+				}
+			}
+			// the footer names the focused field's keys, so it is the one row allowed to change
+			body := func(rows []string) []string { return rows[:h-3] }
+			m.setState("deploy")
+			base := body(shape(m, w, h))
+			for focus := 1; focus < 5; focus++ {
+				m.focus = focus
+				same("deploy focus "+itoa(focus), base, body(shape(m, w, h)))
+			}
+			m.setState("palette")
+			m.query = ""
+			base = shape(m, w, h)
+			for sel := 1; sel < len(m.filtered()); sel++ {
+				m.palSel = sel
+				same("palette row "+itoa(sel), base, shape(m, w, h))
+			}
+			for _, s := range []string{"services", "deploys"} {
+				m.setState(s)
+				n := len(m.svcs)
+				if s == "deploys" {
+					n = len(m.events)
+				}
+				base = tableRows(shape(m, w, h), n, w)
+				if base == nil {
+					t.Fatalf("%s %dx%d %s: no table", name, w, h, s)
+				}
+				for sel := 1; sel < n; sel++ {
+					m.key(press("j"))
+					same(s+" row "+itoa(sel), base, tableRows(shape(m, w, h), n, w))
+				}
+			}
+		}
+	}
+}
+
+// Law 9: a second pane joins the list at wideW columns and not below. At 80×24 the
+// services and deploys lists, the deploy form and the assistant have the whole width; at
+// 120×40 the detail pane, the preview and the sidebar appear.
+func TestBreakpoints(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := newApp(tf, true, false)
+		for _, c := range []struct{ state, pane string }{
+			{"services", "p99 latency"}, {"deploys", "p99 latency"}, {"deploy", "what happens"}, {"assistant", "touched"},
+		} {
+			m.setState(c.state)
+			narrow := strings.ToLower(ansi.Strip(m.render(80, 24).String()))
+			m.setState(c.state)
+			wide := strings.ToLower(ansi.Strip(m.render(120, 40).String()))
+			if strings.Contains(narrow, c.pane) {
+				t.Errorf("%s %s at 80x24: the %q pane is there; it belongs above %d columns", filepath.Base(f), c.state, c.pane, wideW)
+			}
+			if !strings.Contains(wide, c.pane) {
+				t.Errorf("%s %s at 120x40: no %q pane", filepath.Base(f), c.state, c.pane)
+			}
+		}
 	}
 }

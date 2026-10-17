@@ -112,6 +112,9 @@ func (m *app) footerBadge() string {
 
 func (m *app) footerRight() string {
 	if m.screen == scrServices && m.ov == ovNone {
+		if m.paused {
+			return m.t.S.Subtle.Render("paused")
+		}
 		return m.t.S.Subtle.Render("synced 4s ago")
 	}
 	if m.screen == scrSetup && m.ov == ovNone && !m.setup.saved {
