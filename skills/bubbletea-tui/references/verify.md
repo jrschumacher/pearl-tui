@@ -102,8 +102,10 @@ Rubric (score each 0–4, cite rows/cells, not impressions; 0 = a default or a b
   4. Layout: budgets respected; 80×24, 120×40 and 200×60 are the same design; room
      used, not stretched (layout.md § Use The Room: a blank sidebar or unused columns
      beside the body at 120×40 is a stretch); nothing touching edges; no box soup.
-  5. States: empty, loading, error, partial, too-small all designed; copy says what
-     happened and what to do.
+  5. States: empty, loading, error, partial, too-small all designed; a loading frame
+     shows the skeleton of the real rows (dim placeholder rows where the table and
+     the gauges will be), not five labels and a stroke; copy says what happened and
+     what to do.
   6. Terminal craft: NO_COLOR and ASCII still readable; light set reviewed; no holes in
      filled bars; nothing animates while idle.
 Output:
