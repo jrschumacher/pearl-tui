@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -334,11 +335,77 @@ func TestSpinnerNeverDrawsAnotherMark(t *testing.T) {
 			}
 		}
 	}
-	f, err := Load(writeTheme(t, `{"glyphs": {"spinner": ["◐", "◓", "◑", "◒"]}}`))
+	// a frame that is a mark the theme set is an error; the default partial steps aside
+	f, err := Load(writeTheme(t, `{"glyphs": {"partial": "◐", "spinner": ["◐", "◓", "◑", "◒"]}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := CheckGlyphs(f.Glyphs); err == nil || !strings.Contains(err.Error(), `glyphs.spinner frame "◐" is also glyphs.partial`) {
-		t.Errorf("CheckGlyphs(spinner with ◐) = %v", err)
+		t.Errorf("CheckGlyphs(spinner with ◐, partial ◐) = %v", err)
+	}
+	f, err = Load(writeTheme(t, `{"glyphs": {"spinner": ["◐", "◓", "◑", "◒"]}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CheckGlyphs(f.Glyphs); err != nil {
+		t.Errorf("CheckGlyphs(spinner with ◐, partial unset) = %v: the theme never wrote a partial", err)
+	}
+	if g := Resolve(f, true, false).G; slices.Contains(g.Spinner, g.Partial) {
+		t.Errorf("the default partial %q is a spinner frame %q", g.Partial, g.Spinner)
+	}
+}
+
+// The default partial is a glyph no status mark or spinner frame of the theme already
+// is: a theme whose pending is ◐ got ◐ for partial too, so a running and a pending tool
+// call were one mark.
+func TestDefaultPartialIsItsOwnGlyph(t *testing.T) {
+	for _, js := range []string{
+		`{"glyphs": {"pending": "◐"}}`,
+		`{"glyphs": {"pending": "◐", "todo": "◑", "ascii": {"◑": "-"}}}`,
+		`{"glyphs": {"spinner": ["◐", "◓"]}}`,
+	} {
+		f, err := Load(writeTheme(t, js))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := CheckGlyphs(f.Glyphs); err != nil {
+			t.Errorf("%s: CheckGlyphs %v", js, err)
+		}
+		for _, ascii := range []bool{false, true} {
+			g := Resolve(f, true, ascii).G
+			for name, m := range map[string]string{"done": g.Done, "current": g.Current, "todo": g.Todo, "pending": g.Pending, "warn": g.Warn, "fail": g.Fail} {
+				if m == g.Partial {
+					t.Errorf("%s ascii=%v: the default partial %q is glyphs.%s", js, ascii, g.Partial, name)
+				}
+			}
+		}
+	}
+}
+
+// The ASCII spinner turns: at least two distinct frames, none a mark the theme draws,
+// even when the marks take the line spinner's frames and the pulse's.
+func TestASCIISpinnerTurns(t *testing.T) {
+	for _, js := range []string{
+		`{}`,
+		`{"glyphs": {"focusBar": "|", "blurBar": "/", "todo": "-", "done": "\\", "pending": ".", "partial": ":"}}`,
+		`{"glyphs": {"focusBar": "|", "blurBar": "/", "todo": "-", "done": "\\", "pending": ".", "partial": ":", "current": "'"}}`,
+	} {
+		f, err := Load(writeTheme(t, js))
+		if err != nil {
+			t.Fatal(err)
+		}
+		g := Resolve(f, true, true).G
+		distinct := map[string]bool{}
+		for _, fr := range g.Spinner {
+			distinct[fr] = true
+			for _, m := range []string{g.FocusBar, g.BlurBar, g.Done, g.Current, g.Todo, g.Pending, g.Partial, g.Warn, g.Fail} {
+				if fr == m {
+					t.Errorf("%s: ASCII spinner frame %q is a mark", js, fr)
+				}
+			}
+		}
+		if len(distinct) < 2 {
+			t.Errorf("%s: ASCII spinner %q doesn't turn", js, g.Spinner)
+		}
 	}
 }

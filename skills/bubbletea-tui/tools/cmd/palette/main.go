@@ -35,10 +35,12 @@
 //
 //	"ansi16": {"dark": {"primary": 11}, "light": {"primary": 3}}
 //
-// Under "focus": "fg" primary is a state, and a clash with it exits 1: the brand's one
-// promise (amber = new) breaks where amber downsamples to error's red. A clash among
-// error, warning, success and info is a warning: their glyphs and words still differ.
-// A pin that names no role, no mode or no colour 0-15 exits 2, as theme.Load fails it.
+// Red (1 or 9) is error's. It exits 1 on error off red (a grey error beside a red
+// warning reads reversed), and under "focus": "fg", where primary is a state, on primary
+// on red or on another state role's colour (amber = new must not read as error). It warns
+// on primary on red under "focus": "primary" (focus reads as an error), on warning,
+// success or info on red, and on two of those on one colour: their glyphs and words still
+// differ. A pin that names no role, no mode or no colour 0-15 exits 2, as theme.Load does.
 //
 // Thresholds (WCAG 2 contrast ratio against the role's background):
 //

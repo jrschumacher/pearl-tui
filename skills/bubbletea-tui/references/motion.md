@@ -30,7 +30,9 @@ case tickMsg:
 ## Deterministic Frames
 
 Every animated thing renders from `(frame, seed)` only: `Anim.Frame(n)`,
-`ui.Spinner(t, n)`, `Field{Drift: n/3}`. So the harness can render frame 24 in a
+`ui.Spinner(t, n)` (beside a label), `ui.Busy(t, n)` (in a status column: one cell like
+the dots beside it, the partial glyph when the theme's frames are wider),
+`Field{Drift: n/3}`. So the harness can render frame 24 in a
 golden, frames 0..40 into a GIF, and the live program shows the same thing. Phase from
 wall-clock (`time.Since(start)`) only for things that must stay in sync with real time
 (an elapsed timer).

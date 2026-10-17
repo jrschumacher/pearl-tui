@@ -213,9 +213,6 @@ func glyphDefaults(g Glyphs) Glyphs {
 	d(&g.Todo, "○")
 	d(&g.Fail, "×")
 	d(&g.Pending, "●")
-	if g.Partial == "" {
-		g = defaultPartial(g)
-	}
 	d(&g.Warn, "▲")
 	d(&g.Bullet, "•")
 	d(&g.Sep, "·")
@@ -235,16 +232,31 @@ func glyphDefaults(g Glyphs) Glyphs {
 	if len(g.Spinner) == 0 {
 		g.Spinner = []string{"◜", "◠", "◝", "◞", "◡", "◟"}
 	}
+	if g.Partial == "" {
+		g = defaultPartial(g)
+	}
 	// HeaderRule and BlurBar may legitimately be "" (no rule / padding only).
 	return g
 }
 
-// defaultPartial gives a theme that leaves glyphs.partial unset the kit's ◐. Its twin is
-// "~", unless one of the theme's own status marks already draws as "~" (a ◔ pending
-// written before the slot existed): then the first twin no status mark uses, so a
-// default never makes two of the theme's states one mark under ASCII.
+// defaultPartial gives a theme that leaves glyphs.partial unset the first of ◐ ◑ ◒ ◓ ◔
+// that none of its status marks or spinner frames already is, so the in-progress rung
+// never draws as pending (a ◐ pending) or as a spinner frame. Its twin is the kit's
+// ("~" for ◐), unless one of the theme's own status marks already draws as that: then
+// the first twin no status mark uses, so a default never makes two of the theme's states
+// one mark under ASCII.
 func defaultPartial(g Glyphs) Glyphs {
+	taken := map[string]bool{}
+	for _, s := range append([]string{g.Done, g.Current, g.Todo, g.Pending, g.Warn, g.Fail}, g.Spinner...) {
+		taken[strings.TrimSpace(s)] = true
+	}
 	g.Partial = "◐"
+	for _, c := range []string{"◐", "◑", "◒", "◓", "◔"} {
+		if !taken[c] {
+			g.Partial = c
+			break
+		}
+	}
 	if _, own := g.ASCII[g.Partial]; own {
 		return g
 	}
@@ -361,7 +373,7 @@ func CheckGlyphs(g Glyphs) error {
 	var err error
 	src := glyphDefaults(g)
 	glyphFields(&src, func(name, key string, p *string) {
-		if err != nil || asciiForced[name] || twin(g.ASCII, *p) != "?" {
+		if err != nil || asciiForced[name] || twin(src.ASCII, *p) != "?" {
 			return
 		}
 		err = fmt.Errorf("glyphs.%s %q has no ASCII twin: -ascii and TERM=linux would draw it as \"?\"; add \"ascii\": {%q: \"<twin>\"} to glyphs", key, *p, *p)
@@ -379,7 +391,10 @@ func CheckGlyphs(g Glyphs) error {
 	sv0 := reflect.ValueOf(src)
 	for _, fr := range src.Spinner {
 		for _, m := range spinnerMarks {
-			if g := sv0.FieldByName(m).String(); g != "" && strings.TrimSpace(fr) == g {
+			if m == "Partial" && g.Partial == "" {
+				continue // the default steps aside (defaultPartial); only a partial the theme wrote counts
+			}
+			if mark := sv0.FieldByName(m).String(); mark != "" && strings.TrimSpace(fr) == mark {
 				return fmt.Errorf("glyphs.spinner frame %q is also glyphs.%s: a working row beside it would read as that mark; pick frames no state or focus mark uses",
 					fr, jsonKey(m))
 			}
@@ -447,7 +462,9 @@ var exprValues = map[string][]string{
 }
 
 // ExpressionValues are the values the kit knows for expression key (its JSON name),
-// the default first; nil for a key that takes no word (gutter, measure, paintBg).
+// the default first; nil for a key that takes no word (gutter, measure, paintBg). The
+// one default that isn't a word is labelCase's "": unset, each component keeps its own
+// case (table headers upper, tags as written, summary labels lower).
 func ExpressionValues(key string) []string { return exprValues[key] }
 
 // ExpressionKey reports whether key is an expression the kit reads.
@@ -499,25 +516,34 @@ var spinnerMarks = []string{"FocusBar", "BlurBar", "Done", "Current", "Todo", "F
 
 // asciiSpinner is the line spinner | / - \ without the frames g's marks already draw
 // as (the "|" of a focus bar twinned from ▌): a turning line still, a frame short. If
-// the marks take more than two of them, a pulse . : instead.
+// the marks leave it fewer than two distinct frames, a pulse . : ' :, then a bounce ( ),
+// then any two punctuation marks no mark is.
 func asciiSpinner(g Glyphs) []string {
 	v := reflect.ValueOf(g)
 	taken := map[string]bool{}
 	for _, m := range spinnerMarks {
 		taken[v.FieldByName(m).String()] = true
 	}
-	for _, frames := range [][]string{{"|", "/", "-", "\\"}, {".", ":", "'", ":"}} {
+	for _, frames := range [][]string{{"|", "/", "-", "\\"}, {".", ":", "'", ":"}, {"(", ")"}} {
 		var out []string
+		distinct := map[string]bool{}
 		for _, f := range frames {
 			if !taken[f] {
 				out = append(out, f)
+				distinct[f] = true
 			}
 		}
-		if len(out) >= 2 {
+		if len(distinct) >= 2 {
 			return out
 		}
 	}
-	return []string{"|", "/", "-", "\\"}
+	var out []string
+	for _, r := range "+=#@%&<>^~;,`" {
+		if f := string(r); !taken[f] && len(out) < 2 {
+			out = append(out, f)
+		}
+	}
+	return out
 }
 
 func exprDefaults(x Expressions) Expressions {

@@ -5,6 +5,10 @@
  "ansi16": {
   "dark": {
    "warning": 11
+  },
+  "light": {
+   "error": 1,
+   "warning": 3
   }
  },
  "roles": {

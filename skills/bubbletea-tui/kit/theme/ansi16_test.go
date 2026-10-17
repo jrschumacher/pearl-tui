@@ -3,6 +3,7 @@ package theme
 import (
 	"image/color"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -99,10 +100,10 @@ func TestLoadRejectsBadANSI16(t *testing.T) {
 	}
 }
 
-// A theme under focus "fg" says its hue is a state, so at 16 colours primary must not
-// land on another state role's colour: palette check fails it, and so does this test
-// for every kit theme and test theme.
-func TestFocusFgThemesKeepPrimaryApartAt16Colours(t *testing.T) {
+// What palette check fails at 16 colours, every kit theme and test theme passes: error
+// on red (1 or 9), and under focus "fg", where the hue is a state, primary neither on
+// red nor on another state role's colour.
+func TestThemesReadRightAt16Colours(t *testing.T) {
 	var files []string
 	for _, dir := range []string{"../themes", "../../themes"} {
 		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
@@ -115,13 +116,36 @@ func TestFocusFgThemesKeepPrimaryApartAt16Colours(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if f.Expressions.Focus != "fg" {
-			continue
+		fg := f.Expressions.Focus == "fg"
+		for _, r := range ANSI16Red(f) {
+			if r.Role == "error" || (fg && r.Role == "primary") {
+				t.Errorf("%s: %s", filepath.Base(path), r)
+			}
 		}
 		for _, c := range ANSI16Clashes(f) {
-			if c.A == "primary" || c.B == "primary" {
+			if fg && (c.A == "primary" || c.B == "primary") {
 				t.Errorf("%s: %s", filepath.Base(path), c)
 			}
+		}
+	}
+}
+
+// charm's, halyard's and quire's light error downsampled to ANSI 8 and their warning to
+// 1: at 16 colours the warning was red and the error grey, the two reversed. quire
+// without its pins shows it, and its amber on red as well.
+func TestANSI16Red(t *testing.T) {
+	f, err := Load(filepath.Join("testdata", "quire.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.ANSI16 = nil
+	var got []string
+	for _, r := range ANSI16Red(f) {
+		got = append(got, r.String())
+	}
+	for _, want := range []string{"dark: primary draws as ANSI 9, error's red", "light: error draws as ANSI 8, not red (1 or 9)", "light: warning draws as ANSI 1, error's red"} {
+		if !slices.Contains(got, want) {
+			t.Errorf("ANSI16Red(welp) = %q, want %q", got, want)
 		}
 	}
 }

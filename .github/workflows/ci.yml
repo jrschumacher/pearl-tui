@@ -89,8 +89,9 @@ jobs:
           # theme/testdata holds the kit's test themes (quire); palette check also gates glyph twins
           for t in skills/bubbletea-tui/kit/themes/*.json skills/bubbletea-tui/kit/theme/testdata/*.json; do palette check "$t"; done
           diversity skills/bubbletea-tui/kit/themes/*.json
-      # dark truecolour is what a theme is designed in; light, ASCII, 256 and 16 colours and
-      # NO_COLOR are what many users get, and where the footer bar, rules, background steps
+      # dark truecolour is what a theme is designed in; light, ASCII, 256 and 16 colours (dark
+      # and light: a light page downsamples its roles differently) and NO_COLOR are what
+      # many users get, and where the footer bar, rules, background steps
       # and downsampled roles break first. theme/testdata holds the kit's test themes
       # (quire: focus fg, dialog rules), rendered and linted the same way.
       - name: render every state of every theme in every variant, lint the frames, build a sheet
@@ -100,7 +101,7 @@ jobs:
           fail=0
           for t in themes/*.json theme/testdata/*.json; do
             n=$(basename "$t" .json)
-            for v in dark light ascii ansi256 ansi nocolor; do
+            for v in dark light ascii ansi256 ansi light-ansi nocolor; do
               env=(); lint=()
               case $v in
                 dark)    flags=();                  out=$n ;;
@@ -108,6 +109,7 @@ jobs:
                 ascii)   flags=(-ascii);            out=$n-ascii; lint=(--ascii) ;;
                 ansi256) flags=(-profile ansi256);  out=$n-ansi256 ;;
                 ansi)    flags=(-profile ansi);     out=$n-ansi ;;
+                light-ansi) flags=(-light -profile ansi); out=$n-light-ansi ;;
                 nocolor) flags=();                  out=$n-nocolor; env=(NO_COLOR=1) ;;
               esac
               echo "::group::$n $v"

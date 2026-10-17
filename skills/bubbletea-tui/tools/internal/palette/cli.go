@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -166,59 +167,105 @@ func check(path string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-// Clashes16 reports on stderr each state role that lands on one of the 16 colours with
-// others (theme.ANSI16Clashes), with the ansi16 pin that separates it, and returns how
-// many fail: under focus "fg" the hue is a state, so primary sharing a colour with
-// another state breaks the theme's one promise (amber = new, never error) and fails.
-// Every other clash is a warning: ok, warning and error keep their own glyph and word
-// at 16 colours, and which slot reads well on the page is the terminal's palette.
+// Clashes16 reports on stderr how the theme's state roles read at 16 colours, after its
+// ansi16 pins, each with the pin that fixes it, and returns how many fail:
+//
+//   - error off red (theme.ANSI16Red): a grey error beside a red warning reverses them.
+//     Fails.
+//   - another state role on red, error's slot: it reads as an error. Fails for primary
+//     under focus "fg" (the theme's one state hue); a warning for the rest, primary under
+//     focus "primary" included (there focus and selection draw in error's red), since the
+//     glyph and the word still differ. The kit's own default warning lands on red, so
+//     failing it would fail every theme that leaves warning unset.
+//   - two state roles on one colour (theme.ANSI16Clashes): under focus "fg" a clash with
+//     primary fails, since the theme promised its hue means one state (amber = new); any
+//     other is a warning, as the glyph and the word still tell the two apart.
+//
+// Which slot reads well on the page is the terminal's palette, so a pin is a suggestion:
+// a status role to its own slot, else the nearest free hue, never red for a non-error and
+// never a colour another suggestion took.
 func Clashes16(f theme.File, path string, stderr io.Writer) int {
 	type key struct{ mode, role string }
-	var order []key
-	with := map[key][]string{}
+	type finding struct {
+		key
+		col, what string
+		fail, red bool
+	}
+	fg := f.Expressions.Focus == "fg"
+	var found []finding
+	covered := map[key]bool{}
+	for _, r := range theme.ANSI16Red(f) {
+		k := key{r.Mode, r.Role}
+		covered[k] = true
+		what := fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), error's red, so it reads as an error there", r.Mode, r.Role, hexOf(r.Col), r.Index)
+		switch {
+		case r.Role == "error":
+			what = fmt.Sprintf("%s: error %s draws as ANSI %d at 16 colours (-profile ansi), not red (1 or 9), so a red state beside it reads as the error", r.Mode, hexOf(r.Col), r.Index)
+		case r.Role == "primary" && !fg:
+			what = fmt.Sprintf("%s: primary %s draws as ANSI %d at 16 colours (-profile ansi), error's red, so focus and selection read as errors there", r.Mode, hexOf(r.Col), r.Index)
+		}
+		found = append(found, finding{k, hexOf(r.Col), what, r.Role == "error" || (r.Role == "primary" && fg), true})
+	}
+	clash := map[key][]string{}
 	col := map[key]string{}
+	var order []key
 	for _, c := range theme.ANSI16Clashes(f) {
 		move, keep, colMove, colKeep := c.B, c.A, c.ColB, c.ColA
 		if keepRank[c.B] < keepRank[c.A] {
 			move, keep, colMove, colKeep = c.A, c.B, c.ColA, c.ColB
 		}
 		k := key{c.Mode, move}
-		if _, seen := with[k]; !seen {
+		if covered[k] {
+			continue // its red finding's pin moves it off this colour too
+		}
+		if _, seen := clash[k]; !seen {
 			order = append(order, k)
 			col[k] = hexOf(colMove)
 		}
-		with[k] = append(with[k], keep+" "+hexOf(colKeep))
+		clash[k] = append(clash[k], keep+" "+hexOf(colKeep))
 	}
-	fails := func(k key) bool {
-		return f.Expressions.Focus == "fg" && (k.role == "primary" || strings.HasPrefix(with[k][0], "primary "))
-	}
-	// failures first, and each suggestion taken before the next, so following them all
-	// never makes a new clash
-	sort.SliceStable(order, func(i, j int) bool { return fails(order[i]) && !fails(order[j]) })
-	used := map[string]map[int]bool{}
-	failed := 0
 	for _, k := range order {
-		if used[k.mode] == nil {
-			used[k.mode] = map[int]bool{}
-			for _, r := range theme.StateRoles {
-				used[k.mode][theme.ANSI16Index(f, k.mode, r)] = true
-			}
-		}
-		idx := theme.ANSI16Index(f, k.mode, k.role)
-		n := Pin16(k.role, col[k], k.mode != "light", used[k.mode])
-		used[k.mode][n] = true
-		pin := fmt.Sprintf(`"ansi16": {%q: {%q: %d}}`, k.mode, k.role, n)
-		others, verb := strings.Join(with[k], " and "), "do"
-		if len(with[k]) == 1 {
+		others, verb := strings.Join(clash[k], " and "), "do"
+		if len(clash[k]) == 1 {
 			verb = "does"
 		}
-		what := fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), as %s %s", k.mode, k.role, col[k], idx, others, verb)
-		if fails(k) {
-			failed++
-			fmt.Fprintf(stderr, "palette: %s: %s; under focus \"fg\" primary is a state, so they read as one: pin %s with %s\n", path, what, k.role, pin)
-			continue
+		withPrimary := k.role == "primary" || slices.ContainsFunc(clash[k], func(o string) bool { return strings.HasPrefix(o, "primary ") })
+		what := fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), as %s %s", k.mode, k.role, col[k], theme.ANSI16Index(f, k.mode, k.role), others, verb)
+		found = append(found, finding{k, col[k], what, fg && withPrimary, false})
+	}
+	// failures first, and each suggestion taken before the next, so following them all
+	// never makes a new problem
+	sort.SliceStable(found, func(i, j int) bool { return found[i].fail && !found[j].fail })
+	used := map[string]map[int]bool{}
+	failed := 0
+	for _, x := range found {
+		if used[x.mode] == nil {
+			used[x.mode] = map[int]bool{1: true, 9: true} // red is error's alone
+			for _, r := range theme.StateRoles {
+				used[x.mode][theme.ANSI16Index(f, x.mode, r)] = true
+			}
 		}
-		fmt.Fprintf(stderr, "palette: warning: %s: %s, so those states differ there only by glyph and word; %s separates them\n", path, what, pin)
+		n := Pin16(x.role, x.col, x.mode != "light", used[x.mode])
+		if x.role == "error" {
+			n = 1
+			if x.mode != "light" {
+				n = 9
+			}
+		}
+		used[x.mode][n] = true
+		pin := fmt.Sprintf(`"ansi16": {%q: {%q: %d}}`, x.mode, x.role, n)
+		switch {
+		case x.fail && !x.red:
+			failed++
+			fmt.Fprintf(stderr, "palette: %s: %s; under focus \"fg\" primary is a state, so they read as one: pin %s with %s\n", path, x.what, x.role, pin)
+		case x.fail:
+			failed++
+			fmt.Fprintf(stderr, "palette: %s: %s: pin it with %s\n", path, x.what, pin)
+		case x.red:
+			fmt.Fprintf(stderr, "palette: warning: %s: %s; %s moves it\n", path, x.what, pin)
+		default:
+			fmt.Fprintf(stderr, "palette: warning: %s: %s, so those states differ there only by glyph and word; %s separates them\n", path, x.what, pin)
+		}
 	}
 	return failed
 }

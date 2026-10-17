@@ -121,7 +121,7 @@ scramble. So does what the app asks for
 (`t.S.Primary`, `ui.Tag(t, "primary", …)`): that is the state. At 16 colours the state
 must survive downsampling too: an amber lands on red, error's slot, so pin it with
 `ansi16` (color.md § The Four Palettes); `palette check` fails a focus-fg theme whose
-primary shares a 16-colour slot with error, warning, success or info.
+primary lands on red or shares a 16-colour slot with error, warning, success or info.
 
 **A state ladder takes the status slots, by meaning.** `● new · ◐ reading · ○ waiting ·
 ✓ reviewed` is `current · partial · todo · done`: the app draws `t.G.Current`,

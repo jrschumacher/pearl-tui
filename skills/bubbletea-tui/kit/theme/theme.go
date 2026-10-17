@@ -270,7 +270,7 @@ func (c Clash) String() string {
 // warns on each, and fails one with primary; the fix is an ansi16 pin for one of the two.
 func ANSI16Clashes(f File) []Clash {
 	var out []Clash
-	for _, mode := range sortedKeys(f.Roles) {
+	for _, mode := range modes16(f) {
 		dark := mode != "light"
 		tc := ResolveProfile(f, dark, false, colorprofile.TrueColor).P
 		an := ResolveProfile(f, dark, false, colorprofile.ANSI).P
@@ -286,6 +286,58 @@ func ANSI16Clashes(f File) []Clash {
 					out = append(out, Clash{mode, a, b, paletteRole(tc, a), paletteRole(tc, b), int(ia)})
 				}
 			}
+		}
+	}
+	return out
+}
+
+// RedSlot is a state role misplaced around red at 16 colours: error off red, or another
+// state on it.
+type RedSlot struct {
+	Mode  string      // dark | light
+	Role  string      // role key
+	Col   color.Color // as the theme writes it (truecolour)
+	Index int         // the ANSI colour it lands on
+}
+
+func (r RedSlot) String() string {
+	if r.Role == "error" {
+		return fmt.Sprintf("%s: error draws as ANSI %d, not red (1 or 9)", r.Mode, r.Index)
+	}
+	return fmt.Sprintf("%s: %s draws as ANSI %d, error's red", r.Mode, r.Role, r.Index)
+}
+
+// ANSI16Red reports, per mode, the state roles a 16-colour terminal would read wrong:
+// error landing anywhere but red (1 or 9), where a grey error beside a red warning
+// reverses the two, and any other state role landing on red, error's slot. primary is
+// reported under every focus: under "fg" it is a state, under "primary" the focus colour,
+// drawn in error's red. A role the theme makes identical to error is skipped. palette
+// check fails error off red and primary on red under focus "fg", and warns on the rest.
+func ANSI16Red(f File) []RedSlot {
+	var out []RedSlot
+	red := func(i int) bool { return i == 1 || i == 9 }
+	for _, mode := range modes16(f) {
+		tc := ResolveProfile(f, mode != "light", false, colorprofile.TrueColor).P
+		for _, role := range StateRoles {
+			i := ANSI16Index(f, mode, role)
+			switch {
+			case i < 0:
+			case role == "error" && !red(i):
+				out = append(out, RedSlot{mode, role, tc.Error, i})
+			case role != "error" && red(i) && !sameColor(paletteRole(tc, role), tc.Error):
+				out = append(out, RedSlot{mode, role, paletteRole(tc, role), i})
+			}
+		}
+	}
+	return out
+}
+
+// modes16 are the theme's modes a 16-colour terminal resolves (dark, light), sorted.
+func modes16(f File) []string {
+	var out []string
+	for _, m := range sortedKeys(f.Roles) {
+		if m == "dark" || m == "light" {
+			out = append(out, m)
 		}
 	}
 	return out

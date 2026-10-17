@@ -121,8 +121,9 @@ and look at the PNGs. What usually breaks:
   depends on the difference.
 - `border`, a step off `bg`, lands on `bg` itself at 16 colours and every rule vanishes.
   `theme.ResolveProfile` moves a rule or border colour that isn't `Distinct` from bg to
-  ANSI 8 (dark) or 7 (light), or at 256 colours one step toward fg; keep the profile from
-  `tea.ColorProfileMsg` and pass it, or the rules go.
+  ANSI 8 (dark) or 7 (light); keep the profile from `tea.ColorProfileMsg` and pass it, or
+  the rules go. At 256 colours every kit theme's border stays apart from bg; for a theme
+  whose border does land on bg's index there, the fallback steps it toward fg.
 - at `ascii`, everything is the same colour. Focus, selection, error and disabled must
   still be visible through glyphs, bold, reverse video and words.
 - two state roles land on one of the 16 colours: downsampling takes the nearest of 16,
@@ -133,11 +134,19 @@ and look at the PNGs. What usually breaks:
   "ansi16": { "dark": { "primary": 11 }, "light": { "primary": 3 } }
   ```
 
-  `palette check` names each clash and the pin that separates it (stderr). It fails one
-  with primary under `focus: fg`, where the hue is a state; the rest are warnings,
-  because the glyph and word still differ. Pin bright (9-14) on dark, normal (1-6) on
-  light, a status role to its own slot (warning 3/11, success 2/10, info 4/12 or 6/14),
-  never a grey; the user's terminal palette decides the exact colour.
+  `palette check` names each problem and the pin that fixes it (stderr). Red is error's:
+
+  | at 16 colours | `palette check` |
+  |---|---|
+  | error off red (not 1 or 9): a grey error beside a red warning reads reversed | fails (exit 1) |
+  | under `focus: fg`, primary on red or on another state role's colour | fails (exit 1) |
+  | under `focus: primary`, primary on red: focus and selection read as errors | warns |
+  | warning, success or info on red, or two of them on one colour | warns |
+
+  A warning is not a pass to ignore: the glyph and word still tell the states apart, but
+  pin it unless the brand accepts it in its read. Pin bright (9-14) on dark, normal (1-6)
+  on light, error to 9/1, a status role to its own slot (warning 3/11, success 2/10, info
+  4/12 or 6/14), never a grey; the user's terminal palette decides the exact colour.
 
 ## DO / DON'T
 

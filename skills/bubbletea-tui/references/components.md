@@ -168,6 +168,15 @@ continuation lines with a subtle `:`, and the real cursor via `View.Cursor`. Gro
 to ~8 rows with content, then scroll. The placeholder says what to type, in the brand's
 voice.
 
+## Status Column — `ui.Dot`, `ui.Busy`
+
+One cell per row, before the name. `ui.Dot(t, state)` draws each state in its own shape
+and role colour: ok `current`, busy `partial`, warning `warn`, error `fail`, idle `todo`,
+so the shape says it under NO_COLOR too. A row in progress takes `ui.Busy(t, frame)`: the
+theme's spinner when its frames are one cell, else the still partial glyph, never a
+multi-cell spinner that pushes the name out of line. The label or a tag beside it says
+the state in words.
+
 ## Progress, Sparkline, Meter — `ui.Progress`, `ui.Sparkline`
 
 - Progress: `━━━━╸╌╌╌` with the fill in a short gradient, then the fraction and what is
