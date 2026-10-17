@@ -104,6 +104,11 @@ first in the list. Choose the spinner for the brand's voice (see `motion.md`).
 **G6 Mixed vocabularies.** `✓` for done in one place, `[x]` in another, `✔` in a third.
 One glyph per meaning, from the theme.
 
+**G7 A glyph typed in a screen** [C-GLYPH]. `"▏"` as the caret, `" · "` between details,
+`"↑ 3 more"`: the brand can't change it, ASCII mode has no twin for it, and the next
+screen types a different one. *Instead:* `t.G.Caret`, `t.G.Sep`, `t.G.More`; a glyph
+the theme lacks becomes a `Glyphs` field with a twin.
+
 ## Motion
 
 **M1 The 60 fps idle** [C-FASTTICK]. A tick running while nothing moves: CPU and SSH
