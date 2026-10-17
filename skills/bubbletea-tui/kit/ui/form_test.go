@@ -43,24 +43,41 @@ func testTheme(t *testing.T, ascii bool) *theme.Theme {
 	return theme.Resolve(f, true, ascii)
 }
 
-// Both spinners turn the brand's frames in the primary colour, never
-// Bubbles' Line or Huh's #F780E2 Dot.
+// Both spinners turn the brand's frames in the theme's working ink (S.Working:
+// the focus ink, so fg under focus "fg", or the role expressions.spinner names),
+// never Bubbles' Line or Huh's #F780E2 Dot. Every kit theme and quire (focus fg),
+// each as written and with focus forced to fg: a project whose one theme sets
+// focus fg failed this test out of the box when it compared against primary.
 func TestSpinnersAreThemed(t *testing.T) {
-	th := testTheme(t, false)
-	bs := BubblesSpinner(th)
-	if strings.Join(bs.Spinner.Frames, "") != strings.Join(th.G.Spinner, "") {
-		t.Fatalf("bubbles spinner frames %v", bs.Spinner.Frames)
-	}
-	if v := bs.View(); v != th.S.Primary.Render(th.G.Spinner[0]) {
-		t.Fatalf("bubbles spinner renders %q", v)
-	}
-	hs := HuhSpinner(th, "Connecting to staging")
-	v := hs.View()
-	if !strings.HasPrefix(ansi.Strip(v), th.G.Spinner[0]+" Connecting") {
-		t.Fatalf("huh spinner renders %q", ansi.Strip(v))
-	}
-	if strings.Contains(v, "247;128;226") || strings.Contains(ansi.Strip(v), "Loading") {
-		t.Fatalf("huh spinner kept a default: %q", v)
+	files := append(testThemes(t), filepath.Join("..", "theme", "testdata", "quire.json"))
+	for _, f := range files {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, focus := range []string{tf.Expressions.Focus, "fg"} {
+			tf.Expressions.Focus = focus
+			th := theme.Resolve(tf, true, false)
+			name := filepath.Base(f) + " focus=" + focus
+			bs := BubblesSpinner(th)
+			if strings.Join(bs.Spinner.Frames, "") != strings.Join(th.G.Spinner, "") {
+				t.Errorf("%s: bubbles spinner frames %v", name, bs.Spinner.Frames)
+			}
+			if v := bs.View(); v != th.S.Working.Render(th.G.Spinner[0]) {
+				t.Errorf("%s: bubbles spinner renders %q, want the working ink %q", name, v, th.S.Working.Render(th.G.Spinner[0]))
+			}
+			hs := HuhSpinner(th, "Connecting to staging")
+			v := hs.View()
+			if !strings.HasPrefix(ansi.Strip(v), th.G.Spinner[0]+" Connecting") {
+				t.Errorf("%s: huh spinner renders %q", name, ansi.Strip(v))
+			}
+			if got, want := firstInk(v), firstInk(th.S.Working.Render(th.G.Spinner[0])); !sameColor(got, want) {
+				t.Errorf("%s: huh spinner frame is %v, want the working ink %v", name, got, want)
+			}
+			if strings.Contains(v, "247;128;226") || strings.Contains(ansi.Strip(v), "Loading") {
+				t.Errorf("%s: huh spinner kept a default: %q", name, v)
+			}
+		}
 	}
 }
 
