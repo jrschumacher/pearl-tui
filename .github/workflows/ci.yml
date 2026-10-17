@@ -42,8 +42,17 @@ jobs:
       - run: go test ./...
 
   kit-copy:
-    name: kit copy (README block in a fresh module)
+    name: kit copy (README block in a fresh module, ${{ matrix.theme }})
     runs-on: ubuntu-latest
+    # lumen is a focus "primary" brand; quire (theme/testdata) is focus "fg", where a copied
+    # test that assumed primary ink (the spinner's) failed in a project before it did here.
+    strategy:
+      matrix:
+        include:
+          - theme: lumen
+            donor: themes/lumen.json
+          - theme: quire
+            donor: theme/testdata/quire.json
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -60,14 +69,15 @@ jobs:
           mkdir -p "$app" && cd "$app"
           go mod init example.com/brandapp
           awk '/^## Copying it into a project/{f=1} f&&/^```sh/{b=1;next} b&&/^```/{exit} b' "$skill/kit/README.md" \
-            | sed -e "s#<skill>#$skill#g" -e 's#<app>#brandapp#g' -e 's#<closest>#lumen#g' -e 's#<brand>#brand#g' \
+            | sed -e "s#<skill>#$skill#g" -e 's#<app>#brandapp#g' -e 's#<brand>#brand#g' \
+                  -e 's#kit/themes/<closest>.json#kit/${{ matrix.donor }}#g' \
                   -e 's#<your/module>#example.com/brandapp#g' > "$RUNNER_TEMP/copy.sh"
           cat "$RUNNER_TEMP/copy.sh"
           sh -e "$RUNNER_TEMP/copy.sh"
           go vet ./...
           test "$(ls themes/*.json)" = themes/brand.json
           go test ./...
-          go run ./cmd/brandapp -golden -w 80 -h 24 | grep -q lumen
+          go run ./cmd/brandapp -golden -w 80 -h 24 | grep -q ${{ matrix.theme }}
 
   render-and-lint:
     name: render every theme + lint

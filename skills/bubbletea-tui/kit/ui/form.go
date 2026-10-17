@@ -475,8 +475,8 @@ func BubblesSpinner(t *theme.Theme) spinner.Model {
 }
 
 // HuhSpinner is Huh's standalone spinner (spinner.New().Action(...).Run())
-// in the brand: the theme's frames, the primary colour instead of Huh's
-// #F780E2, the title in fgSoft with the gap Huh forgets (it draws the frame
+// in the brand: the theme's frames, the working ink (S.Working) instead of
+// Huh's #F780E2, the title in fgSoft with the gap Huh forgets (it draws the frame
 // and the title with no space between), and a subject instead of Huh's
 // default "Loading...". It honours ACCESSIBLE=1 (one plain line, no frames).
 func HuhSpinner(t *theme.Theme, title string) *hspinner.Spinner {
