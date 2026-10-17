@@ -19,11 +19,11 @@ replaces those defaults with three things:
   them), a slop linter, and an adversarial critic loop. The model looks at the terminal
   before you do.
 
-![The same screens in six brand themes](docs/images/gallery-services.png)
+![The same screens in seven brand themes](docs/images/gallery-services.png)
 
-*Same app, same code, six themes: a Crush study, an industrial IoT tool, a telehealth
-triage tool, a freight tracker, a notes app and a game-asset pipeline. Every theme is
-derived with the skill's own tools.*
+*Same app, same code, seven themes: a Crush study, an industrial IoT tool, a telehealth
+triage tool, a freight tracker, a notes app, a game-asset pipeline and a home-lab fleet
+tool. Every theme is derived with the skill's own tools.*
 
 ## Install
 
@@ -116,7 +116,7 @@ skills/bubbletea-tui/
 │   │                     alerts, toast, help/footer, tool calls, thinking, anim, progress,
 │   │                     sparkline, tree, field, empty states, canvas; Huh forms themed
 │   │                     from the brand, a stepper and a summary panel for wizards
-│   ├── themes/           seven themes (a default, a Crush study, five fictional brands)
+│   ├── themes/           eight themes (a default, a Crush study, six fictional brands)
 │   └── cmd/showcase/     the reference app (an ops dashboard and a first-run setup wizard)
 │                         + harness (-golden, -state, -out, -profile, -light, -ascii, -first-run)
 .claude-plugin/           plugin.json + marketplace.json: the repo as a Claude Code plugin
@@ -148,7 +148,7 @@ cellshot frames/*-80x24.ansi --sheet sheet.png             # look at it
 
 ![The assistant: tool calls, thinking, a turn footer, the working indicator](docs/images/gallery-assistant.png)
 
-![The command palette in six brands](docs/images/gallery-palette.png)
+![The command palette in seven brands](docs/images/gallery-palette.png)
 
 ![A first-run setup wizard built on Huh, themed per brand: stepper, summary, a sign-in wait with a fallback](docs/images/gallery-setup.png)
 

@@ -1,0 +1,115 @@
+{
+ "name": "terrarium",
+ "brand": "terrarium",
+ "read": "A home-lab fleet tool for hobbyists (fictional): glass, moss and brass. Teal is the only working hue, brass the second voice, and the neutrals lean green so the greys read as glass. Everything is a pane: a rule header with a dotted ┈ motif, [bracketed] wordmark and tabs, ruled dialogs (a filled panel between two ┈ rules, title in the top one: the edge that survives 16 colours and NO_COLOR), bracket buttons and tags, boxed keys on a rule footer, a › caret, muted small-caps section titles, sentence case, airy, no scrim. Remember: the dotted rule that frames every pane.",
+ "ansi16": {
+  "dark": {
+   "warning": 11
+  },
+  "light": {
+   "warning": 3
+  }
+ },
+ "roles": {
+  "dark": {
+   "accent": "#D9E8DF",
+   "bg": "#141A18",
+   "bgOverlay": "#2E3C38",
+   "bgPanel": "#192320",
+   "bgSubtle": "#222D2A",
+   "border": "#1F2C29",
+   "borderFocus": "#2FA58F",
+   "error": "#DD7573",
+   "fg": "#C6CECC",
+   "fgMuted": "#768682",
+   "fgSelected": "#091411",
+   "fgSoft": "#A7B1AE",
+   "fgSubtle": "#51625E",
+   "info": "#3CA2E0",
+   "onError": "#091411",
+   "onPrimary": "#091411",
+   "onSecondary": "#091411",
+   "onSuccess": "#091411",
+   "onWarning": "#091411",
+   "primary": "#2FA58F",
+   "secondary": "#C9A227",
+   "success": "#56AE6C",
+   "tertiary": "#8ED3C4",
+   "warning": "#F1C45E"
+  },
+  "light": {
+   "accent": "#0D5C3B",
+   "bg": "#F3F7F4",
+   "bgOverlay": "#BFD0CB",
+   "bgPanel": "#E1EEEA",
+   "bgSubtle": "#D2E1DD",
+   "border": "#D2E3DE",
+   "borderFocus": "#0E937E",
+   "error": "#A03F40",
+   "fg": "#2B312F",
+   "fgMuted": "#63726E",
+   "fgSelected": "#091411",
+   "fgSoft": "#3D4543",
+   "fgSubtle": "#899B96",
+   "info": "#006A9D",
+   "onError": "#F7FBFA",
+   "onPrimary": "#091411",
+   "onSecondary": "#091411",
+   "onSuccess": "#F7FBFA",
+   "onWarning": "#F7FBFA",
+   "primary": "#0E937E",
+   "secondary": "#A07E00",
+   "success": "#137738",
+   "tertiary": "#1E6E63",
+   "warning": "#906B00"
+  }
+ },
+ "glyphs": {
+  "headerRule": "┈",
+  "rule": "┈",
+  "focusBar": "▎",
+  "cursor": "›",
+  "prompt": "›",
+  "done": "✓",
+  "current": "●",
+  "todo": "○",
+  "partial": "◐",
+  "fail": "×",
+  "bullet": "·",
+  "sep": "·",
+  "caret": "▏",
+  "more": "↑",
+  "progressFill": "━",
+  "progressEmpty": "┈",
+  "spinner": [
+   "◴",
+   "◷",
+   "◶",
+   "◵"
+  ],
+  "ascii": {
+   "┈": "-",
+   "◴": "|",
+   "◷": "/",
+   "◶": "-",
+   "◵": "\\"
+  }
+ },
+ "expressions": {
+  "header": "rule",
+  "wordmark": "bracket",
+  "sectionTitle": "muted-upper",
+  "titleCase": "sentence",
+  "selection": "caret",
+  "button": "bracket",
+  "tag": "bracket",
+  "dialog": "rules",
+  "tabs": "bracket",
+  "footer": "rule",
+  "keys": "boxed",
+  "density": "airy",
+  "backdrop": "none",
+  "scrim": "none",
+  "paintBg": false
+ }
+}
