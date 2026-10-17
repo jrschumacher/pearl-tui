@@ -174,15 +174,21 @@ func Failures(themes []Theme, o Options) []string {
 				continue
 			}
 			dist := 0
+			var shared []string // what to move, each traced to the brand read, not to this rule
 			for _, a := range Axes {
 				v, bv := t.Choices[a.Key], b.Choices[a.Key]
-				if v != bv && v != Dead && bv != Dead {
+				if v == Dead || bv == Dead {
+					continue
+				}
+				if v != bv {
 					dist++
+				} else {
+					shared = append(shared, a.Key)
 				}
 			}
 			if dist < o.MinDistance {
-				fails = append(fails, fmt.Sprintf("%s differs from baseline %s on only %d axes (< %d): a default with a new palette",
-					t.Name, b.Name, dist, o.MinDistance))
+				fails = append(fails, fmt.Sprintf("%s differs from baseline %s on only %d axes (< %d): a default with a new palette; shares %s",
+					t.Name, b.Name, dist, o.MinDistance, strings.Join(shared, ", ")))
 			}
 		}
 	}

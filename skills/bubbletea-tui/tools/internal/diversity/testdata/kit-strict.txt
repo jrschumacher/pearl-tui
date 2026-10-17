@@ -29,7 +29,7 @@ nearest to lumen: moss (shares 9/20 axes)
 nearest to moss: lumen (shares 9/20 axes)
 FAIL cartridge and charm share 8 axes (> 7): sectionTitle, button, tag, dialogTitle, backdrop, scrim, paintBg, rule
 FAIL lumen and moss share 9 axes (> 7): wordmark, button, tag, dialogTitle, keys, density, backdrop, scrim, paintBg
-FAIL charm differs from baseline ink on only 7 axes (< 12): a default with a new palette
-FAIL lumen differs from baseline ink on only 9 axes (< 12): a default with a new palette
-FAIL moss differs from baseline ink on only 9 axes (< 12): a default with a new palette
+FAIL charm differs from baseline ink on only 7 axes (< 12): a default with a new palette; shares header, titleCase, selection, button, tag, dialog, tabs, footer, keys, density, scrim, rule, focusBar, done
+FAIL lumen differs from baseline ink on only 9 axes (< 12): a default with a new palette; shares wordmark, titleCase, dialog, dialogTitle, footer, keys, density, backdrop, scrim, paintBg, cursor
+FAIL moss differs from baseline ink on only 9 axes (< 12): a default with a new palette; shares header, wordmark, sectionTitle, selection, dialogTitle, tabs, keys, density, backdrop, scrim, paintBg, done
 5 problem(s)

@@ -28,7 +28,7 @@ func Usage() string { return cmddoc.Text(docSrc) + "\n" }
 // Severity maps each rule ID to P1 (fails the run) or P2 (warns).
 var Severity = map[string]string{
 	"S-TABLE": "P1", "S-KEYAMBIG": "P1", "S-KEYDUP": "P1",
-	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2", "S-FOOTER": "P2", "S-ACCENT": "P2",
+	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2", "S-FOOTER": "P2", "S-ACCENT": "P2", "S-GOLDEN": "P2",
 }
 
 // Finding is one result, in the shape the other tuilint modes write to --json: Where
@@ -50,7 +50,7 @@ func (f Finding) Line() int {
 // Main runs `tuilint spec` with its arguments and returns the exit status.
 func Main(args []string, stdout, stderr io.Writer) int {
 	var files []string
-	jsonOut := ""
+	jsonOut, frames := "", ""
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		switch {
@@ -66,6 +66,15 @@ func Main(args []string, stdout, stderr io.Writer) int {
 			jsonOut = args[i]
 		case strings.HasPrefix(a, "--json=") || strings.HasPrefix(a, "-json="):
 			_, jsonOut, _ = strings.Cut(a, "=")
+		case a == "--frames" || a == "-frames":
+			if i+1 >= len(args) {
+				fmt.Fprintf(stderr, "tuilint spec: %s needs a value\n", a)
+				return 2
+			}
+			i++
+			frames = args[i]
+		case strings.HasPrefix(a, "--frames=") || strings.HasPrefix(a, "-frames="):
+			_, frames, _ = strings.Cut(a, "=")
 		case strings.HasPrefix(a, "-"):
 			fmt.Fprintf(stderr, "tuilint spec: unknown flag %s\n%s", a, Usage())
 			return 2
@@ -76,6 +85,12 @@ func Main(args []string, stdout, stderr io.Writer) int {
 	if len(files) == 0 {
 		files = []string{"TUI.md"}
 	}
+	if frames != "" {
+		if st, err := os.Stat(frames); err != nil || !st.IsDir() {
+			fmt.Fprintf(stderr, "tuilint spec: --frames %s is not a directory\n", frames)
+			return 2
+		}
+	}
 	var findings []Finding
 	for _, f := range files {
 		src, err := os.ReadFile(f)
@@ -83,7 +98,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintf(stderr, "tuilint spec: %v\n", err)
 			return 2
 		}
-		findings = append(findings, Lint(f, string(src))...)
+		findings = append(findings, LintFrames(f, string(src), frames)...)
 	}
 	fails := 0
 	for _, f := range findings {
@@ -142,7 +157,11 @@ type spec struct {
 }
 
 // Lint checks one TUI.md. file names it in the findings.
-func Lint(file, src string) []Finding {
+func Lint(file, src string) []Finding { return LintFrames(file, src, "") }
+
+// LintFrames is Lint, and with frames (a directory of golden frames named by harness
+// state, <state>-80x24.ansi) S-GOLDEN too: each state's footer there against its row.
+func LintFrames(file, src, frames string) []Finding {
 	s := parse(file, src)
 	var out []Finding
 	add := func(rule string, line int, format string, a ...any) {
@@ -173,6 +192,9 @@ func Lint(file, src string) []Finding {
 	s.glyphWidth(add)
 	s.footerFit(add)
 	s.accentDrift(add)
+	if frames != "" {
+		s.goldenFooters(frames, add)
+	}
 	sort.SliceStable(out, func(i, j int) bool {
 		a, b := out[i], out[j]
 		if a.Sev != b.Sev {

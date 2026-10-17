@@ -10,7 +10,8 @@ import (
 )
 
 // testdata/<case>.txt is scripts/diversity.py's stdout for the arguments in
-// testdata/cases.json, run from this directory. testdata/themes is a synthetic failing
+// testdata/cases.json, run from this directory, except that a min-distance failure now
+// ends in the axes the theme shares with the baseline (TestMinDistanceNamesSharedAxes). testdata/themes is a synthetic failing
 // set: two near-identical themes (twin-a, twin-b), a clone of ink with a new palette
 // (inkling), a long name, and a theme with no name, a null and a number among its values.
 func TestMatchesPython(t *testing.T) {
@@ -176,5 +177,36 @@ func TestNearest(t *testing.T) {
 	out.Reset()
 	if code := Main([]string{kit + "halyard.json", kit + "moss.json", kit + "ink.json", "--baseline", "ink"}, "", &out, &errb); code != 0 || !strings.Contains(out.String(), "nearest to halyard: moss (shares ") || !strings.HasSuffix(out.String(), "OK\n") {
 		t.Errorf("halyard and moss: exit %d\n%s", code, out.String())
+	}
+}
+
+// A min-distance failure names the axes the theme shares with the baseline, so the
+// agent sees what to move and can trace each to the brand read (a recreate run moved
+// three axes blind, one of them only for the lint). Each named axis is live in both and
+// equal; the count is the live axes less the distance.
+func TestMinDistanceNamesSharedAxes(t *testing.T) {
+	ink, err := Load("../../../kit/themes/ink.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	charm, err := Load("../../../kit/themes/charm.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want []string
+	for _, a := range Axes {
+		if v := charm.Choices[a.Key]; v != Dead && v == ink.Choices[a.Key] {
+			want = append(want, a.Key)
+		}
+	}
+	if len(want) == 0 {
+		t.Fatal("charm shares no axis with ink: the probe tests nothing")
+	}
+	fails := Failures([]Theme{charm, ink}, Options{MaxShared: 99, MaxPopular: 1, MinDistance: 99, Baseline: map[string]bool{"ink": true}})
+	if len(fails) != 1 {
+		t.Fatalf("failures %q, want one min-distance failure", fails)
+	}
+	if !strings.HasSuffix(fails[0], "; shares "+strings.Join(want, ", ")) {
+		t.Errorf("failure %q, want it to end in the %d shared axes %s", fails[0], len(want), strings.Join(want, ", "))
 	}
 }
