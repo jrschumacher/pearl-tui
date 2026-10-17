@@ -197,6 +197,11 @@ says the state in words.
 
 - Progress: `━━━━╸╌╌╌` with the fill in a short gradient, then the fraction and what is
   progressing ("3/5 pods"). Indeterminate work gets a spinner, not a fake bar.
+- A reading (a meter, a rate, a percentage) past its warning level carries the theme's
+  warn mark beside the value (`ui.Mark(t, "warn")`, `t.G.Warn`: `▲`, ascii `^`), and
+  past its error level the fail mark, not only amber or red: at 16 colours amber is often
+  red's slot and under NO_COLOR it is the text colour, so the band is the mark's to say.
+  The `ladder` frame shows the marks a reading can carry.
 - Sparkline: `▁▂▃▅▇` over a fixed column, coloured by state, with a flat series kept
   flat. Always print the current value beside it. A sparkline taller than one row grows
   upward from the label's row: label, value and the bar's base share the bottom row,
