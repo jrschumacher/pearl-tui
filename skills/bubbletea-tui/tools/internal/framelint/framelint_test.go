@@ -673,6 +673,9 @@ func TestTruncatedColumn(t *testing.T) {
 	if got := truncs(sidebar("hint-80x9.ansi", "  press y to Copy path", fmt.Sprintf("  %-46s%s", "chat", "Sessions"), "")); len(got) != 1 {
 		t.Errorf("titles under \"Sessions\" with a \"Copy path\" hint above: %+v, want one", got)
 	}
+	if got := truncs(sidebar("section-80x9.ansi", fmt.Sprintf("  %-46s%s", "chat", "Files"), fmt.Sprintf("  %-46s%s", "body text here", "csv.go"), "", fmt.Sprintf("  %-46s%s", "body text here", "Sessions"))); len(got) != 1 {
+		t.Errorf("titles under \"Sessions\" below a \"Files\" section and a blank: %+v, want one", got)
+	}
 	if got := truncs(sidebar("files-80x7.ansi", fmt.Sprintf("  %-46s%s", "chat", "Files (5)"))); len(got) != 0 {
 		t.Errorf("a column headed \"Files (5)\": %+v, want none", got)
 	}

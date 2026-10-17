@@ -993,6 +993,9 @@ func unboundedColumn(f Frame, ys []int, x int) bool {
 				return true
 			}
 		}
+		if gaps > 0 {
+			return false // past a rule or blank, the row is the header or there is none
+		}
 		// another row of the column (a row not cut): keep walking up
 	}
 	return false
