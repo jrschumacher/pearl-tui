@@ -75,9 +75,10 @@ the keys; hue stays for state (color.md).
   page under it unfocused (`focused=false` to its lists, tables and fields, no caret in
   its input): one focus per frame, and a list keeps its selection in the blur ink.
   `Canvas.Overlay` (and `Popover`) clears what would still read as live beside it: a
-  phrase the dialog cuts, to its column gap (no `igh` or `1s` fragment at the edge), a
-  page rule on the dialog's edge rows, and, where no scrim is drawn (16 colours,
-  NO_COLOR, ASCII, `scrim: none`), the rows the dialog spans.
+  one-cell halo, a word the dialog cuts, whole, with an ellipsis where its phrase was
+  cut (`▲ notifications-…`, not `igh` or `1s` at the edge), a page rule on the dialog's
+  edge rows, and, where no scrim is drawn (16 colours, NO_COLOR, ASCII, `scrim: none`),
+  the rows the dialog spans.
 - Max ~64–70 cols wide; fullscreen below the minimum size.
 
 ## Confirm — destructive actions

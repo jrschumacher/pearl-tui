@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"image/color"
 	"strings"
 
 	"github.com/charmbracelet/colorprofile"
@@ -9,10 +10,10 @@ import (
 )
 
 // What Overlay (and Popover) does to the page before it draws a dialog, so that nothing
-// of the page reads as live beside it: a phrase the dialog cuts is cleared to its column
-// gap (no "1s" or "igh" fragment beside the edge), a page rule never runs on beside the
-// dialog's edge rows, and where no scrim is drawn the rows the dialog spans are cleared
-// across. Rows the dialog doesn't span are left as the page drew them: the page has no
+// of the page reads as live beside it: the cell beside each edge is blank and a word the
+// dialog cuts is cleared whole, with an ellipsis where its phrase was cut (no "1s" or
+// "igh" fragment beside the edge), a page rule never runs on beside the dialog's edge
+// rows, and where no scrim is drawn the rows the dialog spans are cleared across. Rows the dialog doesn't span are left as the page drew them: the page has no
 // focus under a dialog because the app draws it unfocused, not because its marks are
 // looked for afterwards (a glyph is not a focus mark: cartridge's █ bar is its
 // wordmark's block, and ASCII's | bar is a header's separator).
@@ -39,34 +40,117 @@ func (c *Canvas) clearPage(r uv.Rectangle, dialog string, band bool) {
 			}
 			continue
 		}
-		c.clearCut(r.Min.X-1, y, r.Min.X, -1)
-		c.clearCut(r.Max.X, y, r.Max.X-1, 1)
+		c.clearCut(r.Min.X-1, y, -1)
+		c.clearCut(r.Max.X, y, 1)
 	}
 	for _, ey := range dialogEdgeRows(dialog) {
 		c.clearRules(r, r.Min.Y+ey)
 	}
 }
 
-// clearCut clears the cell beside a dialog's edge at (x, y) and, when the page's text
-// runs across the edge (inside, the cell at in) or starts at the cell beside it, the
-// rest of that phrase, stepping by dx until a gap of two blanks: a word the dialog cuts
-// is gone whole, not left as a fragment.
-func (c *Canvas) clearCut(x, y, in, dx int) {
+// clearCut keeps a one-cell halo beside a dialog's edge at (h, y): the cell is
+// blanked, and when it holds part of a word, the rest of that word outside the dialog
+// goes too (stepping by dx, away from the dialog), with the theme's ellipsis where the
+// kept text was cut, the kit's own overflow idiom: "▲ notifications-…", "opened on…",
+// "…latency". No "1s" or "igh" fragment is left at the edge, and every row keeps what
+// it had up to the cut word. A word ends at a blank or after a - or /; a run of rules,
+// blocks or braille (a sparkline, a section rule) has no words, so only the halo cell
+// goes (shape). When the cut word follows a column gap, its column's phrase is gone
+// whole and no ellipsis is drawn.
+func (c *Canvas) clearCut(h, y, dx int) {
 	b := c.Bounds()
-	if x < b.Min.X || x >= b.Max.X {
+	if h < b.Min.X || h >= b.Max.X || c.isBlank(h, y) {
 		return
 	}
-	cut := !c.isBlank(x, y)
-	c.blank(x, y)
-	if !cut && (in < b.Min.X || in >= b.Max.X || c.isBlank(in, y)) {
+	if c.shape(h, y) {
+		c.blank(h, y)
 		return
 	}
-	for x += dx; x >= b.Min.X && x < b.Max.X; x += dx {
-		if c.isBlank(x, y) && c.isBlank(x+dx, y) {
-			return
+	in := func(x int) bool { return x >= b.Min.X && x < b.Max.X }
+	word := func(x int) bool { return in(x) && !c.isBlank(x, y) && !c.shape(x, y) }
+	joint := func(x int) bool { s := c.text(x, y); return s == "-" || s == "/" }
+	// far is the word's last cell away from the dialog: going left, the cell after a
+	// joint or a gap; going right, a joint itself or the cell before a gap
+	far := func(x int) int {
+		if dx < 0 {
+			for word(x-1) && !joint(x-1) {
+				x--
+			}
+			return x
 		}
-		c.blank(x, y)
+		for !joint(x) && word(x+1) {
+			x++
+		}
+		return x
 	}
+	for x := h; ; {
+		end := far(x)
+		for i := min(x, end); i <= max(x, end); i++ {
+			c.blank(i, y)
+		}
+		// the ellipsis takes the cell between the cleared word and the kept text: a
+		// joint's place going right, the cell after it going left, or a single blank
+		next := end + dx
+		var at int
+		switch {
+		case dx < 0 && joint(next):
+			at = end
+		case dx > 0 && joint(end) && word(next):
+			at = end
+		case !c.isBlank(next, y) || !in(next) || !word(next+dx):
+			return // a column gap, the row's edge or a graphic: the phrase is gone whole
+		default:
+			at = next
+		}
+		if at == h {
+			// the ellipsis would touch the dialog (the halo held a joint): the next word
+			// out goes too
+			x = next
+			continue
+		}
+		c.ellipsis(at, y)
+		return
+	}
+}
+
+// ellipsis draws the theme's ellipsis at x, y in the ink of the kept text beside it,
+// on the page's background; nothing when the theme's ellipsis is wider than a cell.
+func (c *Canvas) ellipsis(x, y int) {
+	g := c.T.G.Ellipsis
+	if ansi.StringWidth(g) != 1 {
+		return
+	}
+	var fg color.Color
+	for _, k := range []int{x - 1, x + 1} {
+		if cell := c.CellAt(k, y); cell != nil && !c.isBlank(k, y) {
+			fg = cell.Style.Fg
+			break
+		}
+	}
+	nc := uv.EmptyCell
+	nc.Content, nc.Width = g, 1
+	nc.Style.Fg = fg
+	if c.T.X.PaintBg {
+		nc.Style.Bg = c.T.P.Bg
+	}
+	c.SetCell(x, y, &nc)
+}
+
+// shape reports a cell that draws a shape, not a letter: the theme's rule glyphs
+// (moss rules in ·), box drawing, block elements (bars, sparklines) and braille
+// (charts). A cut through them is no fragment.
+func (c *Canvas) shape(x, y int) bool {
+	s := c.text(x, y)
+	return s == c.T.G.Rule || (c.T.G.HeaderRule != "" && s == c.T.G.HeaderRule) || graphic(s)
+}
+
+func graphic(s string) bool {
+	for _, r := range s {
+		if (r >= 0x2500 && r <= 0x259F) || (r >= 0x2800 && r <= 0x28FF) {
+			return true
+		}
+	}
+	return false
 }
 
 // clearRules clears every run of three or more rule glyphs on row y outside r: a page

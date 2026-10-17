@@ -222,8 +222,9 @@ func dialogRules(t *theme.Theme, title string, w int, fill color.Color) (string,
 // with the page on ANSI 0 or 15, dimming toward it sends every text level to the page's
 // own slot and the scrim's text vanishes instead of fading. Where no scrim is drawn
 // (those, and scrim: none) the rows the dialog spans are cleared across instead; under
-// a scrim, a phrase the dialog cuts is cleared to its column gap. Either way no page
-// rule runs on beside the dialog's edges (overlay.go).
+// a scrim, the cell beside each edge is blank and a word the dialog cuts is cleared
+// whole, with the theme's ellipsis where its phrase was cut. Either way no page rule
+// runs on beside the dialog's edges (overlay.go).
 //
 // Draw the page under a dialog unfocused: pass focused=false to its lists, tables and
 // fields while the dialog is up. The dialog has the focus, and a focused list's bar

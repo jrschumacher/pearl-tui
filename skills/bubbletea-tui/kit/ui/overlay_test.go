@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -22,10 +24,14 @@ func overlayPage(th *theme.Theme, c *Canvas) []string {
 		switch {
 		case y == 5:
 			row = "  " + Gutter(th, true, th.S.FocusBar) + th.S.Bold.Render("checkout-api  v2.4.0  ok  p99 124ms  error 0.02%  deployed 3h")
-		case y%4 == 0:
+		case y%8 == 0:
 			row = "  " + th.S.Soft.Render("search-indexer  v1.9.3  busy  p99 88ms  error 0.00%  deployed 1d ago")
-		case y%4 == 1:
+		case y%8 == 4:
+			row = "  " + th.S.Warn.Render("▲") + " " + th.S.Base.Render("notifications-worker-eu-west  14:03 circuit opened on payments/api for checkout-web")
+		case y%8 == 1:
 			row = th.S.Soft.Render("lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor")
+		case y%8 == 5:
+			row = "  " + th.S.Muted.Render("p99 "+strings.Repeat("▁▂▃▄▅▆▇█", 8))
 		case y%4 == 2:
 			row = th.S.Rule.Render(strings.Repeat(th.G.Rule, w))
 		default:
@@ -45,32 +51,107 @@ func overlayPage(th *theme.Theme, c *Canvas) []string {
 	return plain
 }
 
-// runs are a row's phrases: the cells between two-blank gaps, as [start, end) columns.
-func runs(row []rune) [][2]int {
+// words are a row's words as [start, end) columns: runs of letters split at blanks,
+// at the theme's rule glyph, box drawing, blocks and braille (shapes, which have no
+// words), and after a - or /.
+func words(row []rune, rule string) [][2]int {
 	var out [][2]int
-	start, gap := -1, 0
+	start := -1
 	for x, r := range row {
-		if r == ' ' {
-			gap++
-			if gap == 2 && start >= 0 {
-				out = append(out, [2]int{start, x - 1})
-				start = -1
+		if r == ' ' || graphic(string(r)) || string(r) == rule {
+			if start >= 0 {
+				out = append(out, [2]int{start, x})
 			}
+			start = -1
 			continue
 		}
 		if start < 0 {
 			start = x
 		}
-		gap = 0
+		if r == '-' || r == '/' {
+			out = append(out, [2]int{start, x + 1})
+			start = -1
+		}
 	}
 	if start >= 0 {
-		end := len(row)
-		for end > start && row[end-1] == ' ' {
-			end--
-		}
-		out = append(out, [2]int{start, end})
+		out = append(out, [2]int{start, len(row)})
 	}
 	return out
+}
+
+// checkCut judges one side of a dialog's row under a scrim: the cells from the halo
+// (x = halo) outward by dx. The halo is blank; what changed is one run out from the
+// halo, blanks and at most one ellipsis at its far end, so the row keeps everything
+// past the cut word, and a run of shapes loses only the halo cell; no word is left in part (a word the dialog or the halo cuts is
+// gone whole); and where the cut word's phrase goes on (a single blank or a joint
+// before the kept text), the ellipsis marks the cut.
+func checkCut(t *testing.T, name string, orig []rune, got []string, halo, dx int, th *theme.Theme, skip func(x int) bool) {
+	t.Helper()
+	if got[halo] != " " {
+		t.Errorf("%s: %q at %d touches the dialog's edge", name, got[halo], halo)
+	}
+	in := func(x int) bool { return x >= 0 && x < len(orig) }
+	changed := func(x int) bool { return got[x] != string(orig[x]) && !skip(x) }
+	shape := func(r rune) bool { return graphic(string(r)) || string(r) == th.G.Rule }
+	x := halo
+	for in(x) && changed(x) && got[x] == " " {
+		if x != halo && shape(orig[x]) {
+			t.Errorf("%s: the shape %q at %d is cleared past the halo (a rule or a sparkline has no words): %q", name, string(orig[x]), x, strings.Join(got, ""))
+			return
+		}
+		x += dx
+	}
+	ellAt := -1
+	if in(x) && changed(x) && got[x] == th.G.Ellipsis {
+		ellAt = x
+		x += dx
+	}
+	for ; in(x); x += dx {
+		if changed(x) {
+			t.Errorf("%s: %q at %d is changed (now %q) past the cut: %q", name, string(orig[x]), x, got[x], strings.Join(got, ""))
+			return
+		}
+	}
+	for _, wd := range words(orig, th.G.Rule) {
+		lo, hi := wd[0], wd[1]
+		var out, kept int
+		cut := false
+		for i := lo; i < hi; i++ {
+			if (dx < 0 && i > halo) || (dx > 0 && i < halo) {
+				cut = true // inside the dialog
+				continue
+			}
+			if i == halo {
+				cut = true
+			}
+			out++
+			if got[i] == string(orig[i]) {
+				kept++
+			}
+		}
+		if out == 0 {
+			continue
+		}
+		if kept != 0 && (kept != out || cut) {
+			t.Errorf("%s: %q is left in part: %q", name, string(orig[lo:hi]), strings.Join(got, ""))
+		}
+	}
+	// the phrase goes on past the cleared run: the ellipsis says so
+	end := halo
+	for in(end+dx) && changed(end+dx) {
+		end += dx
+	}
+	if end == halo || ellAt >= 0 || !changed(halo) && got[halo] == " " && orig[halo] == ' ' {
+		return
+	}
+	k := end + dx
+	if in(k) && (orig[k] == '-' || orig[k] == '/' || (orig[k] != ' ' && !shape(orig[k]))) {
+		t.Errorf("%s: a cut word's phrase goes on at %d but no ellipsis marks it: %q", name, k, strings.Join(got, ""))
+		return
+	}
+	if in(k) && orig[k] == ' ' && in(k+dx) && orig[k+dx] != ' ' && !shape(orig[k+dx]) {
+		t.Errorf("%s: a cut word's phrase goes on at %d but no ellipsis marks it: %q", name, k+dx, strings.Join(got, ""))
+	}
 }
 
 func cellText(c *Canvas, x, y int) string {
@@ -80,9 +161,11 @@ func cellText(c *Canvas, x, y int) string {
 	return " "
 }
 
-// A dialog leaves nothing of the page that reads as live beside it. Under a scrim, a
-// phrase the dialog cuts is cleared to its column gap, so no fragment ("1s", "igh",
-// "00K") sits beside the edge, and the cell beside each edge is blank; where there is
+// A dialog leaves nothing of the page that reads as live beside it. Under a scrim, the
+// cell beside each edge is blank and a word the dialog cuts is cleared whole, so no
+// fragment ("1s", "igh", "00K") sits beside the edge, with the theme's ellipsis where
+// its phrase was cut ("opened on…"); the rest of the row stays (clearing a phrase to its
+// column gap took whole list rows, section headings and sparklines). Where there is
 // no scrim (16 colours, NO_COLOR, ASCII, scrim: none) the rows the dialog spans are
 // cleared across, an equivalent of the scrim rather than nothing. A page rule never
 // runs on beside the dialog's own edge rows (a rules dialog's top rule met a table rule
@@ -104,9 +187,13 @@ func TestOverlayLeavesNoPageBesideIt(t *testing.T) {
 			{"NO_COLOR", false, colorprofile.Ascii, "dim"},
 			{"ascii", true, colorprofile.TrueColor, "dim"},
 			{"scrim none", false, colorprofile.TrueColor, "none"},
+			{"rules in ·", false, colorprofile.TrueColor, "dim"}, // a rule glyph that is no shape: a section rule has no words either
 		} {
 			f := theme.Default()
 			f.Expressions.Dialog, f.Expressions.Scrim = dialog, mode.scrim
+			if mode.name == "rules in ·" {
+				f.Glyphs.Rule = "·"
+			}
 			th := theme.ResolveProfile(f, true, mode.ascii, mode.p)
 			scrimmed := mode.scrim == "dim" && !mode.ascii && mode.p != colorprofile.ANSI && mode.p != colorprofile.Ascii
 			d := Dialog(th, 44, 0, "Roll back checkout-api?", []string{"It goes back to v2.3.0.", "", "3 pods restart."}, "", "")
@@ -130,29 +217,25 @@ func TestOverlayLeavesNoPageBesideIt(t *testing.T) {
 				}
 				for y := r.Min.Y; y < r.Max.Y; y++ {
 					orig := []rune(page[y])
+					got := make([]string, W)
 					for x := range W {
-						if uv.Pos(x, y).In(r) {
-							continue
-						}
-						got := cellText(c, x, y)
-						if !scrimmed && got != " " {
-							t.Errorf("%s y0=%d: no scrim, and the page shows %q at %d,%d on a row the dialog spans", name, y0, got, x, y)
-							break
-						}
-						if got == " " {
-							continue
-						}
-						if x == r.Min.X-1 || x == r.Max.X {
-							t.Errorf("%s y0=%d: %q at %d,%d touches the dialog's edge", name, y0, got, x, y)
-						}
-						for _, run := range runs(orig) {
-							if x >= run[0] && x < run[1] && run[0] <= r.Max.X && run[1] >= r.Min.X {
-								t.Errorf("%s y0=%d: %q at %d,%d is a fragment of %q, which the dialog cuts", name, y0, got, x, y, string(orig[run[0]:run[1]]))
-								x = W
+						got[x] = cellText(c, x, y)
+					}
+					if !scrimmed {
+						for x := range W {
+							if !uv.Pos(x, y).In(r) && got[x] != " " {
+								t.Errorf("%s y0=%d: no scrim, and the page shows %q at %d,%d on a row the dialog spans", name, y0, got[x], x, y)
 								break
 							}
 						}
+						continue
 					}
+					// on the dialog's edge rows a page rule is cleared too (below)
+					edge := slices.Contains(edges, y-r.Min.Y)
+					skip := func(x int) bool { return edge && string(orig[x]) == th.G.Rule }
+					row := fmt.Sprintf("%s y0=%d row %d", name, y0, y)
+					checkCut(t, row+" left", orig, got, r.Min.X-1, -1, th, skip)
+					checkCut(t, row+" right", orig, got, r.Max.X, 1, th, skip)
 				}
 				for _, ey := range edges {
 					y := r.Min.Y + ey
