@@ -16,6 +16,8 @@
 //	                 brand can change them and ASCII gets a twin. Text is not a glyph: letters
 //	                 and digits of any script, quotation marks and dashes (it’s, «q», a — b),
 //	                 currency (£5) and units, marks and maths (72°F © ® ™ × ÷ ± ≥ ≤ ≠ ¹ ² ³ ½ µ)
+//	C-ELLIPSIS  [P1] the bare theme.Ellipsis outside the ui package: the kit's constant, which ASCII
+//	                 sweeps to one cell; cut with t.G.Ellipsis (ui.Trunc) for the theme's glyph and twin
 //	C-V1        [P1] Bubble Tea / Lip Gloss / Bubbles / Huh v1 import paths
 //	C-SIZE      [P1] a program whose code never handles tea.WindowSizeMsg
 //	C-VIEWIO    [P1] os, net/http or os/exec I/O reachable from View
@@ -43,14 +45,14 @@ import (
 
 // Analyzers are the rules, in the order tuivet registers them.
 var Analyzers = []*analysis.Analyzer{
-	LenAnalyzer, BlockingAnalyzer, HexAnalyzer, EmojiAnalyzer, GlyphAnalyzer, V1Analyzer, SizeAnalyzer,
+	LenAnalyzer, BlockingAnalyzer, HexAnalyzer, EmojiAnalyzer, GlyphAnalyzer, EllipsisAnalyzer, V1Analyzer, SizeAnalyzer,
 	TickAnalyzer, PrintAnalyzer, KeysAnalyzer, NoColorAnalyzer, HuhThemeAnalyzer,
 }
 
 // Severity maps each rule ID to P0, P1 or P2.
 var Severity = map[string]string{
 	"C-SLEEP": "P0",
-	"C-LEN":   "P1", "C-HEX": "P1", "C-EMOJI": "P1", "C-GLYPH": "P1", "C-V1": "P1", "C-SIZE": "P1", "C-VIEWIO": "P1", "C-HUHTHEME": "P1",
+	"C-LEN":   "P1", "C-HEX": "P1", "C-EMOJI": "P1", "C-GLYPH": "P1", "C-ELLIPSIS": "P1", "C-V1": "P1", "C-SIZE": "P1", "C-VIEWIO": "P1", "C-HUHTHEME": "P1",
 	"C-FASTTICK": "P2", "C-PRINT": "P2", "C-KEYS": "P2", "C-NOCOLOR": "P2",
 }
 
@@ -82,6 +84,8 @@ files are analysed syntax-only and stderr says so.
                    literal of a package-level var named *ascii*): screens take glyphs from
                    the theme. Text is not a glyph: other scripts, quotes and dashes (it’s,
                    «q», a — b), currency (£5), units and maths (72°F © ™ × ± ≥ ½ µ)
+  C-ELLIPSIS  [P1] the bare theme.Ellipsis outside the ui package: cut with t.G.Ellipsis
+                   (ui.Trunc) so ASCII draws the theme's twin, not the sweep's one cell
   C-V1        [P1] Bubble Tea / Lip Gloss / Bubbles / Huh v1 import paths
   C-SIZE      [P1] a program whose code never handles tea.WindowSizeMsg
   C-VIEWIO    [P1] os, net/http or os/exec I/O reachable from View

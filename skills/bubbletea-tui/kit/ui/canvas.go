@@ -168,7 +168,10 @@ func asciiRune(r rune) string {
 // asciiClasses and asciiMap are the twin tables: the one place outside the theme
 // package that spells glyphs (tuilint code C-GLYPH skips their literals). A class maps
 // a run of glyphs to one twin; the map, single glyphs. They agree with theme.ASCIITwin
-// where a glyph carries a meaning: the caret ▏ is ', not the focus bar's |.
+// where a glyph carries a meaning: the caret ▏ is ', not the focus bar's |, and an
+// ellipsis left for the sweep (a cut made with the bare theme.Ellipsis, ui.Fit's) is
+// ".", one cell of the theme's "...", never "~", the partial mark's twin: a cut line
+// read as a row in progress. Cut with t.G.Ellipsis (ui.Trunc) to get the full twin.
 var asciiClasses = []struct{ glyphs, twin string }{
 	{"─━═╌┄┈╍┅┉▔▁╴╶╸╺", "-"},
 	{"│┃║╎┆┊╏┇┋▎▍▌▐▕", "|"},
@@ -178,7 +181,7 @@ var asciiClasses = []struct{ glyphs, twin string }{
 }
 
 var asciiMap = map[rune]string{
-	'↑': "^", '↓': "v", '←': "<", '→': ">", '·': ".", '•': "*", '…': "~", '—': "-", '–': "-",
+	'↑': "^", '↓': "v", '←': "<", '→': ">", '·': ".", '•': "*", '…': ".", '—': "-", '–': "-",
 	'×': "x", '✕': "x", '✗': "x", '✓': "+", '✔': "+", '●': "*", '○': "o", '◆': "*", '◇': "o",
 	'▲': "^", '△': "^", '▶': ">", '▸': ">", '›': ">", '❯': ">", '‹': "<", '“': "\"", '”': "\"",
 	'‘': "'", '’': "'", '▏': "'", '◉': "@", '■': "#", '□': "o", '★': "*", '✦': "*", '◜': "|", '◠': "/",
@@ -202,7 +205,9 @@ func OnBg(s string, bg color.Color) string {
 
 var resetRe = regexp.MustCompile(`\x1b\[0?m`)
 
-// Fit pads or truncates a single line to exactly w cells.
+// Fit pads or truncates a single line to exactly w cells. A cut ends in the kit's
+// ellipsis, which ASCII sweeps to "."; for the theme's own glyph and its full ASCII twin
+// cut with Trunc first.
 func Fit(s string, w int) string {
 	if w <= 0 {
 		return ""

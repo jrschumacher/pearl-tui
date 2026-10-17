@@ -111,6 +111,9 @@ the theme lacks becomes a `Glyphs` field with a twin. The rule is for drawn mark
 (arrows, box drawing, blocks, shapes, symbols, dingbats, braille, `· • …`, anything
 the kit's twin table maps); text stays text: other scripts, quotes and dashes
 (`it’s`, `«q»`, `a — b`), currency (`£5`), units and maths (`72°F`, `©`, `×`, `≥`, `½`).
+A cut is a glyph too [C-ELLIPSIS]: `ansi.Truncate(s, w, theme.Ellipsis)` in a screen
+draws the kit's constant, one `.` under ASCII; `ui.Trunc(t, s, w)` draws `t.G.Ellipsis`
+and its twin `...`.
 
 ## Motion
 

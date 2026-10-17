@@ -217,8 +217,10 @@ Put it beside the baseline (`ink`) and one other brand. Ask:
 
 - Record the brand read, the theme path and the decisions in the project's design context
   file (`TUI.md`, written by `init`). Every later change reads it first.
-- `tuilint code` fails on hex outside the theme package [C-HEX], on emoji [C-EMOJI]
-  and on a glyph typed in a screen [C-GLYPH]. `tuilint frames --theme` fails on any
+- `tuilint code` fails on hex outside the theme package [C-HEX], on emoji [C-EMOJI],
+  on a glyph typed in a screen [C-GLYPH] and on a cut made with the bare `theme.Ellipsis`
+  [C-ELLIPSIS]: cut with `t.G.Ellipsis` (`ui.Trunc`), the brand's glyph with its ASCII
+  twin `...`, where the sweep draws the constant as one `.`. `tuilint frames --theme` fails on any
   rendered colour that isn't a role or a blend of two roles [F-OFFPAL], and judges the
   inside of a bordered, `+--+` or `rules` dialog (a `none` dialog has no edge to find, so
   its frames carry a P2 note to check by eye).

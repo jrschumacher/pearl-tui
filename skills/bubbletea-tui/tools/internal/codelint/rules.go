@@ -575,6 +575,56 @@ func runGlyph(pass *analysis.Pass) (any, error) {
 	return nil, nil
 }
 
+// C-ELLIPSIS
+
+// EllipsisAnalyzer reports the bare theme.Ellipsis outside the ui package (C-ELLIPSIS).
+var EllipsisAnalyzer = newAnalyzer("tuiellipsis",
+	"C-ELLIPSIS: theme.Ellipsis outside the ui package; cut with t.G.Ellipsis (ui.Trunc), the theme's glyph with its ASCII twin",
+	runEllipsis)
+
+// runEllipsis flags a use of the theme package's Ellipsis constant in any package but
+// ui, whose Fit holds the one cut made with no theme at hand. Elsewhere the theme is
+// at hand, and the constant skips it: the brand's glyph, and under ASCII its twin
+// ("..."), where the canvas sweep draws one cell (".") for the constant.
+func runEllipsis(pass *analysis.Pass) (any, error) {
+	p := program(pass)
+	once := lineOnce{}
+	for _, f := range p.Files {
+		if pass.Pkg.Name() == "ui" || isTheme(pass, f) {
+			continue
+		}
+		ast.Inspect(f, func(n ast.Node) bool {
+			switch x := n.(type) {
+			case *ast.ImportSpec:
+				return false
+			case *ast.SelectorExpr:
+				r := p.Ref(x)
+				if r.Name != "Ellipsis" || r.Recv != "" || !themePath(r.Pkg) {
+					return true
+				}
+				if once.first(pass.Fset, "C-ELLIPSIS", x.Pos()) {
+					report(pass, x.Pos(), "C-ELLIPSIS", "theme.Ellipsis is the kit's constant, not the brand's glyph: cut with t.G.Ellipsis (ui.Trunc), so ASCII draws the theme's twin \"...\" and not the sweep's \".\"")
+				}
+			}
+			return true
+		})
+	}
+	return nil, nil
+}
+
+// themePath reports a package path that is a theme package: its last element is
+// "theme" (the kit's tuikit/theme, a project's <module>/internal/theme), or it names
+// the --theme-pkg fragment.
+func themePath(pkg string) bool {
+	if pkg == "" {
+		return false
+	}
+	if themePkg != "" && strings.Contains(pkg, themePkg) {
+		return true
+	}
+	return path.Base(pkg) == "theme"
+}
+
 // literalValue is the text of a string or rune literal and which it is.
 func literalValue(lit *ast.BasicLit) (string, string) {
 	if lit.Kind == token.STRING {
