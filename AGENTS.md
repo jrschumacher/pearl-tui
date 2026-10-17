@@ -140,7 +140,8 @@ type(scope)!: description        e.g.  fix(kit): keep the focus bar on resize
   bumps are `build(<module>): …`, e.g. `build(kit): bump lipgloss to v2.0.7`.
 - **`!`** for a change that breaks something agents or users rely on: a theme contract
   key, a kit API, a tool's flags or output, a command's name.
-- Lowercase description, imperative, no full stop, header ≤ 100 chars.
+- Lowercase description, imperative, no full stop, header ≤ 100 chars (GitHub's squash
+  suffix ` (#N)` doesn't count).
 
 CI (`.github/workflows/conventional.yml`) checks the PR title, since squash-merge makes it
 the commit on `main`, and every non-merge commit on a PR and pushed to `main`. `fixup!`
