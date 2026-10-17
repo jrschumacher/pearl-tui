@@ -386,3 +386,33 @@ func TestASCIIKeepsTextRunes(t *testing.T) {
 		}
 	}
 }
+
+// go test prints tabs; lipgloss measures one as 0 cells, so the assistant's go test body
+// was fitted short and the canvas drew it with a cut ("0.087s   …") mid-panel. The kit
+// expands a tab to its 8-column stop before fitting: every row of the body ends in its
+// time, uncut, with the stops aligned.
+func TestToolBodyTabsKeepTheirStops(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := newApp(tf, true, false)
+		m.setState("assistant")
+		frame := ansi.Strip(m.render(120, 40).String())
+		for _, want := range []string{"ok      checkout-api/internal/config    0.087s", "ok      checkout-api/internal/payments  0.412s"} {
+			i := strings.Index(frame, want)
+			if i < 0 {
+				t.Errorf("%s assistant 120x40: no %q:\n%s", filepath.Base(f), want, frame)
+				continue
+			}
+			row := frame[i:]
+			if j := strings.IndexByte(row, '\n'); j >= 0 {
+				row = row[:j]
+			}
+			if strings.Contains(row, m.t.G.Ellipsis) {
+				t.Errorf("%s assistant 120x40: the go test row is cut: %q", filepath.Base(f), row)
+			}
+		}
+	}
+}

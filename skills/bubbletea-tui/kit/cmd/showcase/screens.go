@@ -365,6 +365,8 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 	s = append(s, "")
 	s = append(s, ui.ToolCall(t, ui.Tool{Name: "Edit", Param: "config/timeouts.go", State: ui.ToolDone, Body: diff, Expand: true}, w, false)...)
 	s = append(s, "")
+	s = append(s, ui.ToolCall(t, ui.Tool{Name: "Bash", Param: "go test ./internal/...", State: ui.ToolDone, Body: testLines}, w, false)...)
+	s = append(s, "")
 	s = append(s, ui.AssistantMessage(t, chatAnswer, w, false)...)
 	s = append(s, "")
 	s = append(s, ui.TurnFooter(t, "opus", "anthropic", "41s", w))

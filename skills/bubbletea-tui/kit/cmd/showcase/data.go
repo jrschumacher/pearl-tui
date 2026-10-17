@@ -46,6 +46,13 @@ var chatAnswer = "The 502s start at 14:02, two minutes after `v2.4.0` rolled out
 	"I've changed the parser to accept a unit suffix and kept the old value working. Roll back now, " +
 	"or ship the fix as `v2.4.1`?"
 
+// testLines are go test's output as it prints it, tabs and all: the kit expands a tab
+// to its 8-column stop (ui.ExpandTabs), so the panel's edge holds.
+var testLines = []string{
+	"ok  \tcheckout-api/internal/config\t0.087s",
+	"ok  \tcheckout-api/internal/payments\t0.412s",
+}
+
 var logLines = []string{
 	"14:02:11  INFO   rollout complete  checkout-api v2.4.0  3/3 pods ready",
 	"14:02:40  WARN   upstream timeout  payments.charge  after 30s",

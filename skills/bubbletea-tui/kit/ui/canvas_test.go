@@ -52,3 +52,41 @@ func TestASCIIfyKeepsTextRunes(t *testing.T) {
 		}
 	}
 }
+
+// A tab has no width to lipgloss (it measures 0) and a terminal advances it to the next
+// 8-column stop, so a go test line ("ok  \tpkg\t0.412s") fitted to a panel was padded
+// short and tore the panel's right edge where it was printed. The kit's fit and draw
+// path expands a tab to the next 8-column stop of its line before measuring, and no
+// cell of a frame holds a raw tab (tuilint frames F-TAB).
+func TestTabsExpandToStops(t *testing.T) {
+	th := theme.Resolve(theme.Default(), true, false)
+	for _, c := range []struct{ in, want string }{
+		{"ok  \tpkg\t0.412s", "ok      pkg     0.412s"},
+		{"\tx", "        x"},
+		{"12345678\tx", "12345678        x"},
+		{"a\tb\nc\td", "a       b\nc       d"},
+		{th.S.OK.Render("ok") + "\tpkg", th.S.OK.Render("ok") + "      pkg"},
+		{"no tab", "no tab"},
+	} {
+		if got := ExpandTabs(c.in); got != c.want {
+			t.Errorf("ExpandTabs(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+	line := "ok  \tledgerline/internal/import\t0.412s"
+	if got := Fit(line, 50); ansi.StringWidth(got) != 50 || strings.Contains(got, "\t") {
+		t.Errorf("Fit(%q, 50) = %q: %d cells, want 50 and no tab", line, got, ansi.StringWidth(got))
+	}
+	if got := Trunc(th, line, 20); ansi.StringWidth(got) != 20 || strings.Contains(got, "\t") {
+		t.Errorf("Trunc(%q, 20) = %q: %d cells, want 20 and no tab", line, got, ansi.StringWidth(got))
+	}
+	for _, row := range ToolCall(th, Tool{Name: "Test", Param: "./...", State: ToolDone, Body: []string{line}}, 60, false) {
+		if w := ansi.StringWidth(row); w != 60 || strings.Contains(row, "\t") {
+			t.Errorf("a tool body with a tab: row %q is %d cells, want 60 and no tab", ansi.Strip(row), w)
+		}
+	}
+	cv := NewCanvas(th, 30, 1)
+	cv.Draw("ok  \tpkg\t0.4s", Rect(0, 0, 30, 1))
+	if got := strings.TrimRight(ansi.Strip(cv.String()), " "); got != "ok      pkg     0.4s" {
+		t.Errorf("Canvas.Draw of a tab draws %q, want the tab to its 8-column stop", got)
+	}
+}

@@ -31,9 +31,41 @@ func NewCanvas(t *theme.Theme, w, h int) *Canvas {
 	return c
 }
 
-// Draw paints a styled string into a rectangle (clipped to it).
+// Draw paints a styled string into a rectangle (clipped to it). A tab advances to the
+// next 8-column stop of its line (ExpandTabs), as a terminal would.
 func (c *Canvas) Draw(s string, r uv.Rectangle) {
-	uv.NewStyledString(s).Draw(c, r)
+	uv.NewStyledString(ExpandTabs(s)).Draw(c, r)
+}
+
+// ExpandTabs replaces each tab with the spaces to the next 8-column stop of its line,
+// counted in cells (styling is skipped). lipgloss measures a tab as 0 cells and a
+// terminal advances it to the next stop, so a line with a raw tab (go test's
+// "ok  \tpkg\t0.412s") is fitted short and tears the edge it was padded to. Fit, Trunc
+// and Canvas.Draw call it; call it on text you measure any other way.
+func ExpandTabs(s string) string {
+	if !strings.Contains(s, "\t") {
+		return s
+	}
+	lines := strings.Split(s, "\n")
+	for i, l := range lines {
+		if !strings.Contains(l, "\t") {
+			continue
+		}
+		var b strings.Builder
+		col := 0
+		parts := strings.Split(l, "\t")
+		for j, p := range parts {
+			b.WriteString(p)
+			col += ansi.StringWidth(p)
+			if j < len(parts)-1 {
+				n := 8 - col%8
+				b.WriteString(strings.Repeat(" ", n))
+				col += n
+			}
+		}
+		lines[i] = b.String()
+	}
+	return strings.Join(lines, "\n")
 }
 
 // Fill paints a rectangle's background (for panels and bars).
@@ -238,11 +270,12 @@ var resetRe = regexp.MustCompile(`\x1b\[0?m`)
 
 // Fit pads or truncates a single line to exactly w cells. A cut ends in the kit's
 // ellipsis, which ASCII sweeps to "."; for the theme's own glyph and its full ASCII twin
-// cut with Trunc first.
+// cut with Trunc first. Tabs expand to 8-column stops first.
 func Fit(s string, w int) string {
 	if w <= 0 {
 		return ""
 	}
+	s = ExpandTabs(s)
 	n := lipgloss.Width(s)
 	if n > w {
 		return ansi.Truncate(s, w, theme.Ellipsis)
@@ -259,8 +292,10 @@ func FitLines(block string, w int) string {
 	return strings.Join(lines, "\n")
 }
 
-// Trunc truncates to w cells with the theme's ellipsis (no padding).
+// Trunc truncates to w cells with the theme's ellipsis (no padding). Tabs expand to
+// 8-column stops first.
 func Trunc(t *theme.Theme, s string, w int) string {
+	s = ExpandTabs(s)
 	if lipgloss.Width(s) <= w {
 		return s
 	}
