@@ -204,7 +204,8 @@ func (m *app) startClock() tea.Cmd {
 // the pending tick and stop the clock for good.
 // This sync is in place; a real poll is async (tick → fetch cmd → result msg), and its
 // result handler re-arms only if the result's gen is current, or a setting change
-// mid-fetch, which armed its own tick, starts a second chain.
+// mid-fetch, which armed its own tick, starts a second chain. A tick that finds a
+// fetch in flight re-arms instead of skipping, so a stale result can't strand the clock.
 func (m *app) armRefresh() tea.Cmd {
 	m.refresh.gen++
 	if m.paused {

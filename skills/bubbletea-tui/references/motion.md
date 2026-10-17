@@ -31,7 +31,8 @@ case tickMsg:
   `gen` bump alone, or it stops for good with nothing on screen to say so
   (`TestClockSurvivesSettingChange`, copied with the kit; TUI.md § Async names both).
   A poll's result handler re-arms only if the result's `gen` is current, or a setting
-  change mid-fetch starts a second chain.
+  change mid-fetch starts a second chain; a tick that finds a fetch in flight re-arms
+  instead of skipping, so a stale result can't strand the clock.
 - `ui.FrameInterval` is 50 ms (20 fps). Spinners can advance every 2nd frame (100 ms).
 
 ## Deterministic Frames
