@@ -665,9 +665,6 @@ func asciiSpinner(g Glyphs) []string {
 	for _, m := range spinnerMarks {
 		taken[v.FieldByName(m).String()] = true
 	}
-	if g.BlurBar == "" {
-		taken[blurFallbackASCII] = true // the blurred selection's marker (Theme.BlurBar)
-	}
 	for _, frames := range [][]string{{"|", "/", "-", "\\"}, {".", ":", "'", ":"}, {"(", ")"}} {
 		var out []string
 		distinct := map[string]bool{}

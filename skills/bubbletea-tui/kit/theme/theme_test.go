@@ -529,6 +529,19 @@ func TestASCIISpinnerTurns(t *testing.T) {
 	}
 }
 
+// The blurred selection's ASCII : is a gutter mark, and a spinner never stands in the
+// gutter, so : stays free for spinner frames: reserving it turned a pulse . : ' : into
+// . ' and would break a dots spinner's :.. ::. ::: twin (#38 item 5).
+func TestASCIISpinnerKeepsTheBlurTwin(t *testing.T) {
+	f, err := Load(writeTheme(t, `{"glyphs": {"focusBar": "|", "todo": "/", "done": "-", "caret": "_"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := Resolve(f, true, true).G.Spinner; !slices.Equal(got, []string{".", ":", "'", ":"}) {
+		t.Errorf("ASCII spinner %q, want the pulse . : ' :", got)
+	}
+}
+
 // themes/ink.json and Default are one fallback in two forms (the embedded theme the
 // showcase draws with no flag, and what a partial theme's gaps resolve to): they
 // resolve to the same palette, glyphs and expressions in both modes, at truecolour and
