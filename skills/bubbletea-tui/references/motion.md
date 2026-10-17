@@ -25,6 +25,10 @@ case tickMsg:
 - All spinners and pulses read `m.frame`. Never one `tea.Tick` per spinner.
 - Re-arm the clock (with a new `gen`) when something starts animating. It stops itself
   when `animating()` turns false.
+- Only the frame clock may die stale, because the next key press re-arms it. A product
+  clock (a poll, a sample, a sync) has no second chance: the handler that changes its
+  interval or pauses and resumes it returns the new arm cmd, never a `gen` bump alone
+  (`TestClockSurvivesSettingChange`, copied with the kit; TUI.md § Async names both).
 - `ui.FrameInterval` is 50 ms (20 fps). Spinners can advance every 2nd frame (100 ms).
 
 ## Deterministic Frames

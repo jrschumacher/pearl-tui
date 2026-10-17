@@ -63,6 +63,7 @@ fallback in `verify.md` § The Critic) → fix → again. Two to four rounds.
 - typing `q` into an input types a q
 - resize mid-dialog keeps the dialog centred and clamped
 - the clock stops when nothing moves (assert `tick()` returns nil in idle states)
+- a product clock survives a setting change (change the interval, assert the arm cmd)
 - slow work runs in a `tea.Cmd`; stale results are ignored
 
 ## 6. Show The User
