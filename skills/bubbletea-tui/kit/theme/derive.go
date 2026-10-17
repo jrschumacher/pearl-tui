@@ -206,6 +206,10 @@ func Luminance(c color.Color) float64 {
 	return 0.2126*lin(r) + 0.7152*lin(g) + 0.0722*lin(b)
 }
 
+// promptFloor is the contrast the focus ink needs on bgOverlay to draw the prompt: the
+// prompt is where you type, a focus cue, and a focus indicator holds 3:1 (WCAG 1.4.11).
+const promptFloor = 3.0
+
 // Contrast is the WCAG contrast ratio between two colours.
 func Contrast(a, b color.Color) float64 {
 	la, lb := Luminance(a), Luminance(b)
@@ -361,9 +365,9 @@ func defaultPartial(g Glyphs) Glyphs {
 // adds its own in glyphs.ascii.
 var asciiTwins = map[string]string{
 	"╱": "/", "╲": "\\", "─": "-", "━": "=", "═": "=", "╌": "-", "┄": "-", "·": ".", "~": "~",
-	"▌": "|", "┃": "|", "│": "|", "▎": "|", "❯": ">", "›": ">", "▸": ">", "→": "->",
+	"▌": "|", "┃": "|", "│": "|", "▎": "|", "╎": ":", "┆": ":", "┊": ":", "❯": ">", "›": ">", "▸": ">", "→": "->",
 	"✓": "+", "✔": "+", "●": "*", "◆": "*", "◇": "o", "○": "o", "◉": "(*)", "×": "x", "✗": "x", "✕": "x", "✖": "x",
-	"•": "*", "▪": "*", "…": "...", "■": "[x]", "□": "[ ]", "☑": "[x]", "☐": "[ ]",
+	"•": "*", "▪": "*", "…": "...", "■": "[x]", "□": "[ ]", "☑": "[x]", "☐": "[ ]", "»": ">>", "«": "<<",
 	"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "◐": "~", "▲": "^", "△": "o", "◢": "/",
 	"◦": "o", "–": "-", "—": "-", "█": "#", "░": ".",
 	"▏": "'", "↑": "^", "↓": "v", "↑↓": "^v", "←": "<-", "←→": "<>", "╸": "=", "▔": "-",
@@ -375,6 +379,10 @@ func ASCIITwin(glyph string) (string, bool) {
 	t, ok := asciiTwins[glyph]
 	return t, ok
 }
+
+// blurFallback is the blurred selection's marker when glyphs.blurBar is unset
+// (Theme.BlurBar), and its ASCII twin: a dashed bar beside the focus bar's solid one.
+const blurFallback, blurFallbackASCII = "╎", ":"
 
 // asciiForced are the glyphs ASCII replaces whatever the theme says: status marks
 // that must stay distinct in shape. They need no twin.
@@ -507,12 +515,41 @@ func CheckGlyphs(g Glyphs) error {
 			}
 		}
 	}
+	// a blurred selection keeps its marker: as the focus bar, or its twin, the frame
+	// shows two focuses once colour is gone
+	switch {
+	case src.BlurBar != "" && src.BlurBar == src.FocusBar:
+		return fmt.Errorf("glyphs.blurBar %q is the focusBar: a blurred selection in the focus bar's shape is a second focus under NO_COLOR and ASCII; pick ╎ ┆ or ┊ (ASCII :), or leave it unset for ╎", src.BlurBar)
+	case src.BlurBar == "" && (src.FocusBar == blurFallback || out.FocusBar == blurFallbackASCII):
+		return fmt.Errorf("glyphs.focusBar %q is the kit's blurred marker (%s, ASCII %s): set glyphs.blurBar to another glyph, or pick another focus bar", src.FocusBar, blurFallback, blurFallbackASCII)
+	}
 	// the caret sits after typed text; as a bar, or a bar's twin, "> ro|" reads as a
 	// focused block
 	for _, bar := range []string{"FocusBar", "BlurBar"} {
 		if b := sv.FieldByName(bar).String(); b != "" && (src.Caret == b || out.Caret == ov.FieldByName(bar).String()) {
 			return fmt.Errorf("glyphs.caret %q draws as %q, the %s's: a caret that is a bar reads as focus; pick ▏ or _ (ASCII ')", src.Caret, out.Caret, jsonKey(bar))
 		}
+	}
+	return nil
+}
+
+// CheckSelectionGlyphs reports a theme whose prompt is its cursor under selection
+// "caret": a filter input above a caret-selected list (a palette, a picker) then
+// shows the one glyph twice, where you type and where you are, and so does its ASCII
+// twin. Under bar, fill and inverse the cursor marks only selects and buttons, so
+// one glyph for both is fine (Crush's >). palette check and the kit's tests fail on
+// it; theme.Load doesn't.
+func CheckSelectionGlyphs(f File) error {
+	if exprDefaults(f.Expressions).Selection != "caret" {
+		return nil
+	}
+	g := glyphDefaults(f.Glyphs)
+	a := ASCII(g)
+	switch {
+	case g.Prompt == g.Cursor:
+		return fmt.Errorf("glyphs.prompt %q is glyphs.cursor under selection \"caret\": a filter input above a list shows it twice, where you type and where you are; give the prompt its own glyph with an ASCII twin that is not the cursor's (» draws as >>, or $)", g.Prompt)
+	case a.Prompt == a.Cursor:
+		return fmt.Errorf("glyphs.prompt %q and glyphs.cursor %q both draw as %q under ASCII, so a filter input above a caret-selected list shows one mark twice: give the prompt a twin of its own in glyphs.ascii", g.Prompt, g.Cursor, a.Prompt)
 	}
 	return nil
 }

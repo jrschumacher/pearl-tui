@@ -191,6 +191,11 @@ func TestCheckGlyphs(t *testing.T) {
 		{`{"glyphs": {"focusBar": "▌", "caret": "▌"}}`, `glyphs.caret "▌" draws as "|", the focusBar's`, ""},
 		{`{"glyphs": {"focusBar": "┃", "caret": "│"}}`, `glyphs.caret "│" draws as "|", the focusBar's`, ""},
 		{`{"glyphs": {"focusBar": "▌", "blurBar": "┆", "caret": "┆", "ascii": {"┆": ":"}}}`, `glyphs.caret "┆" draws as ":", the blurBar's`, ""},
+		// a blurred selection keeps a marker of its own shape: the focus bar in a quieter
+		// colour is a second focus under NO_COLOR and ASCII
+		{`{"glyphs": {"focusBar": "│", "blurBar": "│"}}`, `glyphs.blurBar "│" is the focusBar`, ""},
+		{`{"glyphs": {"focusBar": "▌", "blurBar": "▎"}}`, `glyphs.focusBar "▌" and glyphs.blurBar "▎" both draw as "|"`, ""},
+		{`{"glyphs": {"focusBar": "╎"}}`, `glyphs.focusBar "╎" is the kit's blurred marker`, ""},
 	} {
 		path := writeTheme(t, c.json)
 		f, err := Load(path)
@@ -240,6 +245,34 @@ func TestThemesPassCheckGlyphs(t *testing.T) {
 		}
 		if err := CheckGlyphs(f.Glyphs); err != nil {
 			t.Errorf("%s: %v", path, err)
+		}
+		if err := CheckSelectionGlyphs(f); err != nil {
+			t.Errorf("%s: %v", path, err)
+		}
+	}
+}
+
+// Under selection "caret" the prompt and the cursor are one glyph twice on a palette
+// (where you type, where you are): CheckSelectionGlyphs refuses it, as glyphs and as
+// ASCII twins; under bar they mark different things and may be one glyph.
+func TestCheckSelectionGlyphs(t *testing.T) {
+	for _, c := range []struct{ json, want string }{
+		{`{"glyphs": {"cursor": "›", "prompt": "›"}, "expressions": {"selection": "caret"}}`, `glyphs.prompt "›" is glyphs.cursor under selection "caret"`},
+		{`{"glyphs": {"cursor": "›", "prompt": "❯"}, "expressions": {"selection": "caret"}}`, `glyphs.prompt "❯" and glyphs.cursor "›" both draw as ">" under ASCII`},
+		{`{"glyphs": {"cursor": "›", "prompt": "»"}, "expressions": {"selection": "caret"}}`, ""},
+		{`{"glyphs": {"cursor": ">", "prompt": ">"}, "expressions": {"selection": "bar"}}`, ""},
+		{`{"glyphs": {"cursor": ">", "prompt": ">"}}`, ""},
+	} {
+		f, err := Load(writeTheme(t, c.json))
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = CheckSelectionGlyphs(f)
+		if c.want == "" && err != nil {
+			t.Errorf("CheckSelectionGlyphs(%s) = %v, want nil", c.json, err)
+		}
+		if c.want != "" && (err == nil || !strings.Contains(err.Error(), c.want)) {
+			t.Errorf("CheckSelectionGlyphs(%s) = %v, want %q", c.json, err, c.want)
 		}
 	}
 }
@@ -494,6 +527,46 @@ func TestASCIISpinnerTurns(t *testing.T) {
 		if len(distinct) < 2 {
 			t.Errorf("%s: ASCII spinner %q doesn't turn", js, g.Spinner)
 		}
+	}
+}
+
+// The glyphs CheckGlyphs recommends for a blurBar pass it: the advice named ▏, whose
+// twin ' is the default caret's, so the next run refused what this one suggested.
+func TestBlurBarAdvicePasses(t *testing.T) {
+	f, err := Load(writeTheme(t, `{"glyphs": {"focusBar": "│", "blurBar": "│"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	msg := CheckGlyphs(f.Glyphs).Error()
+	_, advice, ok := strings.Cut(msg, "pick ")
+	advice, _, _ = strings.Cut(advice, " (ASCII")
+	if !ok || advice == "" {
+		t.Fatalf("no advice in %q", msg)
+	}
+	for _, g := range strings.Fields(strings.ReplaceAll(advice, " or ", " ")) {
+		f, err := Load(writeTheme(t, `{"glyphs": {"focusBar": "▌", "blurBar": "`+g+`"}}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := CheckGlyphs(f.Glyphs); err != nil {
+			t.Errorf("the advice %q names %q, which CheckGlyphs refuses: %v", advice, g, err)
+		}
+		if tw := ASCII(f.Glyphs).BlurBar; tw != ":" {
+			t.Errorf("the advice names %q, whose ASCII twin is %q, not :", g, tw)
+		}
+	}
+}
+
+// The blurred selection's ASCII : is a gutter mark, and a spinner never stands in the
+// gutter, so : stays free for spinner frames: reserving it turned a pulse . : ' : into
+// . ' and would break a dots spinner's :.. ::. ::: twin (#38 item 5).
+func TestASCIISpinnerKeepsTheBlurTwin(t *testing.T) {
+	f, err := Load(writeTheme(t, `{"glyphs": {"focusBar": "|", "todo": "/", "done": "-", "caret": "_"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := Resolve(f, true, true).G.Spinner; !slices.Equal(got, []string{".", ":", "'", ":"}) {
+		t.Errorf("ASCII spinner %q, want the pulse . : ' :", got)
 	}
 }
 

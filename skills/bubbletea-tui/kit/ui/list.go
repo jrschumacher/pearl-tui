@@ -15,13 +15,68 @@ type Item struct {
 	Desc  string // shown muted after the title when there is room
 	Right string // right-aligned, subtle (a shortcut, a count, a time)
 	State string // optional status dot (see Dot); "" for none
+	Mark  string // a rung of the theme's ladder by its meaning ("new"), drawn with ui.Mark in place of State
+	Lead  string // a muted column before the title (a repo#n, an id), as wide as the widest lead in the list
 	Match []int  // rune indices in Title to underline (fuzzy filter hits)
+}
+
+// status is the row's status column: its ladder rung, else its Dot, else "".
+func (it Item) status(t *theme.Theme) string {
+	switch {
+	case it.Mark != "":
+		return Mark(t, it.Mark)
+	case it.State != "":
+		return Dot(t, it.State)
+	}
+	return ""
+}
+
+// cols are the columns a list's rows share, from all its items, so titles line up
+// whatever the scroll offset: a status column as wide as the widest mark (an ASCII
+// twin can be [x] or (*)), and a Lead column as wide as the widest lead, at most a
+// third of the row.
+type cols struct {
+	status int
+	lead   int
+}
+
+func listCols(t *theme.Theme, items []Item, w int) cols {
+	var c cols
+	for _, it := range items {
+		c.status = max(c.status, lipgloss.Width(it.status(t)))
+		c.lead = max(c.lead, lipgloss.Width(it.Lead))
+	}
+	c.lead = min(c.lead, w/3)
+	return c
+}
+
+// prefix is the status and lead columns before a title; plain drops their styles
+// (a filled row carries its own).
+func (c cols) prefix(t *theme.Theme, it Item, plain bool) string {
+	out := ""
+	if c.status > 0 {
+		st := it.status(t)
+		if plain {
+			st = ansi.Strip(st)
+		}
+		out = Fit(st, c.status) + " "
+	}
+	if c.lead > 0 {
+		lead := Fit(Trunc(t, it.Lead, c.lead), c.lead)
+		if !plain {
+			lead = t.S.Muted.Render(lead)
+		}
+		out += lead + "  "
+	}
+	return out
 }
 
 // List renders items into exactly h rows of w cells, with the selected row
 // marked per expressions.selection and a scrollbar column only when the list
 // overflows. focused=false keeps the selection visible but quieter, so the
-// user can still see where they were when focus moves elsewhere.
+// user can still see where they were when focus moves elsewhere: under bar and
+// caret it is marked with Theme.BlurBar, its own glyph in fgSubtle, never the
+// focus bar or the cursor in a quieter colour (one focus under NO_COLOR too).
 func List(t *theme.Theme, items []Item, sel, offset, w, h int, focused bool) []string {
 	sb := Scrollbar(t, h, len(items), offset)
 	bodyW := w
@@ -29,13 +84,14 @@ func List(t *theme.Theme, items []Item, sel, offset, w, h int, focused bool) []s
 		bodyW = w - 2
 	}
 	out := make([]string, 0, h)
+	c := listCols(t, items, bodyW)
 	for row := 0; row < h; row++ {
 		i := offset + row
 		if i >= len(items) {
 			out = append(out, Fit("", w))
 			continue
 		}
-		line := listRow(t, items[i], i == sel, focused, bodyW)
+		line := listRow(t, items[i], i == sel, focused, bodyW, c)
 		if len(items) > h {
 			line += " " + sb[row]
 		}
@@ -84,7 +140,7 @@ func Fuzzy(s, q string) ([]int, bool) {
 	return idx, true
 }
 
-func listRow(t *theme.Theme, it Item, selected, focused bool, w int) string {
+func listRow(t *theme.Theme, it Item, selected, focused bool, w int, c cols) string {
 	mode := t.X.Selection
 	// the marker column is always 2 cells, focused or not, so selecting a row
 	// never shifts its text (Crush's rule for its focus bar)
@@ -94,27 +150,23 @@ func listRow(t *theme.Theme, it Item, selected, focused bool, w int) string {
 		if focused {
 			marker = t.S.FocusBar.Render(t.G.FocusBar) + " "
 		} else {
-			marker = t.S.BlurBar.Render(t.G.FocusBar) + " "
+			marker = t.S.BlurBar.Render(t.BlurBar()) + " " // its own shape: colour alone is no cue
 		}
+	case selected && mode == "caret" && focused:
+		marker = t.S.Focus.Render(t.G.Cursor) + " "
 	case selected && mode == "caret":
-		st := t.S.Focus
-		if !focused {
-			st = t.S.Muted
-		}
-		marker = st.Render(t.G.Cursor) + " "
+		marker = t.S.BlurBar.Render(t.BlurBar()) + " " // the cursor is the focus: a blurred row keeps the quiet bar
 	}
 	plain := selected && focused && (mode == "fill" || mode == "inverse")
 	if plain {
-		return filledRow(t, it, w)
+		return filledRow(t, it, w, c)
 	}
 	titleSt := t.S.Base
 	if selected && focused && (mode == "bar" || mode == "caret") {
 		titleSt = t.S.SelRow
 	}
 	title := matchUnderline(it.Title, it.Match, titleSt)
-	if it.State != "" {
-		title = Dot(t, it.State) + " " + title
-	}
+	title = c.prefix(t, it, false) + title
 	right := ""
 	if it.Right != "" {
 		right = t.S.Subtle.Render(it.Right)
@@ -155,11 +207,13 @@ func bolden(s string) string {
 
 // filledRow is a selected row on a filled bar. Every span, the padding
 // included, carries the bar's style: one bare space would punch a hole.
-func filledRow(t *theme.Theme, it Item, w int) string {
+func filledRow(t *theme.Theme, it Item, w int, c cols) string {
 	st := t.S.SelRow
-	text := it.Title
-	if it.State != "" {
-		text = ansi.Strip(Dot(t, it.State)) + " " + text
+	lead := ansi.Strip(c.prefix(t, it, true))
+	text := lead + it.Title
+	match := make([]int, len(it.Match)) // Match indexes the title, after the columns
+	for i, m := range it.Match {
+		match[i] = m + len([]rune(lead))
 	}
 	avail := w - 2
 	if it.Right != "" {
@@ -171,7 +225,7 @@ func filledRow(t *theme.Theme, it Item, w int) string {
 	}
 	full := Trunc(t, text+desc, avail)
 	nt := min(len([]rune(full)), len([]rune(text)))
-	title := matchUnderline(string([]rune(full)[:nt]), it.Match, st)
+	title := matchUnderline(string([]rune(full)[:nt]), match, st)
 	rest := st.Render(string([]rune(full)[nt:]))
 	gap := avail - lipgloss.Width(full)
 	out := st.Render("  ") + title + rest + st.Render(strings.Repeat(" ", max(0, gap)))
@@ -246,18 +300,17 @@ func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 		case selected && focused && (mode == "fill" || mode == "inverse"):
 			out = append(out, t.S.SelRow.Render(Fit("  "+ansi.Strip(line), w)))
 		case selected && (mode == "bar"):
-			bar := t.S.FocusBar
+			bar, glyph := t.S.FocusBar, t.G.FocusBar
 			if !focused {
-				bar = t.S.BlurBar
+				bar, glyph = t.S.BlurBar, t.BlurBar() // its own shape, as List draws it
 			} else {
 				line = bolden(line) // SelRow: bold text beside the bar, as List draws it
 			}
-			out = append(out, Fit(bar.Render(t.G.FocusBar)+" "+line, w))
+			out = append(out, Fit(bar.Render(glyph)+" "+line, w))
+		case selected && mode == "caret" && focused:
+			out = append(out, Fit(t.S.Focus.Render(t.G.Cursor)+" "+bolden(line), w))
 		case selected && mode == "caret":
-			if focused {
-				line = bolden(line)
-			}
-			out = append(out, Fit(t.S.Focus.Render(t.G.Cursor)+" "+line, w))
+			out = append(out, Fit(t.S.BlurBar.Render(t.BlurBar())+" "+line, w))
 		case selected:
 			out = append(out, lipgloss.NewStyle().Background(t.P.BgSubtle).Render(Fit("  "+line, w)))
 		default:

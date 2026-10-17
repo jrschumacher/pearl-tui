@@ -77,3 +77,53 @@ func TestFooterASCIIEllipsisFits(t *testing.T) {
 		}
 	}
 }
+
+// A key token that pairs a key some terminals can't tell apart (shift+enter arrives as
+// enter in tmux) with its fallback is drawn as the one that works: ctrl+j, or
+// shift+enter once the terminal reports key disambiguation. Drawn whole, the 18-cell
+// "shift+enter/ctrl+j" cost the footer a key at 80 columns. Alternatives every terminal
+// sends ("↑↓/jk") are all drawn.
+func TestHelpDrawsOneKeyAlternative(t *testing.T) {
+	bs := []key.Binding{
+		key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑↓/jk", "move")),
+		key.NewBinding(key.WithKeys("shift+enter", "ctrl+j"), key.WithHelp("shift+enter/ctrl+j", "newline")),
+		key.NewBinding(key.WithKeys("ctrl+enter", "ctrl+s"), key.WithHelp("ctrl+enter/ctrl+s", "send")),
+	}
+	for _, c := range []struct {
+		disambiguates bool
+		want, not     []string
+	}{
+		{false, []string{"↑↓/jk move", "ctrl+j newline", "ctrl+s send"}, []string{"shift+enter", "ctrl+enter"}},
+		{true, []string{"↑↓/jk move", "shift+enter newline", "ctrl+enter send"}, []string{"ctrl+j", "ctrl+s"}},
+	} {
+		th := theme.Resolve(theme.Default(), true, false)
+		th.KeyDisambiguation = c.disambiguates
+		row := ansi.Strip(Help(th, bs, 76))
+		for _, w := range c.want {
+			if !strings.Contains(row, w) {
+				t.Errorf("disambiguates=%v: Help draws %q, want %q", c.disambiguates, row, w)
+			}
+		}
+		for _, n := range c.not {
+			if strings.Contains(row, n) {
+				t.Errorf("disambiguates=%v: Help draws %q, which names %q", c.disambiguates, row, n)
+			}
+		}
+	}
+}
+
+// ambiguousKey is S-KEYAMBIG's legacy model (tools/internal/speclint/keys.go): the keys a
+// terminal without key disambiguation delivers as another key or not at all.
+func TestAmbiguousKey(t *testing.T) {
+	for k, want := range map[string]bool{
+		"shift+enter": true, "ctrl+enter": true, "alt+enter": false, "enter": false,
+		"ctrl+backspace": true, "shift+esc": true, "ctrl+tab": true, "shift+tab": false,
+		"shift+space": true, "ctrl+space": false, "ctrl+m": true, "ctrl+i": true,
+		"ctrl+shift+a": true, "ctrl+j": false, "ctrl+_": false, "ctrl+/": true, "ctrl+2": true,
+		"super+k": true, "alt+k": false, "j": false, "?": false,
+	} {
+		if got := ambiguousKey(k); got != want {
+			t.Errorf("ambiguousKey(%q) = %v, want %v", k, got, want)
+		}
+	}
+}
