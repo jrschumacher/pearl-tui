@@ -88,6 +88,7 @@
       "assertions": [
         "tool calls use status glyph + name + main param + k=v options and an indented panel body; a collapsed tool call shows the hidden line count and the key that expands it",
         "one shared animation clock that stops when idle (tick returns nil in idle states)",
+        "a product clock (a poll, a sample, a sync) outlives a setting change: the handler that changes its interval or pauses and resumes it returns the new arm cmd, and a behaviour test like the kit's TestClockSurvivesSettingChange proves it",
         "the working indicator says what is happening (no 'Loading...'/'Thinking...' alone without subject or elapsed time)",
         "diversity: loom differs from the charm study theme on >= 8 axes (not Crush recoloured)",
         "prose is capped at a measure (<= 100 cells) at 200 columns",
