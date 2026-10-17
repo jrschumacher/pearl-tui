@@ -45,7 +45,9 @@ palette check theme.json   # on any existing theme
   two hues the second is the brand's and the tertiary a complement
 - writes both a dark and a light set, the nearest xterm-256 index per role, and the
   `ansi16` pins its own `check` would ask for (most brands' warning lands on error's red
-  at 16 colours), so the first `palette check` of the theme prints no 16-colour pin
+  at 16 colours), so the first `palette check` of the theme prints no 16-colour pin.
+  The brand takes the slot nearest its hue first (an amber on yellow 11/3) and a
+  displaced warning moves; only a brand natively on a status role's own slot yields it
 - warns when `warning` sits beside `primary` in hue and chroma (an amber brand's warning
   a shade brighter than its amber): a warning row then reads as a focused one
 
@@ -158,7 +160,10 @@ and look at the PNGs. What usually breaks:
   (`palette -h` lists them). A warning is not a pass to ignore: pin it unless
   the brand accepts it in its read. Pin bright (9-14) on dark, normal (1-6) on light,
   error to 9/1, a status role to its own slot (warning 3/11, success 2/10, info 4/12 or
-  6/14), never a grey; the user's terminal palette decides the exact colour.
+  6/14), never a grey; the user's terminal palette decides the exact colour. A pin
+  that moves a role more than 60° of hue while a nearer slot is free (an amber brand on
+  green 10, with yellow 11 its warning's) warns with the hex, the slot and the nearer
+  pin: the brand reads as a success there.
 
 ## DO / DON'T
 

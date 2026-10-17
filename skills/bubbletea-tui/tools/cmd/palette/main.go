@@ -62,6 +62,19 @@
 // not reported. A pin that names no role, no mode or no colour 0-15 exits 2, as
 // theme.Load does.
 //
+// A suggested pin is a status role's own slot, else the nearest free hue, never red and
+// never the other brightness of a slot another state draws (10 beside success's 2 reads
+// as success). When the brand and a status role are both displaced (an amber and its
+// warning, both on red), the brand takes the slot nearest its hue first (yellow 11/3)
+// and the status role moves, when a slot within 60° of the brand's hue exists; an
+// orange, as far from yellow as from magenta, lets the status roles keep their own and
+// takes the nearest free. A brand natively on a status role's own slot (a yellow on 3)
+// yields it in both modes. It warns on a pin, the theme's or derive's, that moves a role
+// more than 60° of OKLCH hue from its truecolour value while the tool would pin it
+// nearer (an amber pinned to green 10 while yellow is its warning's), naming the hex, its
+// hue, the slot and the nearer pin; a pin that is the nearest free hue, however far, is
+// not reported.
+//
 // Thresholds (WCAG 2 contrast ratio against the role's background):
 //
 //	fg ≥ 7      fgMuted ≥ 4.5     fgSubtle ≥ 2.6 (hints only, never the only carrier of meaning)

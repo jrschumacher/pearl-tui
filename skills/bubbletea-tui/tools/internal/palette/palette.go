@@ -358,10 +358,11 @@ var onFills = []struct{ on, fill string }{
 // Pin16 is the 16-colour index to pin a state role of colour hex to when it shares one
 // with another state, among the colours no state role draws: a status role's own slot
 // first (warning yellow, success green, error red, info blue or cyan; bright, then
-// normal, on a dark page), since the terminal's palette keeps that meaning; else the nearest in OKLCH
-// hue. Bright (9-14) on
-// a dark page, normal (1-6) on a light one, where terminal palettes put their legible
-// hues. The greys (0, 7, 8, 15) carry no state and are never offered.
+// normal, on a dark page), since the terminal's palette keeps that meaning; else the
+// nearest in OKLCH hue whose other brightness no state role draws either (10 beside a
+// success on 2 is a different slot and the same reading). Bright (9-14) on a dark page,
+// normal (1-6) on a light one, where terminal palettes put their legible hues. The greys
+// (0, 7, 8, 15) carry no state and are never offered.
 func Pin16(role, hex string, dark bool, used map[int]bool) int {
 	shift := 0
 	if dark {
@@ -378,7 +379,7 @@ func Pin16(role, hex string, dark bool, used map[int]bool) int {
 	for _, base := range []int{shift, 8 - shift} {
 		best, bestD := -1, 361.0
 		for i := base + 1; i <= base+6; i++ {
-			if used[i] {
+			if used[i] || used[(i+8)%16] {
 				continue
 			}
 			_, _, hi := oklch.LCH(hexOf(ansi.BasicColor(i)))
