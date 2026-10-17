@@ -166,7 +166,11 @@ and look at the PNGs. What usually breaks:
   6/14), never a grey; the user's terminal palette decides the exact colour. A pin
   that moves a role more than 60° of hue while a nearer slot is free (an amber brand on
   green 10, with yellow 11 its warning's) warns with the hex, the slot and the nearer
-  pin: the brand reads as a success there.
+  pin: the brand reads as a success there. A pin of `primary` onto 5/13 is the magenta
+  the read's `never` line forbade, on the profile most SSH and tmux users get (a copper
+  three degrees past the 60° window landed there): read the 16-colour render for it, and
+  pin primary to the nearest hue with warning moved off it, or draw focus as `fg` + bold
+  there, rather than ship pink to the terminals that can't show the brand.
 
 ## DO / DON'T
 
