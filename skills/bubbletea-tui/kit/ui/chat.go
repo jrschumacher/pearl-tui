@@ -101,7 +101,8 @@ type Tool struct {
 	Expand bool
 }
 
-// ToolCall renders the Crush grammar:
+// ToolCall renders the Crush grammar (its fixed copy, "Canceled." and "Waiting for
+// permission", in the theme's case):
 //
 //	● Name main-param (k=v, k=v)
 //
@@ -147,9 +148,9 @@ func ToolCall(t *theme.Theme, tc Tool, w int, focused bool) []string {
 	case tc.State == ToolError:
 		rows = append(rows, "", Tag(t, "error", "ERROR")+" "+t.S.Muted.Render(Trunc(t, tc.Err, inner-8)))
 	case tc.State == ToolCanceled:
-		rows = append(rows, "", t.S.Subtle.Render("Canceled."))
+		rows = append(rows, "", t.S.Subtle.Render(t.Copy("Canceled")+"."))
 	case tc.State == ToolPending:
-		rows = append(rows, "", t.S.Subtle.Render("Waiting for permission"+t.G.Ellipsis))
+		rows = append(rows, "", t.S.Subtle.Render(t.Copy("Waiting for permission")+t.G.Ellipsis))
 	case len(tc.Body) > 0:
 		rows = append(rows, "")
 		shown := tc.Shown
@@ -177,7 +178,7 @@ func ToolCall(t *theme.Theme, tc Tool, w int, focused bool) []string {
 }
 
 // Thinking is demoted reasoning: subtle text on the panel colour, only the
-// last n lines, with a footer of how long it took.
+// last n lines, with a footer of how long it took ("Thought for" in the theme's case).
 func Thinking(t *theme.Theme, lines []string, n int, took string, w int) []string {
 	inner := w - 2
 	st := lipgloss.NewStyle().Background(t.P.BgPanel).Foreground(t.P.FgMuted).Italic(true)
@@ -190,7 +191,7 @@ func Thinking(t *theme.Theme, lines []string, n int, took string, w int) []strin
 		rows = append(rows, st.Render(Fit("  "+Trunc(t, l, inner-4), inner)))
 	}
 	if took != "" {
-		rows = append(rows, t.S.Subtle.Render("Thought for "+took))
+		rows = append(rows, t.S.Subtle.Render(t.Copy("Thought for")+" "+took))
 	}
 	return prefix(rows, "  ", w)
 }

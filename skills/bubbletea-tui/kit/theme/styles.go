@@ -223,6 +223,18 @@ func (t *Theme) Case(s string) string {
 	return s
 }
 
+// Copy applies the theme's case to the kit's own fixed copy: tab names, "Terminal too
+// small", a tool call's "Canceled." and "Waiting for permission", Thinking's "Thought
+// for". labelCase when the theme sets one (the brand's case for the small words of its
+// UI), else titleCase. Text the app writes (Huh field titles, labels, prose) is the
+// app's own: write it in the brand's case.
+func (t *Theme) Copy(s string) string {
+	if t.X.LabelCase != "" {
+		return t.Label(s, "as-is")
+	}
+	return t.Case(s)
+}
+
 // Label applies the theme's label case (expressions.labelCase) to a table header, tag,
 // toast or summary label; own is the component's case when the theme leaves it unset
 // ("upper" for table headers, "lower" for summary-strip labels, "as-is" for tags).

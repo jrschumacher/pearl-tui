@@ -362,7 +362,7 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 			s = append(s, ui.ToolCall(t, ui.Tool{Name: "Deploy", Param: "checkout-api v2.4.1", Opts: [][2]string{{"strategy", "rolling"}},
 				State: ui.ToolDone, Body: []string{"3/3 pods healthy " + t.G.Sep + " error rate 0.02% " + t.G.Sep + " p99 124ms"}}, w, false)...)
 		case "\x00canceled":
-			s = append(s, "", "  "+t.S.Subtle.Render("Canceled."))
+			s = append(s, "", "  "+t.S.Subtle.Render(t.Copy("Canceled")+"."))
 		default:
 			s = append(s, "")
 			s = append(s, ui.UserMessage(t, msg, w, false)...)

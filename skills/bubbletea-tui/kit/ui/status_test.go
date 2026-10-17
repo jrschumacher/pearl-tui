@@ -201,3 +201,41 @@ func TestBlurBarIsVisible(t *testing.T) {
 		}
 	}
 }
+
+// Case reached section and dialog titles, table headers and tags, but not the kit's
+// own words: ui.Tabs never called t.Case (Services 8  Deploys beside lowercase labels),
+// ui.TooSmall hard-coded "Terminal too small", and a tool call's "Canceled." and
+// "Waiting for permission" and Thinking's "Thought for" were fixed. Under
+// labelCase/titleCase lower they read as a second brand. The kit's fixed copy takes
+// labelCase when the theme sets one, else titleCase (t.Copy); the data after it (an
+// elapsed time, a size) stays as it is.
+func TestFixedCopyFollowsTheme(t *testing.T) {
+	for _, c := range []struct {
+		name, titleCase, labelCase                        string
+		tabs, small, canceled, waiting, thought, thinking string
+	}{
+		{"quire", "sentence", "lower", "services / deploys", "terminal too small", "canceled.", "waiting for permission", "thought for 6.1s", ""},
+		{"default", "sentence", "", "Services / Deploys", "Terminal too small", "Canceled.", "Waiting for permission", "Thought for 6.1s", ""},
+		{"upper titles", "upper", "", "SERVICES / DEPLOYS", "TERMINAL TOO SMALL", "CANCELED.", "WAITING FOR PERMISSION", "THOUGHT FOR 6.1s", ""},
+		{"upper titles, lower labels", "upper", "lower", "services / deploys", "terminal too small", "canceled.", "waiting for permission", "thought for 6.1s", ""},
+	} {
+		f := quire(t)
+		f.Expressions.TitleCase, f.Expressions.LabelCase = c.titleCase, c.labelCase
+		th := theme.Resolve(f, true, false)
+		plain := func(rows []string) string { return strings.TrimSpace(ansi.Strip(strings.Join(rows, "\n"))) }
+		got := map[string]string{
+			"tabs":     plain(Tabs(th, []string{"Services", "Deploys"}, 0, nil)),
+			"canceled": plain(ToolCall(th, Tool{Name: "Edit", State: ToolCanceled}, 60, false)[2:]),
+			"waiting":  strings.TrimSuffix(plain(ToolCall(th, Tool{Name: "Edit", State: ToolPending}, 60, false)[2:]), th.G.Ellipsis),
+			"thought":  plain(Thinking(th, []string{"a"}, 2, "6.1s", 60)[1:]),
+		}
+		for what, want := range map[string]string{"tabs": c.tabs, "canceled": c.canceled, "waiting": c.waiting, "thought": c.thought} {
+			if got[what] != want {
+				t.Errorf("%s: %s %q, want %q", c.name, what, got[what], want)
+			}
+		}
+		if small := ansi.Strip(TooSmall(th, 52, 16, 60, 18)); !strings.Contains(small, c.small) || !strings.Contains(small, "52x16, needs 60x18") {
+			t.Errorf("%s: TooSmall draws %q, want %q and the sizes", c.name, strings.TrimSpace(small), c.small)
+		}
+	}
+}

@@ -92,7 +92,8 @@ read it too.
     "sectionTitle": "primary",  // accent | primary | muted-upper | fg
     "titleCase": "sentence",    // sentence | upper | lower
     "labelCase": "lower",       // upper | lower | as-is: table headers, tags, toast and summary
-                                //   labels (unset: headers upper, tags as the app writes them)
+                                //   labels, and the kit's fixed copy (tabs, "Terminal too small",
+                                //   "Canceled."; unset: headers upper, fixed copy in titleCase)
     "selection": "fill",        // bar | fill | caret | inverse
     "button": "bracket",        // pill | bracket | underline | inverse
     "tag": "filled",            // filled | bracket | bold
