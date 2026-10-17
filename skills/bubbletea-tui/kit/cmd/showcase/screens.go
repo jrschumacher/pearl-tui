@@ -379,6 +379,9 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 	ey := main.Max.Y - editorH
 	prompt := t.S.Prompt.Bold(true).Render(t.G.Prompt) + " "
 	text := m.input
+	if m.ov != ovNone { // under a dialog the composer is unfocused: a quiet prompt
+		prompt = t.S.Subtle.Render(t.G.Prompt) + " "
+	}
 	if m.busy {
 		prompt = t.S.Subtle.Render(t.G.Prompt) + " "
 		text = ""
@@ -478,7 +481,11 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 		return strings.Join(out, "   ")
 	}
 	field(0, "Environment", "", choice([]string{"prod", "staging", "dev"}, m.env, focus == 0))
-	input := t.S.Prompt.Render(t.G.Prompt) + " " + t.S.Base.Render(m.version)
+	promptSt := t.S.Subtle // a blurred input's prompt is quiet: the focus ink means focus
+	if focus == 1 {
+		promptSt = t.S.Prompt
+	}
+	input := promptSt.Render(t.G.Prompt) + " " + t.S.Base.Render(m.version)
 	if focus == 1 {
 		input += t.S.Prompt.Render(t.G.Caret)
 	}

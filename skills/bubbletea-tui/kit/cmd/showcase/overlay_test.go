@@ -84,8 +84,8 @@ func rowText(c *ui.Canvas, y int) string {
 // "|"). Every theme, every profile, every overlay over every page that draws a
 // selection, at 80×24 and 120×40: each cell above and below the dialog's rows and
 // above the footer holds the glyph it held with no overlay, except where the page
-// drew its own focus mark (the focused field's bar or the focused button's cursor in
-// the body), which drawing it unfocused takes away.
+// drew its own focus mark (the focused field's bar, the focused button's cursor, a
+// caret, in the body), which drawing it unfocused takes away or turns blurred.
 func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)
@@ -99,7 +99,7 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 					m.profile = v.p
 					m.setState(page)
 					base := m.render(sz[0], sz[1])
-					focusRows := m.focusMarks(base)
+					focusCells := m.focusMarks(base)
 					for _, s := range []string{"palette", "confirm", "help"} {
 						m.setState(page)
 						openOverlay(m, s)
@@ -111,7 +111,7 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 							}
 							for x := range sz[0] {
 								want, got := cellText(base, x, y), cellText(c, x, y)
-								if got == want || (got == " " && slices.Contains(focusRows, uv.Pos(x, y))) {
+								if got == want || slices.Contains(focusCells, uv.Pos(x, y)) {
 									continue
 								}
 								t.Errorf("%s: %q at %d,%d is %q with the overlay up; the page's row was %q", name, want, x, y, got, rowText(base, y))
@@ -199,14 +199,16 @@ func TestOverlayFrameHasOneFocus(t *testing.T) {
 	}
 }
 
-// focusMarks are the page body's cells holding the theme's focus bar, selection cursor
-// or text caret in its focus ink with a blank after: a gutter mark, or an input's caret.
+// focusMarks are the page body's cells holding the theme's focus bar, selection cursor,
+// or an input's prompt or caret, in its focus ink with a blank after. Only these
+// glyphs count: a blurred selection's mark (the blur ink, or a blur glyph) is the
+// quieter mark an unfocused page keeps, not a focus.
 func (m *app) focusMarks(c *ui.Canvas) []uv.Position {
 	t := m.t
 	marks := []struct {
 		g  string
 		st lipgloss.Style
-	}{{t.G.FocusBar, t.S.FocusBar}, {t.G.Cursor, t.S.Focus}, {t.G.Caret, t.S.Prompt}}
+	}{{t.G.FocusBar, t.S.FocusBar}, {t.G.Cursor, t.S.Focus}, {t.G.Caret, t.S.Prompt}, {t.G.Prompt, t.S.Prompt}}
 	var out []uv.Position
 	for y := m.body.Min.Y; y < m.body.Max.Y; y++ {
 		for x := m.body.Min.X; x+1 < m.body.Max.X; x++ {
