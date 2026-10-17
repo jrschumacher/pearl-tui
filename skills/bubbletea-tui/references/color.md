@@ -39,10 +39,17 @@ palette check theme.json   # on any existing theme
 - picks the on-colour ink (light or dark) by contrast for every fill, and on a mid-tone
   fill where neither clears its floor deepens that ink toward black or white along its
   hue (`theme.OnInk`, which the engine uses too), so the brand hex stays the fill
-- writes both a dark and a light set, plus the nearest xterm-256 index per role
+- from one brand hue makes `secondary` and `tertiary` lightness steps of it (and
+  `accent` its pale tint), not a hue shift and a complement the brand never chose; with
+  two hues the second is the brand's and the tertiary a complement
+- writes both a dark and a light set, the nearest xterm-256 index per role, and the
+  `ansi16` pins its own `check` would ask for (most brands' warning lands on error's red
+  at 16 colours), so the first `palette check` of the theme prints nothing
+- warns when `warning` sits beside `primary` in hue and chroma (an amber brand's warning
+  a shade brighter than its amber): a warning row then reads as a focused one
 
 Then tune by hand. The tool gets you a correct palette; the brand read decides whether
-the tertiary should be a complement or a quiet tint.
+the tertiary should be a complement or a quiet tint, and what an amber brand's warning is.
 
 **Measure, don't guess.** Take brand colours from the logo file, the site's CSS or the
 style guide. A "close enough" blue is a different brand.

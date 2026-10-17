@@ -161,6 +161,9 @@ func check(path string, stdout, stderr io.Writer) int {
 		b, txt := ReportSkipping(r, mode, accept, skip, extra...)
 		bad += b
 		fmt.Fprintln(stdout, txt)
+		if d, near := NearPrimary(r); near {
+			fmt.Fprintf(stderr, "palette: warning: %s: %s\n", path, nearPrimaryText(mode, r, d))
+		}
 	}
 	clashes := Clashes16(tf, path, stderr)
 	if clashes > 0 {
@@ -380,6 +383,39 @@ func Clashes16(f theme.File, path string, stderr io.Writer) int {
 	return failed
 }
 
+// Pins16 are the ansi16 pins Findings16 recommends for f, applied until a 16-colour
+// terminal reads it right (each round's pins are taken before the next looks again), on
+// top of the pins f already has. nil when f needs none. palette derive writes them into
+// its output, so its first check prints nothing.
+func Pins16(f theme.File) map[string]map[string]int {
+	pins := map[string]map[string]int{}
+	for mode, m := range f.ANSI16 {
+		pins[mode] = map[string]int{}
+		for role, n := range m {
+			pins[mode][role] = n
+		}
+	}
+	added := false
+	for range 4 {
+		f.ANSI16 = pins
+		found := Findings16(f)
+		if len(found) == 0 {
+			break
+		}
+		for _, x := range found {
+			if pins[x.Mode] == nil {
+				pins[x.Mode] = map[string]int{}
+			}
+			pins[x.Mode][x.Role] = x.Pin
+			added = true
+		}
+	}
+	if !added {
+		return nil
+	}
+	return pins
+}
+
 // keepRank orders the state roles by how firmly the 16 colours own them: error is red
 // everywhere, success green, warning yellow; primary and info are the brand's and
 // move first.
@@ -493,7 +529,8 @@ func derive(args []string, stdout, stderr io.Writer) int {
 		name = s
 	}
 	modes := Derive(pos[0], secondary, opts["accent"], opts["bg"], opts["light-bg"], tint)
-	js := JSON(name, modes)
+	pins := Pins16(themeOf(modes))
+	js := JSON(name, modes, pins)
 	if out, ok := opts["out"]; ok {
 		if err := os.WriteFile(out, []byte(js+"\n"), 0o644); err != nil {
 			return fail(stderr, err)
@@ -507,6 +544,18 @@ func derive(args []string, stdout, stderr io.Writer) int {
 		b, txt := Report(m.Roles, m.Name, nil)
 		bad += b
 		fmt.Fprintln(stderr, txt)
+		if d, near := NearPrimary(m.Roles); near {
+			fmt.Fprintf(stderr, "warning: %s\n", nearPrimaryText(m.Name, m.Roles, d))
+		}
+	}
+	if len(pins) > 0 {
+		var parts []string
+		for _, mode := range []string{"dark", "light"} {
+			for _, role := range sortedRoles16(pins[mode]) {
+				parts = append(parts, fmt.Sprintf("%s %s %d", mode, role, pins[mode][role]))
+			}
+		}
+		fmt.Fprintf(stderr, "pinned at 16 colours (\"ansi16\", kept in the theme): %s\n", strings.Join(parts, ", "))
 	}
 	if sw, ok := opts["swatch"]; ok {
 		if err := os.WriteFile(sw, []byte(Swatch(modes)), 0o644); err != nil {
@@ -519,4 +568,31 @@ func derive(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	return 0
+}
+
+// themeOf is the derive document as the engine reads it, for the 16-colour pass.
+func themeOf(modes []Mode) theme.File {
+	f := theme.File{Roles: map[string]theme.Roles{}}
+	for _, m := range modes {
+		b, _ := json.Marshal(m.Roles)
+		var r theme.Roles
+		_ = json.Unmarshal(b, &r)
+		f.Roles[m.Name] = r
+	}
+	return f
+}
+
+func sortedRoles16(m map[string]int) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// nearPrimaryText is the warning for a warning role beside primary (NearPrimary).
+func nearPrimaryText(mode string, r map[string]string, d float64) string {
+	return fmt.Sprintf("%s: warning %s sits beside primary %s in hue and chroma (%.3f apart in OKLab a/b, under %.2f), so a warning row reads as a focused one; move warning's hue, or pin a 16-colour slot and accept it in the read",
+		mode, r["warning"], r["primary"], d, nearPrimaryMax)
 }

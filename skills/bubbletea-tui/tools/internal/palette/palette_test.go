@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/color"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -25,6 +26,12 @@ import (
 //	derive/corpus.txt    roles and xterm indices for 250 random inputs (of 8,000 matched)
 //
 // The intended differences: the swatch hint names the Go cellshot, not cellshot.py;
+// derive writes the "ansi16" pins its own check would ask for (and says so on stderr),
+// and from one brand hue makes secondary and tertiary lightness steps of it instead of
+// a hue shift and a complement, so the derive/* goldens were regenerated from the Go
+// tool when that changed (the one-hex cases one-hue, tint, near-grey and very-light,
+// and every case's ansi16 block; corpus.txt keeps palette.py's rows, with the one-hex
+// rows' secondary, tertiary and onSecondary compared against the new rule instead);
 // check fails role colours Lip Gloss would misread, which palette.py let through (see
 // TestCheckRejectsWhatTheEngineRejects); and where neither ink cleared an on-colour's
 // floor (palette.py shipped the failure), the ink is now theme.OnInk's deepened one.
@@ -152,13 +159,20 @@ func TestDeriveCorpusMatchesPython(t *testing.T) {
 			}
 			sort.Strings(keys)
 			hexes, idx := make([]string, len(keys)), make([]string, len(keys))
+			pyHex, pyIdx := strings.Fields(parts[1+2*i]), strings.Fields(parts[2+2*i])
 			for j, k := range keys {
 				hexes[j], idx[j] = m.Roles[k], strconv.Itoa(oklch.Xterm256(m.Roles[k]))
+				// one brand hue: secondary and tertiary are now lightness steps of it, not
+				// palette.py's hue shift and complement (TestOneHueStepsLightness); the
+				// rest of the set still matches
+				if in[1] == "" && (k == "secondary" || k == "tertiary" || k == "onSecondary") {
+					pyHex[j], pyIdx[j] = hexes[j], idx[j]
+				}
 			}
-			if got := strings.Join(hexes, " "); got != parts[1+2*i] {
+			if got := strings.Join(hexes, " "); got != strings.Join(pyHex, " ") {
 				t.Errorf("derive %v %s roles:\n go %s\n py %s", in, m.Name, got, parts[1+2*i])
 			}
-			if got := strings.Join(idx, " "); got != parts[2+2*i] {
+			if got := strings.Join(idx, " "); got != strings.Join(pyIdx, " ") {
 				t.Errorf("derive %v %s ansi256:\n go %s\n py %s", in, m.Name, got, parts[2+2*i])
 			}
 		}
@@ -447,6 +461,122 @@ func TestCheckRejectsUnknownExpressions(t *testing.T) {
 		}
 		if code != 2 || !strings.Contains(errb.String(), c.err) {
 			t.Errorf("%s: check exit %d (%q), want exit 2 with %q", c.expressions, code, errb.String(), c.err)
+		}
+	}
+}
+
+// Eval 0's brand hexes and each kit theme's brand colours: derive's output passes check
+// with nothing on stderr. derive writes the ansi16 pins check would otherwise ask for
+// (a warning on error's red in both modes, for most brands), so the first check of a
+// derived theme is clean, and its warning never sits beside its primary.
+func TestDeriveOutputPassesCheckSilently(t *testing.T) {
+	brands := [][]string{{"#0F5257", "#FF6F59"}, {"#2E8B57"}} // evals.json case 0, and the mid-tone primary it names
+	kit, _ := filepath.Glob(kitThemes + "/*.json")
+	if len(kit) == 0 {
+		t.Fatal("no kit themes")
+	}
+	for _, path := range kit {
+		f, err := theme.Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		d, l := f.Roles["dark"], f.Roles["light"]
+		brands = append(brands, []string{d.Primary, d.Secondary, "--accent", d.Accent, "--bg", d.Bg, "--light-bg", l.Bg, "--name", f.Name})
+	}
+	for _, args := range brands {
+		out := filepath.Join(t.TempDir(), "roles.json")
+		var dOut, dErr, cOut, cErr bytes.Buffer
+		if code := Main(append(append([]string{"derive"}, args...), "--out", out), "", &dOut, &dErr); code != 0 {
+			t.Errorf("derive %v: exit %d\n%s", args, code, dErr.String())
+			continue
+		}
+		if strings.Contains(dErr.String(), "warning:") {
+			t.Errorf("derive %v warns on its own output:\n%s", args, dErr.String())
+		}
+		if code := Main([]string{"check", out}, "", &cOut, &cErr); code != 0 || cErr.Len() != 0 {
+			t.Errorf("check on derive %v: exit %d, stderr %q", args, code, cErr.String())
+		}
+		b, _ := os.ReadFile(out)
+		if !strings.Contains(string(b), `"ansi16"`) && strings.Contains(dErr.String(), "pinned") {
+			t.Errorf("derive %v said it pinned but wrote no ansi16 block", args)
+		}
+	}
+}
+
+// From one brand hue, secondary and tertiary are lightness steps of it (its hue, within
+// a few degrees after gamut mapping; a step in lightness each), not a hue 40° off and a
+// complement nobody chose; accent is its pale tint as before. With two hues the second
+// is the brand's and the tertiary still the complement.
+func TestOneHueStepsLightness(t *testing.T) {
+	hueDiff := func(a, b float64) float64 {
+		d := oklch.Mod(a-b, 360)
+		if d > 180 {
+			d = 360 - d
+		}
+		return d
+	}
+	for _, hex := range []string{"#D99A3B", "#6B50FF", "#2E8B57", "#0F5257", "#E25317", "#F5F0E1", "#0B1A10"} {
+		for _, m := range Derive(hex, "", "", "", "", 0.012) {
+			lp, cp, hp := oklch.LCH(m.Roles["primary"])
+			for _, role := range []string{"secondary", "tertiary", "accent"} {
+				l, c, h := oklch.LCH(m.Roles[role])
+				if c >= 0.03 && cp >= 0.03 && hueDiff(h, hp) > 6 {
+					t.Errorf("%s %s %s %s is %.0f° off primary %s: want the brand's hue", hex, m.Name, role, m.Roles[role], hueDiff(h, hp), m.Roles["primary"])
+				}
+				if role != "accent" && math.Abs(l-lp) < 0.05 {
+					t.Errorf("%s %s %s %s is %.2f from primary %s in lightness: want a step", hex, m.Name, role, m.Roles[role], math.Abs(l-lp), m.Roles["primary"])
+				}
+			}
+			if m.Roles["secondary"] == m.Roles["tertiary"] {
+				t.Errorf("%s %s: secondary and tertiary are one colour %s", hex, m.Name, m.Roles["secondary"])
+			}
+		}
+	}
+	two := Derive("#6B50FF", "#FF60FF", "", "", "", 0.012)
+	if _, _, h := oklch.LCH(two[0].Roles["secondary"]); hueDiff(h, 328) > 10 {
+		t.Errorf("two hues: dark secondary %s lost the second brand hue", two[0].Roles["secondary"])
+	}
+}
+
+// A warning that sits beside primary in hue and chroma (an amber brand's warning a shade
+// brighter than its amber) reads as a focused row: check warns with both hexes, derive
+// on that brand warns the same, and no kit theme trips it (the nearest, ferrous light,
+// is 0.107 off against a 0.06 floor). Two near-greys are not "beside" each other.
+func TestCheckWarnsWarningBesidePrimary(t *testing.T) {
+	for _, c := range []struct {
+		roles string
+		want  string
+	}{
+		{`{"dark": {"bg": "#1A150F", "fg": "#CFC9C3", "primary": "#D99A3B", "warning": "#F2C35C"}}`,
+			`dark: warning #F2C35C sits beside primary #D99A3B in hue and chroma (0.025 apart in OKLab a/b, under 0.06)`},
+		{`{"dark": {"bg": "#1A150F", "fg": "#CFC9C3", "primary": "#D99A3B", "warning": "#F28C6B"}}`, ""},
+		{`{"dark": {"bg": "#808080", "fg": "#FFFFFF", "primary": "#F1F2FF", "warning": "#FFFFFF"}}`, ""},
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		if err := os.WriteFile(path, []byte(`{"roles": `+c.roles+`, "ansi16": {"dark": {"primary": 11, "warning": 3}}}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		Main([]string{"check", path}, "", &out, &errb)
+		if got := errb.String(); strings.Contains(got, "sits beside primary") != (c.want != "") || !strings.Contains(got, c.want) {
+			t.Errorf("%s: stderr %q, want %q", c.roles, got, c.want)
+		}
+	}
+	var out, errb bytes.Buffer
+	Main([]string{"derive", "#D99A3B"}, "", &out, &errb)
+	if !strings.Contains(errb.String(), "warning: dark: warning #F2C35C sits beside primary #D99A3B") {
+		t.Errorf("derive #D99A3B: stderr %q, want the same warning", errb.String())
+	}
+	kit, _ := filepath.Glob(kitThemes + "/*.json")
+	for _, path := range kit {
+		f, err := theme.Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for mode, r := range f.Roles {
+			if d, near := NearPrimary(map[string]string{"warning": r.Warning, "primary": r.Primary}); near {
+				t.Errorf("%s %s: warning %s is %.3f from primary %s", filepath.Base(path), mode, r.Warning, d, r.Primary)
+			}
 		}
 	}
 }

@@ -73,6 +73,37 @@ func tuneL(l0, c, h float64, bg string, target, dir float64) float64 {
 	return l
 }
 
+// stepL is l moved by `by` in direction d (+1 lighter, -1 darker), or the other way
+// where that would leave the lightness a colour can hold.
+func stepL(l, d, by float64) float64 {
+	if n := l + d*by; 0.08 <= n && n <= 0.95 {
+		return n
+	}
+	return pymax(0, pymin(1, l-d*by))
+}
+
+// nearPrimaryMax is how close, in OKLab a/b (hue and chroma, lightness aside), a
+// warning may sit to primary before check warns: an amber brand's warning is the brand
+// colour a shade brighter, and a warning row reads as a focused one. The kit's themes
+// keep 0.107 or more (ferrous light); derive's warning on an amber primary is 0.03 off.
+const nearPrimaryMax = 0.06
+
+// NearPrimary reports the OKLab a/b distance between a role set's warning and primary,
+// and whether it is under nearPrimaryMax. Both must be present, differ, and carry a hue
+// (chroma 0.04 or more): two near-greys are close in a/b whatever their hues.
+func NearPrimary(r map[string]string) (float64, bool) {
+	w, p := r["warning"], r["primary"]
+	if w == "" || p == "" || !oklch.Valid(w) || !oklch.Valid(p) || strings.EqualFold(w, p) {
+		return 0, false
+	}
+	_, cw, _ := oklch.LCH(w)
+	_, cp, _ := oklch.LCH(p)
+	_, a1, b1 := oklch.ToOKLab(oklch.MustRGB(w))
+	_, a2, b2 := oklch.ToOKLab(oklch.MustRGB(p))
+	d := math.Sqrt((a1-a2)*(a1-a2) + (b1-b2)*(b1-b2))
+	return d, cw >= 0.04 && cp >= 0.04 && d < nearPrimaryMax
+}
+
 var statusHues = []struct {
 	role string
 	hue  float64
@@ -84,8 +115,9 @@ var statusHues = []struct {
 // must be a valid hex colour (see oklch.Valid).
 func Derive(primary, secondary, accent, bg, lightBg string, tint float64) []Mode {
 	lp, cp, hp := oklch.LCH(primary)
-	ls, cs, hs := lp, cp, oklch.Mod(hp+40, 360)
-	if secondary != "" {
+	oneHue := secondary == ""
+	ls, cs, hs := lp, cp, hp
+	if !oneHue {
 		ls, cs, hs = oklch.LCH(secondary)
 	}
 	la, ca, ha := 0.88, pymin(0.08, cp*0.5), hp
@@ -138,12 +170,24 @@ func Derive(primary, secondary, accent, bg, lightBg string, tint float64) []Mode
 			return oklch.FromLCH(tuneL(l0, c, h, b, target, d), c, h)
 		}
 		r["primary"] = role(lp, cp, hp, 3.5)
-		r["secondary"] = role(ls, cs, hs, 3.5)
+		if oneHue {
+			// one brand hue: secondary and tertiary are lightness steps of it, away from
+			// the page (back toward it where the step would leave the gamut), not a hue
+			// the brand never chose
+			lp2, _, _ := oklch.LCH(r["primary"])
+			r["secondary"] = role(stepL(lp2, d, 0.10), cs, hs, 3.5)
+			r["tertiary"] = role(stepL(lp2, d, 0.20), pymin(cp, 0.14), hp, 4.5)
+		} else {
+			r["secondary"] = role(ls, cs, hs, 3.5)
+			if dark {
+				r["tertiary"] = role(pymax(lp, 0.78), pymin(cp, 0.14), oklch.Mod(hp+160, 360), 4.5)
+			} else {
+				r["tertiary"] = role(0.5, pymin(cp, 0.14), oklch.Mod(hp+160, 360), 4.5)
+			}
+		}
 		if dark {
-			r["tertiary"] = role(pymax(lp, 0.78), pymin(cp, 0.14), oklch.Mod(hp+160, 360), 4.5)
 			r["accent"] = role(la, ca, ha, 4.5)
 		} else {
-			r["tertiary"] = role(0.5, pymin(cp, 0.14), oklch.Mod(hp+160, 360), 4.5)
 			r["accent"] = role(0.42, pymax(ca, 0.09), ha, 4.5)
 		}
 		r["borderFocus"] = r["primary"]
@@ -452,9 +496,11 @@ func sortedRoles(r map[string]string) []string {
 	return keys
 }
 
-// JSON renders the derive document exactly as palette.py's json.dumps(indent=1):
-// {"name", "roles": {mode: {role: hex}}, "ansi256": {mode: {role: index}}}, roles sorted.
-func JSON(name string, modes []Mode) string {
+// JSON renders the derive document as palette.py's json.dumps(indent=1) did:
+// {"name", "roles": {mode: {role: hex}}, "ansi256": {mode: {role: index}}}, roles
+// sorted, then "ansi16": {mode: {role: index}} when pins is not empty (Pins16): the
+// theme contract's own key, so the block is copied with the roles.
+func JSON(name string, modes []Mode, pins map[string]map[string]int) string {
 	var b strings.Builder
 	b.WriteString("{\n \"name\": " + pyfmt.QuoteJSON(name) + ",\n")
 	section := func(key string, value func(string) string, last bool) {
@@ -482,7 +528,33 @@ func JSON(name string, modes []Mode) string {
 		b.WriteByte('\n')
 	}
 	section("roles", pyfmt.QuoteJSON, false)
-	section("ansi256", func(h string) string { return fmt.Sprint(oklch.Xterm256(h)) }, true)
+	section("ansi256", func(h string) string { return fmt.Sprint(oklch.Xterm256(h)) }, len(pins) == 0)
+	if len(pins) > 0 {
+		b.WriteString(" \"ansi16\": {\n")
+		var ms []string
+		for _, m := range modes {
+			if len(pins[m.Name]) > 0 {
+				ms = append(ms, m.Name)
+			}
+		}
+		for i, m := range ms {
+			b.WriteString("  " + pyfmt.QuoteJSON(m) + ": {\n")
+			keys := sortedRoles16(pins[m])
+			for j, k := range keys {
+				b.WriteString("   " + pyfmt.QuoteJSON(k) + ": " + fmt.Sprint(pins[m][k]))
+				if j < len(keys)-1 {
+					b.WriteByte(',')
+				}
+				b.WriteByte('\n')
+			}
+			b.WriteString("  }")
+			if i < len(ms)-1 {
+				b.WriteByte(',')
+			}
+			b.WriteByte('\n')
+		}
+		b.WriteString(" }\n")
+	}
 	b.WriteString("}")
 	return b.String()
 }

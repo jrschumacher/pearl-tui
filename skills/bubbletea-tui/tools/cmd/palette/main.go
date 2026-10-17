@@ -14,8 +14,12 @@
 //	                                "contrastAccept": {"dark.primary": "the brand's own hex, used as a fill"}
 //
 // `derive` prints the roles as JSON (`{"dark": {...}, "light": {...}}`, the theme contract's
-// shape), a contrast table, and the nearest xterm-256 index for each role (for the
-// ANSI256 fallback). `--swatch` writes an .ansi file you can render with cellshot.
+// shape), a contrast table, the nearest xterm-256 index for each role (for the
+// ANSI256 fallback), and the "ansi16" pins its own check would ask for (below), so the
+// first check of the theme prints nothing. With one hex, secondary and tertiary are
+// lightness steps of it (accent its pale tint), not a hue 40° off and a complement the
+// brand never chose; with two, the second is the brand's and tertiary a complement.
+// `--swatch` writes an .ansi file you can render with cellshot.
 // Options take their value as the next argument or after "=".
 //
 // `check` fills the on-colours a theme leaves out exactly as the kit's engine does
@@ -31,6 +35,10 @@
 // the values the kit knows. A key under roles.<mode>, glyphs or wordmark the kit doesn't
 // read ("primay", "focusbar": theme.Load drops it and the role falls back to the derived
 // colour) and a wordmark.style it doesn't know exit 2 the same way (theme.CheckKeys).
+//
+// It warns, on stderr, when a mode's warning sits beside its primary in hue and chroma
+// (OKLab a/b distance under 0.06: an amber brand's warning a shade brighter than its
+// amber), since a warning row then reads as a focused one; derive warns the same.
 //
 // It reports, on stderr, state roles that land on one of the 16 colours (-profile ansi)
 // after the theme's "ansi16" pins, each with the pin that separates them:
