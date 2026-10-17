@@ -186,7 +186,7 @@ state's keys cell (`[plan] · **enter send** · …`) so `tuilint spec` [S-FOOTE
 ## Editor / Prompt
 
 A rule above, a prompt glyph in the focus ink (`t.S.Prompt`: primary, or bold fg under
-`focus: fg`; tertiary where primary is under 2.3:1 on `bgOverlay`; muted when not
+`focus: fg`; tertiary where primary is under 3:1 on `bgOverlay`; muted when not
 focused), since where you type is the focus,
 continuation lines with a subtle `:`, and the real cursor via `View.Cursor`. Grow from 1
 to ~8 rows with content, then scroll. The placeholder says what to type, in the brand's

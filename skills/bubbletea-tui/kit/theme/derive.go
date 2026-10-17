@@ -207,8 +207,8 @@ func Luminance(c color.Color) float64 {
 }
 
 // promptFloor is the contrast the focus ink needs on bgOverlay to draw the prompt: the
-// text floor tuilint frames holds every cell to (F-CONTRAST).
-const promptFloor = 2.3
+// prompt is where you type, a focus cue, and a focus indicator holds 3:1 (WCAG 1.4.11).
+const promptFloor = 3.0
 
 // Contrast is the WCAG contrast ratio between two colours.
 func Contrast(a, b color.Color) float64 {

@@ -750,7 +750,7 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 		pins = pins16(f, mode, dark)
 	}
 	t.P = derive(r, dark, pins)
-	// the prompt takes the focus ink, unless that ink is unreadable on bgOverlay, where
+	// the prompt takes the focus ink, unless that ink is under 3:1 on bgOverlay, where
 	// a palette's filter input sits (Charm's #6B50FF on #4D4C57 is 1.7:1): judged on the
 	// colours as written, so one theme and mode draws one prompt colour in every profile
 	tc := t.P

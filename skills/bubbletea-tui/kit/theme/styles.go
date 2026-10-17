@@ -24,7 +24,7 @@ type Styles struct {
 	KeyDesc lipgloss.Style // help: what it does
 	// emphasis, per expressions.focus: primary, or fg and bold
 	Focus   lipgloss.Style // focus, current and selection marks: cursor, current step, active tab, chosen option
-	Prompt  lipgloss.Style // input prompts and carets: where you type is focus, so the focus ink (primary, or fg and bold); tertiary where primary is under 2.3:1 on bgOverlay
+	Prompt  lipgloss.Style // input prompts and carets: where you type is focus, so the focus ink (primary, or fg and bold); tertiary where primary is under 3:1 on bgOverlay
 	Mark    lipgloss.Style // the kit's own marks: the progress fill (primary, or fg)
 	Working lipgloss.Style // the working marks: spinner frames, a busy row's mark, a running tool (per expressions.spinner; Mark by default)
 	Motif   lipgloss.Style // the header rule and dialog-title rule runs (primary, or the rule role)

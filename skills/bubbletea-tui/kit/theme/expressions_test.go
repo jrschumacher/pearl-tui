@@ -90,8 +90,8 @@ func TestThemesUseKnownExpressions(t *testing.T) {
 // The prompt glyph (and the caret beside it) is where you type: focus, so it takes the
 // focus ink, primary under focus "primary" and bold fg under "fg". It was fixed to
 // tertiary, so a brand that gave its hue to "the prompt, the focus bar" drew its prompt
-// in another colour than its read said. Where the focus ink is under the text floor on
-// bgOverlay (a palette's input), the prompt keeps tertiary.
+// in another colour than its read said. Where the focus ink is under a focus cue's 3:1
+// on bgOverlay (a palette's input), the prompt keeps tertiary.
 func TestPromptTakesTheFocusInk(t *testing.T) {
 	files, _ := filepath.Glob("../themes/*.json")
 	files = append(files, filepath.Join("testdata", "quire.json"))
@@ -108,6 +108,10 @@ func TestPromptTakesTheFocusInk(t *testing.T) {
 			}
 			if got := th.S.Prompt.GetForeground(); got != want {
 				t.Errorf("%s dark=%v: the prompt draws %v, want %v", filepath.Base(f), dark, got, want)
+			}
+			// a focus cue holds 3:1 (WCAG 1.4.11) on the overlay a palette's input sits on
+			if c := Contrast(th.S.Prompt.GetForeground(), th.P.BgOverlay); th.X.Focus != "fg" && c < 3 {
+				t.Errorf("%s dark=%v: the prompt is %.2f:1 on bgOverlay, under a focus cue's 3:1", filepath.Base(f), dark, c)
 			}
 			if th.X.Focus == "fg" && !th.S.Prompt.GetBold() {
 				t.Errorf("%s dark=%v: under focus fg the prompt is bold fg, not plain", filepath.Base(f), dark)
