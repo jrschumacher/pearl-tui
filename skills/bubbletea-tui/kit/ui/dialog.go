@@ -1,10 +1,11 @@
 package ui
 
 import (
-	"github.com/charmbracelet/colorprofile"
+	"image/color"
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 
@@ -55,7 +56,16 @@ func DialogTitle(t *theme.Theme, title string, w int, info string) string {
 //	 body…
 //	────────────────────────────────────────
 func Dialog(t *theme.Theme, w int, title string, body []string, buttons string, help string) string {
-	st := t.S.Dialog
+	return dialog(t, t.S.Dialog, t.P.BgPanel, w, title, body, buttons, help)
+}
+
+// Popover is a Dialog on bgOverlay, the ramp's step for what pops over the page: a
+// command palette, completions. Draw it with Canvas.Popover.
+func Popover(t *theme.Theme, w int, title string, body []string, buttons string, help string) string {
+	return dialog(t, t.S.Popover, t.P.BgOverlay, w, title, body, buttons, help)
+}
+
+func dialog(t *theme.Theme, st lipgloss.Style, fill color.Color, w int, title string, body []string, buttons string, help string) string {
 	inner := w - st.GetHorizontalFrameSize()
 	var rows []string
 	if t.X.Dialog != "rules" {
@@ -72,7 +82,7 @@ func Dialog(t *theme.Theme, w int, title string, body []string, buttons string, 
 	}
 	if t.X.Dialog == "rules" {
 		pw := w - st.GetHorizontalMargins()
-		top, bottom := dialogRules(t, title, pw)
+		top, bottom := dialogRules(t, title, pw, fill)
 		panel := top + "\n" + st.UnsetMargins().Render(strings.Join(rows, "\n")) + "\n" + bottom
 		return lipgloss.NewStyle().Margin(st.GetMargin()).MarginBackground(t.P.Bg).Render(panel)
 	}
@@ -82,16 +92,16 @@ func Dialog(t *theme.Theme, w int, title string, body []string, buttons string, 
 // dialogRules are a rules dialog's top and bottom edges, w cells each: the theme's
 // rule glyph ("-" under ASCII) in the dialog's border colour on the panel, the title
 // set into the top one after a two-glyph lead.
-func dialogRules(t *theme.Theme, title string, w int) (string, string) {
+func dialogRules(t *theme.Theme, title string, w int, fill color.Color) (string, string) {
 	g := t.G.Rule
 	if t.ASCII {
 		g = "-"
 	}
-	on := lipgloss.NewStyle().Background(t.P.BgPanel)
+	on := lipgloss.NewStyle().Background(fill)
 	rule := func(n int) string {
-		return on.Foreground(t.Ink(t.P.BorderFocus, t.P.BgPanel)).Render(strings.Repeat(g, max(0, n)))
+		return on.Foreground(t.Ink(t.P.BorderFocus, fill)).Render(strings.Repeat(g, max(0, n)))
 	}
-	ti := t.S.Title.Background(t.P.BgPanel).Render(t.Case(title))
+	ti := t.S.Title.Background(fill).Render(t.Case(title))
 	lead := 2
 	n := w - lead - 2 - lipgloss.Width(ti)
 	top := rule(lead) + on.Render(" ") + ti + on.Render(" ") + rule(n)
@@ -107,6 +117,18 @@ func dialogRules(t *theme.Theme, title string, w int) (string, string) {
 // on ANSI 0 or 15, dimming toward it sends every text level to the page's own slot and
 // the scrim's text vanishes instead of fading.
 func (c *Canvas) Overlay(dialog string, anchor *uv.Position) uv.Rectangle {
+	return c.overlay(dialog, anchor, c.T.P.BgPanel)
+}
+
+// Popover is Overlay for a Popover: its cells fill with bgOverlay.
+func (c *Canvas) Popover(dialog string, anchor *uv.Position) uv.Rectangle {
+	return c.overlay(dialog, anchor, c.T.P.BgOverlay)
+}
+
+// overlay draws dialog and fills the cells it left without a background: a dialog is a
+// filled panel whatever its edge, and whether or not the app paints the terminal
+// (paintBg), or the page's colour would show through it.
+func (c *Canvas) overlay(dialog string, anchor *uv.Position, fill color.Color) uv.Rectangle {
 	if c.T.X.Scrim == "dim" && !c.T.ASCII && c.T.Profile != colorprofile.ANSI {
 		c.Scrim(0.55)
 	}
@@ -124,10 +146,6 @@ func (c *Canvas) Overlay(dialog string, anchor *uv.Position) uv.Rectangle {
 	c.Draw(dialog, r)
 	// cells the dialog left without a background would show the scrim through (a rules
 	// dialog's margin carries the page's bg, so it stays a clean gap)
-	bg := c.T.P.Bg
-	if c.T.X.Dialog == "none" || c.T.X.Dialog == "rules" {
-		bg = c.T.P.BgPanel
-	}
-	c.Backfill(r, bg)
+	c.Backfill(r, fill)
 	return r
 }

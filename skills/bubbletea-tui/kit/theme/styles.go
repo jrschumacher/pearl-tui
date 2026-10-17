@@ -35,7 +35,8 @@ type Styles struct {
 	Match    lipgloss.Style // fuzzy-match characters
 	// controls
 	Button, ButtonFocus, ButtonDanger lipgloss.Style
-	Dialog                            lipgloss.Style
+	Dialog                            lipgloss.Style // the one boxed element, filled with bgPanel
+	Popover                           lipgloss.Style // Dialog on bgOverlay: the palette, completions
 	// tags (chips): a word on a filled block, or bold coloured text
 	TagPrimary, TagOK, TagErr, TagWarn, TagInfo, TagMuted lipgloss.Style
 	// bars that follow a tag across the width
@@ -146,38 +147,40 @@ func build(t *Theme) Styles {
 		s.ButtonDanger = lipgloss.NewStyle().Foreground(ink(p.OnError, p.Error)).Background(p.Error).Bold(true).Padding(0, 2)
 	}
 
-	var b lipgloss.Border
-	switch x.Dialog {
-	case "square":
-		b = lipgloss.NormalBorder()
-	case "double":
-		b = lipgloss.DoubleBorder()
-	case "heavy":
-		b = lipgloss.ThickBorder()
-	case "none":
-		b = lipgloss.HiddenBorder()
-	default:
-		b = lipgloss.RoundedBorder()
+	// a dialog is a filled panel whatever its edge, and whether or not the app paints the
+	// terminal's background (paintBg): unfilled, the page's colour would show through it
+	panel := func(fill color.Color) lipgloss.Style {
+		var b lipgloss.Border
+		switch x.Dialog {
+		case "square":
+			b = lipgloss.NormalBorder()
+		case "double":
+			b = lipgloss.DoubleBorder()
+		case "heavy":
+			b = lipgloss.ThickBorder()
+		case "none":
+			b = lipgloss.HiddenBorder()
+		default:
+			b = lipgloss.RoundedBorder()
+		}
+		if t.ASCII {
+			b = lipgloss.ASCIIBorder()
+		} else if x.Dialog == "none" && !t.Distinct(p.Bg, fill) {
+			// the panel step is the dialog's only edge, and at this profile (16 colours,
+			// NO_COLOR) it lands on the page's colour: draw a rule above and below instead,
+			// in the cells the hidden border kept, so the layout doesn't move
+			b = RuleEdge(t.G.Rule)
+		}
+		if x.Dialog == "rules" {
+			// the editorial dialog: a filled panel, one cell of padding inside and one cell
+			// of page around it, so the page's text never runs into its open sides. ui.Dialog
+			// draws its rules above and below (the title in the top one): its edge is glyphs,
+			// which need no colour and hold at every profile
+			return lipgloss.NewStyle().Background(fill).Padding(1, 1).Margin(1, 1).MarginBackground(p.Bg)
+		}
+		return lipgloss.NewStyle().Border(b).BorderForeground(p.BorderFocus).Padding(1, 2).Background(fill).BorderBackground(fill)
 	}
-	if t.ASCII {
-		b = lipgloss.ASCIIBorder()
-	} else if x.Dialog == "none" && !t.Distinct(p.Bg, p.BgPanel) {
-		// the panel step is the dialog's only edge, and at this profile (16 colours,
-		// NO_COLOR) it lands on the page's colour: draw a rule above and below instead,
-		// in the cells the hidden border kept, so the layout doesn't move
-		b = RuleEdge(t.G.Rule)
-	}
-	s.Dialog = lipgloss.NewStyle().Border(b).BorderForeground(p.BorderFocus).Padding(1, 2)
-	switch x.Dialog {
-	case "none":
-		s.Dialog = s.Dialog.Background(p.BgPanel).BorderBackground(p.BgPanel)
-	case "rules":
-		// the editorial dialog: a filled panel, one cell of padding inside and one cell
-		// of page around it, so the page's text never runs into its open sides. ui.Dialog
-		// draws its rules above and below (the title in the top one): its edge is glyphs,
-		// which need no colour and hold at every profile
-		s.Dialog = lipgloss.NewStyle().Background(p.BgPanel).Padding(1, 1).Margin(1, 1).MarginBackground(p.Bg)
-	}
+	s.Dialog, s.Popover = panel(p.BgPanel), panel(p.BgOverlay)
 
 	tag := func(bg, fg color.Color, text lipgloss.Style) lipgloss.Style {
 		if x.Tag == "filled" {

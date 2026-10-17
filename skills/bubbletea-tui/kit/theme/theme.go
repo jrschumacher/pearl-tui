@@ -140,7 +140,7 @@ type Expressions struct {
 // Wordmark is an optional multi-row wordmark (scripts/wordmark.py output).
 type Wordmark struct {
 	Rows  []string `json:"rows"`
-	Style string   `json:"style"` // half | shade | ascii (shade gets three tones)
+	Style string   `json:"style"` // half | shade | ascii | tracked: the style wordmark.py drew the rows with. Metadata: the kit reads the rows, whose glyphs (█ ▓ ▒) carry the tones
 }
 
 // File is the theme JSON.

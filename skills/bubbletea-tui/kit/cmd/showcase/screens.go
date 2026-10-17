@@ -287,7 +287,7 @@ func (m *app) incidents(c *ui.Canvas, r uv.Rectangle) {
 	if m.declared {
 		title, why, act = "INC-2041 declared", "Paging payments on-call. Updates will appear here as responders join.", ""
 	}
-	rows := ui.Empty(t, r.Dx(), t.G.FieldB, title, why, act)
+	rows := ui.Empty(t, r.Dx(), "", title, why, act)
 	top := r.Min.Y + max(0, (r.Dy()-len(rows))/2-1)
 	c.Draw(strings.Join(rows, "\n"), uv.Rect(r.Min.X, top, r.Dx(), len(rows)))
 }
@@ -500,12 +500,13 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 
 	if side.Dx() > 0 {
 		sw := side.Dx()
-		steps := []string{t.S.Soft.Render("build image ") + t.S.Subtle.Render("cached")}
+		// each step's detail on its own line under the tree's rail
+		steps := []string{t.S.Soft.Render("build image") + "\n" + t.S.Subtle.Render("cached")}
 		if m.checks[0] {
-			steps = append(steps, t.S.Soft.Render("run smoke tests ")+t.S.Subtle.Render("~40s"))
+			steps = append(steps, t.S.Soft.Render("run smoke tests")+"\n"+t.S.Subtle.Render("~40s"))
 		}
-		steps = append(steps, t.S.Soft.Render([]string{"roll 3 pods ", "canary 1 pod ", "start 3 new pods "}[m.strategy])+t.S.Subtle.Render(strategies[m.strategy][1]),
-			t.S.Soft.Render("watch error rate ")+t.S.Subtle.Render("5 min, auto-rollback >1%"))
+		steps = append(steps, t.S.Soft.Render([]string{"roll 3 pods", "canary 1 pod", "start 3 new pods"}[m.strategy])+"\n"+t.S.Subtle.Render(strategies[m.strategy][1]),
+			t.S.Soft.Render("watch error rate")+"\n"+t.S.Subtle.Render("5 min, auto-rollback >1%"))
 		pr := []string{ui.Section(t, "What happens", sw, ""), ""}
 		pr = append(pr, t.S.Base.Render(s.Name+" ")+t.S.Muted.Render(s.Version+" "+t.G.Arrow+" ")+t.S.Primary.Bold(true).Render(m.version))
 		pr = append(pr, "")
@@ -570,8 +571,8 @@ func (m *app) palette(c *ui.Canvas) {
 		body = append(body, ui.List(t, items, sel, m.palOff, inner, listH, true)...)
 	}
 	// no help line inside: the footer above the scrim carries the dialog's keys
-	d := ui.Dialog(t, w, "Commands", body, "", "")
-	c.Overlay(d, &uv.Position{X: -1, Y: min(4, max(0, c.Bounds().Dy()-lipgloss.Height(d)-1))})
+	d := ui.Popover(t, w, "Commands", body, "", "")
+	c.Popover(d, &uv.Position{X: -1, Y: min(4, max(0, c.Bounds().Dy()-lipgloss.Height(d)-1))})
 }
 
 func (m *app) confirm(c *ui.Canvas) {

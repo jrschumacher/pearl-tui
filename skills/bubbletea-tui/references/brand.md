@@ -74,9 +74,11 @@ read it too.
     "done": "◆", "current": "▲", "todo": "△", "fail": "✕", "pending": "●",
     "partial": "◭",              // in progress, between current and done (default ◐, ascii ~)
     "warn": "!",                 // degraded: must differ in shape from current and fail
-    "bullet": "▸", "sep": "/", "arrow": "→", "ellipsis": "…",
+    "bullet": "▸",               // ui.Empty's mark, and before an Alert's message when the tag has no bar
+    "sep": "/", "arrow": "→", "ellipsis": "…",
     "radioOn": "◉", "radioOff": "○", "checkOn": "■", "checkOff": "□",
-    "treeMid": "├─", "treeEnd": "╰─", "treeRail": "│", "thumb": "┃", "track": "│",
+    "treeMid": "├─", "treeEnd": "╰─", "treeRail": "│",   // the rail under a multi-line ui.Tree item
+    "thumb": "┃", "track": "│",
     "spinner": ["◢","◣","◤","◥"], "fieldA": "▲", "fieldB": "△",
     "ascii": { "◭": "~" }         // twins for glyphs the kit's map lacks (theme.ASCIITwin)
   },
@@ -107,7 +109,7 @@ read it too.
     "paintBg": false,           // own the terminal background
     "gutter": 2, "measure": 100
   },
-  "wordmark": { "rows": ["…"], "style": "half" },   // optional, from wordmark.py
+  "wordmark": { "rows": ["…"], "style": "half" },   // optional, from wordmark.py; style is its note, the kit reads rows
   "ansi16": { "dark": { "warning": 11 }, "light": { "warning": 3 } }  // optional, color.md
 }
 ```

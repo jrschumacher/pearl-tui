@@ -297,8 +297,8 @@ func Tabs(t *theme.Theme, names []string, active int, counts []string) []string 
 		mark := " "
 		if i == active {
 			mark = "▔"
-			if t.ASCII {
-				mark = "^"
+			if t.ASCII { // the theme's rule, as ASCII draws it: an underline, not a run of carets
+				mark = t.G.Rule
 			}
 		}
 		u := strings.Repeat(" ", lipgloss.Width(s))

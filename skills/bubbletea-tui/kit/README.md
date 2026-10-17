@@ -8,8 +8,10 @@ theme/          theme.go (the JSON contract), derive.go (fills missing roles, AS
 ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, PaintBackground, ASCIIfy, Fit, OnBg
                 chrome.go   Wordmark, Header, Details, Section, Rule, Help, Footer, Toast, Tabs, TooSmall
                 controls.go Button(s), Tag, Alert, Dot, KV, Progress, Sparkline, Scrollbar, Count, Empty
-                list.go     List (selection styles, fuzzy underline, scrollbar), Table (borderless)
-                dialog.go   DialogTitle, Dialog, Canvas.Overlay
+                list.go     List (selection styles, fuzzy underline, scrollbar), Table (borderless),
+                            Follow (scroll-into-view), Fuzzy (subsequence match with indices)
+                ladder.go   Mark (a status rung in its role), Ladder (the legend the ladder state draws)
+                dialog.go   DialogTitle, Dialog (on bgPanel), Popover (on bgOverlay), Canvas.Overlay/Popover
                 chat.go     Gutter, UserMessage, AssistantMessage, ToolCall, Thinking, TurnFooter, Tree
                 anim.go     FrameInterval, Anim (brand spinner or the Crush scramble), Spinner,
                             Busy (the one-cell working mark for a status column)
