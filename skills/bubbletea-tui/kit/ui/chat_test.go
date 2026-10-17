@@ -21,7 +21,7 @@ func TestTranscriptCutsOnBlockHeads(t *testing.T) {
 	const w = 60
 	var blocks [][]string
 	for b := range 6 {
-		n := b%5 + 1
+		n := (b+2)%5 + 1 // 3, 4, 5, 1, 2, 3 rows: the last block is more than its head
 		block := make([]string, n)
 		for i := range block {
 			block[i] = Fit("  block "+strconv.Itoa(b)+" row "+strconv.Itoa(i), w)
@@ -79,7 +79,7 @@ func TestTranscriptCutsOnBlockHeads(t *testing.T) {
 	}
 	// the tail is followed: at scroll 0 the last visible row is the last row
 	rows := Transcript(th, blocks, w, 8, 0, "")
-	if last := strings.TrimSpace(ansi.Strip(rows[len(rows)-1])); last != "block 5 row 0" {
+	if last := strings.TrimSpace(ansi.Strip(rows[len(rows)-1])); last != "block 5 row 2" {
 		t.Errorf("scroll 0 ends on %q, want the last row", last)
 	}
 	// scrolled to the top there is nothing to mark
@@ -94,6 +94,34 @@ func TestTranscriptCutsOnBlockHeads(t *testing.T) {
 	}
 	if last := strings.TrimSpace(ansi.Strip(rows[2])); last != "f" {
 		t.Errorf("a block taller than the window: last row %q, want its last row", last)
+	}
+	// two rows, the cut on the last block's last row: its head is lifted, not left off
+	// (the last block has no air after it, so the cut looked like a block boundary)
+	ten := make([]string, 10)
+	for i := range ten {
+		ten[i] = "  line " + strconv.Itoa(i)
+	}
+	for _, k := range []struct {
+		name         string
+		blocks       [][]string
+		head, last   string
+		hiddenBefore int
+	}{
+		{"a tool after a turn", [][]string{{"  U user"}, {"  ● Tool head", "  out 1", "  out 2", "  out 3"}}, "● Tool head", "out 3", 4},
+		{"one ten-row block", [][]string{ten}, "line 0", "line 9", 8},
+	} {
+		rows := Transcript(th, k.blocks, 40, 2, 0, "pgup")
+		first, second := ansi.Strip(rows[0]), strings.TrimSpace(ansi.Strip(rows[1]))
+		if !strings.Contains(first, k.head) || !strings.Contains(first, marker) {
+			t.Errorf("%s at h=2: first row %q, want the head %q lifted onto the marker", k.name, first, k.head)
+		}
+		var n int
+		if _, err := fmtSscan(first, marker, &n); err != nil || n != k.hiddenBefore {
+			t.Errorf("%s at h=2: the marker %q counts %d, want %d", k.name, first, n, k.hiddenBefore)
+		}
+		if second != k.last {
+			t.Errorf("%s at h=2: second row %q, want %q", k.name, second, k.last)
+		}
 	}
 }
 

@@ -282,8 +282,9 @@ func Transcript(t *theme.Theme, blocks [][]string, w, h, scroll int, hint string
 	}
 	hidden := end - h + 1 // the marker takes a row
 	// the block the cut falls in: its head is the last one at or before the cut, and
-	// the cut is inside it when it is past the head and short of the air after it
-	head, next := -1, len(rows)
+	// the cut is inside it when it is past the head and short of the air after it (the
+	// last block has none: its "air" is one past the end)
+	head, next := -1, len(rows)+1
 	for _, hd := range heads {
 		if hd <= hidden {
 			head = hd
