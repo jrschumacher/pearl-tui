@@ -64,6 +64,8 @@ visible "↑ 25 more lines" affordance.
 
 - One gutter for the whole app (`expressions.gutter`, usually 2). Content never touches
   column 0.
+- Lists and tables start at the gutter; centring is for a splash, an empty state and a
+  dialog (`anti-patterns.md` S3). A centred list has no column to scan down.
 - Vertical rhythm is one blank row between groups (`t.Gap()`), or none in a compact
   brand. Never two blank rows. If a screen looks empty with one, the content is too
   thin, not the spacing too tight.
@@ -80,7 +82,8 @@ not for longer lines.
 
 At 120×40 a screen with 30 blank rows is under-designed. Tall terminals get the next most
 useful thing: an activity feed under the table, a preview pane, the full help. Wide
-terminals get a detail pane. Don't stretch; add.
+terminals get a detail pane. Don't stretch; add. `tuilint frames` warns on a frame over
+98.5% blank [F-EMPTY].
 
 ## Overlays
 

@@ -88,7 +88,7 @@
         "logo sampled with logo2cells.py then hand-fixed; one vocabulary per edge; no ░ on dark",
         "wordmark generated with wordmark.py (not figlet standard), >= 4 rows for half / >= 5 for shade",
         "splash shows only while connecting (not a fixed delay), with version bottom-left and quit hint bottom-right",
-        "frames dumped deterministically via an At(frame)/-frame path; a GIF and a contact sheet were rendered and inspected",
+        "frames dumped deterministically from a frame number (a Frame(n, …) method like the kit's Anim.Frame, rendered with -frame N; no wall-clock phase); a GIF and a contact sheet were rendered and inspected",
         "a Go test asserts every frame's footprint"
       ]
     },

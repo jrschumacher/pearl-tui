@@ -37,9 +37,9 @@ to all three. A half-applied idiom reads as noise.
 4. **Build the tools** once per session, from the directory holding this file:
    `go -C tools build -o "$HOME/.cache/tuitools/" ./cmd/...`, then put that directory on
    `PATH` (if `$HOME/.cache` isn't writable, any writable `-o` directory works). That
-   gives `cellshot`, `tuilint`, `palette`, `diversity` and `tuivet`. The
-   modules need Go ≥ 1.26.7; if `go` says "requires go >= 1.26.7", prefix the command
-   with `GOTOOLCHAIN=auto` and Go fetches it.
+   gives `cellshot`, `tuilint`, `palette`, `diversity` and `tuivet`. The kit's and the
+   tools' `go.mod` pin Go 1.26.7; if `go` says "requires go >= 1.26.7", prefix the
+   command with `GOTOOLCHAIN=auto` and Go fetches it.
 5. **Never show the user anything you haven't rendered and looked at** with
    `cellshot`. Never ask them for a screenshot.
 
@@ -104,7 +104,8 @@ signals, or holes in filled bars.
 ### Components → *Consult `references/components.md`*
 **DO** copy `kit/ui`: Header, Tabs, Section, List, Table, KV, Dialog + Overlay, Button,
 Tag, Alert, Toast, Footer/Help, ToolCall, Thinking, Progress, Sparkline, Tree, Empty,
-TooSmall.
+TooSmall; for wizards and status, Steps, Summary, Form/Confirm, Dot/Busy, Anim, Field,
+Canvas.
 **DON'T** leave a bare "No items", focus the destructive button, or let a blurred list
 lose its selection.
 
@@ -186,7 +187,7 @@ checking in with the user after `shape`. An existing app: `init` → `restyle`.
 | Tool | Does |
 |---|---|
 | `cellshot` | ANSI → PNG/GIF/contact sheet, drawn like a modern terminal; reports tofu, emoji, uneven rows |
-| `tuilint` | `frames`: width, emoji, default palette, off-palette, contrast, boxes, rainbow, levels… `code`: len(), blocking, hex, emoji, v1, resize, ticks, Print, keys. `spec`: TUI.md's keys (indistinguishable, duplicated, eaten by a text box) and ambiguous-width glyphs |
+| `tuilint` | `frames`: width, emoji, default palette, off-palette, contrast, boxes, rainbow, levels, ASCII leaks… `code`: len(), blocking, hex, emoji, v1, resize, ticks, Print, keys, a Huh form or spinner on its default theme, no NO_COLOR/profile handling. `spec`: TUI.md's keys (indistinguishable, duplicated, eaten by a text box), ambiguous-width glyphs, a footer that doesn't fit 80 columns |
 | `palette` | `derive` a dark+light role set from brand hexes (OKLCH, tinted neutrals, contrast-tuned); `check` a theme |
 | `diversity` | how different are these themes from each other and from the default |
 | `scripts/wordmark.py` | the brand name in cells, from a real font: half / shade / ascii / tracked |

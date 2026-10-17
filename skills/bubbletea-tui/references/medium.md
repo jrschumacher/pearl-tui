@@ -22,7 +22,8 @@ is tall in rows, and diagonals are ~63° instead of 45°.
   carry escape bytes that occupy zero cells.
 - Always `lipgloss.Width(s)` / `lipgloss.Height(s)` for measuring, `ansi.Truncate(s, w,
   "…")` and `ansi.TruncateLeft` for cutting (both from `github.com/charmbracelet/x/ansi`),
-  `lipgloss.NewStyle().Width(w)` or `MaxWidth(w)` for padding.
+  `lipgloss.NewStyle().Width(w)` or `MaxWidth(w)` for padding. `tuilint code` fails a
+  `len()` or rune count used to size or pad text [C-LEN].
 - **Every row of a frame must be exactly W cells and the frame exactly H rows.** One row
   at W+1 wraps, pushes everything down one line, and the top row scrolls off: the whole
   screen "tears". This is the most common bug in model-written TUIs. The verification
@@ -80,11 +81,12 @@ Rules:
   (`t.Distinct`), the kit draws an edge instead (a borderless dialog gets a rule above
   and below, a bar footer's keys lose the strip that hid them, text on a fill takes fg or
   bg via `t.Ink`). `theme.Resolve` assumes truecolour.
-- **Provide a 16-colour mapping** for brand roles that matter (primary → the closest of
-  the 8 hues, success → green, error → red). `lipgloss.Complete(profile)` picks one per
-  profile.
+- **Pin the roles that must keep their meaning at 16 colours** with the theme's `ansi16`
+  (`color.md` § The Four Palettes); `palette check` names the clash and the pin. Never a
+  per-profile hex in a screen: `tuilint code` fails it [C-HEX] and the theme can't see it.
 - **Respect the user's background.** Detect it (`tea.RequestBackgroundColor` →
-  `tea.BackgroundColorMsg.IsDark()`), choose the light or dark role set, and by default
+  `tea.BackgroundColorMsg.IsDark()`), choose the light or dark role set (a program with
+  no profile, background or `NO_COLOR` handling at all fails `tuilint code` [C-NOCOLOR]), and by default
   **do not paint the whole screen background**. Painting a full-screen bg is a strong
   brand move (Crush paints its own). It is a choice that needs both role sets reviewed, it
   breaks transparent terminals, and it fights the user's theme. If you paint it, paint
@@ -95,7 +97,8 @@ Rules:
 
 There is one font and one size. Hierarchy comes from:
 
-1. **Lightness**: three text levels (fg, fgMuted, fgSubtle) do 80% of the work.
+1. **Lightness**: four text levels (fg › fgSoft › fgMuted › fgSubtle); three of them do
+   80% of the work.
 2. **Weight**: bold for titles and the one thing that matters on a row. Faint (SGR 2)
    is unreliable across terminals; prefer an explicit muted colour.
 3. **Case and tracking**: `SMALL CAPS LABELS`, `T R A C K E D` wordmarks, sentence case
@@ -115,11 +118,13 @@ cells, so a still screen costs nothing, and a full-screen gradient animated at 6
 costs ~100 KB/s over SSH. Budget:
 
 - Idle screens do not tick. Stop the spinner's ticks when nothing is loading.
-- 8–15 fps (66–120 ms) for spinners and pulses, 20–30 fps (33–50 ms) for transitions.
+- One 50 ms clock (`ui.FrameInterval`, 20 fps); spinners advance every 2nd frame
+  (100 ms). `motion.md` § Budget has the table.
 - Animate small regions. A gradient sweep across a 10-cell title is fine; a full-screen
   shimmer is a battery bug.
-- Phase from wall-clock time, not frame count, so a slow terminal drops frames
-  instead of slowing down.
+- Phase from the frame index of that one clock (`m.frame`, which the harness renders
+  with `-frame N`), so a golden and the live program show the same frame. Wall-clock
+  only for an elapsed timer.
 
 ## The Two Sizes
 
@@ -127,5 +132,5 @@ Design at **80×24 first** (the default of nearly every terminal and the floor m
 hit in split panes), then **120×40** (a comfortable laptop pane), and check **200×60**
 (an external monitor). The same design at all three: more room, not a different app.
 Decide in advance what collapses (sidebar → row, long help → short help, details
-column → hidden) and at which width. Below the minimum, show one centred line, "Terminal
-too small: need 80×24, have 64×18", never a garbled layout.
+column → hidden) and at which width. Below the minimum (the kit's is 60×18), show one
+centred line, "Terminal too small: need 60×18, have 52×16", never a garbled layout.

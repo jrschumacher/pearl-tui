@@ -11,7 +11,7 @@
   `esc` goes back or closes, `tab`/`shift+tab` cycle focus, `/` filters, `?` toggles full
   help, `ctrl+c` quits (or confirms quitting when work would be lost), `q` quits only
   when no text input is focused, `g/G` jumps to the top/bottom, `pgup/pgdn` scrolls, and
-  `ctrl+z` suspends.
+  `ctrl+z` suspends (bind it to `tea.Suspend`; v2 and the kit don't on their own).
 - **Command palette** (`ctrl+p`, or `:`) for everything else. It lets you keep the
   footer to the 5–7 most useful keys.
 - **Mnemonic single keys** for frequent actions (`d` deploy, `r` roll back), shown in the
@@ -71,8 +71,8 @@ gets rendered and reviewed.
 
 ## Terminal Citizenship
 
-- Restore the terminal on exit, panic and `ctrl+z`. Bubble Tea does this unless you
-  disable it.
+- Restore the terminal on exit, panic and `tea.Suspend`. Bubble Tea does this; `ctrl+z`
+  suspends only when you bind it to `tea.Suspend`.
 - Set the window title. Set the program status/progress while busy and clear it before
   exiting.
 - Respect `NO_COLOR` (glyphs and words still carry meaning), `TERM=dumb`/`linux` (ASCII

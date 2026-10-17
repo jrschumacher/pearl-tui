@@ -2,8 +2,8 @@
 
 Verified against `charm.land/bubbletea/v2 v2.1.0`, `charm.land/lipgloss/v2 v2.0.6`,
 `charm.land/bubbles/v2 v2.2.1`, `charm.land/huh/v2 v2.0.3` and Ultraviolet
-`v0.0.0-20261008173134-6b8d4baf91b4` (October 2026). Lip Gloss v2.0.6 needs Go ≥ 1.26.7
-(`GOTOOLCHAIN=auto` fetches it). Your training data is mostly v1: the import paths,
+`v0.0.0-20261008173134-6b8d4baf91b4` (October 2026). The kit's `go.mod` pins Go 1.26.7
+(`GOTOOLCHAIN=auto` fetches it; no library needs it). Your training data is mostly v1: the import paths,
 `View()` and the key messages all changed. Copy from the kit, which compiles.
 
 ## Pin These
@@ -205,8 +205,8 @@ The `states` list names every screen and overlay the app can show (including emp
 loading, error, too-small). `setState(name)` builds each from scratch with fixture data.
 `View` and the harness share one `render(w, h)`, so the PNG is the program. See
 `kit/cmd/showcase/main.go`. A `_test.go` renders every state at
-80×24/100×30/120×40/200×60 in every theme and mode and asserts the footprint
-(`showcase_test.go`).
+60×18/80×24/100×30/120×40/200×60 (the first is the too-small state) in every theme and
+mode and asserts the footprint (`showcase_test.go`).
 
 ## Project Layout
 

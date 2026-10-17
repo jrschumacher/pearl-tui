@@ -73,9 +73,10 @@ read it too.
     "headerRule": "", "rule": "┄", "focusBar": "▎", "blurBar": "", "cursor": "▸", "prompt": "▸",
     "done": "◆", "current": "▲", "todo": "△", "fail": "✕", "pending": "●",
     "partial": "◭",              // in progress, between current and done (default ◐, ascii ~)
+    "warn": "!",                 // degraded: must differ in shape from current and fail
     "bullet": "▸", "sep": "/", "arrow": "→", "ellipsis": "…",
     "radioOn": "◉", "radioOff": "○", "checkOn": "■", "checkOff": "□",
-    "treeMid": "├─", "treeEnd": "╰─", "thumb": "┃", "track": "│",
+    "treeMid": "├─", "treeEnd": "╰─", "treeRail": "│", "thumb": "┃", "track": "│",
     "spinner": ["◢","◣","◤","◥"], "fieldA": "▲", "fieldB": "△",
     "ascii": { "◭": "~" }         // twins for glyphs the kit's map lacks (theme.ASCIITwin)
   },
@@ -97,6 +98,7 @@ read it too.
     "keys": "boxed",            // inline | boxed
     "density": "compact",       // airy | compact
     "backdrop": "field",        // none | field
+    "working": "spinner",       // spinner | scramble (Crush's hero; without it ui.Anim draws the spinner + label)
     "scrim": "dim",             // dim | none
     "focus": "primary",         // primary | fg (focus, cursor, prompt, selection in fg + bold)
     "paintBg": false,           // own the terminal background
