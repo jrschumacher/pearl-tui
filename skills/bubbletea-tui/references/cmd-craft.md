@@ -49,9 +49,12 @@ Run `-golden` at both sizes. It must pass while the screens are still stubs.
 
 For each screen in `TUI.md` § First slice, in that order, then the `Then:` list: draw the
 fixed chrome, then the body into rectangles from its § Screens block; use the components
-it names; add the states; wire the keys and the help. After each screen, run the loop
-below on that screen before starting the next. The slice is the order because it is the
-main loop the design gets judged on; the integrations wait behind it.
+it names; add the states; wire the keys and the help. Write in the screen's § Screens
+block which frame its identity (`shape` step 7, the read's `remember` move) shows on: the
+default frame is the one the critic's first question is asked of, so a move that only a
+sent turn or a filled form draws is moved, or joined by one, onto it. After each screen,
+run the loop below on that screen before starting the next. The slice is the order
+because it is the main loop the design gets judged on; the integrations wait behind it.
 
 ## 4. The Loop (`verify.md`)
 
