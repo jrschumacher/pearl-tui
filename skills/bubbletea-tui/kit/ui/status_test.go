@@ -173,3 +173,31 @@ func TestFocusFgTabs(t *testing.T) {
 		}
 	}
 }
+
+// The blurred selection gutter (S.BlurBar: an unfocused list or table under a dialog)
+// drew in bgSubtle, about 1.2:1 on the page: invisible at truecolour, and under NO_COLOR
+// a bare | told from the focused bar by bold alone. It is fgSubtle, a text level that
+// holds the 2.3:1 floor on bg in every theme and mode, and Huh's blurred field bar is
+// the same ink.
+func TestBlurBarIsVisible(t *testing.T) {
+	files := append(testThemes(t), filepath.Join("..", "theme", "testdata", "quire.json"))
+	for _, f := range files {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dark := range []bool{true, false} {
+			th := theme.Resolve(tf, dark, false)
+			ink := th.S.BlurBar.GetForeground()
+			if !sameColor(ink, th.P.FgSubtle) {
+				t.Errorf("%s dark=%v: BlurBar draws %v, want fgSubtle %v", filepath.Base(f), dark, ink, th.P.FgSubtle)
+			}
+			if r := theme.Contrast(ink, th.P.Bg); r < 2.3 {
+				t.Errorf("%s dark=%v: BlurBar is %.2f:1 on bg, under the 2.3 floor", filepath.Base(f), dark, r)
+			}
+			if huh := HuhStyles(th).Blurred.Base.GetBorderLeftForeground(); th.G.BlurBar != "" && !sameColor(huh, ink) {
+				t.Errorf("%s dark=%v: Huh's blurred field bar draws %v, want BlurBar's %v", filepath.Base(f), dark, huh, ink)
+			}
+		}
+	}
+}

@@ -121,7 +121,9 @@ func build(t *Theme) Styles {
 	if fgFocus {
 		s.FocusBar = s.Bold
 	}
-	s.BlurBar = lipgloss.NewStyle().Foreground(p.BgSubtle)
+	// the blurred bar is a hint level, not a background step: bgSubtle is about 1.2:1 on
+	// the page, which vanishes at truecolour and leaves a bare | under NO_COLOR
+	s.BlurBar = lipgloss.NewStyle().Foreground(p.FgSubtle)
 	s.Match = lipgloss.NewStyle().Underline(true)
 
 	switch x.Button {
