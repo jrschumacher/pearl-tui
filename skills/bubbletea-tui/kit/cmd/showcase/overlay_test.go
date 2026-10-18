@@ -36,13 +36,15 @@ func pageBeside(c *ui.Canvas, r uv.Rectangle, reach int) (int, int, bool) {
 }
 
 // overlayVariants are the profiles the harness renders an overlay in: the scrim's
-// (truecolour, 256 colours) and the band's (16 colours, NO_COLOR, ASCII).
+// (truecolour, 256 colours, ASCII glyphs at truecolour) and the hidden body's (16
+// colours, NO_COLOR, ASCII glyphs at 16 colours).
 var overlayVariants = []struct {
 	name  string
 	ascii bool
 	p     colorprofile.Profile
 }{{"truecolor", false, colorprofile.TrueColor}, {"ansi256", false, colorprofile.ANSI256},
-	{"ansi", false, colorprofile.ANSI}, {"NO_COLOR", false, colorprofile.Ascii}, {"ascii", true, colorprofile.TrueColor}}
+	{"ansi", false, colorprofile.ANSI}, {"NO_COLOR", false, colorprofile.Ascii}, {"ascii", true, colorprofile.TrueColor},
+	{"ascii ansi", true, colorprofile.ANSI}}
 
 // cellText is a cell's glyph, a blank for an empty cell.
 func cellText(c *ui.Canvas, x, y int) string {
@@ -60,16 +62,25 @@ func rowText(c *ui.Canvas, y int) string {
 	return b.String()
 }
 
-// An overlay leaves the page's rows it doesn't span as the page drew them: the page
-// under a dialog is drawn unfocused (its screens take focused=false), so nothing has
-// to be scanned off it afterwards. A scan for focus marks by glyph and ink erased
-// cartridge's wordmark (its focus bar is █ in the primary ink, as is the banner) and
-// ferrous's header separators under ASCII (its focus bar and its separator are both
-// "|"). Every theme, every profile, every overlay over every page that draws a
-// selection, at 80×24 and 120×40: each cell above and below the dialog's rows and
-// above the footer holds the glyph it held with no overlay, except where the page
-// drew its own focus mark (the focused field's bar, the focused button's cursor, a
-// caret, in the body), which drawing it unfocused takes away or turns blurred.
+// An overlay's rows are its own, and where the page can be dimmed the rows it doesn't
+// span are the page's: the page under a dialog is drawn unfocused (its screens take
+// focused=false), so nothing has to be scanned off it afterwards. A scan for focus
+// marks by glyph and ink erased cartridge's wordmark (its focus bar is █ in the primary
+// ink, as is the banner) and ferrous's header separators under ASCII (its focus bar
+// and its separator are both "|"). Every theme, every profile, every overlay over every
+// page that draws a selection, at 80×24 and 120×40, against the same page with no
+// overlay, above the footer:
+//
+//   - on the rows the dialog spans, nothing of the page is left beside it, at every
+//     size (at 120 columns a column of "…to show it" stood beside a confirm, re-cut at
+//     its margin);
+//   - under a scrim, each cell off those rows holds the glyph it held, except where the
+//     page drew its own focus mark (the focused field's bar, the focused button's
+//     cursor, a caret), which drawing it unfocused takes away or turns blurred;
+//   - with no scrim (16 colours, NO_COLOR, scrim: none, whatever the glyphs), the rows
+//     of the page's body (Canvas.Body, everything when unset) are blank outside the
+//     dialog, and the rest, the header, holds its glyphs: at full ink a confirm over a composer showed the
+//     reply's last lines under its edge, a second copy of what it would send.
 func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)
@@ -89,18 +100,35 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 						m.openOverlay(s)
 						c := m.render(sz[0], sz[1])
 						name := fmt.Sprintf("%s %s %s over %s %dx%d", filepath.Base(f), v.name, s, page, sz[0], sz[1])
+						if why := bodyIsThePage(c, m.body, m.footY); why != "" {
+							t.Errorf("%s: %s", name, why)
+						}
+						scrim := scrims(m.t)
+						hidden := hiddenBody(c)
+					rows:
 						for y := range m.footY {
-							if y >= m.ovRect.Min.Y && y < m.ovRect.Max.Y {
-								besideTheDialog(t, name, m, base, c, y, focusCells)
-								continue
-							}
+							band := y >= m.ovRect.Min.Y && y < m.ovRect.Max.Y
 							for x := range sz[0] {
+								if uv.Pos(x, y).In(m.ovRect) {
+									continue
+								}
 								want, got := cellText(base, x, y), cellText(c, x, y)
-								if got == want || slices.Contains(focusCells, uv.Pos(x, y)) {
+								switch {
+								case band || (!scrim && uv.Pos(x, y).In(hidden)):
+									if got == " " {
+										continue
+									}
+									if band {
+										t.Errorf("%s: the page shows %q at %d,%d beside the dialog, on a row it spans: %q", name, got, x, y, rowText(c, y))
+									} else {
+										t.Errorf("%s: no scrim, and the page's body shows %q at %d,%d at full ink beside the dialog: %q", name, got, x, y, rowText(c, y))
+									}
+									continue rows
+								case got == want || slices.Contains(focusCells, uv.Pos(x, y)):
 									continue
 								}
 								t.Errorf("%s: %q at %d,%d is %q with the overlay up; the page's row was %q", name, want, x, y, got, rowText(base, y))
-								break
+								continue rows
 							}
 						}
 					}
@@ -111,7 +139,9 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 	// the two the glyph scan broke, by name: cartridge's wordmark rows (its focus bar is
 	// the banner's █) and ferrous's header under ASCII (its bar and separator are both
 	// "|"): every row above the page's body (the header, none in an app without one)
-	// reads as it did. In a copied project testTheme gives the project's theme.
+	// reads as it did, under a scrim and where the body is hidden (NO_COLOR), which
+	// keeps the header only when Canvas.Body is set. In a copied project testTheme
+	// gives the project's theme, and the failure names it.
 	for _, k := range []struct {
 		theme string
 		ascii bool
@@ -120,18 +150,22 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 		{"ferrous.json", true},
 	} {
 		tf := testTheme(t, k.theme)
-		for _, s := range overlays {
-			for _, sz := range [][2]int{{80, 24}, {120, 40}} {
-				m := newApp(tf, true, k.ascii)
-				m.setState(overlayPages[0])
-				base := m.render(sz[0], sz[1])
-				head := m.body.Min.Y
-				m.setState(overlayPages[0])
-				m.openOverlay(s)
-				c := m.render(sz[0], sz[1])
-				for y := range min(head, m.ovRect.Min.Y) {
-					if got, want := rowText(c, y), rowText(base, y); got != want {
-						t.Errorf("%s ascii=%v %s %dx%d: row %d reads %q under the overlay, want %q", k.theme, k.ascii, s, sz[0], sz[1], y, got, want)
+		for _, p := range []colorprofile.Profile{colorprofile.TrueColor, colorprofile.Ascii} {
+			pname := map[colorprofile.Profile]string{colorprofile.TrueColor: "truecolor", colorprofile.Ascii: "NO_COLOR"}[p]
+			for _, s := range overlays {
+				for _, sz := range [][2]int{{80, 24}, {120, 40}} {
+					m := newApp(tf, true, k.ascii)
+					m.profile = p
+					m.setState(overlayPages[0])
+					base := m.render(sz[0], sz[1])
+					head := m.body.Min.Y
+					m.setState(overlayPages[0])
+					m.openOverlay(s)
+					c := m.render(sz[0], sz[1])
+					for y := range min(head, m.ovRect.Min.Y) {
+						if got, want := rowText(c, y), rowText(base, y); got != want {
+							t.Errorf("theme %q ascii=%v %s %s %dx%d: header row %d reads %q under the overlay, want %q (where the page can't be dimmed a dialog hides Canvas.Body, all of the page when unset: set c.Body = body, the rect you draw the body in)", tf.Name, k.ascii, pname, s, sz[0], sz[1], y, got, want)
+						}
 					}
 				}
 			}
@@ -139,47 +173,36 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 	}
 }
 
-// besideTheDialog judges row y of an overlay frame c outside the dialog against the
-// same page with no overlay (base): where no scrim is drawn the row is cleared across
-// (the band); under a scrim each side changes only in one run out from the dialog's
-// edge, blanks with at most one ellipsis at its far end (the cut word), and on the
-// dialog's edge rows a page rule may go too. A focus mark of the page's may change
-// anywhere: the page is drawn unfocused.
-func besideTheDialog(t *testing.T, name string, m *app, base, c *ui.Canvas, y int, focusCells []uv.Position) {
-	t.Helper()
-	r, w := m.ovRect, c.Bounds().Dx()
-	th := m.t
-	scrim := th.X.Scrim == "dim" && !th.ASCII && th.Profile != colorprofile.ANSI && th.Profile != colorprofile.Ascii && th.Profile != colorprofile.NoTTY
-	if !scrim {
-		for x := range w {
-			if !uv.Pos(x, y).In(r) && cellText(c, x, y) != " " {
-				t.Errorf("%s: no scrim, and the page shows %q at %d,%d beside the dialog", name, cellText(c, x, y), x, y)
-				return
-			}
-		}
-		return
+// scrims reports whether the kit dims the page under a dialog for th (ui's Canvas
+// scrims): the theme asks for it and the profile can show it.
+func scrims(th *theme.Theme) bool {
+	return th.X.Scrim == "dim" && th.Profile != colorprofile.ANSI && th.Profile != colorprofile.Ascii && th.Profile != colorprofile.NoTTY
+}
+
+// hiddenBody is what a centred overlay hides where it can't dim: the rows of the
+// canvas's Body, across, or the whole canvas when the app set none.
+func hiddenBody(c *ui.Canvas) uv.Rectangle {
+	b := c.Bounds()
+	if c.Body.Empty() {
+		return b
 	}
-	edge := y <= r.Min.Y+1 || y >= r.Max.Y-2 // a rules dialog's rule sits a margin row in
-	for _, side := range []struct{ halo, dx int }{{r.Min.X - 1, -1}, {r.Max.X, 1}} {
-		run, ells := true, 0
-		for x := side.halo; x >= 0 && x < w; x += side.dx {
-			want, got := cellText(base, x, y), cellText(c, x, y)
-			switch {
-			case got == want:
-				run = false
-			case slices.Contains(focusCells, uv.Pos(x, y)):
-				// the page's own focus mark, drawn unfocused
-			case edge && got == " " && (want == th.G.Rule || want == th.G.HeaderRule):
-				// a page rule beside the dialog's edge row
-			case run && got == " " && ells == 0:
-			case run && got == th.G.Ellipsis && ells == 0:
-				ells++
-			default:
-				t.Errorf("%s: %q at %d,%d is %q beside the dialog, outside the word it cuts: %q", name, want, x, y, got, rowText(c, y))
-				return
-			}
-		}
+	return uv.Rect(b.Min.X, c.Body.Min.Y, b.Dx(), c.Body.Dy())
+}
+
+// bodyIsThePage reports what is wrong with the Canvas.Body an app set, or "": unset is
+// allowed (everything but the dialog is hidden), and a set one must span every row of
+// the body the app laid out (m.body) and end at or above the footer. A Body of one row
+// passed every overlay test while a NO_COLOR confirm stood over the list at full ink.
+func bodyIsThePage(c *ui.Canvas, body uv.Rectangle, footY int) string {
+	switch b := c.Body; {
+	case b.Empty():
+		return ""
+	case b.Min.Y > body.Min.Y || b.Max.Y < body.Max.Y:
+		return fmt.Sprintf("Canvas.Body %v doesn't span the body's rows %d–%d (m.body %v): a dialog leaves the rest at full ink where the page can't be dimmed; set c.Body = body", b, body.Min.Y, body.Max.Y-1, body)
+	case b.Max.Y > footY:
+		return fmt.Sprintf("Canvas.Body %v runs into the footer at row %d", b, footY)
 	}
+	return ""
 }
 
 // An overlay frame has one focus, the dialog's, and nothing of the page touches the
@@ -272,7 +295,8 @@ func sameRGB(a, b color.Color) bool {
 }
 
 // The tables the harness tests read are the app's own: a state opens a dialog exactly
-// when overlays names it, every overlayPages entry is a page with no dialog up, and
+// when overlays names it, scrolls names overlays and help among them, every
+// overlayPages entry is a page with no dialog up, and
 // every page that draws a focus mark is in overlayPages, renders as one that is, or is
 // in unjudgedPages with a reason. A cold build left its menu overlay out of the help
 // test, and its help over the menu named the screen's keys; leaving it out of overlays
@@ -287,6 +311,15 @@ func TestOverlayTablesMatchTheStates(t *testing.T) {
 				t.Errorf("%q is in the harness tables but not in states", s)
 			}
 		}
+	}
+	// scrolls names overlays: help's keys grow with the app, so help is always one
+	for _, s := range scrolls {
+		if !slices.Contains(overlays, s) {
+			t.Errorf("%q is in scrolls but not in overlays", s)
+		}
+	}
+	if !slices.Contains(scrolls, "help") {
+		t.Errorf("scrolls has no \"help\": the keys overlay's body grows with the app and scrolls at the floor")
 	}
 	// unjudgedPages is for a Huh form's pages, and every Huh form goes through ui.NewForm
 	// (tuilint code, C-HUHTHEME): an app that never builds one has nothing to leave out

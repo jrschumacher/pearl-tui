@@ -79,6 +79,21 @@ func DialogStatus(t *theme.Theme, w, h int, title, status string, body []string,
 	return dialog(t, t.S.Dialog, t.P.BgPanel, w, h, title, body, off, buttons, help, status)
 }
 
+// DialogLines is where a scrolled body stands, for DialogStatus to set into the
+// dialog's bottom edge: "lines 1–10 of 76" for the shown rows off+1…off+shown of
+// total, in muted, or "" when the body fits. Use it for a dialog whose body must be
+// shown whole and has no length bound, such as a write's verbatim text. That body
+// scrolls between edges that stay, and draws no Clip row that isn't part of it, so
+// nothing unsent is hidden without a position. List such a dialog in the harness's
+// scrolls table.
+func DialogLines(t *theme.Theme, off, shown, total int) string {
+	if total <= shown || shown <= 0 {
+		return ""
+	}
+	off = max(0, min(off, total-shown))
+	return t.S.Muted.Render("lines " + strconv.Itoa(off+1) + "–" + strconv.Itoa(off+shown) + " of " + strconv.Itoa(total))
+}
+
 // Popover is a Dialog on bgOverlay, the ramp's step for what pops over the page: a
 // command palette, completions. Draw it with Canvas.Popover.
 func Popover(t *theme.Theme, w, h int, title string, body []string, buttons string, help string) string {
@@ -218,13 +233,14 @@ func dialogRules(t *theme.Theme, title string, w int, fill color.Color) (string,
 
 // Overlay draws a dialog centred on the canvas (or at anchor when non-nil),
 // dimming what is under it when the theme asks for a scrim. Draw it last:
-// draw order is z-order. There is no scrim under ASCII, at 16 colours or with no colour:
-// with the page on ANSI 0 or 15, dimming toward it sends every text level to the page's
-// own slot and the scrim's text vanishes instead of fading. Where no scrim is drawn
-// (those, and scrim: none) the rows the dialog spans are cleared across instead; under
-// a scrim, the cell beside each edge is blank and a word the dialog cuts is cleared
-// whole, with the theme's ellipsis where its phrase was cut. Either way no page rule
-// runs on beside the dialog's edges (overlay.go).
+// draw order is z-order. The rows the dialog spans are cleared across, in every
+// profile and at every size: no page fragment stands on the dialog's own rows. There is
+// no scrim at 16 colours or with no colour (with the page on ANSI 0 or 15, dimming
+// toward it sends every text level to the page's own slot and the scrim's text
+// vanishes instead of fading); there, and under scrim: none, a dialog centred across
+// (anchor nil, or anchor.X < 0) hides the rows of the page's body (Canvas.Body), since
+// at full ink it reads as live as the dialog, and the header outside it stays. A
+// popover anchored to its trigger (anchor.X ≥ 0) clears only its own rows (overlay.go).
 //
 // Draw the page under a dialog unfocused: pass focused=false to its lists, tables and
 // fields while the dialog is up. The dialog has the focus, and a focused list's bar
@@ -237,8 +253,8 @@ func (c *Canvas) Overlay(dialog string, anchor *uv.Position) uv.Rectangle {
 }
 
 // Popover is Overlay for a Popover: its cells fill with bgOverlay. It prepares the
-// page as Overlay does (the cut phrase, the edge rows' rules, the band where no scrim
-// is drawn), so the page under a palette is drawn unfocused too.
+// page as Overlay does (the band, and for a centred one the body where no scrim is
+// drawn), so the page under a palette is drawn unfocused too.
 func (c *Canvas) Popover(dialog string, anchor *uv.Position) uv.Rectangle {
 	return c.overlay(dialog, anchor, c.T.P.BgOverlay)
 }
@@ -259,7 +275,7 @@ func (c *Canvas) overlay(dialog string, anchor *uv.Position, fill color.Color) u
 	}
 	r := uv.Rect(x, y, dw, dh)
 	scrim := c.scrims()
-	c.clearPage(r, dialog, !scrim)
+	c.clearPage(r, scrim, anchor == nil || anchor.X < 0)
 	if scrim {
 		c.Scrim(0.55)
 	}

@@ -2,7 +2,7 @@
 // list and an item) and one overlay of its own (a confirm) beside help, built on the
 // kit's shape with none of the showcase's screens. The kit's harness tests, kept whole
 // as kit/README.md says, run against it; this main.go is the kit's with the README's
-// edits made (setup wiring gone, states, overlays, overlayPages and openOverlay its own).
+// edits made (setup wiring gone, states, overlays, scrolls, overlayPages and openOverlay its own).
 package main
 
 import (
@@ -26,9 +26,10 @@ import (
 // states are every screen the app can show.
 var states = []string{"list", "detail", "confirm", "help", "toosmall"}
 
-// overlays, overlayPages and unjudgedPages: the harness tests open each overlay over
-// each page.
+// overlays, scrolls, overlayPages and unjudgedPages: the harness tests open each
+// overlay over each page.
 var overlays = []string{"confirm", "help"}
+var scrolls = []string{"help"}
 var overlayPages = []string{"list", "detail"}
 var unjudgedPages = map[string]string{}
 

@@ -85,6 +85,10 @@ the keys; hue stays for state (color.md).
   the tabs and a row of air above the footer) and scrolls its body when it doesn't fit
   (`ui.Clip`: `↑ n more` above, `… n more` below; `DialogScrolled` for a screen with an
   offset, `DialogBodyRows` and `ClipMax` to clamp it), so no dialog reaches the footer.
+  A body that must be shown whole and has no length bound (a write's verbatim text)
+  scrolls between edges that stay, with `ui.DialogLines` (`lines 1–10 of 76`) set into
+  the bottom edge: nothing unsent is hidden without a position. List it in the
+  harness's `scrolls`.
 - A dialog's status (the sending dots, `3 of 12`) is set right-aligned into its bottom
   edge, as a rules title is into the top one, so it takes no row and never crowds the
   buttons (`ui.DialogStatus`).
@@ -94,11 +98,15 @@ the keys; hue stays for state (color.md).
   page under it unfocused (`focused=false` to its lists, tables and fields, a subtle
   prompt and no caret in its input): one focus per frame, and a list keeps its
   selection under the blurred mark.
-  `Canvas.Overlay` (and `Popover`) clears what would still read as live beside it: a
-  one-cell halo, a word the dialog cuts, whole, with an ellipsis where its phrase was
-  cut (`▲ notifications-…`, not `igh` or `1s` at the edge), a page rule on the dialog's
-  edge rows, and, where no scrim is drawn (16 colours, NO_COLOR, ASCII, `scrim: none`),
-  the rows the dialog spans.
+  `Canvas.Overlay` (and `Popover`) clears the rows the dialog spans, across, at every
+  size and in every profile: a page cut at the dialog's margin left `…to show it` beside
+  a confirm on its own rows, reading as its text. Where no scrim is drawn (16 colours,
+  NO_COLOR, `scrim: none`; ASCII glyphs at truecolour still dim) a centred dialog hides
+  the rows of the page's body too, since at full ink a page under a confirm showed the
+  reply's tail a second time: set `c.Body = body`, the rect you draw the body in, so the
+  header stays (unset, everything goes but the dialog and the footer you redraw). A
+  popover anchored to its trigger (`anchor.X ≥ 0`, a completion list) clears only its
+  own rows, so the line it completes stays.
 - Max ~64–70 cols wide; fullscreen below the minimum size.
 
 ## Confirm — destructive actions

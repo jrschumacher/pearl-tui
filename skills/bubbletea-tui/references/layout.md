@@ -106,7 +106,10 @@ terminals get a detail pane. Don't stretch; add. `tuilint frames` warns on a fra
 - Popovers anchored to their trigger (a completion list above the cursor line), clamped
   to the screen edges.
 - Dim what's underneath (`Canvas.Scrim`) unless the brand says otherwise, and redraw the
-  footer above the scrim because it now describes the dialog's keys.
+  footer above the scrim because it now describes the dialog's keys. Where the terminal
+  can't dim (16 colours, NO_COLOR), a centred `Canvas.Overlay` hides the body
+  (`c.Body`) instead: an undimmed page reads as live as the dialog. An anchored popover
+  keeps its trigger line.
 - Below the minimum size, dialogs go fullscreen.
 
 ## DO / DON'T

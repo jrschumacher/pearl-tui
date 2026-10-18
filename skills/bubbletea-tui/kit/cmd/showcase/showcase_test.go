@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"image/color"
 	"path/filepath"
+	"regexp"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -204,14 +207,16 @@ func TestNoUnstyledText(t *testing.T) {
 	}
 }
 
-// Every theme's overlay states render under 16 colours and NO_COLOR as the harness
-// writes them (-profile ansi, NO_COLOR=1): exactly W×H, with the theme resolved for
+// Every theme's overlay states render under 16 colours, NO_COLOR and ASCII at 16
+// colours as the harness writes them (-profile ansi, NO_COLOR=1, -ascii -profile
+// ansi): exactly W×H, with the theme resolved for
 // that profile (a borderless dialog's edge depends on it, ui TestEveryDialog…). No scrim
-// is drawn there, so the rows the dialog spans are cleared across: a help dialog sat
-// between live list rows ("● acme/w ── keys · inbox ── mitri · 5h"), read as a collage.
-// A cleared cell takes the page's background, not the one it had: a red 502s strip or
-// a FAILING chip emptied by the clear stayed a solid block beside the dialog, and a
-// selection band left a grey stub at its left.
+// is drawn there, so the rows the dialog spans are cleared across and the page's body
+// (Canvas.Body) is hidden: a help dialog sat between live list rows ("● acme/w ── keys
+// · inbox ── mitri · 5h"), read as a collage, and a confirm over a composer showed the
+// reply's tail under its edge at full ink. A cleared cell takes the page's background,
+// not the one it had: a red 502s strip or a FAILING chip emptied by the clear stayed a
+// solid block beside the dialog, and a selection band left a grey stub at its left.
 func TestOverlaysInReducedProfiles(t *testing.T) {
 	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)
@@ -224,7 +229,7 @@ func TestOverlaysInReducedProfiles(t *testing.T) {
 			p                   colorprofile.Profile
 			ascii               bool
 		}{{"-profile ansi", "ansi", "", true, colorprofile.ANSI, false}, {"NO_COLOR=1", "truecolor", "1", false, colorprofile.Ascii, false},
-			{"-ascii", "truecolor", "", false, colorprofile.TrueColor, true}} {
+			{"-ascii -profile ansi", "ansi", "", true, colorprofile.ANSI, true}} {
 			prof, err := renderProfile(pr.flag, pr.explicit, pr.noColor)
 			if err != nil || prof != pr.p {
 				t.Fatalf("%s: renderProfile = %v %v, want %v", pr.name, prof, err, pr.p)
@@ -245,11 +250,19 @@ func TestOverlaysInReducedProfiles(t *testing.T) {
 					if x, y, ok := pageBeside(c, m.ovRect, 80); ok {
 						t.Errorf("%s %s %s dark=%v: no scrim, and the page shows %q at %d,%d beside the dialog", filepath.Base(f), s, pr.name, dark, c.CellAt(x, y).Content, x, y)
 					}
-					r := m.ovRect
+					r, body := m.ovRect, hiddenBody(c)
 				rows:
-					for y := r.Min.Y; y < r.Max.Y; y++ {
+					for y := range m.footY {
 						for x := range 80 {
-							if cell := c.CellAt(x, y); cell != nil && !uv.Pos(x, y).In(r) && !sameRGB(cell.Style.Bg, m.t.P.Bg) {
+							if !(y >= r.Min.Y && y < r.Max.Y) && !uv.Pos(x, y).In(body) || uv.Pos(x, y).In(r) {
+								continue
+							}
+							cell := c.CellAt(x, y)
+							if cell != nil && strings.TrimSpace(cell.Content) != "" {
+								t.Errorf("%s %s %s dark=%v: no scrim, and the page's body shows %q at %d,%d beside the dialog", filepath.Base(f), s, pr.name, dark, cell.Content, x, y)
+								break rows
+							}
+							if cell != nil && !sameRGB(cell.Style.Bg, m.t.P.Bg) {
 								t.Errorf("%s %s %s dark=%v: a cleared cell at %d,%d keeps a background %v, not the page's %v", filepath.Base(f), s, pr.name, dark, x, y, cell.Style.Bg, m.t.P.Bg)
 								break rows
 							}
@@ -336,25 +349,106 @@ func TestRenderProfile(t *testing.T) {
 	}
 }
 
-// dialogText is the plain text of the rows a dialog was drawn on (m.ovRect) and the
-// footer: what a test about the dialog judges. The page under it has cut rows of its
-// own ("↑ 12 more", "… (6 lines hidden)" in a transcript), and a copied test that
-// scanned the whole frame failed under every overlay of an app whose page has one.
-func dialogText(c *ui.Canvas, r uv.Rectangle, fy int) string {
+// dialogPos is what a dialog drawn at r says of its body's position: Clip's rows, an
+// "↑ up more" above and a "… below more" below, and a "lines first–last of total" set
+// into an edge (ui.DialogLines). Only cells inside r are read, and a Clip marker only as
+// a row of its own: a page's cut rows ("↑ 12 more", "… (6 lines hidden)"), a narrow
+// footer's ellipsis and body text that says "one more line" are none of it.
+type dialogPos struct {
+	up, below          int
+	lines              bool
+	first, last, total int
+	shown              int // body rows between Clip's two markers, when both are drawn (else -1)
+}
+
+// hides reports rows of the body not on screen.
+func (p dialogPos) hides() bool {
+	return p.up > 0 || p.below > 0 || (p.lines && (p.first > 1 || p.last < p.total))
+}
+
+func (p dialogPos) String() string {
+	if p.lines {
+		return fmt.Sprintf("lines %d–%d of %d", p.first, p.last, p.total)
+	}
+	return fmt.Sprintf("↑ %d / … %d", p.up, p.below)
+}
+
+var dialogLinesRe = regexp.MustCompile(`lines (\d+)[–-](\d+) of (\d+)`)
+
+// readPos reads a dialog's position (dialogPos) off the canvas: Clip's markers as rows
+// of their own anywhere in the dialog, and "lines a–b of n" only in its bottom edge
+// (its last row with anything on it, where DialogStatus sets it), so a verbatim body
+// quoting "see lines 12-20 of 300" is no position.
+func readPos(th *theme.Theme, c *ui.Canvas, r uv.Rectangle) dialogPos {
+	marker := func(g string) *regexp.Regexp {
+		// the row is the marker alone, between the dialog's side edges if it has any
+		return regexp.MustCompile(`^\S?\s*` + regexp.QuoteMeta(g) + ` (\d+) more\s*\S?$`)
+	}
+	upRe, belowRe := marker(th.G.More), marker(th.G.Ellipsis)
+	p := dialogPos{shown: -1}
+	rows := rectRows(c, r)
+	upAt, belowAt, edge := -1, -1, -1
+	for i, row := range rows {
+		row = strings.TrimSpace(row)
+		if row != "" {
+			edge = i
+		}
+		if m := upRe.FindStringSubmatch(row); m != nil {
+			p.up, _ = strconv.Atoi(m[1])
+			upAt = i
+		}
+		if m := belowRe.FindStringSubmatch(row); m != nil {
+			p.below, _ = strconv.Atoi(m[1])
+			belowAt = i
+		}
+	}
+	if upAt >= 0 && belowAt > upAt {
+		p.shown = belowAt - upAt - 1
+	}
+	if edge >= 0 {
+		if m := dialogLinesRe.FindStringSubmatch(rows[edge]); m != nil {
+			p.lines = true
+			p.first, _ = strconv.Atoi(m[1])
+			p.last, _ = strconv.Atoi(m[2])
+			p.total, _ = strconv.Atoi(m[3])
+		}
+	}
+	return p
+}
+
+// rectRows are the plain rows of the cells inside r.
+func rectRows(c *ui.Canvas, r uv.Rectangle) []string {
+	var rows []string
+	for y := max(r.Min.Y, 0); y < min(r.Max.Y, c.Bounds().Max.Y); y++ {
+		var b strings.Builder
+		for x := max(r.Min.X, 0); x < min(r.Max.X, c.Bounds().Max.X); x++ {
+			if cell := c.CellAt(x, y); cell != nil && cell.Content != "" {
+				b.WriteString(cell.Content)
+			} else if cell == nil || cell.Width != 0 {
+				b.WriteString(" ")
+			}
+		}
+		rows = append(rows, b.String())
+	}
+	return rows
+}
+
+// footerText is the plain text of the footer's rows, from fy down: what the app's
+// keys say. A check of the footer reads only these; a help dialog over a page with a
+// scroll key names "scroll" in its own body.
+func footerText(c *ui.Canvas, fy int) string {
 	rows := strings.Split(ansi.Strip(c.String()), "\n")
-	keep := append([]string{}, rows[max(0, r.Min.Y):min(len(rows), r.Max.Y)]...)
-	keep = append(keep, rows[min(len(rows), fy):]...)
-	return strings.Join(keep, "\n")
+	return strings.Join(rows[min(len(rows), max(0, fy)):], "\n")
 }
 
 // A dialog never reaches the footer: the help dialog was 20 rows, so at 80×24 its
 // bottom edge landed on the footer rule (a double rule) and at 60×18 both were
 // clipped. Every overlay over every page that draws a selection, every theme, at 80×24
 // and at the app's floor (minW×minH): the dialog ends above the footer, a row of air
-// between while it fits; a body that doesn't fit scrolls (↑↓), and a dialog other than
-// help is never cut at the floor, where a rollback confirmation hid its consequences
-// ("… 2 more"). Only the dialog's rows count (dialogText): the page under it may cut
-// rows of its own.
+// between while it fits; a body that doesn't fit scrolls (↑↓) and draws its position,
+// and only a dialog in scrolls may be cut at the floor: a rollback confirmation cut
+// there hid its consequences ("… 2 more"). Only the dialog's own cells are read
+// (readPos): the page under it may cut rows of its own.
 func TestDialogsStayAboveTheFooter(t *testing.T) {
 	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)
@@ -376,19 +470,19 @@ func TestDialogsStayAboveTheFooter(t *testing.T) {
 			m.setState("help")
 			c := m.render(w, h)
 			fy := m.footY
-			frame := dialogText(c, m.ovRect, fy)
-			if more := m.t.G.Ellipsis + " "; len(m.helpBody()) > m.helpRows() && !strings.Contains(frame, more) {
-				t.Errorf("%s help %dx%d: %d rows of keys in %d: want a %q row", filepath.Base(f), w, h, len(m.helpBody()), m.helpRows(), more)
-			}
+			p, foot := readPos(m.t, c, m.ovRect), footerText(c, fy)
 			if len(m.helpBody()) > m.helpRows() {
-				m.key(press("down"))
-				if f2 := dialogText(m.render(w, h), m.ovRect, fy); !strings.Contains(f2, m.t.G.More+" 1 more") {
-					t.Errorf("%s help %dx%d: after down, no %q row", filepath.Base(f), w, h, m.t.G.More+" 1 more")
+				if !p.hides() {
+					t.Errorf("%s help %dx%d: %d rows of keys in %d, and the dialog draws no position", filepath.Base(f), w, h, len(m.helpBody()), m.helpRows())
 				}
-				if !strings.Contains(frame, "scroll") {
+				m.key(press("down"))
+				if p2 := readPos(m.t, m.render(w, h), m.ovRect); p2.up != 1 && !(p2.lines && p2.first == 2) {
+					t.Errorf("%s help %dx%d: after down the position is %v, want one row scrolled off", filepath.Base(f), w, h, p2)
+				}
+				if !strings.Contains(foot, "scroll") {
 					t.Errorf("%s help %dx%d: the body scrolls but the footer doesn't say so", filepath.Base(f), w, h)
 				}
-			} else if strings.Contains(frame, "scroll") {
+			} else if strings.Contains(foot, "scroll") {
 				t.Errorf("%s help %dx%d: the body fits but the footer offers scroll", filepath.Base(f), w, h)
 			}
 		}
@@ -400,7 +494,6 @@ func dialogFits(t *testing.T, name string, m *app, s string, w, h int) {
 	t.Helper()
 	c := m.render(w, h)
 	fy := m.footY // the app's own footer row, as render drew it
-	frame := dialogText(c, m.ovRect, fy)
 	if m.ovRect.Max.Y > fy {
 		t.Errorf("%s: the dialog's last row is %d, the footer starts at %d", name, m.ovRect.Max.Y-1, fy)
 	}
@@ -410,11 +503,152 @@ func dialogFits(t *testing.T, name string, m *app, s string, w, h int) {
 	if m.ovRect.Dy() == 0 {
 		t.Errorf("%s: no dialog drawn", name)
 	}
-	if cut := strings.Contains(frame, m.t.G.Ellipsis+" ") && strings.Contains(frame, " more"); cut && !strings.Contains(frame, "scroll") {
-		t.Errorf("%s: the body is cut (\"%s n more\") with no scroll key in the footer", name, m.t.G.Ellipsis)
+	p := readPos(m.t, c, m.ovRect)
+	if p.hides() && !strings.Contains(footerText(c, fy), "scroll") {
+		t.Errorf("%s: the body is cut (%v) with no scroll key in the footer", name, p)
 	}
-	if s != "help" && strings.Contains(frame, m.t.G.Ellipsis+" ") && strings.Contains(frame, " more") {
-		t.Errorf("%s: a dialog that fits the app's floor is cut:\n%s", name, frame)
+	if p.hides() && !slices.Contains(scrolls, s) {
+		t.Errorf("%s: a dialog that isn't in scrolls is cut at the floor (%v): make it fit, or, if its body must be shown whole and has no length bound, list it in scrolls:\n%s", name, p, strings.Join(rectRows(c, m.ovRect), "\n"))
+	}
+	if slices.Contains(scrolls, s) {
+		key := scrollKey(m)
+		if err := scrollsToItsEnd(m.t, func() (*ui.Canvas, uv.Rectangle) { c := m.render(w, h); return c, m.ovRect }, func() { m.key(press(key)) }); err != nil {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}
+
+// scrollKey is the key that scrolls the open overlay's body down: a key of the action
+// whose help says "scroll", down or j or pgdown first; down when none says so.
+func scrollKey(m *app) string {
+	for _, a := range m.actions() {
+		if !strings.Contains(a.b.Help().Desc, "scroll") {
+			continue
+		}
+		for _, k := range []string{"down", "j", "pgdown", "space"} {
+			if slices.Contains(a.b.Keys(), k) {
+				return k
+			}
+		}
+	}
+	return "down"
+}
+
+// scrollsToItsEnd presses down (press) on a dialog that scrolls (render draws it) until
+// it stops changing, and says what is wrong: rows went by with no position drawn
+// (nothing unsent is hidden without one), the position jumped past a line not yet
+// shown or went back, or the end of the body was never reached. A dialog that fits
+// passes. It reads the position the dialog draws, not its body: a label that advances
+// while the body stays put can't be told from a body that scrolls. Under Clip the
+// rows shown are known from a frame with both markers (the body's length is then
+// up + shown + below in every frame); with no such frame a skip goes unseen.
+func scrollsToItsEnd(th *theme.Theme, render func() (*ui.Canvas, uv.Rectangle), press func()) error {
+	c, r := render()
+	p, text := readPos(th, c, r), strings.Join(rectRows(c, r), "\n")
+	seen := []dialogPos{p}
+	for range 2000 {
+		press()
+		c2, r2 := render()
+		p2, text2 := readPos(th, c2, r2), strings.Join(rectRows(c2, r2), "\n")
+		if text2 == text {
+			break
+		}
+		switch {
+		case !p.hides():
+			return fmt.Errorf("the body scrolled, but no position was drawn while rows were hidden (Clip's rows or ui.DialogLines):\n%s", text)
+		case p.lines != p2.lines:
+			return fmt.Errorf("the position changed form while scrolling: %v, then %v", p, p2)
+		case p.lines && (p2.total != p.total || p2.first <= p.first || p2.first > p.last+1):
+			return fmt.Errorf("scrolling down went from %v to %v: every line is shown on the way, in order", p, p2)
+		case !p.lines && p2.up <= p.up:
+			return fmt.Errorf("scrolling down went from %v to %v: the rows above grow by each step", p, p2)
+		}
+		p, text = p2, text2
+		seen = append(seen, p)
+	}
+	if p.below > 0 || (p.lines && p.last < p.total) {
+		return fmt.Errorf("scrolling down stops at %v, before the body's end", p)
+	}
+	// Clip: each step's first row is at most one past the last row the step before showed
+	total := -1
+	for _, q := range seen {
+		if !q.lines && q.shown >= 0 {
+			total = q.up + q.shown + q.below
+		}
+	}
+	if total >= 0 {
+		for i := 1; i < len(seen); i++ {
+			prev, next := seen[i-1], seen[i]
+			if lastShown := total - prev.below; next.up > lastShown {
+				return fmt.Errorf("scrolling down went from %v to %v: rows %d–%d of %d were never shown", prev, next, lastShown+1, next.up, total)
+			}
+		}
+	}
+	return nil
+}
+
+// A position is read where the kit draws it: Clip's markers as rows of their own, and
+// "lines a–b of n" only in the bottom edge. A verbatim body that quotes "see lines
+// 12-20 of 300 in budget.go", or says "one more line", hides nothing.
+func TestDialogPositionIsReadFromItsEdge(t *testing.T) {
+	th := theme.ResolveProfile(testTheme(t, "charm.json"), true, false, colorprofile.TrueColor)
+	body := []string{"see lines 12-20 of 300 in budget.go", "and one more line", th.G.Ellipsis + " 2 more apples"}
+	cv := ui.NewCanvas(th, 80, 24)
+	r := cv.Overlay(ui.Dialog(th, 60, 0, "Send reply?", body, "", ""), nil)
+	if p := readPos(th, cv, r); p.hides() {
+		t.Errorf("a body's own words read as a position: %v", p)
+	}
+	cv = ui.NewCanvas(th, 80, 24)
+	r = cv.Overlay(ui.DialogStatus(th, 60, 0, "Send reply?", ui.DialogLines(th, 0, 3, 40), body, 0, "", ""), nil)
+	if p := readPos(th, cv, r); !p.lines || p.first != 1 || p.last != 3 || p.total != 40 {
+		t.Errorf("the bottom edge's position read as %v, want lines 1–3 of 40", p)
+	}
+}
+
+// The scroll allowance is checked, not trusted: a dialog that scrolls with
+// ui.DialogLines in its edge and reaches its end passes, and one that scrolls with no
+// position, or stops short, fails. A write confirm whose verbatim body has no length
+// bound scrolls; what the kept tests hold is that nothing is hidden without a position.
+func TestScrollAllowanceIsChecked(t *testing.T) {
+	th := theme.ResolveProfile(testTheme(t, "charm.json"), true, false, colorprofile.TrueColor)
+	body := make([]string, 30)
+	for i := range body {
+		body[i] = fmt.Sprintf("line %d of the reply, one more line to read", i+1)
+	}
+	const shown = 6
+	for _, c := range []struct {
+		name string
+		draw func(off int) string
+		stop int // the last offset down reaches
+		ok   bool
+	}{
+		{"lines in the edge", func(off int) string {
+			return ui.DialogStatus(th, 60, 0, "Send reply?", ui.DialogLines(th, off, shown, len(body)), body[off:off+shown], 0, "", "")
+		}, len(body) - shown, true},
+		{"Clip's rows", func(off int) string {
+			frame := 100 - ui.DialogBodyRows(th, 100, "Send reply?", "", "")
+			return ui.DialogScrolled(th, 60, shown+frame, "Send reply?", body, off, "", "")
+		}, len(body), true},
+		{"no position", func(off int) string {
+			return ui.Dialog(th, 60, 0, "Send reply?", body[off:off+shown], "", "")
+		}, len(body) - shown, false},
+		{"stops short", func(off int) string {
+			return ui.DialogStatus(th, 60, 0, "Send reply?", ui.DialogLines(th, off, shown, len(body)), body[off:off+shown], 0, "", "")
+		}, 10, false},
+		{"Clip, skipping rows", func(off int) string {
+			frame := 100 - ui.DialogBodyRows(th, 100, "Send reply?", "", "")
+			return ui.DialogScrolled(th, 60, shown+frame, "Send reply?", body, off*10, "", "")
+		}, len(body), false},
+	} {
+		off := 0
+		render := func() (*ui.Canvas, uv.Rectangle) {
+			cv := ui.NewCanvas(th, 80, 40)
+			return cv, cv.Overlay(c.draw(off), nil)
+		}
+		err := scrollsToItsEnd(th, render, func() { off = min(off+1, c.stop) })
+		if (err == nil) != c.ok {
+			t.Errorf("%s: scrollsToItsEnd = %v, want ok=%v", c.name, err, c.ok)
+		}
 	}
 }
 

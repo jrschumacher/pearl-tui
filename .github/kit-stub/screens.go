@@ -28,6 +28,7 @@ func (m *app) render(w, h int) *ui.Canvas {
 		y := len(head) + 1
 		body := uv.Rect(g, y, w-2*g, max(0, fy-y-1))
 		m.body, m.footY = body, fy
+		c.Body = body
 		focused := m.ov == ovNone
 		if m.screen == scrDetail {
 			c.Draw(strings.Join(ui.KV(t, [][2]string{{"name", t.S.Base.Render(m.items[m.sel])}, {"state", t.S.Soft.Render("ready")}}, 8), "\n"), body)

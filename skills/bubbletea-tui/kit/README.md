@@ -15,7 +15,7 @@ ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                 dialog.go   DialogTitle, Dialog (on bgPanel, at most h rows), DialogScrolled, DialogStatus (a
                             status in the bottom edge), Popover (on bgOverlay), Clip (a scrolled body with
                             its "more" rows), Canvas.Overlay/Popover
-                overlay.go  what Overlay clears of the page: cut words, edge-row rules, rows with no scrim
+                overlay.go  what Overlay clears of the page: the band a dialog spans, and the body with no scrim
                 chat.go     Gutter, Transcript, UserMessage, AssistantMessage, ToolCall, Thinking, TurnFooter, Tree
                 anim.go     FrameInterval, Anim (brand spinner or the Crush scramble), Spinner,
                             Busy (the one-cell working mark for a status column)
@@ -57,7 +57,8 @@ the kit can't draw (`theme.CheckLadder`).
 - `main.go`: the harness (`-golden`, `-state`, `-out`, `-sizes`, `-theme`, `-light`,
   `-ascii`, `-profile`, `-frame`), `setState` for every named state, and the app's
   tables the harness tests read: `states`, `overlays` (the states that open a dialog,
-  `help` among them), `overlayPages` (the states that draw a selection, a focused field
+  `help` among them), `scrolls` (the overlays whose body may scroll at the floor, `help`
+  among them), `overlayPages` (the states that draw a selection, a focused field
   or a caret), `unjudgedPages` (such states left out, each with why) and `openOverlay`.
 - The harness tests, which read those tables and name no showcase state:
   `showcase_test.go` (the footprint at 5 sizes and the app's floor × every theme × 3
@@ -128,8 +129,8 @@ Once your screens are in, delete what is the showcase's alone:
 - `setup.go` and `setup_test.go`, the first-run wizard, with its wiring: each `scrSetup`,
   `m.setup` and `firstRun` branch in `app.go` and `screens.go`, and in `main.go` the
   `setup-*` states, `setupState`, `-first-run` and the `runAccessibleSetup` call.
-- In `main.go`, set `states`, `overlays`, `overlayPages`, `unjudgedPages` and
-  `openOverlay` to yours. Keep `help` as the keys overlay's state and `toosmall` as the
+- In `main.go`, set `states`, `overlays`, `scrolls`, `overlayPages`, `unjudgedPages`
+  and `openOverlay` to yours. Keep `help` as the keys overlay's state and `toosmall` as the
   too-small one: the tests name those two. `TestOverlayTablesMatchTheStates` holds the
   tables to your states: a state opens a dialog exactly when `overlays` names it, and a
   page that draws a focus mark is in `overlayPages` or renders as one that is.
@@ -137,6 +138,11 @@ Once your screens are in, delete what is the showcase's alone:
   whose focus the kit can't draw blurred, a Huh form's field: the test fails any entry
   in an app that never calls `ui.NewForm`, an empty reason, your main screen
   (`states[0]`), and a page whose focus does blur (unless its reason names Huh).
+  `scrolls` is for a dialog whose body must be shown whole and has no length bound (a
+  write's verbatim text): it may scroll at the floor, and `TestDialogsStayAboveTheFooter`
+  holds it to drawing its position while rows are hidden (Clip's rows, or
+  `ui.DialogLines` set into its bottom edge with `ui.DialogStatus`) and to reaching the
+  body's end by its scroll key. Every other overlay must fit the floor.
 
 Keep `showcase_test.go`, `overlay_test.go`, `behaviour_test.go` and `ansi16_test.go`
 whole. They read your tables and these from your app:
@@ -146,6 +152,10 @@ whole. They read your tables and these from your app:
   as `show`;
 - the fields `t`, `profile`, `ov`, `last`, `ovRect`, `body` and `footY`, and the
   overlay values `ovNone` and `ovHelp`;
+- the canvas's `Body`, set in `render` to the body's rect (`c.Body = body`, the same
+  rect as `m.body`): where the page can't be dimmed a centred dialog hides its rows and
+  keeps the header (unset, the header goes too), and the tests fail a `Body` that
+  doesn't span `m.body`'s rows;
 - help's shape: one row per binding, the key then what it does (a key name holds no
   space), and `esc` closing help back to whatever it was opened over;
 - focus drawn in the theme's marks: the focus bar, cursor, caret or prompt glyph in its

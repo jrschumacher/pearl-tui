@@ -205,7 +205,8 @@ go run ./cmd/<app> -out frames -sizes 80x24,120x40  every state × size into fra
 
 The `states` list names every screen and overlay the app can show (including empty,
 loading, error, too-small). `setState(name)` builds each from scratch with fixture data.
-`overlays` names the states that open a dialog and `overlayPages` the pages they open
+`overlays` names the states that open a dialog, `scrolls` those whose body may scroll
+at the floor (help, and a write's verbatim body), and `overlayPages` the pages they open
 over (`unjudgedPages` the Huh-form pages whose focus can't blur, with why);
 `openOverlay` opens one over the page shown. The harness tests read these tables, hold
 them to the states,

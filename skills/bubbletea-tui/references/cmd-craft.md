@@ -32,7 +32,9 @@ Before any real screen:
 - `render(w, h) *ui.Canvas` shared by `View` and the harness
 - `setState(name)` for every state in the spec, using fixtures, and beside it in
   `main.go` the tables the kept harness tests read: `overlays` (the states that open a
-  dialog, `help` among them), `overlayPages` (the pages they open over),
+  dialog, `help` among them), `scrolls` (the overlays whose body may scroll at the
+  floor, drawing its position: help, a write's verbatim body), `overlayPages` (the pages
+  they open over),
   `unjudgedPages` (Huh-form pages whose focus can't blur, each with why, never the
   main screen) and `openOverlay`. The
   tests then judge every overlay over every page with no edit, and hold the tables to
