@@ -10,7 +10,8 @@ ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                 toast.go    ToastTTL, UndoTTL, GraceTTL, Frames, SecondsLeft, ToastKey (a toast that
                             offers one key: u undo)
                 controls.go Button(s), Tag, Alert, Dot, KV, Progress, Sparkline, Scrollbar, Count, Empty
-                list.go     List (selection styles, fuzzy underline, scrollbar), Table (borderless),
+                list.go     List (selection styles, fuzzy underline, scrollbar), Table (borderless;
+                            TableWith{NoRule} without the rule under its header),
                             Follow (scroll-into-view), Fuzzy (subsequence match with indices)
                 ladder.go   Mark (a status rung in its role), Rungs (the theme's ladder, or the kit's),
                             Ladder (the legend the ladder state draws)

@@ -47,9 +47,11 @@ rest stays subtle. Don't rebuild Section for it. This is how regions separate.
 - The scrollbar column appears only when the list overflows.
 - Empty list: an empty state, never a blank area.
 
-## Table — `ui.Table`
+## Table — `ui.Table`, `ui.TableWith`
 
-Borderless. The header row in subtle UPPERCASE (or the theme's case), one rule under it,
+Borderless. The header row in subtle UPPERCASE (or the theme's case), one rule under it
+(`ui.TableWith(…, ui.TableOpts{NoRule: true})` leaves it out where the app draws its own
+divider there; don't slice the output),
 2-cell column gaps (a last argument of 1 for a dense table: 10 columns at 80 cells),
 numbers right-aligned, the first column taking the rest. The selected row is marked like
 a list row. On a filled selection every block or braille cell (a trace, a sparkline, or a

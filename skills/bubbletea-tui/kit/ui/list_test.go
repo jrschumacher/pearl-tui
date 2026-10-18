@@ -212,3 +212,32 @@ func TestTableGapIsTheCallers(t *testing.T) {
 		t.Errorf("the default gap is not 2: %q", narrow)
 	}
 }
+
+// The rule under a table's header is the caller's: an app that draws its own divider
+// there (a section rule, a filter line) or none sliced Table's output to drop it.
+// TableWith{NoRule} leaves it out, and the rows follow the header directly; the rest
+// (header, gap, selection) is Table's, row for row.
+func TestTableRuleIsOptional(t *testing.T) {
+	for _, ascii := range []bool{false, true} {
+		th := testTheme(t, ascii)
+		header := []string{"service", "when"}
+		rows := [][]string{{"ledger", "2d"}, {"auth-gateway", "8d"}}
+		ruled := Table(th, header, rows, []int{0, 6}, "lr", 1, 40, true, 1)
+		bare := TableWith(th, header, rows, []int{0, 6}, "lr", 1, 40, true, TableOpts{Gap: 1, NoRule: true})
+		if len(ruled) != len(rows)+2 || len(bare) != len(rows)+1 {
+			t.Fatalf("ascii=%v: %d rows with the rule and %d without, want %d and %d", ascii, len(ruled), len(bare), len(rows)+2, len(rows)+1)
+		}
+		if !strings.Contains(ansi.Strip(ruled[1]), th.G.Rule) {
+			t.Errorf("ascii=%v: Table's second row %q is not the rule", ascii, ansi.Strip(ruled[1]))
+		}
+		want := append([]string{ruled[0]}, ruled[2:]...)
+		for i := range want {
+			if bare[i] != want[i] {
+				t.Errorf("ascii=%v: row %d without the rule reads %q, want Table's %q", ascii, i, ansi.Strip(bare[i]), ansi.Strip(want[i]))
+			}
+		}
+		if got := TableWith(th, header, rows, []int{0, 6}, "lr", 1, 40, true, TableOpts{}); !slices.Equal(got, Table(th, header, rows, []int{0, 6}, "lr", 1, 40, true)) {
+			t.Errorf("ascii=%v: TableWith's zero options are not Table's defaults (gap 2, the rule)", ascii)
+		}
+	}
+}

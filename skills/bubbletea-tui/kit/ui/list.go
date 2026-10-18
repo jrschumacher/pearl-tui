@@ -366,12 +366,32 @@ func matchUnderline(s string, idx []int, st lipgloss.Style) string {
 // with aligned columns. widths are cells per column (the last may be 0 =
 // take the rest). align: 'l' or 'r' per column. Selected row per selection. gap is the
 // cells between columns, 2 unless given: a 10-column table at 78 cells fits on 1
-// (ui.Table(…, focused, 1)).
+// (ui.Table(…, focused, 1)). With no rule under the header, TableWith.
 func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align string, sel, w int, focused bool, gap ...int) []string {
 	g := 2
 	if len(gap) > 0 && gap[0] >= 0 {
 		g = gap[0]
 	}
+	return table(t, header, rows, widths, align, sel, w, focused, g, true)
+}
+
+// TableOpts are Table's settings past its arguments.
+type TableOpts struct {
+	Gap    int  // cells between columns: 2 when 0 (for none, Table(…, focused, 0))
+	NoRule bool // no rule under the header: the rows follow it, for an app that draws its own divider there or none
+}
+
+// TableWith is Table with its options: TableWith(…, focused, ui.TableOpts{NoRule: true})
+// leaves out the rule under the header. The zero TableOpts is Table's defaults.
+func TableWith(t *theme.Theme, header []string, rows [][]string, widths []int, align string, sel, w int, focused bool, o TableOpts) []string {
+	g := o.Gap
+	if g <= 0 {
+		g = 2
+	}
+	return table(t, header, rows, widths, align, sel, w, focused, g, !o.NoRule)
+}
+
+func table(t *theme.Theme, header []string, rows [][]string, widths []int, align string, sel, w int, focused bool, g int, rule bool) []string {
 	sp := strings.Repeat(" ", g)
 	ws := append([]int(nil), widths...)
 	used := 0
@@ -394,7 +414,10 @@ func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 	for i, c := range header {
 		h = append(h, t.S.Subtle.Render(cell(t.Label(c, "upper"), i)))
 	}
-	out := []string{Fit("  "+strings.Join(h, sp), w), "  " + Rule(t, w-2)}
+	out := []string{Fit("  "+strings.Join(h, sp), w)}
+	if rule {
+		out = append(out, "  "+Rule(t, w-2))
+	}
 	for r, row := range rows {
 		var cs []string
 		for i, c := range row {
