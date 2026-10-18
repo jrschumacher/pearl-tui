@@ -337,6 +337,7 @@ func bind(keys []string, k, desc string) key.Binding {
 }
 
 func (m *app) key(msg tea.KeyPressMsg) tea.Cmd {
+	defer m.keepSelShown() // whatever the key did (a tab back, a typed letter), the selection is a shown row
 	if msg.String() == "ctrl+c" {
 		return tea.Sequence(m.endToast(), tea.Quit) // always, from everywhere; a held send goes first
 	}
@@ -352,7 +353,6 @@ func (m *app) key(msg tea.KeyPressMsg) tea.Cmd {
 		if m.ov == ovPalette {
 			m.palSel = 0
 		}
-		m.keepSelShown()
 		return nil
 	}
 	for _, a := range m.actions() {
@@ -394,12 +394,21 @@ func (m *app) shown() []int {
 	return out
 }
 
-// keepSelShown moves the selection to the first row the filter leaves when the filter
-// hides it, so the row the actions target is always one on screen.
+// keepSelShown moves the selection on Services to the first row the filter leaves when
+// the filter hides it (a typed letter, a tab back from Deploys, which selects a deploy's
+// service), so the row the actions target is always one on screen. key runs it after
+// every key. With no row left, noRow says so and nothing names or acts on the selection.
 func (m *app) keepSelShown() {
-	if v := m.shown(); len(v) > 0 && !slices.Contains(v, m.sel) {
+	if v := m.shown(); m.screen == scrServices && len(v) > 0 && !slices.Contains(v, m.sel) {
 		m.sel = v[0]
 	}
+}
+
+// noRow reports whether Services shows no row (a filter that leaves none): then there is
+// no selection, so the header, the side pane and the window title name no service, and
+// no key (d, r, the palette's commands) acts on the one the filter hides.
+func (m *app) noRow() bool {
+	return m.screen == scrServices && len(m.shown()) == 0
 }
 
 func backspace(m *app, _ tea.KeyPressMsg) tea.Cmd {
@@ -719,13 +728,17 @@ func (m *app) stateActions() []action {
 	if m.filtering {
 		// typing: letters are the query, so the list moves on the arrows alone
 		move.b = bind([]string{"up", "down"}, m.t.G.UpDown, "select")
-		return []action{
+		acts := []action{
 			{bind([]string{"enter"}, "enter", "keep filter"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
 				m.filtering = false
 				return nil
 			}},
-			clearFilter, move, palette, help, bs,
+			clearFilter,
 		}
+		if !m.noRow() { // the palette's commands act on the selection, which the filter hides
+			acts = append(acts, move, palette)
+		}
+		return append(acts, help, bs)
 	}
 	filterDesc := "filter"
 	if m.filter != "" {
@@ -737,7 +750,7 @@ func (m *app) stateActions() []action {
 	}}
 	if m.filter != "" && len(m.shown()) == 0 {
 		// nothing left to act on: no key may reach the service the filter hides
-		return []action{clearFilter, typeFilter, palette, tabs, tabsBack, quit, help}
+		return []action{clearFilter, typeFilter, tabs, tabsBack, quit, help}
 	}
 	// a toggle's help names what the key does now (TestToggleHelpIsTruthful): "pause"
 	// while the list is live, "resume" while it is paused. Pause changes the product
@@ -927,6 +940,9 @@ func (m *app) View() tea.View {
 	v := tea.NewView(c.String())
 	v.AltScreen = true
 	v.WindowTitle = m.t.AppName() + " " + m.t.G.Sep + " " + m.svcs[m.sel].Name
+	if m.noRow() {
+		v.WindowTitle = m.t.AppName()
+	}
 	if m.screen == scrSetup {
 		v.WindowTitle = m.t.AppName() + " " + m.t.G.Sep + " setup"
 	}

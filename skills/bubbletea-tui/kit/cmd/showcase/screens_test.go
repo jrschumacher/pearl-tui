@@ -990,3 +990,65 @@ func TestPromptNeverSitsOnTheCursor(t *testing.T) {
 		t.Error("no caret theme drew its cursor in the prompt's column: this test no longer sees the case it guards")
 	}
 }
+
+// No key acts on a row the filter hides, however the selection got there (review of
+// #76). Tabbing away to Deploys moves the selection to a deploy's service, which the
+// filter may hide: back on Services the selection is on a shown row again, so the
+// header, r roll back and the palette name a row on screen. A filter that leaves no
+// row selects none: the header and the side pane name no service, and no key (the
+// palette's commands among them) reaches the hidden one, typed or in force.
+func TestFilterNeverActsOnAHiddenRow(t *testing.T) {
+	shownSel := func(m *app) bool { return slices.Contains(m.shown(), m.sel) }
+	m := fixture(t, "services")
+	m.key(press("/"))
+	for _, k := range "ledg" {
+		m.key(press(string(k)))
+	}
+	m.key(press("enter"))
+	m.key(press("tab"))
+	m.key(press("j"))
+	m.key(press("j"))
+	m.key(press("shift+tab"))
+	if m.screen != scrServices || !shownSel(m) {
+		t.Fatalf("back on Services after the deploys moved it, the selection is %q, which the filter %q hides", m.svcs[m.sel].Name, m.filter)
+	}
+	if head := ansi.Strip(m.render(80, 24).String()); !strings.Contains(strings.Split(head, "\n")[0], "ledger") {
+		t.Errorf("the header names %q, not the one shown row", strings.Split(head, "\n")[0])
+	}
+
+	for _, typing := range []bool{true, false} {
+		m := fixture(t, "services")
+		m.key(press("/"))
+		for _, k := range "zz" {
+			m.key(press(string(k)))
+		}
+		if !typing {
+			m.key(press("enter"))
+		}
+		if len(m.shown()) != 0 {
+			t.Fatalf("\"zz\" leaves %d rows", len(m.shown()))
+		}
+		for _, a := range m.actions() {
+			if d := a.b.Help().Desc; d == "commands" || d == "deploy" || d == "roll back" {
+				t.Errorf("typing=%v: with no row shown, %s is bound, which acts on the hidden %q", typing, d, m.svcs[m.sel].Name)
+			}
+		}
+		for _, sz := range [][2]int{{80, 24}, {120, 40}} {
+			txt := ansi.Strip(m.render(sz[0], sz[1]).String())
+			head := strings.Split(txt, "\n")[0]
+			for _, s := range m.svcs {
+				if strings.Contains(head, s.Name) {
+					t.Errorf("typing=%v %dx%d: with no row shown the header names %q: %q", typing, sz[0], sz[1], s.Name, head)
+				}
+			}
+			// the detail line (80) and the side pane (120) both draw owner and p99
+			if strings.Contains(txt, "owner") || strings.Contains(txt, "p99 latency") {
+				t.Errorf("typing=%v %dx%d: with no row shown the screen still draws a service's detail:\n%s", typing, sz[0], sz[1], txt)
+			}
+		}
+		m.key(press("ctrl+p"))
+		if m.ov == ovPalette {
+			t.Errorf("typing=%v: ctrl+p opened the palette, whose commands act on the hidden %q", typing, m.svcs[m.sel].Name)
+		}
+	}
+}

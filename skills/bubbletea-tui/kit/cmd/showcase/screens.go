@@ -42,8 +42,10 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		return c
 	}
 	g := t.X.Gutter
-	s := m.svcs[m.sel]
-	details := ui.Details(t, "prod", "us-east-1", s.Name)
+	details := ui.Details(t, "prod", "us-east-1", m.svcs[m.sel].Name)
+	if m.noRow() {
+		details = ui.Details(t, "prod", "us-east-1") // no row shown, no selection to name
+	}
 	if m.screen == scrSetup {
 		details = ui.Details(t, "setup", m.setup.steps(t).Count())
 	}
@@ -206,7 +208,9 @@ func (m *app) services(c *ui.Canvas, r uv.Rectangle) {
 	c.Draw(strings.Join(tbl, "\n"), main)
 	s := m.svcs[m.sel]
 	if side.Dx() > 0 {
-		m.serviceDetail(c, side)
+		if !m.noRow() {
+			m.serviceDetail(c, side)
+		}
 		// tall terminals: use the room for the activity feed, not blank rows
 		if top := main.Min.Y + len(tbl) + 2; main.Max.Y-top >= 6 {
 			act := []string{ui.Section(t, "Activity", main.Dx(), "last hour"), ""}
