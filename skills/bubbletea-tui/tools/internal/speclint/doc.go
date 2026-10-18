@@ -89,12 +89,12 @@
 //	                  text on the row takes more. The message names what it drops and suggests a
 //	                  footer that fits, with the state's way out (esc, quit, back, close, cancel)
 //	                  and its one main action kept and the other keys moved out from the end.
-//	                  Global keys are not in a state's footer, and a state whose cell marks no
-//	                  footer keys (`‖ q quit`: toosmall, drawn by ui.TooSmallText) has none.
+//	                  Global keys are not in a state's footer.
 //	             [P2] a state with a marked footer and help-only keys whose footer shows no key
 //	                  that opens help (`?`, ctrl+g, an action that says help), when Global doesn't
-//	                  bind one: nobody finds the help-only keys. The help overlay itself (a state
-//	                  named help, keys or shortcuts, or help-<over what>) is full help.
+//	                  bind one: nobody finds the help-only keys. Not the help overlay itself, full
+//	                  help (a state named help, keys or shortcuts, or help-over-<state>), nor
+//	                  toosmall (or too-small), which ui.TooSmallText draws with no footer.
 //	S-ACCENT     [P2] the `accents:` lines give each hue one meaning (`accents: amber = new,
 //	                  nothing else; teal = running`) and another line puts "the accent" or "the
 //	                  primary hue/colour" on something else (the wordmark, the spinner's dots, a

@@ -118,8 +118,10 @@ func opensHelp(item string) bool {
 	return helpAction.MatchString(b.action)
 }
 
-// helpState is the help overlay itself, full help: it needs no key that opens it.
-var helpState = regexp.MustCompile(`(?i)^(?:help|keys|shortcuts)(?:\b|$)`)
+// helpState is the help overlay itself, full help (`help`, `keys`, `shortcuts`, or help
+// over another state, `help-over-confirm`), and toosmall, drawn by ui.TooSmallText with
+// no footer row: neither needs a key that opens help.
+var helpState = regexp.MustCompile(`(?i)^(?:(?:help|keys|shortcuts)(?:-over-[\w-]+)?|too-?small)$`)
 
 // drawnHint is an item as the footer draws it. A help item that lists aliases for the
 // dispatcher (`?/h/f1 help`, `ctrl+g/f1 help`) is drawn as its first key, `? help`,
@@ -240,9 +242,6 @@ func (s *spec) footerFit(add func(string, int, string, ...any)) {
 		if r.badge != "" { // ui.Footer draws the badge, then a space, then the keys
 			budget -= ansi.StringWidth(r.badge) + 1
 			beside = fmt.Sprintf(", %d beside its `%s` badge", budget, r.badge)
-		}
-		if len(r.footer) == 0 {
-			continue // no footer row (toosmall through ui.TooSmallText): nothing to fit or find
 		}
 		_, dropped := packFooter(drawnHints(r.footer), budget)
 		if len(dropped) > 0 {

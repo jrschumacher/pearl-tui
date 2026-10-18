@@ -171,8 +171,12 @@ func TestRules(t *testing.T) {
 		// the help overlay is full help: it needs no key that opens it; a state drawn with
 		// no footer row (toosmall through ui.TooSmallText) shows no keys at all
 		{"the help overlay hides keys behind nothing", table("| help | overlay | **esc close** · ↑↓ scroll · ?/h/f1/ctrl+g close |", ""), nil},
-		{"help over a tour is help too", table("| help-tour | overlay | esc close ‖ ↑↓ scroll |", ""), nil},
+		{"help over a tour is help too", table("| help-over-tour | overlay | esc close ‖ ↑↓ scroll |", ""), nil},
 		{"a state with no footer row", table("| toosmall | any | ‖ q quit |", ""), nil},
+		{"too-small too", table("| too-small | any | ‖ q quit |", ""), nil},
+		{"a keybinding editor is not help", table("| keys-editor | keys | **enter rebind** · **esc back** · x reset |", ""), map[string]int{"S-FOOTER": 1}},
+		{"a help picker is not help", table("| help-picker | overlay | **enter pick** · **esc back** · x remove |", ""), map[string]int{"S-FOOTER": 1}},
+		{"a cell that hides every key", table("| list | list | ‖ ↑↓ move · enter open · d delete · x export |", ""), map[string]int{"S-FOOTER": 1}},
 		// a help item's aliases are for the dispatcher: the footer draws its first key
 		// (`? help`), which ui.Help pins
 		{"?/h/f1 help counts as ? help", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 34)+" · ?/h/f1 help |", ""), nil},
