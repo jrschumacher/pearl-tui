@@ -32,7 +32,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme"
+	"tuikit/theme/bubbletea"
 	"tuitools/internal/oklch"
 	"tuitools/internal/pyfmt"
 )
@@ -312,7 +312,7 @@ func onFloor(on string) float64 {
 }
 
 // ExpressionChecks are the pairs that exist only because of an expression choice
-// (mirroring kit/ui): a "bar" footer draws the key hints in fgSubtle on bgSubtle, so
+// (mirroring kit/ui/bubbletea): a "bar" footer draws the key hints in fgSubtle on bgSubtle, so
 // that pair must clear tuilint's 2.3 floor.
 func ExpressionChecks(expressions map[string]any) []Check {
 	var extra []Check

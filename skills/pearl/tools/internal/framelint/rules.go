@@ -13,7 +13,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"tuikit/theme"
+	"tuikit/theme/bubbletea"
 	"tuitools/internal/tuimd"
 )
 

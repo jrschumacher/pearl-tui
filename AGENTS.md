@@ -17,7 +17,9 @@ skills/pearl/
   tools/          Go module `tuitools`: cellshot, tuilint, tuivet, palette, diversity (the build loop),
                   feedback (files an issue here from a user's agent)
   scripts/        wordmark, logo2cells (Python 3 + Pillow/numpy; brand-asset conversion only)
-  kit/            Go module `tuikit`: theme/, ui/, themes/*.json, cmd/showcase (reference app + harness)
+  kit/            Go module `tuikit`: themes/*.json (the framework-neutral contract),
+                  theme/bubbletea/ and ui/bubbletea/ (one framework's engine and components),
+                  cmd/showcase (the Bubble Tea reference app + harness)
 .claude-plugin/   plugin.json + marketplace.json: the repo root is a Claude Code plugin that
                   bundles skills/pearl (default skills/ scan) and hooks/
 hooks/            hooks.json (PostToolUse on Edit|Write|MultiEdit) → tuilint-edit.sh, which
@@ -56,7 +58,7 @@ jq -e '.skill_name=="pearl"' evals/evals.json && jq -r '.evals[].files[]' evals/
 ```
 
 CI (`.github/workflows/ci.yml`) runs all of these plus a render-and-lint pass over every
-theme (and the test themes in `kit/theme/testdata`) in the variants its loop lists, seven
+theme (and the test themes in `kit/theme/bubbletea/testdata`) in the variants its loop lists, seven
 today: dark, `-light`, `-ascii` (linted with `--ascii`), `-profile ansi256`,
 `-profile ansi`, `-light -profile ansi` and `NO_COLOR=1`. Light, ASCII, 256 and 16
 colours and no colour are where footers, rules, background steps and downsampled roles
@@ -107,8 +109,8 @@ The skill gets better from observed misses, not from adding prose.
   (`kit/cmd/showcase/app.go`); `TestHelpIsHandled` enforces it. Don't add a footer
   binding any other way.
 - **No literals in screens.** Colours and glyphs come from the theme. `tuilint code`
-  fails on hex [C-HEX] and on a glyph (`·`, `▏`, `→`) [C-GLYPH] outside `theme/` and
-  `ui/canvas.go`'s twin table; a new glyph is a `theme.Glyphs` field with an ASCII twin.
+  fails on hex [C-HEX] and on a glyph (`·`, `▏`, `→`) [C-GLYPH] outside `theme/bubbletea/`
+  and `ui/bubbletea/canvas.go`'s twin table; a new glyph is a `theme.Glyphs` field with an ASCII twin.
 - **Libraries go through the kit's theme.** Huh forms are built with `ui.NewForm` and
   spinners with `ui.HuhSpinner` / `ui.BubblesSpinner`; `tuilint code` fails a bare
   `huh.NewForm` or an unstyled spinner [C-HUHTHEME]. Huh v2.0.3's quirks and the kit's
@@ -152,7 +154,7 @@ type(scope)!: description        e.g.  fix(kit): keep the focus bar on resize
   | Scope | Covers |
   |---|---|
   | `skill` | SKILL.md and `references/` |
-  | `kit` | the Go kit: `theme/`, `ui/`, `cmd/showcase` |
+  | `kit` | the Go kit: `theme/<framework>/`, `ui/<framework>/`, `cmd/showcase` |
   | `themes` | `kit/themes/*.json` |
   | `tools` | the Go tools in `tools/` |
   | `scripts` | the Python brand-asset converters |

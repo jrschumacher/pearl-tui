@@ -12,8 +12,8 @@ import (
 	"github.com/charmbracelet/colorprofile"
 	uv "github.com/charmbracelet/ultraviolet"
 
-	"tuikit/theme"
-	"tuikit/ui"
+	"tuikit/theme/bubbletea"
+	"tuikit/ui/bubbletea"
 )
 
 // ansi16States are the states #51's sheets judge: every page that draws a selection

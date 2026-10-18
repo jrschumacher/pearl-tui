@@ -24,7 +24,7 @@
 # gate: the edited file must sit under a TUI.md (up to the repository root) or in a
 # module whose go.mod requires charm.land/bubbletea/v2 or charm.land/huh/v2, or import
 # one of them itself; otherwise the edit is in some other Go project and nothing is
-# built. The theme-package opt-in (a copy of the kit's theme/) is left to tuilint hook,
+# built. The theme-package opt-in (a copy of the kit's theme package) is left to tuilint hook,
 # which makes the exact decision once the tools exist. The cache holds, beside the
 # binaries:
 #   .built          the plugin root the tools were built from; its mtime is the build's

@@ -11,7 +11,7 @@ Verified against `charm.land/bubbletea/v2 v2.1.0`, `charm.land/lipgloss/v2 v2.0.
 ```
 go get charm.land/bubbletea/v2@v2.1.0 charm.land/lipgloss/v2@v2.0.6 charm.land/bubbles/v2@v2.2.1 \
        charm.land/huh/v2@v2.0.3 github.com/charmbracelet/ultraviolet@v0.0.0-20261008173134-6b8d4baf91b4
-# huh is required once you copy the kit's ui/ (form.go); optional: charm.land/glamour/v2@v2.0.1
+# huh is required once you copy the kit's ui/bubbletea (form.go); optional: charm.land/glamour/v2@v2.0.1
 ```
 
 Never `github.com/charmbracelet/bubbletea` (v1) in new code [C-V1].
@@ -83,8 +83,8 @@ func (m *model) View() tea.View {                            // returns tea.View
 
 ### Huh v2
 
-Use Huh for input mechanics and the kit's `ui/form.go` for everything it renders. Never
-`huh.NewForm` bare: `tuilint code` fails it [C-HUHTHEME] and Huh's defaults render.
+Use Huh for input mechanics and the kit's `ui/bubbletea/form.go` for everything it
+renders. Never `huh.NewForm` bare: `tuilint code` fails it [C-HUHTHEME] and Huh's defaults render.
 
 - `ui.NewForm(t, w, h, groups...)` themes the form from `*theme.Theme` (`ui.HuhTheme`),
   sets the kit's keys (`ui.FormKeys`) and honours `ACCESSIBLE=1` (`ui.Accessible`).

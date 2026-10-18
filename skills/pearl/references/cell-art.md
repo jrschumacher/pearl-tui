@@ -77,7 +77,7 @@ generator is a starting point, not the answer.
 
 A field is the terminal version of a tiled-icon brand background: two glyphs on a
 lattice, one bright and one subtle, angled, with a gradient. It is in the kit as
-`kit/ui/field.go`.
+`kit/ui/bubbletea/field.go`.
 
 - **The angle is a shear.** A cell grid cannot rotate. Instead, each row of the lattice
   shifts by `shear` cells. A period of 8–10 columns × 2 rows with shear 3–5 reads as

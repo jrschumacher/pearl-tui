@@ -78,8 +78,8 @@ Round 2, architecture (screens always; the rest only what the code didn't answer
    deployed`), one per command you found, plus each flow the docs describe that has
    no screen yet (an export, a background sync).
 2. **Forms.** Default: Huh v2 for input mechanics (select, input, confirm), themed from
-   the brand theme through the kit's `ui.NewForm` (`ui/form.go`), because Huh's own theme is the indigo
-   every Huh demo ships.
+   the brand theme through the kit's `ui.NewForm` (`ui/bubbletea/form.go`), because
+   Huh's own theme is the indigo every Huh demo ships.
 3. **Slow work and the floor.** What is async (network, builds, streaming), can it be
    cancelled, and the smallest terminal. Default: every call is a `tea.Cmd` with a cancel;
    60×18 floor, designed at 80×24.
@@ -152,7 +152,8 @@ rows: <spinners for row-level work>; idle: nothing moves
 ### Stack
 Go 1.26.7; charm.land/bubbletea/v2 v2.1.0, lipgloss/v2 v2.0.6, bubbles/v2 v2.2.1,
 huh/v2 v2.0.3; ultraviolet v0.0.0-20261008173134-6b8d4baf91b4.
-theme/ and ui/ copied from the kit into internal/; the showcase into cmd/<app>.
+The kit's theme/bubbletea and ui/bubbletea copied into internal/theme and internal/ui;
+the showcase into cmd/<app>.
 
 ### Root model and regions
 One *model in cmd/<app> (where the kit's copy block puts the harness and its tests);

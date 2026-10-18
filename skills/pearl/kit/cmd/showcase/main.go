@@ -28,9 +28,9 @@ import (
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme"
+	"tuikit/theme/bubbletea"
 	"tuikit/themes"
-	"tuikit/ui"
+	"tuikit/ui/bubbletea"
 )
 
 // states are every screen the app can show. A state you can't render here is

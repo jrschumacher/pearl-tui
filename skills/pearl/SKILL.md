@@ -31,8 +31,8 @@ to all three. A half-applied idiom reads as noise.
 2. **Load the command's reference** from the table below, plus the domain references it
    names. Load nothing else up front.
 3. **Start from the kit, never from prose.** `kit/` is a compiling Bubble Tea v2 module:
-   `theme/` (engine), `ui/` (components), `cmd/showcase/` (a full reference app with the
-   harness), `themes/` (seven brand themes). Copy and adapt it. A cold rebuild from
+   `theme/bubbletea/` (engine), `ui/bubbletea/` (components), `cmd/showcase/` (a full
+   reference app with the harness), `themes/` (seven brand themes). Copy and adapt it. A cold rebuild from
    descriptions loses half the idiom at once.
 4. **Build the tools** once per project, into the project's own `.tuitools/`, from the
    project root: `go -C <dir holding this file>/tools build -o "$PWD/.tuitools/" ./cmd/...`
@@ -115,7 +115,7 @@ signals, or holes in filled bars.
 **DON'T** centre lists, hard-code 80, or let content push the footer off screen.
 
 ### Components → *Consult `references/components.md`*
-**DO** copy `kit/ui`: Header, Tabs, Section, List, Table, KV, Dialog + Overlay, Button,
+**DO** copy `kit/ui/bubbletea`: Header, Tabs, Section, List, Table, KV, Dialog + Overlay, Button,
 Tag, Alert, Toast, Footer/Help, ToolCall, Thinking, Progress, Trace, Sparkline, Tree, Empty,
 TooSmall; for wizards and status, Steps, Summary, Form/Confirm, Dot/Busy, Anim, Field,
 Canvas.
@@ -229,7 +229,8 @@ a `TUI.md`: fix what it reports.
 `kit/` (module `tuikit`): `go test ./...` renders seven themes × dark/light/ASCII × every
 state × five sizes and asserts the footprint and contrast. `go run ./cmd/showcase
 -theme themes/halyard.json` runs the reference app. Its `-out` flag writes every state
-for `cellshot`. Copy `theme/` and `ui/` into the project and rename the import path.
+for `cellshot`. Copy `theme/bubbletea` and `ui/bubbletea` into the project's
+`internal/theme` and `internal/ui` with the README block, which rewrites the imports.
 
 You can build terminal interfaces people screenshot and share. The libraries are
 capable of it, and Crush proves it. The difference is decisions: make them in the brand

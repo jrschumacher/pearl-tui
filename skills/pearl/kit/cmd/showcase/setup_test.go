@@ -11,8 +11,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme"
-	"tuikit/ui"
+	"tuikit/theme/bubbletea"
+	"tuikit/ui/bubbletea"
 )
 
 // drive presses keys the way a running program would deliver them: each
@@ -294,7 +294,7 @@ func TestAccessibleSetup(t *testing.T) {
 // beside "cluster" and "namespace", because t.Copy took any text with a space for a
 // sentence.
 func TestSetupCopyFollowsTheme(t *testing.T) {
-	q, err := theme.Load(filepath.Join("..", "..", "theme", "testdata", "quire.json"))
+	q, err := theme.Load(filepath.Join("..", "..", "theme", "bubbletea", "testdata", "quire.json"))
 	if err != nil {
 		t.Skip("quire.json is the kit's; a copied project has its own themes")
 	}

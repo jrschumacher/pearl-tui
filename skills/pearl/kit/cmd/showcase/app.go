@@ -10,8 +10,8 @@ import (
 	"github.com/charmbracelet/colorprofile"
 	uv "github.com/charmbracelet/ultraviolet"
 
-	"tuikit/theme"
-	"tuikit/ui"
+	"tuikit/theme/bubbletea"
+	"tuikit/ui/bubbletea"
 )
 
 // One root model. Regions are plain structs drawn into rectangles by View;

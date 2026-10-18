@@ -14,7 +14,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme"
+	"tuikit/theme/bubbletea"
 )
 
 // RGB is a colour.

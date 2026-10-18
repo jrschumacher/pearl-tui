@@ -1,4 +1,6 @@
-// Command tuilint catches TUI slop deterministically: in rendered frames, in Go source and in TUI.md.
+// Command tuilint catches TUI slop deterministically: in rendered frames, in Bubble Tea Go
+// source and in TUI.md. frames and spec judge any framework's output; code lints Bubble
+// Tea v2 code, the one framework the kit supports today.
 //
 //	tuilint frames <dir|files...> [--cols W --rows H] [--theme theme.json] [--bg #rrggbb] [--spec TUI.md] [--json out.json]
 //	tuilint code <dir...> [--theme-pkg path/fragment] [--json out.json]

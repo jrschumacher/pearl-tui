@@ -14,7 +14,7 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
    short form, saying what you assumed; otherwise suggest `init` and stop: restyling
    without the brand read and the screen plan only recolours.
 1. **Get eyes on it first** (`cmd-critique.md` §1) and save the "before" sheets.
-2. **Add the harness from the kit.** Copy `theme/` and `ui/` with the README block
+2. **Add the harness from the kit.** Copy `theme/bubbletea` and `ui/bubbletea` with the README block
    (`cmd-craft.md` §1; skip `cmd/showcase`, the app exists), then lift `main.go`'s
    harness (`render(w, h)`, `setState`, `states`, `overlays`, `scrolls`, `overlayPages`,
    `unjudgedPages`, `openOverlay`, the `-golden`/`-out` flags) into the app's package

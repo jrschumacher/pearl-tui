@@ -1,6 +1,9 @@
-// Package codelint lints Go source for the mistakes that make frames wrong. Each rule is a
-// go/analysis analyzer, so the same checks run from `tuilint code`, from
-// `go vet -vettool=$(which tuivet)` and in editors.
+// Package codelint lints Bubble Tea code: Go source built on Bubble Tea v2, Lip Gloss,
+// Bubbles and Huh, the one framework the kit supports today, for the mistakes that make
+// frames wrong. Each rule is a go/analysis analyzer, so the same checks run from
+// `tuilint code`, from `go vet -vettool=$(which tuivet)` and in editors. The theme
+// package is one whose path ends in theme (a project's internal/theme) or in
+// theme/<framework> (the kit's theme/bubbletea).
 //
 // Rules, with their severity (P0/P1 fail the run, P2 warn):
 //
@@ -10,13 +13,14 @@
 //	C-EMOJI     [P1] emoji in string or rune literals
 //	C-GLYPH     [P1] a drawn mark in a string or rune literal outside the theme package and the
 //	                 ASCII twin table (a composite literal initializing a package-level var named
-//	                 *ascii*, the kit's ui/canvas.go): arrows, box drawing, blocks, geometric
-//	                 shapes, misc symbols and technical, dingbats, braille, the marks · • …, and
-//	                 any rune the kit's twin table maps. Screens take those from the theme, so a
-//	                 brand can change them and ASCII gets a twin. Text is not a glyph: letters
-//	                 and digits of any script, quotation marks and dashes (it’s, «q», a — b, a
-//	                 range's 1–9), currency (£5) and units, marks and maths (72°F © ® ™ × ÷ ± ≥
-//	                 ≤ ≠ ¹ ² ³ ½ µ, 80×24); the canvas's ASCII sweep maps × and the dashes itself
+//	                 *ascii*, the kit's ui/bubbletea/canvas.go): arrows, box drawing, blocks,
+//	                 geometric shapes, misc symbols and technical, dingbats, braille, the
+//	                 marks · • …, and any rune the kit's twin table maps. Screens take those
+//	                 from the theme, so a brand can change them and ASCII gets a twin. Text is
+//	                 not a glyph: letters and digits of any script, quotation marks and dashes
+//	                 (it’s, «q», a — b, a range's 1–9), currency (£5) and units, marks and
+//	                 maths (72°F © ® ™ × ÷ ± ≥ ≤ ≠ ¹ ² ³ ½ µ, 80×24); the canvas's ASCII sweep
+//	                 maps × and the dashes itself
 //	C-ELLIPSIS  [P1] the bare theme.Ellipsis outside the ui package: cut with ui.Trunc(t, s, w), which
 //	                 fits the theme's glyph t.G.Ellipsis and its ASCII twin inside w
 //	C-V1        [P1] Bubble Tea / Lip Gloss / Bubbles / Huh v1 import paths
@@ -68,7 +72,9 @@ type Finding struct {
 
 const usage = `usage: tuilint code <dir...> [--theme-pkg path/fragment] [--json out.json]
 
-Lints Go source for the mistakes that make frames wrong. A finding prints as
+Lints Bubble Tea code (Go on Bubble Tea v2, Lip Gloss, Bubbles and Huh, the one
+framework the kit supports today) for the mistakes that make frames wrong. The theme
+package is the one whose path ends in theme or theme/<framework>. A finding prints as
 [SEV] ID  file:line  message. P0/P1 findings fail the run (exit 1); P2 are
 warnings to fix or justify in one line. Exit 2 on usage errors or a directory
 that won't load. Test files (_test.go) are not linted.

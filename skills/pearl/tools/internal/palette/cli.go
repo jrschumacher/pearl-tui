@@ -15,7 +15,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme"
+	"tuikit/theme/bubbletea"
 	"tuitools/internal/cellshot"
 	"tuitools/internal/oklch"
 	"tuitools/internal/pyfmt"

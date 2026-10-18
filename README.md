@@ -111,15 +111,17 @@ skills/pearl/
 ├── scripts/              Python + Pillow, only for converting brand assets
 │   ├── wordmark.py       a brand name in terminal cells, from a real font
 │   └── logo2cells.py     a logo raster onto the cell grid, with lint
-├── kit/                  a compiling Bubble Tea v2 module to copy from, not re-derive
-│   ├── theme/            the theme engine: roles, glyphs, expressions → styles
-│   ├── ui/               header, tabs, section, list, table, dialog + scrim, buttons, tags,
+├── kit/                  a compiling Go module to copy from, not re-derive; Bubble Tea v2 today
+│   ├── themes/           the theme contract, framework-neutral: eight themes (a default,
+│   │                     a Crush study, six fictional brands)
+│   ├── theme/bubbletea/  the Bubble Tea theme engine: roles, glyphs, expressions → styles
+│   ├── ui/bubbletea/     header, tabs, section, list, table, dialog + scrim, buttons, tags,
 │   │                     alerts, toast, help/footer, tool calls, thinking, anim, progress,
 │   │                     sparkline, tree, field, empty states, canvas; Huh forms themed
 │   │                     from the brand, a stepper and a summary panel for wizards
-│   ├── themes/           eight themes (a default, a Crush study, six fictional brands)
-│   └── cmd/showcase/     the reference app (an ops dashboard and a first-run setup wizard)
-│                         + harness (-golden, -state, -out, -profile, -light, -ascii, -first-run)
+│   └── cmd/showcase/     the Bubble Tea reference app (an ops dashboard and a first-run
+│                         setup wizard) + harness (-golden, -state, -out, -profile, -light,
+│                         -ascii, -first-run)
 .claude-plugin/           plugin.json + marketplace.json: the repo as a Claude Code plugin
 hooks/                    the plugin's PostToolUse hook: tuilint code after every Go edit
 evals/                    cases for skill-creator, with fixtures (outside the skill: installs don't ship them)

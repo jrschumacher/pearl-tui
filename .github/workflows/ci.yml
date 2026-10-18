@@ -44,7 +44,7 @@ jobs:
   kit-copy:
     name: kit copy (README block in a fresh module, ${{ matrix.theme }})
     runs-on: ubuntu-latest
-    # lumen is a focus "primary" brand; quire (theme/testdata) is focus "fg", where a copied
+    # lumen is a focus "primary" brand; quire (theme/bubbletea/testdata) is focus "fg", where a copied
     # test that assumed primary ink (the spinner's) failed in a project before it did here.
     strategy:
       matrix:
@@ -52,7 +52,7 @@ jobs:
           - theme: lumen
             donor: themes/lumen.json
           - theme: quire
-            donor: theme/testdata/quire.json
+            donor: theme/bubbletea/testdata/quire.json
           # halyard is a "fill" selection: the focused row, not a glyph, is the page's
           # focus mark, which the stub's list page draws and the focus tests must find
           - theme: halyard
@@ -119,13 +119,13 @@ jobs:
         run: tuilint code skills/pearl/kit
       - name: palettes and diversity
         run: |
-          # theme/testdata holds the kit's test themes (quire); palette check also gates glyph twins
-          for t in skills/pearl/kit/themes/*.json skills/pearl/kit/theme/testdata/*.json; do palette check "$t"; done
+          # theme/bubbletea/testdata holds the kit's test themes (quire); palette check also gates glyph twins
+          for t in skills/pearl/kit/themes/*.json skills/pearl/kit/theme/bubbletea/testdata/*.json; do palette check "$t"; done
           diversity skills/pearl/kit/themes/*.json
       # dark truecolour is what a theme is designed in; light, ASCII, 256 and 16 colours (dark
       # and light: a light page downsamples its roles differently) and NO_COLOR are what
       # many users get, and where the footer bar, rules, background steps
-      # and downsampled roles break first. theme/testdata holds the kit's test themes
+      # and downsampled roles break first. theme/bubbletea/testdata holds the kit's test themes
       # (quire: focus fg, dialog rules), rendered and linted the same way.
       # Warnings (P2) are held to .github/tuilint-baseline.json per "<theme>-<variant>"
       # (missing = 0) with --max-warnings, so a new warning class fails here rather
@@ -136,7 +136,7 @@ jobs:
           cd skills/pearl/kit
           go build -o "$RUNNER_TEMP/showcase" ./cmd/showcase
           fail=0
-          for t in themes/*.json theme/testdata/*.json; do
+          for t in themes/*.json theme/bubbletea/testdata/*.json; do
             n=$(basename "$t" .json)
             for v in dark light ascii ansi256 ansi light-ansi nocolor; do
               env=(); lint=()

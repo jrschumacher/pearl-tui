@@ -15,8 +15,8 @@ import (
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme"
-	"tuikit/ui"
+	"tuikit/theme/bubbletea"
+	"tuikit/ui/bubbletea"
 )
 
 // testThemes finds the theme JSONs two levels up: kit/themes here, and the project's

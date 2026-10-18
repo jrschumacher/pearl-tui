@@ -81,7 +81,7 @@ agreeing with your grades line for line.
   prose; they don't ignore a hook. The first dogfood run was the case for it: the skill
   described theming Huh, and the agent skipped it until C-HUHTHEME made it fail. Still to
   measure: whether the next dogfood run fixes findings on the edit that caused them.
-- **One contrast audit**: the contrast rules should live once in `tuikit/theme`
+- **One contrast audit**: the contrast rules should live once in `tuikit/theme/bubbletea`
   (`theme.Audit`) for both the kit tests and `palette check`.
 - **Distribution**: builds for other agents (Cursor, Codex, Gemini CLI) once the formats
   are verified. The Claude Code marketplace manifest shipped with the hook

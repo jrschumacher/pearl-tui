@@ -511,7 +511,7 @@ func TestUsageIsTheDocComment(t *testing.T) {
 	}
 }
 
-// packFooter lays hints out as kit/ui Help does: two spaces apart, 3 columns kept for
+// packFooter lays hints out as kit/ui/bubbletea Help does: two spaces apart, 3 columns kept for
 // "…" while hints remain, and the first ? or ctrl+g hint pinned last, wherever it is.
 func TestPackFooter(t *testing.T) {
 	cases := []struct {
@@ -538,11 +538,11 @@ func TestPackFooter(t *testing.T) {
 	}
 }
 
-// kit/ui/testdata/footer-cases.json is what the kit's ui.Footer drops at 80 columns
-// (kit/ui TestFooterCases renders it), on the default theme or, for a case marked
+// kit/ui/bubbletea/testdata/footer-cases.json is what the kit's ui.Footer drops at 80 columns
+// (kit/ui/bubbletea TestFooterCases renders it), on the default theme or, for a case marked
 // ascii, on it resolved for ASCII; packFooter must drop the same hints.
 func TestFooterCases(t *testing.T) {
-	b, err := os.ReadFile(filepath.Join("..", "..", "..", "kit", "ui", "testdata", "footer-cases.json"))
+	b, err := os.ReadFile(filepath.Join("..", "..", "..", "kit", "ui", "bubbletea", "testdata", "footer-cases.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -11,7 +11,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme"
+	"tuikit/theme/bubbletea"
 )
 
 // press builds the KeyPressMsg a terminal would send for a key name.

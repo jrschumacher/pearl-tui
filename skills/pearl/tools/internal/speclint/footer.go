@@ -13,9 +13,10 @@ import (
 // by the ? overlay).
 const footerCut = '‖'
 
-// How the kit draws a footer (kit/ui/chrome.go Help and Footer, kit/theme/derive.go),
-// at the 80-column design width. kit/ui/testdata/footer-cases.json holds packFooter and
-// the kit's ui.Footer to the same dropped sets (TestFooterCases in both modules).
+// How the kit draws a footer (kit/ui/bubbletea/chrome.go Help and Footer,
+// kit/theme/bubbletea/derive.go), at the 80-column design width.
+// kit/ui/bubbletea/testdata/footer-cases.json holds packFooter and the kit's ui.Footer
+// to the same dropped sets (TestFooterCases in both modules).
 const (
 	footerWidth  = 80
 	kitGutter    = 2           // theme default side margin, on both sides; a theme may set 1

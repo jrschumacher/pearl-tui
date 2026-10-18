@@ -16,7 +16,7 @@ import (
 	"golang.org/x/text/width"
 	"golang.org/x/tools/go/analysis"
 
-	"tuikit/theme"
+	"tuikit/theme/bubbletea"
 )
 
 func program(pass *analysis.Pass) *Program { return pass.ResultOf[ModelAnalyzer].(*Program) }
@@ -511,7 +511,7 @@ func firstGlyph(s string) (rune, bool) {
 
 // twinTableLits are the positions of the string and rune literals inside an ASCII twin
 // table: a composite literal (map or slice) that initializes a package-level variable
-// whose name says ascii (the kit's ui/canvas.go asciiMap and asciiClasses). Those
+// whose name says ascii (the kit's ui/bubbletea/canvas.go asciiMap and asciiClasses). Those
 // literals are the glyphs the table maps, so they are the one place outside the theme
 // that may spell them.
 func twinTableLits(f *ast.File) map[token.Pos]bool {
@@ -613,8 +613,9 @@ func runEllipsis(pass *analysis.Pass) (any, error) {
 }
 
 // themePath reports a package path that is a theme package: its last element is
-// "theme" (the kit's tuikit/theme, a project's <module>/internal/theme), or it names
-// the --theme-pkg fragment.
+// "theme" (a project's <module>/internal/theme), or its parent's is (one framework's
+// theme under theme/<framework>, the kit's tuikit/theme/bubbletea), or it names the
+// --theme-pkg fragment.
 func themePath(pkg string) bool {
 	if pkg == "" {
 		return false
@@ -622,7 +623,7 @@ func themePath(pkg string) bool {
 	if themePkg != "" && strings.Contains(pkg, themePkg) {
 		return true
 	}
-	return path.Base(pkg) == "theme"
+	return path.Base(pkg) == "theme" || path.Base(path.Dir(pkg)) == "theme"
 }
 
 // literalValue is the text of a string or rune literal and which it is.

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"tuikit/theme"
+	"tuikit/theme/bubbletea"
 	"tuitools/internal/oklch"
 )
 
@@ -214,7 +214,7 @@ func TestKitThemesReadAt16Colours(t *testing.T) {
 	if len(kit) == 0 {
 		t.Fatal("no kit themes")
 	}
-	for _, path := range append(kit, kitThemes+"/../theme/testdata/quire.json") {
+	for _, path := range append(kit, kitThemes+"/../theme/bubbletea/testdata/quire.json") {
 		f, err := theme.Load(path)
 		if err != nil {
 			t.Fatal(err)

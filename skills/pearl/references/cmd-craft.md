@@ -13,7 +13,8 @@ screen by screen.
 ## 1. Start From The Kit, Not From Prose
 
 Run the copy block in `kit/README.md` § Copying it into a project, as written: it copies
-`theme/`, `ui/` and `cmd/showcase` (as `cmd/<app>`, tests included), the donor theme as
+`theme/bubbletea` and `ui/bubbletea` (flat, as `internal/theme` and `internal/ui`) and
+`cmd/showcase` (as `cmd/<app>`, tests included), the donor theme as
 `themes/<brand>.json` with `themes/embed.go` (the binary carries the theme: no `-theme`
 flag, no path that breaks when it moves), rewrites the import paths and pins the
 versions, and CI proves it passes in a fresh module. Follow its notes on skipping the

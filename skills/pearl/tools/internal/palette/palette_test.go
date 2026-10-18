@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	"tuikit/theme"
+	"tuikit/theme/bubbletea"
 	"tuitools/internal/oklch"
 )
 
@@ -1023,7 +1023,7 @@ func TestCheckWarnsOnAFarPin(t *testing.T) {
 	}
 	// no kit theme's own pins are far: each is the nearest free hue, or under 60°
 	kit, _ := filepath.Glob(kitThemes + "/*.json")
-	for _, path := range append(kit, kitThemes+"/../theme/testdata/quire.json") {
+	for _, path := range append(kit, kitThemes+"/../theme/bubbletea/testdata/quire.json") {
 		var out, errb bytes.Buffer
 		Main([]string{"check", path}, "", &out, &errb)
 		if strings.Contains(errb.String(), "of hue from its own") {

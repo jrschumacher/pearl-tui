@@ -15,7 +15,7 @@ import (
 
 	"golang.org/x/text/width"
 
-	"tuikit/theme"
+	"tuikit/theme/bubbletea"
 	"tuitools/internal/cmddoc"
 )
 

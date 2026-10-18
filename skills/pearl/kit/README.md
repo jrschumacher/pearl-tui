@@ -1,11 +1,29 @@
 # tuikit: the reference kit
 
-A compiling Bubble Tea v2 module. Copy from it; don't re-derive it from the references.
+A compiling Go module whose one framework today is Bubble Tea v2. Copy from it; don't
+re-derive it from the references.
+
+## Layout
+
+- `themes/` is the theme contract: one JSON file per brand, framework-neutral. Any
+  framework's kit reads the same files, and `palette`, `diversity` and `tuilint frames`
+  judge them without knowing which one draws them.
+- `theme/<framework>/` and `ui/<framework>/` hold one framework's code each: its theme
+  engine (the contract loaded into that framework's styles) and its components. Today
+  only `bubbletea` exists: `theme/bubbletea` and `ui/bubbletea`, Go packages still named
+  `theme` and `ui`, imported as `tuikit/theme/bubbletea` and `tuikit/ui/bubbletea`.
+- `cmd/showcase` is the Bubble Tea showcase: the reference app and its harness. It
+  stays two levels below the module root, where a copied app's `cmd/<app>` sits, because
+  its kept tests read `../../themes/*.json` in both places.
+
+A project copies one framework's packages flat (`internal/theme`, `internal/ui`), so its
+own imports never name the framework.
 
 ```
-theme/          theme.go (the JSON contract), derive.go (fills missing roles, ASCII glyphs),
+theme/bubbletea/
+                theme.go (the JSON contract), derive.go (fills missing roles, ASCII glyphs),
                 styles.go (every style from the palette, Grad, Case, Label, Gap)
-ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, PaintBackground, ASCIIfy, Fit, OnBg
+ui/bubbletea/   canvas.go   Canvas: draw into rectangles, Scrim, Backfill, PaintBackground, ASCIIfy, Fit, OnBg
                 chrome.go   Wordmark, Header, Details, Section, Rule, Help, Footer, Toast, Tabs, TooSmall
                 filter.go   Filter: a list's filter line (query, caret while typed, "3 of 8")
                 toast.go    ToastTTL, UndoTTL, GraceTTL, Frames, SecondsLeft, ToastKey (a toast that
@@ -31,10 +49,10 @@ ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
 themes/         ink (the fallback: theme.Default() as a file, TestInkIsTheDefault keeps them equal),
                 charm (a Crush study), ferrous, lumen, halyard, moss, cartridge, terrarium;
                 embed.go embeds them (themes.Default: the one theme, or ink among several)
-cmd/showcase/   the reference app and its harness
+cmd/showcase/   the Bubble Tea reference app and its harness
 ```
 
-`theme/theme.go` is the contract: every key the kit reads, its values and what each
+`theme/bubbletea/theme.go` is the contract: every key the kit reads, its values and what each
 draws, mirrored in `references/brand.md` §4. `palette check` fails a key or value the
 kit doesn't know. `wordmark.style` is the one key nothing reads: wordmark.py records the
 style it drew with; the tones come from the glyphs in the rows.
@@ -45,7 +63,7 @@ chrome glyph such as `focusBar`) or a one-cell literal with a twin, a meaning of
 product's own (`new`; never a kit slot's name such as `done`), and any colour role (or
 `focus` / `working`). `ui.Rungs`, `ui.Mark(t, "new")` and the `ladder` state draw those
 rungs in those inks instead of the kit's default rungs; the kit's slots keep theirs.
-`theme/testdata/quire.json` declares one; `palette check` fails a role, glyph or meaning
+`theme/bubbletea/testdata/quire.json` declares one; `palette check` fails a role, glyph or meaning
 the kit can't draw (`theme.CheckLadder`).
 
 ## The showcase is the pattern
@@ -102,11 +120,11 @@ directory holding `SKILL.md`:
 
 ```sh
 mkdir -p internal themes cmd
-cp -r <skill>/kit/theme internal/theme && cp -r <skill>/kit/ui internal/ui
+cp -r <skill>/kit/theme/bubbletea internal/theme && cp -r <skill>/kit/ui/bubbletea internal/ui
 cp -r <skill>/kit/cmd/showcase cmd/<app>
 cp <skill>/kit/themes/embed.go themes/
 cp <skill>/kit/themes/<closest>.json themes/<brand>.json   # skip when brand already wrote themes/<brand>.json
-perl -pi -e 's#"tuikit/themes"#"<your/module>/themes"#; s#"tuikit/#"<your/module>/internal/#' $(grep -rl '"tuikit/' internal cmd)
+perl -pi -e 's#"tuikit/themes"#"<your/module>/themes"#; s#"tuikit/(theme|ui)/bubbletea"#"<your/module>/internal/$1"#' $(grep -rl '"tuikit/' internal cmd)
 gofmt -w internal cmd
 go mod edit -go=1.26.7
 go get charm.land/bubbletea/v2@v2.1.0 charm.land/lipgloss/v2@v2.0.6 \
@@ -115,14 +133,18 @@ go get charm.land/bubbletea/v2@v2.1.0 charm.land/lipgloss/v2@v2.0.6 \
 go mod tidy && go test ./...
 ```
 
-Huh is pinned too: `ui/form.go` works around v2.0.3's quirks, each with a test, and a
-newer Huh can change them. CI runs this block in a fresh module on every change.
+Huh is pinned too: `ui/bubbletea/form.go` (`internal/ui/form.go` once copied) works
+around v2.0.3's quirks, each with a test, and a newer Huh can change them. CI runs this
+block in a fresh module on every change.
 
+The rewrite drops `/bubbletea` from the imports: the project holds one framework's
+packages flat, as `internal/theme` and `internal/ui`, with the same package names.
 `perl -pi` because `sed -i` takes different arguments on macOS, and `gofmt -w` after it
 because the rewrite moves `<your/module>/themes` below `<your/module>/internal/ui` in
-the import order, which `gofmt -l` would flag in CI. The tests find
-`themes/*.json` from `internal/ui` and `cmd/<app>` as they do from the kit, and use your
-theme where they name one of the kit's, so they pass in your project as they do here.
+the import order, which `gofmt -l` would flag in CI. The tests find `themes/*.json` two
+levels up from `internal/theme`, `internal/ui` and `cmd/<app>`, as they do from the
+kit's `theme/bubbletea`, `ui/bubbletea` and `cmd/showcase`, and use your theme where
+they name one of the kit's, so they pass in your project as they do here.
 
 `themes/<brand>.json` is the one theme in the project: the donor is copied under your
 brand's name, so `brand` edits it in place and `diversity themes/*.json` judges one
