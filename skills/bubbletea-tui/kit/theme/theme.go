@@ -561,7 +561,12 @@ func modes16(f File) []string {
 // ANSI16Index is the 16-colour index role draws as in mode (dark, light), after the
 // theme's ansi16 pins: what a terminal with 16 colours shows. -1 for no such role.
 func ANSI16Index(f File, mode, role string) int {
-	c := paletteRole(ResolveProfile(f, mode != "light", false, colorprofile.ANSI).P, role)
+	return Slot16(paletteRole(ResolveProfile(f, mode != "light", false, colorprofile.ANSI).P, role))
+}
+
+// Slot16 is the one of the 16 colours c draws as on a 16-colour terminal: c itself when
+// it is one (a pinned role), else the nearest. -1 for nil.
+func Slot16(c color.Color) int {
 	if c == nil {
 		return -1
 	}
@@ -715,6 +720,7 @@ type Theme struct {
 	KeyDisambiguation bool
 
 	promptTertiary bool // the focus ink doesn't read on bgOverlay: the prompt keeps tertiary (build)
+	plainBrand     bool // primary is pinned to a grey at 16 colours: no hue, so the brand is fg and bold (build)
 }
 
 // Resolve picks the dark or light roles, fills gaps, and builds every style, for a
@@ -728,7 +734,8 @@ func Resolve(f File, dark, ascii bool) *Theme {
 // (tea.ColorProfileMsg: 16 colours, 256, or none under NO_COLOR). At 16 colours every
 // neutral role draws on one of the four greys (GreySlot16: the page 0 or 15, body text
 // the opposite, fgMuted and fgSubtle on 7 and 8) and the theme's ansi16 pins replace
-// the roles they name. Where a
+// the roles they name; a primary pinned to a grey has no hue, and the kit's focus draws
+// as under expressions.focus "fg" (fg and bold), brand text in fg and bold. Where a
 // background step the styles separate things with can't be told from the page at
 // that profile (Distinct), they add an edge instead: a borderless dialog gets a rule
 // above and below. A rule or border colour that lands on bg moves to the nearest one
@@ -764,14 +771,71 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 		t.G = ASCII(t.G)
 	}
 	t.X = exprDefaults(f.Expressions)
+	// primary pinned to a grey at 16 colours has no hue there (a warm brand on a light
+	// page: yellow 3 is unreadable on white, magenta is pink): the kit's emphasis falls
+	// back as under focus "fg", and brand text is fg and bold
+	if n, ok := pins["primary"]; ok && Grey16(n) {
+		t.X.Focus, t.plainBrand = "fg", true
+	}
 	if t.X.Focus == "fg" && r.BorderFocus == "" {
 		t.P.BorderFocus = t.P.FgMuted // the dialog border is chrome too: not the hue
 	}
 	// rules are "barely lighter than bg": downsampled, they can land on bg itself and
 	// every section, table and footer rule vanishes
 	t.P.Border, t.P.BorderFocus = t.edge(t.P.Border), t.edge(t.P.BorderFocus)
+	// a pin moves a fill to a slot its ink was never chosen for: a deep rust's white
+	// onPrimary on the bright yellow 11 a warm brand pins to is 1.17:1, halyard's dark ink
+	// on a primary pinned to fg's black is black on black. No one hex reads on both the
+	// brand's hex and its slot, so at 16 colours each on-colour that reads under its
+	// floor on its fill's slot (Contrast16) takes fg or bg, whichever reads best: once,
+	// in the palette, for every component that draws it
+	// (an ink the theme pins itself is its own choice, and palette check judges it)
+	if pins != nil {
+		p := &t.P
+		for _, x := range []struct {
+			key   string
+			ink   *color.Color
+			fill  color.Color
+			floor float64
+		}{{"onPrimary", &p.OnPrimary, p.Primary, 4.5}, {"fgSelected", &p.FgSelected, p.Primary, 4.5},
+			{"onSecondary", &p.OnSecondary, p.Secondary, 3.5}, {"onError", &p.OnError, p.Error, 3.5},
+			{"onWarning", &p.OnWarning, p.Warning, 4.5}, {"onSuccess", &p.OnSuccess, p.Success, 3.5}} {
+			if _, own := f.ANSI16[mode][x.key]; !own {
+				*x.ink = t.ink16(*x.ink, x.fill, x.floor)
+			}
+		}
+	}
 	t.S = build(t)
 	return t
+}
+
+// reference16 is the 16 colours as VS Code's terminal draws them (cellshot draws every
+// sheet in these): the stand-in for a terminal's own palette when the kit judges a
+// 16-colour slot's contrast (Contrast16).
+var reference16 = [16]color.RGBA{{0, 0, 0, 255}, {205, 49, 49, 255}, {13, 188, 121, 255}, {229, 229, 16, 255},
+	{36, 114, 200, 255}, {188, 63, 188, 255}, {17, 168, 205, 255}, {229, 229, 229, 255}, {102, 102, 102, 255},
+	{241, 76, 76, 255}, {35, 209, 139, 255}, {245, 245, 67, 255}, {59, 142, 234, 255}, {214, 112, 214, 255},
+	{41, 184, 219, 255}, {255, 255, 255, 255}}
+
+// Reference16 is ANSI colour n (0-15) as the kit judges it: VS Code's terminal palette,
+// the one cellshot draws. The user's terminal decides the real colour; this one stands
+// in for it, so a check, a test and a sheet agree on a number.
+func Reference16(n int) color.RGBA { return reference16[n&15] }
+
+// Contrast16 is the contrast of a and b as a 16-colour terminal draws them: each on its
+// slot (Slot16), in Reference16. 0 when either has none.
+func Contrast16(a, b color.Color) float64 {
+	i, j := Slot16(a), Slot16(b)
+	if i < 0 || j < 0 {
+		return 0
+	}
+	return Contrast(reference16[i], reference16[j])
+}
+
+// Resolve16 is ResolveProfile at 16 colours (colorprofile.ANSI), without ASCII: what a
+// checker judges a theme's ansi16 pins by.
+func Resolve16(f File, dark bool) *Theme {
+	return ResolveProfile(f, dark, false, colorprofile.ANSI)
 }
 
 // Distinct reports whether a and b draw as different colours at the theme's profile:
@@ -833,6 +897,24 @@ func (t *Theme) Ink(c, fill color.Color) color.Color {
 		}
 	}
 	return c
+}
+
+// ink16 is c, an ink on fill at 16 colours, or where it reads under floor on the fill's
+// slot (Contrast16), whichever of fg and bg reads best there. fg and bg are black and
+// white at 16 colours, and one of the two clears 4.5:1 on every hue of Reference16, so
+// the floors are palette check's truecolour ones and never cost a hue. A fill that is
+// itself fg or bg (a primary pinned to fg's grey) gets the other.
+func (t *Theme) ink16(c, fill color.Color, floor float64) color.Color {
+	best, r := c, Contrast16(c, fill)
+	if r >= floor {
+		return c
+	}
+	for _, alt := range []color.Color{t.P.Fg, t.P.Bg} {
+		if a := Contrast16(alt, fill); a > r {
+			best, r = alt, a
+		}
+	}
+	return best
 }
 
 // Role is the resolved colour of the role with JSON key key (primary, fgSubtle, …), or

@@ -184,6 +184,36 @@ func Progress(t *theme.Theme, frac float64, w int) string {
 	return filled + t.S.Rule.Render(strings.Repeat(empty, max(0, rest)))
 }
 
+// StateSparkline is Sparkline for a row in a status state, over w cells: the line over
+// the first w-2 and a two-cell mark column after it, so every row's newest value sits
+// in one column whatever its state. The line is quiet (fgMuted) unless the state is a
+// warning, where it takes the warning's ink and its glyph (Dot) follows the last bar,
+// so the reading carries the warning's mark and never only its hue: at 16 colours a
+// warm brand draws in bright yellow and the warning in the other yellow
+// (references/color.md), and a hue-only warning reads as the selection beside it.
+// Where the warning is a fill (yellow 3 on a white page, Styles.Warn), only the glyph
+// takes it: a strip of filled bars is the heaviest thing on a page and the dark of
+// its ink is the focus's, so the bars stay quiet there. An error stays quiet: its red
+// lives on the row's dot and its number.
+func StateSparkline(t *theme.Theme, state string, vals []float64, w int) string {
+	n := max(1, w-2)
+	if state == "warning" || state == "degraded" {
+		bars := t.S.Warn
+		if warnIsFill(t) {
+			bars = t.S.Muted
+		}
+		return Sparkline(t, vals, n, bars) + Dot(t, state) + strings.Repeat(" ", max(0, w-n-1))
+	}
+	return Sparkline(t, vals, n, t.S.Muted) + strings.Repeat(" ", w-n)
+}
+
+// warnIsFill reports whether the theme draws the warning as a fill at its profile.
+func warnIsFill(t *theme.Theme) bool {
+	bg := t.S.Warn.GetBackground()
+	_, none := bg.(lipgloss.NoColor)
+	return bg != nil && !none
+}
+
 // Sparkline draws values as ▁▂▃▄▅▆▇█ over w cells (the last w values).
 func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) string {
 	if len(vals) > w {

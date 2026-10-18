@@ -13,6 +13,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
+
+	"tuikit/theme"
 )
 
 // RGB is a colour.
@@ -49,9 +51,19 @@ type Cell struct {
 	Cont bool
 }
 
-var basic16 = [16]RGB{{0, 0, 0}, {205, 49, 49}, {13, 188, 121}, {229, 229, 16}, {36, 114, 200}, {188, 63, 188},
-	{17, 168, 205}, {229, 229, 229}, {102, 102, 102}, {241, 76, 76}, {35, 209, 139}, {245, 245, 67},
-	{59, 142, 234}, {214, 112, 214}, {41, 184, 219}, {255, 255, 255}}
+// basic16 is the 16 colours cellshot draws ANSI 0-15 in: the kit's Reference16 (VS
+// Code's terminal palette), so a sheet shows the contrast palette check and the kit judge.
+var basic16 = func() (b [16]RGB) {
+	for i := range b {
+		c := theme.Reference16(i)
+		b[i] = RGB{c.R, c.G, c.B}
+	}
+	return b
+}()
+
+// Basic16 is the colour cellshot draws ANSI colour n (0-15) in: the kit's Reference16,
+// VS Code's terminal palette, the one every sheet shows.
+func Basic16(n int) RGB { return basic16[n&15] }
 
 // xterm maps a 256-colour index to RGB the way xterm does.
 func xterm(n int) Color {
