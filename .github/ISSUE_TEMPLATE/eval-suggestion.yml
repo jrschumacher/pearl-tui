@@ -1,0 +1,46 @@
+name: Eval suggestion (a case that would have caught a mistake)
+description: A prompt and an assertion for evals/evals.json
+labels: ["feedback", "eval"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A miss is written as an assertion before anything changes (AGENTS.md § How the
+        skill improves). An agent drafts this with `feedback draft --kind eval`
+        (`references/cmd-feedback.md`) and files it only on your yes.
+  - type: input
+    id: case
+    attributes:
+      label: Case
+      description: "An existing case in `evals/evals.json` to add the assertion to (`dashboard-from-brand-brief`), or `new`."
+    validations:
+      required: true
+  - type: textarea
+    id: prompt
+    attributes:
+      label: Prompt
+      description: For a new case, the prompt a cold agent gets, written like the cases in `evals/evals.json`. Fictional names only.
+  - type: textarea
+    id: mistake
+    attributes:
+      label: The mistake it catches
+      description: What an agent did, or would do, wrong, and where you saw it.
+    validations:
+      required: true
+  - type: textarea
+    id: assertion
+    attributes:
+      label: Assertion
+      description: One gradable sentence a grader checks from the renders, the lint or the transcript.
+    validations:
+      required: true
+  - type: textarea
+    id: fixtures
+    attributes:
+      label: Fixtures
+      description: Files the case needs (an app to restyle, an answers.md, a logo), described or attached.
+  - type: input
+    id: skill-version
+    attributes:
+      label: Skill version
+      description: "`git -C <skill dir> rev-parse --short HEAD`, or `computedHash` from `skills-lock.json`. `feedback` fills it."

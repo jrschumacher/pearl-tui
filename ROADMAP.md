@@ -39,9 +39,9 @@ Build real apps with it and turn every miss into a fix.
    re-run. Keep that brand's theme in the app's repo, not in this one.
 2. **Don't help the agent.** If it asks a question, answer only as a real user would. A
    question is itself a finding: the skill was unclear.
-3. **Record each miss** with the *Skill feedback* issue template: what you asked, the
-   contact sheet, what was wrong (with cells cited), and the miss class (a/b/c, see
-   `AGENTS.md`).
+3. **Record each miss** with the *Bug* issue form (or `feedback draft --kind bug`):
+   what you asked, the contact sheet, what was wrong (with cells cited), and the miss
+   class (a/b/c, see `AGENTS.md`).
 4. **Measure**:
    - Did it run the loop unprompted (renders, lint, critic)?
    - How many critic rounds did it take to reach SHIP?

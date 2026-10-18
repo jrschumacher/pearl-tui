@@ -192,6 +192,7 @@ invents its regions and keys screen by screen.
 | `animate` | spinners, transitions, intros, idle motion | `references/cmd-animate.md` |
 | `art` | logo, wordmark, field, splash | `references/cmd-art.md` |
 | `restyle` | an existing app onto the theme, idiom and v2 | `references/cmd-restyle.md` |
+| `feedback` | the skill, kit or a tool cost you a round: draft an issue, file on the user's yes | `references/cmd-feedback.md` |
 
 `teach` is an alias of `init`.
 
@@ -207,6 +208,7 @@ checking in with the user after `shape`. An existing app: `init` → `restyle`.
 | `palette` | `derive` a dark+light role set from brand hexes (OKLCH, tinted neutrals, contrast-tuned); `check` a theme |
 | `tuivet` | the `tuilint code` rules as a go vet tool (`tuivet ./...`, or `go vet -vettool=$(which tuivet) ./...`; exit 3 on a finding) |
 | `diversity` | how different are these themes from each other and from the default |
+| `feedback` | `draft`, dedupe (`similar`) and `submit` an issue on the skill's repository, `submit` only on the user's yes to the shown draft (`--confirm` its hash): gh when signed in, else a prefilled link |
 | `scripts/wordmark.py` | the brand name in cells, from a real font: half / shade / ascii / tracked |
 | `scripts/logo2cells.py` | a logo raster onto the grid (half, shade or quadrants) with lint |
 
@@ -215,6 +217,9 @@ are Python 3 with Pillow and numpy, needed only when you convert brand assets.
 
 The verification loop that ties them together is `references/verify.md`. Run it before
 every hand-off.
+When the skill, kit or a tool got something wrong on the way (a rule the kit contradicts,
+a false lint, a component you had to write), offer `feedback` at the next natural stop:
+the draft shown whole, filed only on the user's yes (`references/cmd-feedback.md`).
 
 With the plugin installed, a hook runs `tuilint code` after every Go edit in a project with
 a `TUI.md`: fix what it reports.

@@ -1,0 +1,68 @@
+name: Performance (a tool or the kit is too slow)
+description: A command in the build loop that takes long enough to slow the agent or the app down
+labels: ["feedback", "performance"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The loop runs on every iteration, so seconds add up. An agent drafts this with
+        `feedback draft --kind perf` (`references/cmd-feedback.md`) and files it only on
+        your yes.
+  - type: textarea
+    id: asked
+    attributes:
+      label: What was asked
+      description: The prompt or command, and what was being built, in general terms.
+    validations:
+      required: true
+  - type: input
+    id: skill-version
+    attributes:
+      label: Skill version
+      description: "`git -C <skill dir> rev-parse --short HEAD`, or `computedHash` from `skills-lock.json`. `feedback` fills it."
+    validations:
+      required: true
+  - type: input
+    id: area
+    attributes:
+      label: Tool or code path
+      description: "`tuilint frames`, `cellshot --sheet`, the kit's `go test ./...`, `ui.List` render."
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: The exact command line, as run.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: timing
+    attributes:
+      label: Timing
+      description: "Wall time and how it was measured (`time`, `-bench`, `go test -v`), over how many runs."
+    validations:
+      required: true
+  - type: input
+    id: sizes
+    attributes:
+      label: Sizes
+      description: "The input: frame count and W×H, themes, items in a list, file sizes."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Fast enough would be
+      description: "The budget and why: 16 ms a frame, under 1 s for a lint the hook runs on every edit."
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Profile or repro
+      description: A pprof top, a trace, or the smallest input that is slow.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: "`go version`, the OS and CPU, and the build of each tool involved. `feedback` fills it."
