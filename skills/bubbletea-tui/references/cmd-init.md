@@ -121,7 +121,7 @@ glyphs: <glyph> <meaning> (ascii <twin>), one line each; twins the kit lacks go 
 themes/<brand>.json   (palette derive from <measured hexes, source>)
 
 ### Screens
-One block per screen: `shape` fills it, `craft` builds it in § First slice order.
+One block per screen, the main screen's first (`tuilint spec` reads the first block as the main screen): `shape` fills it, `craft` builds it in § First slice order.
 
 #### <screen> — <its job in one line, and what the eye lands on first>
 80×24:  <region> <x,y w×h> · <region> <x,y w×h> · footer 0,23 80×1     (outer widths; text width = outer − gutters)

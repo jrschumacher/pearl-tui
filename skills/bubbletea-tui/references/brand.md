@@ -73,7 +73,8 @@ secondary screen and overlay block in `TUI.md` § Screens names a `brand:` line,
 three words change there (copy voice, dialog form, footer phrasing; `cmd-shape.md`
 § Behind The Main Screen). Where the spec gives the words, its product facts stay (what
 is acted on, the number, the consequence) and the voice is the brand's: a terse brand
-asks `delete nightly-0412?`, a thorough one says what goes and what stays.
+asks `delete nightly-0412? 41.2 GB, no undo`, a thorough one says in two sentences what
+goes and what stays. Terse means fewer words, never fewer facts.
 
 ## 2. Translate Traits Into Terminal Moves
 
