@@ -125,6 +125,11 @@ func TestCheckKeys(t *testing.T) {
 		// only the status slots are slot names: a chrome glyph's key is a literal, and no literal is a word
 		{`{"ladder": [{"glyph": "focusBar", "meaning": "new", "role": "primary"}]}`, `ladder[0].glyph "focusBar" is neither a status slot`},
 		{`{"ladder": [{"glyph": "▌", "meaning": "new", "role": "primary"}, {"glyph": "caret", "meaning": "typing", "role": "info"}]}`, `ladder[1].glyph "caret" is neither a status slot`},
+		// a rung in warning carries the warn glyph: at 16 colours a warm brand is the warning's yellow
+		{`{"ladder": [{"glyph": "current", "meaning": "high", "role": "warning"}]}`, `ladder[0] draws in warning with glyph "current", not the warn slot's "▲"`},
+		{`{"ladder": [{"glyph": "◬", "meaning": "high", "role": "warning"}], "glyphs": {"ascii": {"◬": "%"}}}`, `ladder[0] draws in warning with glyph "◬"`},
+		{`{"ladder": [{"glyph": "warn", "meaning": "high", "role": "warning"}]}`, ""},
+		{`{"ladder": [{"glyph": "◬", "meaning": "high", "role": "warning"}], "glyphs": {"warn": "◬", "ascii": {"◬": "%"}}}`, ""},
 		{`{"ladder": [{"glyph": "current", "meaning": "new", "role": "primary"}, {"glyph": "◔", "meaning": "queued", "role": "working"}, {"glyph": "✔", "meaning": "reviewed", "role": "fgSubtle"}], "glyphs": {"ascii": {"◔": "%"}}}`, ""},
 	} {
 		err := CheckKeys([]byte(c.json))
@@ -733,6 +738,38 @@ func TestASCIIMultiCellSpinnerKeepsItsShape(t *testing.T) {
 		for i := range uni {
 			if ansi.StringWidth(asc[i]) != ansi.StringWidth(uni[i]) {
 				t.Errorf("%s: ASCII frame %q is %d cells, unicode %q %d", filepath.Base(path), asc[i], ansi.StringWidth(asc[i]), uni[i], ansi.StringWidth(uni[i]))
+			}
+		}
+	}
+}
+
+// A ladder rung draws in its role through RoleStyle (ui.RoleInk), and a state role is the
+// kit's state style: a rung in warning drew plain yellow text where the kit's own warn
+// slot is a fill (yellow 3 on a white page is 1.35:1), so two cold apps deleted their
+// warning rung to pass TestWarningIsAFillWhereItsSlotIsFaint (#70). Every kit theme and
+// test theme, both modes, every profile: each state role renders as its Styles field.
+func TestRoleStyleIsTheStateStyle(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	test, _ := filepath.Glob(filepath.Join("testdata", "*.json"))
+	for _, path := range append(files, test...) {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dark := range []bool{true, false} {
+			for _, prof := range []colorprofile.Profile{colorprofile.TrueColor, colorprofile.ANSI256, colorprofile.ANSI} {
+				th := ResolveProfile(f, dark, false, prof)
+				for role, want := range map[string]lipgloss.Style{"warning": th.S.Warn, "error": th.S.Err, "success": th.S.OK,
+					"info": th.S.Info, "primary": th.S.Primary, "fgMuted": th.S.Muted, "working": th.S.Working, "focus": th.S.Focus.Bold(true)} {
+					if got, w := th.RoleStyle(role).Render("x"), want.Render("x"); got != w {
+						t.Errorf("%s dark=%v %v: RoleStyle(%q) draws %q, want the kit's own %q", filepath.Base(path), dark, prof, role, got, w)
+					}
+				}
 			}
 		}
 	}

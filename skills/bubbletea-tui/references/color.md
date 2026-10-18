@@ -173,7 +173,9 @@ and look at the PNGs. What usually breaks:
 - a warm brand (OKLCH 25°–85°: coral, orange, copper, amber) has no slot of its own at
   16 colours: red is error's, yellow the warning's, magenta the pink an orange is not.
   On a dark page it takes yellow 11 and the warning keeps yellow 3, so every warning mark
-  carries `▲`/`!`; on a light page it has no hue (`primary` pinned to 0, fg's grey: yellow
+  carries `▲`/`!` (a `ladder` rung in `warning` too: give it `"glyph": "warn"`, which
+  `palette check` asks for, and it draws as the kit's warn slot, a fill where yellow is
+  faint); on a light page it has no hue (`primary` pinned to 0, fg's grey: yellow
   3 is 1.35:1 on white) and the kit draws focus as fg and bold. Its secondary, tertiary
   and accent follow it off red and magenta. The warning never leaves yellow: `palette
   check` fails it on green, and a pinned brand under 3:1 as text. Where yellow 3 is faint

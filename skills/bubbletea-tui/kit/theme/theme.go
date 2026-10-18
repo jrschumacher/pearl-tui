@@ -402,11 +402,14 @@ var KitSlots = []string{"done", "current", "todo", "pending", "partial", "busy",
 // CheckLadder reports a rung of the theme's ladder the kit can't draw: a role that is
 // neither a colour role nor focus / working, a meaning that is a kit slot's name (the
 // kit's slots keep their inks), a glyph that is neither a status slot nor a one-cell
-// literal with an ASCII twin, two rungs with one meaning, or two rungs that draw as
-// one mark under ASCII. palette check fails on it (through CheckKeys); Load doesn't,
-// so an app still starts, drawing the rung in fg.
+// literal with an ASCII twin, two rungs with one meaning, two rungs that draw as
+// one mark under ASCII, or a rung in warning that isn't the warn glyph (every mark in
+// the warning's ink carries it: at 16 colours a warm brand is the warning's yellow).
+// palette check fails on it (through CheckKeys); Load doesn't, so an app still starts,
+// drawing the rung in fg.
 func CheckLadder(f File) error {
-	g := ASCII(glyphDefaults(f.Glyphs))
+	g0 := glyphDefaults(f.Glyphs)
+	g := ASCII(g0)
 	seen, twins := map[string]int{}, map[string]int{}
 	for i, r := range f.Ladder {
 		where := fmt.Sprintf("ladder[%d]", i)
@@ -432,6 +435,9 @@ func CheckLadder(f File) error {
 		}
 		if j, dup := twins[tw]; dup {
 			return fmt.Errorf("%s.glyph %q and ladder[%d].glyph %q both draw as %q under ASCII, so two states read as one", where, r.Glyph, j, f.Ladder[j].Glyph, tw)
+		}
+		if r.Role == "warning" && r.Glyph != "warn" && r.Glyph != g0.Warn {
+			return fmt.Errorf("%s draws in warning with glyph %q, not the warn slot's %q: at 16 colours a warm brand shares the warning's yellow and only the warn glyph tells them apart (the kit's TestWarningInkCarriesItsGlyph); use \"glyph\": \"warn\", or another role", where, r.Glyph, g0.Warn)
 		}
 		twins[tw] = i
 	}
@@ -978,6 +984,51 @@ func (t *Theme) Role(key string) color.Color {
 		return nil
 	}
 	return paletteRole(t.P, key)
+}
+
+// RoleStyle is the style text in the role with JSON key key draws in, as the kit's own
+// components draw it: a state role is its state style, so a mark in warning is a fill
+// where the warning's slot is faint at 16 colours (Styles.Warn), and a primary pinned to
+// a grey is bold; focus and working are the inks expressions.focus and
+// expressions.spinner resolve to (focus bold, as the current rung is). Any other colour
+// role is that colour; a name the theme doesn't know is fg. What a ladder rung's role
+// draws in (ui.RoleInk), so a product's warning rung reads as the kit's warn slot does.
+func (t *Theme) RoleStyle(key string) lipgloss.Style {
+	s := t.S
+	switch key {
+	case "focus":
+		return s.Focus.Bold(true)
+	case "working":
+		return s.Working
+	case "primary":
+		return s.Primary
+	case "secondary":
+		return s.Secondary
+	case "tertiary":
+		return s.Tertiary
+	case "accent":
+		return s.Accent
+	case "success":
+		return s.OK
+	case "error":
+		return s.Err
+	case "warning":
+		return s.Warn
+	case "info":
+		return s.Info
+	case "fg":
+		return s.Base
+	case "fgSoft":
+		return s.Soft
+	case "fgMuted":
+		return s.Muted
+	case "fgSubtle":
+		return s.Subtle
+	}
+	if c := t.Role(key); c != nil {
+		return lipgloss.NewStyle().Foreground(c)
+	}
+	return s.Base
 }
 
 // LadderGlyph is the glyph rung r draws in this theme: the slot's glyph when r.Glyph

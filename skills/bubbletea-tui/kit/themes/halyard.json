@@ -115,5 +115,13 @@
   "keys": "boxed",
   "density": "compact",
   "backdrop": "field"
- }
+ },
+ "ladder": [
+  {"glyph": "todo", "meaning": "scheduled", "role": "fgMuted"},
+  {"glyph": "current", "meaning": "underway", "role": "focus"},
+  {"glyph": "partial", "meaning": "berthing", "role": "working"},
+  {"glyph": "done", "meaning": "berthed", "role": "success"},
+  {"glyph": "warn", "meaning": "delayed", "role": "warning"},
+  {"glyph": "fail", "meaning": "held", "role": "error"}
+ ]
 }

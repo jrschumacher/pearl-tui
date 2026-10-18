@@ -40,20 +40,13 @@ func Mark(t *theme.Theme, slot string) string {
 	return t.S.Muted.Render(g.Todo)
 }
 
-// RoleInk is the style a ladder rung's role draws in: focus and working are the inks
-// expressions.focus and expressions.spinner resolve to (focus bold, as the current
-// rung is); any colour role is that colour; a name the theme doesn't know is fg.
+// RoleInk is the style a ladder rung's role draws in (theme.RoleStyle): a state role is
+// the kit's state style, so a warning rung is a fill where the warning's slot is faint,
+// as the warn slot is; focus and working are the inks expressions.focus and
+// expressions.spinner resolve to; any other colour role is that colour; a name the theme
+// doesn't know is fg.
 func RoleInk(t *theme.Theme, role string) lipgloss.Style {
-	switch role {
-	case "focus":
-		return t.S.Focus.Bold(true)
-	case "working":
-		return t.S.Working
-	}
-	if c := t.Role(role); c != nil {
-		return lipgloss.NewStyle().Foreground(c)
-	}
-	return t.S.Base
+	return t.RoleStyle(role)
 }
 
 // Rung is one row of the status ladder: the slot (a kit slot, or for a theme's own rung
