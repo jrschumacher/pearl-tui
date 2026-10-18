@@ -206,6 +206,7 @@ type Finding16 struct {
 	Pin        int    // the ansi16 colour that fixes it
 	kind       kind16
 	fixed      bool // Pin is set when found (a warm brand's slot, WarmPin16), not chosen by Pin16
+	trade      bool // a green brand on success's own slot: the pin costs the brand its hue
 }
 
 type kind16 int
@@ -238,7 +239,9 @@ func (x Finding16) PinJSON() string {
 //     failing it would fail every theme that leaves warning unset.
 //   - two state roles on one colour (theme.ANSI16Clashes): under focus "fg" a clash with
 //     primary fails, since the theme promised its hue means one state (amber = new); any
-//     other is a warning, as the glyph and the word still tell the two apart.
+//     other is a warning, as the glyph and the word still tell the two apart. A green
+//     brand on success's own slot (2/10) warns instead and names the trade: its pin draws
+//     the brand off green in every app, and only the app knows whether it draws success.
 //   - a neutral role on a hue (theme.ANSI16Neutrals): the engine puts every neutral on a
 //     grey, the roles a dialog draws (border, borderFocus, bgPanel, bgOverlay) included,
 //     so only a pin moves one off. On red it fails (hints read as errors, a dialog's edge
@@ -285,6 +288,7 @@ func Findings16(f theme.File) []Finding16 {
 		found = append(found, Finding16{Mode: r.Mode, Role: r.Role, Col: hexOf(r.Col), What: what, Fail: r.Role == "error" || (r.Role == "primary" && fg), kind: red16})
 	}
 	clash := map[key][]string{}
+	traded := map[key]bool{} // every clash of the role is a theme.Clash Trade
 	col := map[key]string{}
 	var order []key
 	for _, c := range theme.ANSI16Clashes(f) {
@@ -296,6 +300,10 @@ func Findings16(f theme.File) []Finding16 {
 		if covered[k] {
 			continue // its red finding's pin moves it off this colour too
 		}
+		if _, seen := traded[k]; !seen {
+			traded[k] = true
+		}
+		traded[k] = traded[k] && c.Trade()
 		if _, seen := clash[k]; !seen {
 			order = append(order, k)
 			col[k] = hexOf(colMove)
@@ -308,8 +316,13 @@ func Findings16(f theme.File) []Finding16 {
 			verb = "does"
 		}
 		withPrimary := k.role == "primary" || slices.ContainsFunc(clash[k], func(o string) bool { return strings.HasPrefix(o, "primary ") })
-		what := fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), as %s %s", k.mode, k.role, col[k], theme.ANSI16Index(f, k.mode, k.role), others, verb)
-		found = append(found, Finding16{Mode: k.mode, Role: k.role, Col: col[k], What: what, Fail: fg && withPrimary, kind: clash16})
+		at := theme.ANSI16Index(f, k.mode, k.role)
+		// a green brand on success's own slot (theme.Clash.Trade): its pin moves the brand
+		// off green in every app, one that never draws success included, so the app owns
+		// the trade; the kit's TestThemesReadRightAt16Colours judges it the same way
+		trade := k.role == "primary" && traded[k]
+		what := fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), as %s %s", k.mode, k.role, col[k], at, others, verb)
+		found = append(found, Finding16{Mode: k.mode, Role: k.role, Col: col[k], What: what, Fail: fg && withPrimary && !trade, kind: clash16, trade: fg && trade})
 	}
 	for _, n := range theme.ANSI16Neutrals(f) {
 		if n.Role == "borderFocus" && n.Index == theme.ANSI16Index(f, n.Mode, "primary") && n.Index != 1 && n.Index != 9 {
@@ -619,6 +632,8 @@ func Clashes16(f theme.File, path string, stderr io.Writer) int {
 		case x.Fail:
 			failed++
 			fmt.Fprintf(stderr, "palette: %s: %s: pin it with %s\n", path, x.What, pin)
+		case x.trade:
+			fmt.Fprintf(stderr, "palette: warning: %s: %s; under focus \"fg\" primary is a state, so where the app draws success the two read as one. %s separates them and draws the brand off green at 16 colours; an app that never draws success can keep its green and say so in the theme's read\n", path, x.What, pin)
 		case x.kind == clash16:
 			fmt.Fprintf(stderr, "palette: warning: %s: %s, so those states differ there only by glyph and word; %s separates them\n", path, x.What, pin)
 		case x.kind == share16:

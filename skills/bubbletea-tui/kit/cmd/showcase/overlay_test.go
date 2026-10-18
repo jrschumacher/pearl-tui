@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"maps"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -41,24 +43,6 @@ var overlayVariants = []struct {
 	p     colorprofile.Profile
 }{{"truecolor", false, colorprofile.TrueColor}, {"ansi256", false, colorprofile.ANSI256},
 	{"ansi", false, colorprofile.ANSI}, {"NO_COLOR", false, colorprofile.Ascii}, {"ascii", true, colorprofile.TrueColor}}
-
-// overlayPages are the states an overlay is opened over in the tests: every screen
-// that draws a selection, a focused field or a caret. (Not the setup wizard: a Huh
-// form has no way to draw its focused field blurred short of Field.Blur, which
-// validates it.)
-var overlayPages = []string{"services", "deploys", "assistant", "deploy"}
-
-// openOverlay opens the overlay s over whatever page m shows, as its key would.
-func openOverlay(m *app, s string) {
-	switch s {
-	case "palette":
-		m.ov, m.query, m.palSel = ovPalette, "ro", 0
-	case "confirm":
-		m.ov, m.btn = ovConfirm, 1
-	case "help":
-		m.helpFrom, m.ov = ovNone, ovHelp
-	}
-}
 
 // cellText is a cell's glyph, a blank for an empty cell.
 func cellText(c *ui.Canvas, x, y int) string {
@@ -100,9 +84,9 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 					m.setState(page)
 					base := m.render(sz[0], sz[1])
 					focusCells := m.focusMarks(base)
-					for _, s := range []string{"palette", "confirm", "help"} {
+					for _, s := range overlays {
 						m.setState(page)
-						openOverlay(m, s)
+						m.openOverlay(s)
 						c := m.render(sz[0], sz[1])
 						name := fmt.Sprintf("%s %s %s over %s %dx%d", filepath.Base(f), v.name, s, page, sz[0], sz[1])
 						for y := range m.footY {
@@ -126,27 +110,26 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 	}
 	// the two the glyph scan broke, by name: cartridge's wordmark rows (its focus bar is
 	// the banner's █) and ferrous's header under ASCII (its bar and separator are both
-	// "|"). In a copied project testTheme gives the project's theme: the rows still hold.
+	// "|"): every row above the page's body (the header, none in an app without one)
+	// reads as it did. In a copied project testTheme gives the project's theme.
 	for _, k := range []struct {
 		theme string
 		ascii bool
-		rows  []int
 	}{
-		{"cartridge.json", false, []int{0, 1, 2}},
-		{"ferrous.json", true, []int{0}},
+		{"cartridge.json", false},
+		{"ferrous.json", true},
 	} {
 		tf := testTheme(t, k.theme)
-		for _, s := range []string{"palette", "confirm", "help"} {
+		for _, s := range overlays {
 			for _, sz := range [][2]int{{80, 24}, {120, 40}} {
 				m := newApp(tf, true, k.ascii)
-				m.setState("services")
+				m.setState(overlayPages[0])
 				base := m.render(sz[0], sz[1])
-				m.setState(s)
+				head := m.body.Min.Y
+				m.setState(overlayPages[0])
+				m.openOverlay(s)
 				c := m.render(sz[0], sz[1])
-				for _, y := range k.rows {
-					if y >= m.ovRect.Min.Y {
-						continue
-					}
+				for y := range min(head, m.ovRect.Min.Y) {
 					if got, want := rowText(c, y), rowText(base, y); got != want {
 						t.Errorf("%s ascii=%v %s %dx%d: row %d reads %q under the overlay, want %q", k.theme, k.ascii, s, sz[0], sz[1], y, got, want)
 					}
@@ -216,12 +199,12 @@ func TestOverlayFrameHasOneFocus(t *testing.T) {
 		for _, v := range overlayVariants {
 			for _, sz := range [][2]int{{80, 24}, {120, 40}} {
 				for _, page := range overlayPages {
-					for _, s := range []string{"palette", "confirm", "help"} {
+					for _, s := range overlays {
 						m := newApp(tf, true, v.ascii)
 						m.profile = v.p
 						m.setState(page)
 						seen += len(m.focusMarks(m.render(sz[0], sz[1])))
-						openOverlay(m, s)
+						m.openOverlay(s)
 						name := fmt.Sprintf("%s %s %s over %s %dx%d", filepath.Base(f), v.name, s, page, sz[0], sz[1])
 						c := m.render(sz[0], sz[1])
 						if x, y, ok := pageBeside(c, m.ovRect, 1); ok {
@@ -247,17 +230,25 @@ func TestOverlayFrameHasOneFocus(t *testing.T) {
 // focusMarks are the page body's cells holding the theme's focus bar, selection cursor,
 // or an input's prompt or caret, in its focus ink with a blank after. Only these
 // glyphs count: a blurred selection's mark (the blur ink, or a blur glyph) is the
-// quieter mark an unfocused page keeps, not a focus.
+// quieter mark an unfocused page keeps, not a focus. Under a "fill" or "inverse"
+// selection the focused row is the mark: its cells in the selection's reverse video
+// (a blurred one keeps a bgSubtle band), or a list page in such a theme drew no mark
+// at all and the focus tests judged nothing.
 func (m *app) focusMarks(c *ui.Canvas) []uv.Position {
 	t := m.t
 	marks := []struct {
 		g  string
 		st lipgloss.Style
 	}{{t.G.FocusBar, t.S.FocusBar}, {t.G.Cursor, t.S.Focus}, {t.G.Caret, t.S.Prompt}, {t.G.Prompt, t.S.Prompt}}
+	fill := t.X.Selection == "fill" || t.X.Selection == "inverse"
 	var out []uv.Position
 	for y := m.body.Min.Y; y < m.body.Max.Y; y++ {
 		for x := m.body.Min.X; x+1 < m.body.Max.X; x++ {
 			cell, next := c.CellAt(x, y), c.CellAt(x+1, y)
+			if fill && cell != nil && cell.Style.Attrs&uv.AttrReverse != 0 && sameRGB(cell.Style.Fg, t.S.SelRow.GetForeground()) {
+				out = append(out, uv.Pos(x, y))
+				continue
+			}
 			if cell == nil || next == nil || strings.TrimSpace(next.Content) != "" {
 				continue
 			}
@@ -280,43 +271,170 @@ func sameRGB(a, b color.Color) bool {
 	return r1 == r2 && g1 == g2 && b1 == b2
 }
 
+// The tables the harness tests read are the app's own: a state opens a dialog exactly
+// when overlays names it, every overlayPages entry is a page with no dialog up, and
+// every page that draws a focus mark is in overlayPages, renders as one that is, or is
+// in unjudgedPages with a reason. A cold build left its menu overlay out of the help
+// test, and its help over the menu named the screen's keys; leaving it out of overlays
+// would hide it as well, and so would moving a page into unjudgedPages: an entry needs
+// a reason, is never the main screen (states[0]), is only allowed in an app that builds
+// a Huh form (ui.NewForm), and, unless its reason names Huh, must keep a focus mark
+// beside some overlay (else it blurs, and belongs in overlayPages).
+func TestOverlayTablesMatchTheStates(t *testing.T) {
+	for _, list := range [][]string{overlays, overlayPages, slices.Collect(maps.Keys(unjudgedPages))} {
+		for _, s := range list {
+			if !slices.Contains(states, s) {
+				t.Errorf("%q is in the harness tables but not in states", s)
+			}
+		}
+	}
+	// unjudgedPages is for a Huh form's pages, and every Huh form goes through ui.NewForm
+	// (tuilint code, C-HUHTHEME): an app that never builds one has nothing to leave out
+	if len(unjudgedPages) > 0 && !buildsAForm(t) {
+		t.Errorf("unjudgedPages lists %d pages, but no .go file here calls ui.NewForm: only a Huh form's page can't be drawn blurred; judge them in overlayPages", len(unjudgedPages))
+	}
+	for s, why := range unjudgedPages {
+		switch {
+		case s == states[0]:
+			t.Errorf("%s, the main screen, is in unjudgedPages: every overlay must be judged over it", s)
+		case strings.TrimSpace(why) == "":
+			t.Errorf("%s is in unjudgedPages with no reason: say why its focus can't be drawn blurred (and repeat it in TUI.md § Decisions)", s)
+		case slices.Contains(overlayPages, s):
+			t.Errorf("%s is in both overlayPages and unjudgedPages", s)
+		// a Huh page needs no proof: whether a dialog happens to cover its focused field
+		// depends on sizes, not on the form, which can't draw it blurred either way
+		case !strings.Contains(why, "Huh") && !keepsFocusUnderAnOverlay(t, s):
+			t.Errorf("%s is in unjudgedPages, but every overlay over it draws it blurred: judge it in overlayPages", s)
+		}
+	}
+	for _, s := range states {
+		if s == "toosmall" {
+			continue
+		}
+		m := fixture(t, s)
+		_, unjudged := unjudgedPages[s]
+		switch in := slices.Contains(overlays, s); {
+		case m.ov != ovNone && !in:
+			t.Errorf("%s opens a dialog but isn't in overlays: the overlay tests never judge it", s)
+		case m.ov == ovNone && in:
+			t.Errorf("%s is in overlays but opens no dialog", s)
+		case m.ov != ovNone && slices.Contains(overlayPages, s):
+			t.Errorf("%s is in overlayPages but has a dialog up", s)
+		case m.ov == ovNone && !slices.Contains(overlayPages, s) && !unjudged && len(m.focusMarks(m.render(80, 24))) > 0 && judgedTwin(t, s) == "":
+			t.Errorf("%s draws a focus mark but is in neither overlayPages nor unjudgedPages, and renders as no page that is: no overlay is judged over it", s)
+		}
+	}
+}
+
+// buildsAForm reports whether a non-test .go file of the app calls ui.NewForm.
+func buildsAForm(t *testing.T) bool {
+	t.Helper()
+	files, err := filepath.Glob("*.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range files {
+		if strings.HasSuffix(f, "_test.go") {
+			continue
+		}
+		if b, err := os.ReadFile(f); err == nil && strings.Contains(string(b), "ui.NewForm(") {
+			return true
+		}
+	}
+	return false
+}
+
+// judgedTwin is the overlayPages state whose page body renders as state s's at 80×24
+// (services with a toast over the footer is services), or "".
+func judgedTwin(t *testing.T, s string) string {
+	t.Helper()
+	body := func(s string) string {
+		m := fixture(t, s)
+		c := m.render(80, 24)
+		var rows []string
+		for y := m.body.Min.Y; y < m.body.Max.Y; y++ {
+			rows = append(rows, rowText(c, y))
+		}
+		return strings.Join(rows, "\n")
+	}
+	b := body(s)
+	for _, p := range overlayPages {
+		if body(p) == b {
+			return p
+		}
+	}
+	return ""
+}
+
+// keepsFocusUnderAnOverlay reports whether some overlay over state s, in some theme at
+// 80×24 or 120×40, leaves a focus mark of the page beside the dialog (drawn
+// unscrimmed): the limitation an unjudgedPages entry claims. A page whose focus blurs
+// under every overlay is judged instead.
+func keepsFocusUnderAnOverlay(t *testing.T, s string) bool {
+	t.Helper()
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, sz := range [][2]int{{80, 24}, {120, 40}} {
+			for _, o := range overlays {
+				m := newApp(tf, true, false)
+				m.setState(s)
+				m.openOverlay(o)
+				m.t.X.Scrim = "none"
+				c := m.render(sz[0], sz[1])
+				for _, p := range m.focusMarks(c) {
+					if !p.In(m.ovRect) {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
 // Help opened over an overlay names that overlay's keys, not the screen's under it
 // (a recreation's help listed the conversation's keys over its permission dialog), and
 // closing it goes back to the overlay. Every overlay's help key opens it, the body holds
-// each of the overlay's bindings and none of the screen's, and esc returns.
+// each of the overlay's bindings and none of the screen's, and esc returns. The help key
+// is whichever of the overlay's keys opens help, and the screen's keys are the page's
+// own action table, so the test reads the app's tables, not the showcase's words. Help
+// over a page (each of overlayPages) names every key of that page's table.
 func TestHelpOverAnOverlayNamesItsKeys(t *testing.T) {
-	for _, s := range []string{"palette", "confirm"} {
+	for _, s := range overlays {
+		if s == "help" {
+			continue
+		}
 		m := fixture(t, s)
 		from := m.ov
 		var own []string
 		for _, a := range m.actions() {
-			own = append(own, a.b.Help().Desc)
+			own = append(own, strings.Join(strings.Fields(a.b.Help().Desc), " "))
 		}
-		var helpKey string
-		for _, a := range m.actions() {
-			if a.b.Help().Desc == "keys" {
-				helpKey = a.b.Keys()[0]
+		// the screen's keys: the page under the overlay, with the overlay closed
+		page := *fixture(t, s)
+		page.ov = ovNone
+		var screenKeys []string
+		for _, a := range page.actions() {
+			if d := strings.Join(strings.Fields(a.b.Help().Desc), " "); !slices.Contains(own, d) {
+				screenKeys = append(screenKeys, d)
 			}
 		}
-		if helpKey == "" {
-			t.Fatalf("%s: no help key in the overlay's action table", s)
-		}
-		m.key(press(helpKey))
+		k := helpKey(t, s)
+		m.key(press(k))
 		if m.ov != ovHelp {
-			t.Fatalf("%s: %q did not open help", s, helpKey)
+			t.Fatalf("%s: %q did not open help", s, k)
 		}
-		// each help row is a 12-cell key column, then what the key does
-		var named []string
-		for _, row := range m.helpBody() {
-			named = append(named, strings.TrimSpace(ansi.Strip(ansi.Cut(row, 12, 200))))
-		}
+		named := helpNames(m)
 		for _, d := range own {
 			if !slices.Contains(named, d) {
 				t.Errorf("%s: help over the overlay doesn't name its %q key: %q", s, d, named)
 			}
 		}
-		for _, d := range []string{"deploy", "roll back", "next view"} {
-			if !slices.Contains(own, d) && slices.Contains(named, d) {
+		for _, d := range screenKeys {
+			if slices.Contains(named, d) {
 				t.Errorf("%s: help over the overlay names the screen's %q key: %q", s, d, named)
 			}
 		}
@@ -325,4 +443,50 @@ func TestHelpOverAnOverlayNamesItsKeys(t *testing.T) {
 			t.Errorf("%s: esc from help went to overlay %d, want back to %d", s, m.ov, from)
 		}
 	}
+	for _, p := range overlayPages {
+		m := fixture(t, p)
+		var own []string
+		for _, a := range m.actions() {
+			own = append(own, strings.Join(strings.Fields(a.b.Help().Desc), " "))
+		}
+		m.key(press(helpKey(t, p)))
+		named := helpNames(m)
+		for _, d := range own {
+			if !slices.Contains(named, d) {
+				t.Errorf("%s: help over the page doesn't name its %q key: %q", p, d, named)
+			}
+		}
+		if m.key(press("esc")); m.ov != ovNone {
+			t.Errorf("%s: esc from help left overlay %d up", p, m.ov)
+		}
+	}
+}
+
+// helpKey is the key of state s's action table that opens help, whatever the app calls
+// it: each key is pressed on a fresh fixture until one brings ovHelp up.
+func helpKey(t *testing.T, s string) string {
+	t.Helper()
+	for _, a := range fixture(t, s).actions() {
+		for _, k := range a.b.Keys() {
+			p := fixture(t, s)
+			p.key(press(k))
+			if p.ov == ovHelp {
+				return k
+			}
+		}
+	}
+	t.Fatalf("%s: no key in the action table opens help", s)
+	return ""
+}
+
+// helpNames are what each help row says a key does: the row after its key (a key name
+// holds no space), however wide the app's key column is.
+func helpNames(m *app) []string {
+	var named []string
+	for _, row := range m.helpBody() {
+		if f := strings.Fields(ansi.Strip(row)); len(f) > 1 {
+			named = append(named, strings.Join(f[1:], " "))
+		}
+	}
+	return named
 }

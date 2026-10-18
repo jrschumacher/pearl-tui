@@ -39,6 +39,50 @@ var states = []string{"services", "services-toast", "deploys", "palette", "confi
 	"incidents", "ladder", "assistant", "assistant-busy", "splash", "toosmall",
 	"setup-target", "setup-namespace", "setup-invalid", "setup-auth", "setup-alerts", "setup-review", "setup-signin", "setup-failed", "setup-done"}
 
+// overlays are the states that open a dialog over a page, as setState names them. The
+// harness tests (showcase_test.go, overlay_test.go) open each over every overlayPages
+// state with openOverlay: replace both lists with your app's, keeping "help".
+var overlays = []string{"palette", "confirm", "help"}
+
+// overlayPages are the states an overlay is opened over in the tests: every screen
+// that draws a selection, a focused field or a caret. (Not the setup wizard: a Huh
+// form has no way to draw its focused field blurred short of Field.Blur, which
+// validates it.)
+var overlayPages = []string{"services", "deploys", "assistant", "deploy", "services-toast"}
+
+// unjudgedPages are the states that draw a focus mark that an overlay can't blur, kept
+// out of overlayPages, each with its reason (repeat it in TUI.md § Decisions). Only a
+// page whose focus the kit can't draw blurred belongs here, such as a Huh form's
+// field; never the main screen (states[0]). A page that renders as one in overlayPages
+// needs no entry: the tests find the twin.
+// TestOverlayTablesMatchTheStates fails an empty reason, the main screen and an entry
+// whose focus does blur under every overlay.
+var unjudgedPages = map[string]string{
+	"setup-target":    huhFocus,
+	"setup-namespace": huhFocus,
+	"setup-invalid":   huhFocus,
+	"setup-auth":      huhFocus,
+	"setup-alerts":    huhFocus,
+	"setup-review":    huhFocus,
+	"setup-failed":    huhFocus,
+	"setup-done":      huhFocus,
+}
+
+// huhFocus is why the wizard's pages are unjudged.
+const huhFocus = "a Huh form: its focused field can't be drawn blurred short of Field.Blur, which validates it"
+
+// openOverlay opens the overlay s over whatever page m shows, as its key would.
+func (m *app) openOverlay(s string) {
+	switch s {
+	case "palette":
+		m.ov, m.query, m.palSel = ovPalette, "ro", 0
+	case "confirm":
+		m.ov, m.btn = ovConfirm, 1
+	case "help":
+		m.helpFrom, m.ov = ovNone, ovHelp
+	}
+}
+
 // setState rebuilds the model from scratch for a named state, using the same
 // actions a user would take, so fixtures can't drift from behaviour.
 func (m *app) setState(s string) {
@@ -53,12 +97,8 @@ func (m *app) setState(s string) {
 	case "deploys":
 		m.screen = scrDeploys
 		m.sel = m.svcIndex(m.events[m.depSel].Svc)
-	case "palette":
-		m.ov, m.query = ovPalette, "ro"
-	case "confirm":
-		m.ov, m.btn = ovConfirm, 1
-	case "help":
-		m.ov = ovHelp
+	case "palette", "confirm", "help":
+		m.openOverlay(s)
 	case "deploy":
 		m.openDeploy()
 	case "incidents":

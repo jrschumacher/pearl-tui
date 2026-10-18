@@ -522,11 +522,21 @@ func (c Clash) String() string {
 	return fmt.Sprintf("%s: %s and %s both ANSI %d", c.Mode, c.A, c.B, c.Index)
 }
 
+// Trade reports a green brand on success's own slot (2 or 10) under focus "fg": the pin
+// that separates them draws the brand off green in every app, one that never draws
+// success included, so the app owns the choice. palette check warns on it instead of
+// failing, and names the trade; derive still pins it.
+func (c Clash) Trade() bool {
+	pair := (c.A == "primary" && c.B == "success") || (c.A == "success" && c.B == "primary")
+	return pair && (c.Index == 2 || c.Index == 10)
+}
+
 // ANSI16Clashes are the pairs of state roles (StateRoles, primary only under focus "fg")
 // that differ at truecolour but land on one of the 16 colours after the theme's ansi16
 // pins, per mode the theme defines. Roles the theme makes identical (info left to
 // default to primary) are one colour on purpose and aren't reported. palette check
-// warns on each, and fails one with primary; the fix is an ansi16 pin for one of the two.
+// warns on each, and fails one with primary but a Trade; the fix is an ansi16 pin for
+// one of the two.
 func ANSI16Clashes(f File) []Clash {
 	var out []Clash
 	for _, mode := range modes16(f) {

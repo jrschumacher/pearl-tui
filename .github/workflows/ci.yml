@@ -53,6 +53,10 @@ jobs:
             donor: themes/lumen.json
           - theme: quire
             donor: theme/testdata/quire.json
+          # halyard is a "fill" selection: the focused row, not a glyph, is the page's
+          # focus mark, which the stub's list page draws and the focus tests must find
+          - theme: halyard
+            donor: themes/halyard.json
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -79,6 +83,21 @@ jobs:
           test "$(ls themes/*.json)" = themes/brand.json
           go test ./...
           go run ./cmd/brandapp -golden -w 80 -h 24 | grep -q ${{ matrix.theme }}
+      # The harness tests a copied app keeps must hold for an app that isn't the showcase:
+      # delete what the README says is the showcase's alone, put a two-page app with one
+      # overlay of its own in place of its screens (.github/kit-stub), keep the harness
+      # tests whole, and run them.
+      - name: the kept harness tests pass with the showcase's screens deleted
+        run: |
+          cd "$RUNNER_TEMP/brandapp/cmd/brandapp"
+          rm data.go screens_test.go setup.go setup_test.go app.go screens.go main.go
+          cp "$GITHUB_WORKSPACE"/.github/kit-stub/*.go .
+          ls
+          cd ../..
+          test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+          go vet ./...
+          go test ./cmd/...
+          go run ./cmd/brandapp -golden -w 80 -h 24 > /dev/null
 
   render-and-lint:
     name: render every theme + lint

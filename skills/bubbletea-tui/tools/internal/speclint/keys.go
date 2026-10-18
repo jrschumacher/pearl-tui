@@ -121,7 +121,8 @@ func splitAlts(tok string) []string {
 	var out []string
 	start := 0
 	for i := 0; i < len(tok); i++ {
-		if tok[i] != '/' || i == 0 || i == len(tok)-1 || tok[i-1] == '+' || tok[i-1] == '/' {
+		// "ctrl+/" is one key; in "+/-" the + is a key of its own, not a modifier joint
+		if tok[i] != '/' || i == 0 || i == len(tok)-1 || (tok[i-1] == '+' && i-1 > start) || tok[i-1] == '/' {
 			continue
 		}
 		out = append(out, tok[start:i])
@@ -198,8 +199,8 @@ func parseToken(tok string) []key {
 // readToken expands a key token into its keys, leaving out any alternative that names
 // no key; bad is the first one left out ("" when every one is a key).
 func readToken(tok string) (ks []key, bad string) {
-	if n := len(tok); n > 2 && tok[0] == '<' && tok[n-1] == '>' {
-		tok = tok[1 : n-1] // "<enter>"
+	if n := len(tok); n > 2 && tok[0] == '<' && tok[n-1] == '>' && tok != "</>" {
+		tok = tok[1 : n-1] // "<enter>"; "</>" is < or >, not the / key wrapped
 	}
 	carry := "" // the modifiers on the last modified arrow
 	for _, a := range splitAlts(tok) {

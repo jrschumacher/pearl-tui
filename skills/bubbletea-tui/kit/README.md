@@ -55,15 +55,24 @@ the kit can't draw (`theme.CheckLadder`).
   summary that marks defaults, and keys only reaching Huh through the action table.
   `ACCESSIBLE=1` runs the same fields as plain prompts.
 - `main.go`: the harness (`-golden`, `-state`, `-out`, `-sizes`, `-theme`, `-light`,
-  `-ascii`, `-profile`, `-frame`) and `setState` for every named state.
-- `showcase_test.go`, `behaviour_test.go`: the footprint at 5 sizes × 7 themes × 3
-  modes, contrast floors, no unstyled cells, ASCII is ASCII with distinct status glyphs,
-  every advertised key is handled, actions target the selection, inputs take letters,
-  one frame clock, the refresh clock survives a rate change or pause
-  (`TestClockSurvivesSettingChange`), deploys finish, rollbacks don't repeat.
-  `setup_test.go`: the wizard's review defaults to Continue, button order, the step
-  count past review, esc keeps input, no Huh default colour in any frame, the
-  accessible transcript.
+  `-ascii`, `-profile`, `-frame`), `setState` for every named state, and the app's
+  tables the harness tests read: `states`, `overlays` (the states that open a dialog,
+  `help` among them), `overlayPages` (the states that draw a selection, a focused field
+  or a caret), `unjudgedPages` (such states left out, each with why) and `openOverlay`.
+- The harness tests, which read those tables and name no showcase state:
+  `showcase_test.go` (the footprint at 5 sizes and the app's floor × every theme × 3
+  modes, contrast floors, no unstyled cells, frame names, every overlay at 16 colours,
+  NO_COLOR and ASCII, dialogs above the footer, one focus column, ASCII keeps text),
+  `overlay_test.go` (the tables match the states; every overlay over every page: the
+  page keeps its rows, one focus, help names the overlay's keys and a page's), `behaviour_test.go` (every advertised key is handled,
+  the too-small screen's keys, ASCII is ASCII with distinct status glyphs) and
+  `ansi16_test.go` (warning glyphs and inks at 16 colours).
+- The showcase's own tests: `screens_test.go` (actions target the selection, inputs
+  take letters, one frame clock, the refresh clock survives a rate change or pause,
+  deploys finish, rollbacks don't repeat, layout holds under focus, breakpoints, tab
+  stops in a tool body) and `setup_test.go` (the wizard's review defaults to Continue,
+  button order, the step count past review, esc keeps input, no Huh default colour in
+  any frame, the accessible transcript).
 
 ```sh
 go test ./...
@@ -113,12 +122,37 @@ Then build your root model in `cmd/<app>` on the showcase's shape (action tables
 Rewrite the package doc at the top of `main.go` first: it still says what the showcase is.
 Once your screens are in, delete what is the showcase's alone:
 
-- `data.go`: its fixtures (yours are `fixtures.go`).
+- `data.go`, its fixtures (yours are `fixtures.go`), and `screens_test.go`, its tests.
+  Rewrite on your states the ones whose law you share (one clock, typing never
+  commands, actions target the selection).
 - `setup.go` and `setup_test.go`, the first-run wizard, with its wiring: each `scrSetup`,
   `m.setup` and `firstRun` branch in `app.go` and `screens.go`, and in `main.go` the
   `setup-*` states, `setupState`, `-first-run` and the `runAccessibleSetup` call.
-- In `behaviour_test.go`, every test but `TestHelpIsHandled`, `TestASCIIIsASCII` and
-  `TestASCIIStatusDistinct` (keep `press` and `fixture`): the rest name a showcase state.
-  Rewrite on your states the ones whose law you share (one clock, typing never commands).
-- Keep all of `showcase_test.go`; point its overlay lists (`"palette", "confirm", "help"`)
-  at your overlay states. Then delete each import `go vet ./...` reports unused.
+- In `main.go`, set `states`, `overlays`, `overlayPages`, `unjudgedPages` and
+  `openOverlay` to yours. Keep `help` as the keys overlay's state and `toosmall` as the
+  too-small one: the tests name those two. `TestOverlayTablesMatchTheStates` holds the
+  tables to your states: a state opens a dialog exactly when `overlays` names it, and a
+  page that draws a focus mark is in `overlayPages` or renders as one that is.
+  `unjudgedPages` (state → reason, repeated in TUI.md § Decisions) is only for a page
+  whose focus the kit can't draw blurred, a Huh form's field: the test fails any entry
+  in an app that never calls `ui.NewForm`, an empty reason, your main screen
+  (`states[0]`), and a page whose focus does blur (unless its reason names Huh).
+
+Keep `showcase_test.go`, `overlay_test.go`, `behaviour_test.go` and `ansi16_test.go`
+whole. They read your tables and these from your app:
+
+- `newApp`, `render`, `key`, `helpBody`, `helpRows`, `minW`/`minH` (your floor), and
+  `actions()`, whose entries carry the binding as `b` and whether the footer shows it
+  as `show`;
+- the fields `t`, `profile`, `ov`, `last`, `ovRect`, `body` and `footY`, and the
+  overlay values `ovNone` and `ovHelp`;
+- help's shape: one row per binding, the key then what it does (a key name holds no
+  space), and `esc` closing help back to whatever it was opened over;
+- focus drawn in the theme's marks: the focus bar, cursor, caret or prompt glyph in its
+  ink, or under a `fill`/`inverse` selection `t.S.SelRow`'s reverse video, which is
+  therefore the selection's style only (a badge in it reads as a focus).
+
+Then delete each import `go vet ./...` reports unused. CI deletes these files from a
+copy, puts a two-page app with one overlay of its own in place of the screens
+(`.github/kit-stub`) and runs the kept tests with three donors, so they hold for an app
+that isn't the showcase.

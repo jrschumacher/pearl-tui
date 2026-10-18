@@ -883,9 +883,9 @@ func contrastHits(t *testing.T, args ...string) []Finding {
 	return out
 }
 
-// A "dialog": "rules" panel (two rule rows of one span around a filled panel) and an
-// ASCII +--+ box are dialogs: their inside is judged for contrast as a bordered box's
-// is, and the scrim around them is not. testdata/overlays holds the kit's quire confirm
+// A "dialog": "rules" panel (two rule rows of one span around a filled panel, a title
+// or a status set into either) and an ASCII +--+ box are dialogs: their inside is judged
+// for contrast as a bordered box's is, and the scrim around them is not. testdata/overlays holds the kit's quire confirm
 // (rules), quire help under --ascii (rules in -) and halyard confirm under --ascii
 // (+--+); a "dialog": "none" palette (moss) still gets the P2 note, since it has no edge.
 func TestOverlayDialogsAreFound(t *testing.T) {
@@ -941,6 +941,39 @@ func TestOverlayDialogsAreFound(t *testing.T) {
 		"\x1b[38;2;167;177;174;48;2;25;35;32mdeploy", "\x1b[38;2;28;38;35;48;2;25;35;32mdeploy")
 	if hits := contrastHits(t, boxedKeys, "--theme", "testdata/themes/terrarium.json"); len(hits) != 1 || hits[0].Sev != "P1" || !strings.Contains(hits[0].Msg, "6 text cells") {
 		t.Errorf("low contrast inside a rules dialog with boxed keys: %+v, want one P1 on the 6 letters", hits)
+	}
+	// a rules help with a status set into its bottom edge (ui.DialogStatus, "1 of 2"):
+	// the bottom edge is two runs around the status, and the one-run match missed it, so
+	// a cold app's scrolled help got the note and its panel went unjudged. The frame is
+	// the kit's (quire, DialogStatus over a page); a planted 1.3:1 label inside fails
+	if hits := contrastHits(t, "testdata/overlays/rules-status-help-80x24.ansi", "--theme", "testdata/themes/quire.json"); len(hits) != 0 {
+		t.Errorf("quire help with a status in its bottom edge: %+v, want no F-CONTRAST", hits)
+	}
+	status := mutate("testdata/overlays/rules-status-help-80x24.ansi", "help-status-80x24.ansi",
+		"\x1b[38;2;135;130;125;22mquit", "\x1b[38;2;42;42;46;22mquit")
+	if hits := contrastHits(t, status, "--theme", "testdata/themes/quire.json"); len(hits) != 1 || hits[0].Sev != "P1" {
+		t.Errorf("low contrast inside a rules dialog with a status edge: %+v, want one P1", hits)
+	}
+	// at 256 colours the panel's fill isn't required (it can land on the page's colour),
+	// and a page of two sections side by side over a full-width one reads as a titled top
+	// rule over a bottom rule: the lint took those page rows for the dialog and judged the
+	// scrim on them (a cold monitor's confirm: 97 cells at 1.92:1). The kit's quire
+	// confirm over such a page, at -profile ansi256: the filled pair is the dialog, the
+	// scrim isn't judged, and a planted faint label inside the real dialog still fails
+	if hits := contrastHits(t, "testdata/overlays/rules-sections-256-confirm-80x24.ansi", "--theme", "testdata/themes/quire.json"); len(hits) != 0 {
+		t.Errorf("quire 256-colour confirm over sectioned rows: %+v, want no F-CONTRAST", hits)
+	}
+	sections := mutate("testdata/overlays/rules-sections-256-confirm-80x24.ansi", "confirm-sections-80x24.ansi",
+		"\x1b[48;5;234m \x1b[38;5;244masks it", "\x1b[48;5;234m \x1b[38;5;235masks it")
+	if hits := contrastHits(t, sections, "--theme", "testdata/themes/quire.json"); len(hits) != 1 || hits[0].Sev != "P1" || !strings.HasPrefix(hits[0].Where, "r10") {
+		t.Errorf("low contrast inside the 256-colour confirm: %+v, want one P1 on row 10", hits)
+	}
+	// a 2×2 grid of sections at 256 colours ("disk ···· 52%  network ····" under "cpu
+	// ···· 52%  memory ····") is not a dialog with a status in its edge: the status sits
+	// at the edge's right end, the run after it 3 cells at most. Read as one, the grid
+	// paired as the dialog and hid moss's "dialog": "none" help note behind a P1 on the page
+	if hits := contrastHits(t, "testdata/overlays/none-grid-256-help-120x40.ansi", "--theme", "testdata/themes/moss.json"); len(hits) != 1 || hits[0].Sev != "P2" || !strings.Contains(hits[0].Msg, "checked only by eye") {
+		t.Errorf("moss help over a grid of sections at 256 colours: %+v, want the P2 note", hits)
 	}
 	// the same inside an ASCII +--+ box (halyard ascii confirm: box bg #142030)
 	boxed := mutate("testdata/overlays/box-ascii-confirm-80x24.ansi", "confirm-box-80x24.ansi",

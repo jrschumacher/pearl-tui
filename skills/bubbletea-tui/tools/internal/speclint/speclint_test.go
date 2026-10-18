@@ -80,6 +80,7 @@ func TestRules(t *testing.T) {
 		{"slash fallback", table("| reply | overlay | enter send · shift+enter/ctrl+j newline |", ""), nil},
 		{"fallback item in the same cell", table("| reply | overlay | enter send · shift+enter newline · ctrl+j newline |", ""), nil},
 		{"keys every terminal sends", table("| list | list | shift+tab back · ctrl+space mark · alt+enter run · ctrl+j down · ? help ‖ ctrl+_ undo · ctrl+\\ split · ctrl+k up · alt+backspace kill |", ""), nil},
+		{"</> and +/- are their own keys, not the slash", table("| list | list | / filter · </> sort · +/- interval · = reset |", ""), nil},
 		{"the slash key and ctrl+", table("| list | list | / filter · ? help · ^R refresh · Ctrl+K up |", ""), nil},
 
 		// S-KEYDUP
@@ -269,6 +270,9 @@ func TestReadItem(t *testing.T) {
 		"hjkl move":                  "h j k l | move",
 		"<enter> open":               "enter | open",
 		"shift+enter/ctrl+j newline": "shift+enter ctrl+j | newline",
+		// < and > are keys, not a <name> wrapper round /; + is a key, not a modifier on /
+		"</> sort":     "< > | sort",
+		"+/- interval": "+ - | interval",
 	}
 	for in, want := range cases {
 		b := readItem(strings.Fields(in))
@@ -296,6 +300,8 @@ func TestParseToken(t *testing.T) {
 		// never onto a character or a named key: "ctrl+c/q" is ctrl+c or q
 		"ctrl+c/q": "ctrl+c q", "ctrl+d/f/t": "ctrl+d f t", "shift+a/b": "A b",
 		"ctrl+c/esc": "ctrl+c esc", "ctrl+n/ctrl+p": "ctrl+n ctrl+p", "ctrl+j/↑": "ctrl+j up",
+		// "</>" is < or >, not the / key in a <name> wrapper; "+/-" is + or -, the + no modifier
+		"</>": "< >", "+/-": "+ -", "-/+": "- +", "<enter>": "enter", "<ctrl+c>": "ctrl+c",
 	}
 	for in, want := range cases {
 		var got []string
