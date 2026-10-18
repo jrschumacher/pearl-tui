@@ -67,10 +67,10 @@ func TestToastKeyNamesItsKey(t *testing.T) {
 						t.Errorf("%s w=%d: toast is %d cells: %q", name, w, got, plain)
 					}
 					hint := " " + th.G.Sep + " u undo"
-					if th.G.Sep == "." || th.G.Sep == "," {
-						hint = "  u undo" // a gap, not a full stop after the message
+					if hintGap(th.G.Sep) {
+						hint = "  u undo" // a gap, not a full stop or a rate's slash after the message
 						if strings.Contains(plain, th.G.Sep+" u undo") {
-							t.Errorf("%s w=%d: %q puts sentence punctuation before the key", name, w, plain)
+							t.Errorf("%s w=%d: %q puts %q before the key", name, w, plain, th.G.Sep)
 						}
 					}
 					if !strings.Contains(plain, hint) {

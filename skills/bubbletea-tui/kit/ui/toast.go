@@ -55,15 +55,20 @@ func toastStyles(t *theme.Theme, kind string) (tag, bar lipgloss.Style) {
 	return t.S.TagOK, t.S.BarOK
 }
 
+// hintGap reports whether sep, the theme's separator, misreads between a message and
+// the key a toast offers: ".", "," (a sentence's end) or "/" (a rate).
+func hintGap(sep string) bool { return sep == "." || sep == "," || sep == "/" }
+
 // ToastKey is a Toast that offers one key while it shows: the message, the theme's
 // separator, then the binding's key (bold) and what it does, in the bar's ink:
 //
 //	DONE  Silenced checkout-api alerts for 1h · u unsilence
 //	HELD  Paging payments on-call in 5s · u undo
 //
-// Where the separator is sentence punctuation (the ASCII twin of ·, "."), a two-cell gap
-// stands in for it, as between the footer's keys: "in 5s . u undo" read as a sentence
-// ending on the unit.
+// Where the separator would misread before a key, a two-cell gap stands in for it, as
+// between the footer's keys (hintGap): sentence punctuation (the ASCII twin of ·, ".")
+// read "in 5s . u undo" as a sentence ending on its unit, and a slash read "in 5s / u
+// undo" as a rate.
 //
 // Pass the binding the state's action table holds while the toast is up, so the row
 // names exactly the key that works (an undo key the table doesn't bind is a lie). A
@@ -80,7 +85,7 @@ func ToastKey(t *theme.Theme, kind, label, msg string, k key.Binding, w int) str
 	in := bar.UnsetPadding()
 	pl, pr := bar.GetPaddingLeft(), bar.GetPaddingRight()
 	sep := " " + t.G.Sep + " "
-	if t.G.Sep == "." || t.G.Sep == "," {
+	if hintGap(t.G.Sep) {
 		sep = "  "
 	}
 	hint := sep + h.Key + " " + h.Desc
