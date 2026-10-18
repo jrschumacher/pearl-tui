@@ -164,51 +164,39 @@ const (
 const Ellipsis = "…"
 
 // SparkRamp is the eight heights of a trace or sparkline, lowest first, and SparkRampASCII
-// what an ASCII terminal draws in their place. The ASCII ramp holds no "*" or "+" (the
-// current and done twins, so a peak never reads as a status mark beside the dots) and
-// no "-", "_" or "=": a run of any of them is a rule, and a steady series would draw one.
+// what an ASCII terminal draws in their place: punctuation that thickens from the
+// baseline up, with no letter (a run of them reads as a word), no "*" or "+" (the current
+// and done twins, so a peak never reads as a status mark beside the dots) and no "-",
+// "_", "=" or "~" (a run of any of them is a rule, and a steady series would draw one).
 //
 // TraceFloor is a sample at the bottom of its scale (idle: under 1/8 of it), in braille
-// dots, so an idle history is never a line beside the section rules; TraceFloorSolid
-// (▁) replaces it where the theme's rule is itself dots (· ∙ • …), so the floor is never
-// the rule's texture either. Under ASCII the floor is "." (TraceFloorASCII), or ","
-// where the rule twins to ".". Theme.TraceGlyphs picks them for the theme.
+// dots: never a solid line, which reads as a rule whatever the theme's own rule is.
+// TraceFloorBraille replaces it where the theme's rule is itself drawn in braille. Under
+// ASCII the floor is "." (TraceFloorASCII), or "," where the rule twins to ".".
+// Theme.TraceGlyphs picks them for the theme.
 const (
-	SparkRamp            = "▁▂▃▄▅▆▇█"
-	SparkRampASCII       = ".:;il%#@"
-	TraceFloor           = "⣀"
-	TraceFloorSolid      = "▁"
-	TraceFloorASCII      = "."
-	TraceFloorASCIIAlt   = ","
-	traceRuleLikeASCII   = "-_=~"
-	traceDotRunesUnicode = "·∙•⋅…‥⋯∶˙'.:"
+	SparkRamp          = "▁▂▃▄▅▆▇█"
+	SparkRampASCII     = ".,:;%&#@"
+	TraceFloor         = "⣀"
+	TraceFloorBraille  = "⠤"
+	TraceFloorASCII    = "."
+	TraceFloorASCIIAlt = ","
+	traceRuleLikeASCII = "-_=~"
 )
 
-// DotRule reports whether a rule glyph draws as dots rather than a line: · ∙ • ⋅ … ‥ ⋯,
-// braille, or ASCII . and :. A dashed rule (┄ ┈ ╌ ┅ ┉ ╍) renders near solid at a
-// terminal's cell size, so it is a line here, as ─ ━ ═ are.
-func DotRule(g string) bool {
-	if g == "" {
-		return false
-	}
-	for _, r := range g {
-		if !strings.ContainsRune(traceDotRunesUnicode, r) && (r < 0x2800 || r > 0x28FF) {
-			return false
-		}
-	}
-	return true
-}
-
 // TraceGlyphs are the glyphs ui.Trace and ui.Sparkline draw a history in: the floor (an
-// idle sample) and the heights above it, lowest first. The floor takes the texture the
-// rule doesn't have: dots (⣀) beside a line rule, a solid ▁ beside a dotted one, so an
-// idle row never reads as one more rule. No height is the rule's or the header rule's
-// glyph, and under ASCII no glyph is "-", "_", "=" or the rule's twin.
+// idle sample) and the heights above it, lowest first. The floor is braille dots (⣀, or
+// ⠤ beside a rule drawn in braille), never a solid line: a run of ▁ is a hairline, and a
+// hairline reads as a rule. No height is the rule's or the header rule's glyph, and
+// under ASCII no glyph is "-", "_", "=", "~" or the rule's twin.
 func (t *Theme) TraceGlyphs() (floor string, ramp []string) {
 	all := SparkRamp
 	floor = TraceFloor
-	if DotRule(t.Unicode.Rule) {
-		floor = TraceFloorSolid
+	if r := []rune(t.Unicode.Rule); len(r) > 0 && r[0] >= 0x2800 && r[0] <= 0x28FF {
+		floor = TraceFloorBraille
+		if t.Unicode.Rule == TraceFloorBraille {
+			floor = TraceFloor
+		}
 	}
 	if t.ASCII {
 		all, floor = SparkRampASCII, TraceFloorASCII

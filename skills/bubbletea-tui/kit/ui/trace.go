@@ -37,11 +37,12 @@ type TraceOpts struct {
 // Trace draws a history on a fixed scale in w cells, newest sample at the right edge, and
 // returns opts.Rows rows (top first); TraceRow is the one-row case. A cell before the
 // first sample is blank (a history that hasn't started is empty, not zero), and so is a
-// NaN. A cell under 1/8 of the scale is idle and draws the floor (Theme.TraceGlyphs: ⣀,
-// or ▁ beside a dotted rule; ASCII . or ,), one texture for the whole idle band, so an
-// idle 4–9 % never flickers between floor and bar and never reads as a section rule.
-// Above it the cell rises through ▁▂▃▄▅▆▇█ (ASCII .:;il%#@). On a selected row ui.Table
-// draws the bars in the selection's shade (Styles.SelBars).
+// NaN. A cell under 1/8 of the scale is idle and draws the floor (Theme.TraceGlyphs: ⣀;
+// ASCII . or ,), one texture for the whole idle band, so an idle 4–9 % never flickers
+// between floor and bar and never reads as a section rule; a cell at Min itself (no
+// activity at all) draws it in fgSubtle, a step under a low reading's fgMuted. Above it
+// the cell rises through ▁▂▃▄▅▆▇█ (ASCII .,:;%&#@). On a selected row ui.Table draws the
+// bars in the selection's shade (Styles.SelBars).
 func Trace(t *theme.Theme, vals []float64, w int, o TraceOpts) []string {
 	per, rows := max(1, o.Per), max(1, o.Rows)
 	lo, hi := o.Min, o.Max
@@ -68,6 +69,9 @@ func Trace(t *theme.Theme, vals []float64, w int, o TraceOpts) []string {
 			levels[i] = max(1, int(math.Round(frac*float64(steps))))
 		}
 		inks[i] = ink(v)
+		if v <= lo {
+			inks[i] = t.S.Subtle // nothing at all: the floor a step quieter than a low reading
+		}
 	}
 	return traceRows(t, levels, inks, rows)
 }

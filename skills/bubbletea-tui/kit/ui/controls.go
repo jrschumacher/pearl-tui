@@ -225,9 +225,11 @@ func warnIsFill(t *theme.Theme) bool {
 // Sparkline draws values as ▁▂▃▄▅▆▇█ over w cells (the last w values, left-aligned),
 // scaled to the series itself: for a reading whose shape matters more than its level
 // (latency, throughput). A reading with a fixed range (a percentage, a load) is a Trace,
-// where an idle 3 % stays at the floor. A series flat to within 25 % draws the floor
-// (⣀, or ▁ beside a dotted rule: Theme.TraceGlyphs) in every cell: ±5 % noise drawn
-// full height reads as an incident, and drawn as ▂▃▂▃ beside a rule it reads as one.
+// where an idle 3 % stays at the floor. How far a series rises is set by its spread
+// (hi−lo)/hi: under 10 % it is noise and draws the floor (⣀, Theme.TraceGlyphs) in every
+// cell, since ±5 % drawn full height reads as an incident; from 10 % to a third it rises
+// to ▂▃▄ at most, so a +20 % step still shows as a step; past a third it uses the full
+// height. A series of zeros draws the floor in fgSubtle, a step under a quiet one.
 func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) string {
 	if len(vals) > w {
 		vals = vals[len(vals)-w:]
@@ -236,17 +238,26 @@ func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) stri
 	for _, v := range vals {
 		lo, hi = math.Min(lo, v), math.Max(hi, v)
 	}
-	flat := hi <= 0 || (hi-lo)/hi < 0.25
 	_, ramp := t.TraceGlyphs()
+	top := len(ramp) - 1 // the highest level above the lowest bar
+	spread := 0.0
+	if hi > 0 {
+		spread = (hi - lo) / hi
+	}
+	if spread < 1.0/3 {
+		top = min(top, 1+int((spread-0.10)/(1.0/3-0.10)*3)) // 10 % → ▂, a third → ▄
+	}
 	levels := make([]int, len(vals))
 	inks := make([]lipgloss.Style, len(vals))
 	for i, v := range vals {
 		inks[i] = style
 		switch {
-		case flat:
+		case hi <= 0:
+			levels[i], inks[i] = 0, t.S.Subtle
+		case spread < 0.10:
 			levels[i] = 0
 		default:
-			levels[i] = 1 + int(math.Round((v-lo)/(hi-lo)*float64(len(ramp)-1)))
+			levels[i] = 1 + int(math.Round((v-lo)/(hi-lo)*float64(top)))
 		}
 	}
 	line := traceRows(t, levels, inks, 1)[0]

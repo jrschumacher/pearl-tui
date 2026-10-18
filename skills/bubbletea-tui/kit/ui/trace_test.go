@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"unicode"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -94,13 +95,12 @@ func TestTraceInksByLevel(t *testing.T) {
 
 // An idle or near-idle history (a 0 % or 4–9 % trace, a constant or ±5 % sparkline, a
 // quiet StateSparkline row) draws one glyph across the row, never the rule's glyph, and
-// never the rule's texture: beside a line rule (─ ━ ═, and dashes ┄ ┈ ╌, which render
-// near solid) it is dots, beside a dotted rule (· ∙ • …) it is a solid ▁. Both cold
-// monitors' idle traces read as rules (▁▁▁▁ beside ─, ⣀⣀⣀⣀ beside ·), and a 4–9 % band
-// that alternated floor and bar (⣀▁⣀▁) read as a dash-dot rule. Under ASCII no trace glyph
-// is "-", "_", "=" or "~" (a run of any is a rule) or the rule's twin; ASCII has no solid
-// low glyph that isn't a rule, so beside a "." rule the floor differs in glyph only (",").
-func TestIdleHistoryIsOneTextureNotTheRules(t *testing.T) {
+// never a solid line: a run of ▁ is a hairline, and beside any rule (─ beside Kestrel's
+// ▁▁▁▁, the · leaders beside a ▁ floor) or above the next row's bars a hairline reads as
+// one more rule. It is dots: braille, or under ASCII . or ,. A 4–9 % band that alternated
+// floor and bar (⣀▁⣀▁) read as a dash-dot rule. Under ASCII no trace glyph is "-", "_",
+// "=" or "~" (a run of any is a rule) or the rule's twin.
+func TestIdleHistoryIsDotsNeverALine(t *testing.T) {
 	var files []theme.File
 	for _, path := range append(testThemes(t), filepath.Join("..", "theme", "testdata", "quire.json")) {
 		f, err := theme.Load(path)
@@ -109,7 +109,7 @@ func TestIdleHistoryIsOneTextureNotTheRules(t *testing.T) {
 		}
 		files = append(files, f)
 	}
-	for _, rule := range []string{"─", "━", "═", "┄", "╌", "┈", "·", "∙", "•", "⋯"} {
+	for _, rule := range []string{"─", "━", "═", "┄", "╌", "┈", "·", "∙", "•", "⋯", "⣀", "⠤"} {
 		f := theme.Default()
 		f.Name, f.Glyphs.Rule = "rule "+rule, rule
 		files = append(files, f)
@@ -150,12 +150,8 @@ func TestIdleHistoryIsOneTextureNotTheRules(t *testing.T) {
 				switch {
 				case g == th.G.Rule || g == th.G.HeaderRule:
 					t.Errorf("%s: %s draws the rule's glyph %q", name, what, g)
-				case ascii && line(g):
-					t.Errorf("%s: %s draws %q, an ASCII rule", name, what, g)
-				case !ascii && line(th.G.Rule) && !dot(g):
-					t.Errorf("%s: %s draws %q beside a line rule: an idle row in dots", name, what, g)
-				case !ascii && dot(th.G.Rule) && dot(g):
-					t.Errorf("%s: %s draws %q beside a dotted rule: an idle row solid", name, what, g)
+				case line(g) || !dot(g):
+					t.Errorf("%s: %s draws %q: an idle row is dots, never a line", name, what, g)
 				}
 			}
 			floor, ramp := th.TraceGlyphs()
@@ -163,7 +159,8 @@ func TestIdleHistoryIsOneTextureNotTheRules(t *testing.T) {
 				t.Errorf("%s: %d heights, want 6 or more", name, len(ramp))
 			}
 			for _, g := range append([]string{floor}, ramp...) {
-				if g == th.G.Rule || g == th.G.HeaderRule || ascii && (line(g) || !isASCIIText(g)) {
+				// under ASCII, punctuation only: a letter in a run (il) reads as a word
+				if g == th.G.Rule || g == th.G.HeaderRule || ascii && (line(g) || !isASCIIText(g) || !unicode.IsPunct([]rune(g)[0]) && !unicode.IsSymbol([]rune(g)[0])) {
 					t.Errorf("%s: a trace may draw %q", name, g)
 				}
 			}
@@ -178,4 +175,63 @@ func isASCIIText(s string) bool {
 		}
 	}
 	return true
+}
+
+// No activity at all (a series of zeros) and a little (4–9 %) both draw the floor, so
+// they share one texture; the zero row draws it a step quieter (fgSubtle against
+// fgMuted), so an idle core reads apart from a ticking one.
+func TestZeroIsQuieterThanLow(t *testing.T) {
+	for _, ascii := range []bool{false, true} {
+		th := testTheme(t, ascii)
+		zero := TraceRow(th, make([]float64, 6), 6, TraceOpts{})
+		low := TraceRow(th, []float64{4, 7, 5, 9, 6, 4}, 6, TraceOpts{})
+		if ansi.Strip(zero) != ansi.Strip(low) {
+			t.Errorf("ascii=%v: zero %q and low %q, want one texture", ascii, ansi.Strip(zero), ansi.Strip(low))
+		}
+		if c := cellAt(zero, string([]rune(ansi.Strip(zero))[0])); c == nil || !same8(c.Style.Fg, th.P.FgSubtle) {
+			t.Errorf("ascii=%v: an all-zero trace is not in fgSubtle: %v", ascii, c)
+		}
+		if c := cellAt(low, string([]rune(ansi.Strip(low))[0])); c == nil || !same8(c.Style.Fg, th.P.FgMuted) {
+			t.Errorf("ascii=%v: a low trace is not in fgMuted: %v", ascii, c)
+		}
+		if c := cellAt(Sparkline(th, make([]float64, 6), 6, th.S.Muted), ansi.Strip(zero)[:1]); c == nil || !same8(c.Style.Fg, th.P.FgSubtle) {
+			t.Errorf("ascii=%v: an all-zero sparkline is not in fgSubtle: %v", ascii, c)
+		}
+	}
+}
+
+// A Sparkline drew every series within 25 % of its peak as the idle floor, so a +30 %
+// p99 regression read the same as a constant one (#63 review). Under 10 % is noise and
+// draws the floor; a +20 % step draws a step; a 30 % one never jumps to full height.
+func TestSparklineShowsASmallStep(t *testing.T) {
+	for _, ascii := range []bool{false, true} {
+		th := testTheme(t, ascii)
+		floor, ramp := th.TraceGlyphs()
+		distinct := func(s string) int {
+			seen := map[rune]bool{}
+			for _, r := range ansi.Strip(s) {
+				seen[r] = true
+			}
+			return len(seen)
+		}
+		for _, c := range []struct {
+			name string
+			vals []float64
+		}{
+			{"p99 100→120 ms", []float64{100, 100, 100, 100, 120, 120, 120, 120}},
+			{"rps 1000→800", []float64{1000, 1000, 1000, 1000, 800, 800, 800, 800}},
+			{"p99 400→520 ms", []float64{400, 400, 400, 400, 520, 520, 520, 520}},
+		} {
+			got := Sparkline(th, c.vals, 8, th.S.Muted)
+			if distinct(got) < 2 {
+				t.Errorf("ascii=%v: %s draws %q, one glyph: a step of 20-30 %% must show", ascii, c.name, ansi.Strip(got))
+			}
+			if strings.Contains(ansi.Strip(got), ramp[len(ramp)-1]) {
+				t.Errorf("ascii=%v: %s draws %q: a 20-30 %% step is not full height", ascii, c.name, ansi.Strip(got))
+			}
+		}
+		if got := ansi.Strip(Sparkline(th, []float64{100, 104, 98, 102, 97, 103}, 6, th.S.Muted)); got != strings.Repeat(floor, 6) {
+			t.Errorf("ascii=%v: ±5 %% noise draws %q, want the floor", ascii, got)
+		}
+	}
 }
