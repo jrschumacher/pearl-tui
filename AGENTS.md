@@ -65,7 +65,10 @@ entry means 0) through `tuilint frames --max-warnings`, so a new warning class f
 to raise an entry on purpose, justify the warning in the PR and edit the number (today only
 moss's `dialog: none` overlays, which have no edge for the linter to find). It also runs
 `kit/README.md`'s copy block, as written, in a fresh module, because a kit test that
-names a kit path passes here and fails in every project that copied the kit; checks that
+names a kit path passes here and fails in every project that copied the kit, and then
+deletes the showcase's screens as the README says and runs the kept harness tests
+against `.github/kit-stub` (two pages, one overlay), because a kit test that names a
+showcase state fails the same way; checks that
 every tool invocation in SKILL.md and `references/` names a real mode and flag (the
 `cmddoc` test in `tools/`), that every `references/cmd-*.md` has a row in SKILL.md's
 command table, and that `evals/evals.json` parses and its fixtures exist; and runs each
