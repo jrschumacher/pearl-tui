@@ -254,11 +254,16 @@ and a plain toast says it went (`Declared INC-2041 · paged payments on-call`). 
 is a command: return it from `Tick` and `Flush`, and every call that raises a note
 returns one too, since a send whose command is dropped never went while the row says
 it did. Nothing cuts the window short: a toast raised meanwhile waits and shows after
-the confirmation (the latest only), so an unrelated key never sends early; quitting
-sends it first (`tea.Sequence(toasts.Flush(), tea.Quit)`); and while help or the
-palette covers the row its clock stops, so it never goes unseen with its key out of
-reach. One window at a time: offer the key that starts one only while `Holding` is
-false.
+the confirmation (the latest only), so an unrelated key never sends early (an undo
+toast raised then waits too, about 9 s with the confirmation, and its key with it:
+accepted, since a window is short; keep another way back, as the showcase's palette offers Unsilence); quitting
+sends it first (`tea.Sequence(toasts.Flush(), tea.Quit)`); and wherever its key isn't
+offered (help or the palette over the row, an input taking letters, below the floor, a
+state that binds the key) its clock stops (`Tick(toastAction() == nil)`), so it never
+goes unseen with its key out of reach. One window at a time: `Raise` refuses a second
+while one holds (it returns false and runs nothing, so the caller still owns that
+send), and the kept `TestGraceWindowsHold` fails a key that opens a window offered while
+one holds, so offer it only while `Holding` is false.
 
 ## Footer / Help — `ui.Footer`, `ui.Help`
 

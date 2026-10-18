@@ -67,10 +67,10 @@ func TestToastKeyNamesItsKey(t *testing.T) {
 						t.Errorf("%s w=%d: toast is %d cells: %q", name, w, got, plain)
 					}
 					hint := " " + th.G.Sep + " u undo"
-					if th.G.Sep == "." || th.G.Sep == "," {
-						hint = "  u undo" // a gap, not a full stop after the message
+					if hintGap(th.G.Sep) {
+						hint = "  u undo" // a gap, not a full stop or a rate's slash after the message
 						if strings.Contains(plain, th.G.Sep+" u undo") {
-							t.Errorf("%s w=%d: %q puts sentence punctuation before the key", name, w, plain)
+							t.Errorf("%s w=%d: %q puts %q before the key", name, w, plain, th.G.Sep)
 						}
 					}
 					if !strings.Contains(plain, hint) {
@@ -139,8 +139,8 @@ func TestGraceWindowSendsOnce(t *testing.T) {
 	// the window ends: one command, the send, and its confirmation shows
 	var q Toasts
 	ran := 0
-	if c := q.Raise(grace(&q, &ran)); c != nil {
-		t.Fatal("raising a window returned a command: nothing was sent yet")
+	if !q.Raise(grace(&q, &ran)) {
+		t.Fatal("a window raised on an empty row was refused")
 	}
 	if !q.Holding() || q.Text() != "Paging payments on-call in 5s" {
 		t.Fatalf("a fresh window reads %q (holding %v), want the countdown from 5s", q.Text(), q.Holding())
@@ -150,7 +150,7 @@ func TestGraceWindowSendsOnce(t *testing.T) {
 		t.Errorf("a second in, the window reads %q", q.Text())
 	}
 	cmds := tickN(&q, Frames(GraceTTL))
-	if ran != 1 || q.Sends() != 1 || isSent(cmds) != 1 {
+	if ran != 1 || q.sends != 1 || isSent(cmds) != 1 {
 		t.Fatalf("the window ended: send ran %d times, returned %d send commands, want 1 and 1", ran, isSent(cmds))
 	}
 	if n, _ := q.Current(); n.Label != "SENT" {
@@ -165,7 +165,7 @@ func TestGraceWindowSendsOnce(t *testing.T) {
 		t.Error("undo returned a command")
 	}
 	cmds = append(tickN(&q, 3*Frames(GraceTTL)), q.Flush())
-	if ran != 0 || q.Sends() != 0 || isSent(cmds[:len(cmds)-1]) != 0 {
+	if ran != 0 || q.sends != 0 || isSent(cmds[:len(cmds)-1]) != 0 {
 		t.Fatalf("undone inside the window, and the send ran %d times", ran)
 	}
 	if n, ok := q.Current(); ok && n.Label != "CANCELED" {
@@ -185,18 +185,12 @@ func TestGraceWindowSendsOnce(t *testing.T) {
 
 // A grace window keeps the row until undo or its end (review of #76: any toast cut it
 // short and sent at once, and its "Declared" confirmation was never seen). A note raised
-// meanwhile waits, the latest one only, and shows after the window's confirmation; a
-// second window raised while one holds is undone at once, its send never run.
+// meanwhile waits, the latest one only, and shows after the window's confirmation.
 func TestGraceWindowIsNeverCutShort(t *testing.T) {
 	var q Toasts
 	ran := 0
 	q.Raise(grace(&q, &ran))
 	tickN(&q, Frames(time.Second))
-	second := 0
-	q.Raise(grace(&q, &second)) // refused: its undo raises "Nobody was paged", which waits
-	if second != 0 {
-		t.Fatal("a second window raised while one holds ran its send")
-	}
 	q.Raise(Note{Label: "HISTORY", Msg: "first"})
 	q.Raise(Note{Label: "HISTORY", Msg: "No incidents in the last 30 days"})
 	if n, _ := q.Current(); n.Label != "HELD" || ran != 0 {
@@ -210,8 +204,57 @@ func TestGraceWindowIsNeverCutShort(t *testing.T) {
 	if n, _ := q.Current(); n.Msg != "No incidents in the last 30 days" {
 		t.Errorf("after the confirmation the row shows %q, want the latest note that waited", n.Msg)
 	}
-	if second != 0 {
-		t.Error("the refused second window sent")
+}
+
+// One window at a time, refused outright (review of #76, round 2): a second window raised
+// while one holds made Raise run its Act, whose notice the next toast could replace, and
+// whose undo could touch state the first window shared. Raise now returns false and
+// changes nothing: the second's Act and Send never run, and the first window holds on.
+func TestASecondWindowIsRefused(t *testing.T) {
+	var q Toasts
+	first, second, undone := 0, 0, 0
+	q.Raise(grace(&q, &first))
+	tickN(&q, Frames(time.Second))
+	n := grace(&q, &second)
+	act := n.Act
+	n.Act = func() tea.Cmd { undone++; return act() }
+	if q.Raise(n) {
+		t.Fatal("a second window was accepted while one holds")
+	}
+	if undone != 0 || second != 0 {
+		t.Fatalf("the refused window ran its Act %d times and its Send %d times, want neither", undone, second)
+	}
+	if c, _ := q.Current(); c.Label != "HELD" || q.Text() != "Paging payments on-call in 4s" || q.wait != nil {
+		t.Fatalf("refusing changed the row: %q %q, waiting %v", c.Label, q.Text(), q.wait)
+	}
+	tickN(&q, Frames(GraceTTL))
+	if first != 1 || second != 0 || q.sends != 1 {
+		t.Errorf("the first window sent %d times and the refused one %d", first, second)
+	}
+}
+
+// Undo shows what waited behind the window, after the undo's own notice: a note raised
+// during a window isn't lost when the window is undone instead of ending.
+func TestUndoShowsWhatWaited(t *testing.T) {
+	var q Toasts
+	ran := 0
+	q.Raise(grace(&q, &ran))
+	q.Raise(Note{Label: "HISTORY", Msg: "No incidents in the last 30 days"})
+	q.Act()
+	if n, _ := q.Current(); n.Label != "CANCELED" {
+		t.Fatalf("after undo the row shows %q, want the undo's notice", n.Label)
+	}
+	tickN(&q, Frames(ToastTTL))
+	if n, ok := q.Current(); !ok || n.Msg != "No incidents in the last 30 days" {
+		t.Errorf("after the undo's notice the row shows %q, want the note that waited", n.Msg)
+	}
+	// with no notice of its own, what waited shows at once
+	var p Toasts
+	p.Raise(Note{Msg: "Paging", For: GraceTTL, Key: key.NewBinding(key.WithKeys("u")), Act: func() tea.Cmd { return nil }, Send: func() tea.Cmd { return nil }})
+	p.Raise(Note{Msg: "waited"})
+	p.Act()
+	if n, ok := p.Current(); !ok || n.Msg != "waited" {
+		t.Errorf("an undo with no notice shows %q, want what waited", n.Msg)
 	}
 }
 

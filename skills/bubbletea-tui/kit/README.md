@@ -139,7 +139,10 @@ Once your screens are in, delete what is the showcase's alone:
 - `data.go`, its fixtures (yours are `fixtures.go`), and `screens_test.go`, its tests.
   Rewrite on your states the ones whose law you share (one clock, typing never
   commands, actions target the selection; a grace window's send observed as a command
-  that runs once, as `TestGraceWindow` does with `advance` and `runCmd`).
+  that runs once, as `TestGraceWindow` does with `advance` and `runCmd`; and, if a
+  palette command raises a toast with a key, its key checked as
+  `TestShowcaseToastKeysAreHandled` does: the kept `TestToastKeysAreHandled` reaches
+  the toasts your keys raise, not your commands').
 - `setup.go` and `setup_test.go`, the first-run wizard, with its wiring: each `scrSetup`,
   `m.setup` and `firstRun` branch in `app.go` and `screens.go`, and in `main.go` the
   `setup-*` states, `setupState`, `-first-run` and the `runAccessibleSetup` call.

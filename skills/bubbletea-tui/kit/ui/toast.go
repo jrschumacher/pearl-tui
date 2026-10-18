@@ -55,15 +55,20 @@ func toastStyles(t *theme.Theme, kind string) (tag, bar lipgloss.Style) {
 	return t.S.TagOK, t.S.BarOK
 }
 
+// hintGap reports whether sep, the theme's separator, misreads between a message and
+// the key a toast offers: ".", "," (a sentence's end) or "/" (a rate).
+func hintGap(sep string) bool { return sep == "." || sep == "," || sep == "/" }
+
 // ToastKey is a Toast that offers one key while it shows: the message, the theme's
 // separator, then the binding's key (bold) and what it does, in the bar's ink:
 //
 //	DONE  Silenced checkout-api alerts for 1h · u unsilence
 //	HELD  Paging payments on-call in 5s · u undo
 //
-// Where the separator is sentence punctuation (the ASCII twin of ·, "."), a two-cell gap
-// stands in for it, as between the footer's keys: "in 5s . u undo" read as a sentence
-// ending on the unit.
+// Where the separator would misread before a key, a two-cell gap stands in for it, as
+// between the footer's keys (hintGap): sentence punctuation (the ASCII twin of ·, ".")
+// read "in 5s . u undo" as a sentence ending on its unit, and a slash read "in 5s / u
+// undo" as a rate.
 //
 // Pass the binding the state's action table holds while the toast is up, so the row
 // names exactly the key that works (an undo key the table doesn't bind is a lie). A
@@ -80,7 +85,7 @@ func ToastKey(t *theme.Theme, kind, label, msg string, k key.Binding, w int) str
 	in := bar.UnsetPadding()
 	pl, pr := bar.GetPaddingLeft(), bar.GetPaddingRight()
 	sep := " " + t.G.Sep + " "
-	if t.G.Sep == "." || t.G.Sep == "," {
+	if hintGap(t.G.Sep) {
 		sep = "  "
 	}
 	hint := sep + h.Key + " " + h.Desc
@@ -121,35 +126,33 @@ type Note struct {
 // A grace window is never cut short: while a send is held its note keeps the row until
 // undo or its end, and a note raised meanwhile waits and shows after the window's own
 // confirmation (the latest waiting one only), so an unrelated key never sends early and
-// "Declared INC-2041" is never covered by "No incidents". One window at a time: a second
-// one raised while a send is held is undone at once (its Act runs, its Send never), so
-// offer the key that starts one only while Holding is false.
+// "Declared INC-2041" is never covered by "No incidents". One window at a time: Raise
+// refuses a second while a send is held (it returns false and changes nothing, never
+// running the refused window's Act or Send), so offer the key that starts one only while
+// Holding is false, and check what Raise returns.
 type Toasts struct {
 	cur, wait *Note
 	left      int // frames the showing note has left
-	sends     int // held sends run so far
+	sends     int // held sends run so far (toast_test.go reads it)
 }
 
 // Raise shows n now, or, while a grace window holds a send, keeps it waiting behind that
-// window (the latest waiting one wins). It never runs a held send. Its command is the
-// undo of a second grace window refused while one holds (see Toasts), else nil; return
-// it, as from every call that raises a note, so no path drops a command.
-func (q *Toasts) Raise(n Note) tea.Cmd {
+// window (the latest waiting one wins). It never runs anything: not a held send, not an
+// Act. It returns false, and does nothing, for a grace window (a Note with a Send) raised
+// while another holds: the caller still owns that send, and says it didn't start.
+func (q *Toasts) Raise(n Note) bool {
 	if n.For <= 0 {
 		n.For = ToastTTL
 	}
 	if q.Holding() {
 		if n.Send != nil {
-			if n.Act != nil {
-				return n.Act() // refused: undone before it opened, its send never goes
-			}
-			return nil
+			return false // refused: one window at a time
 		}
 		q.wait = &n
-		return nil
+		return true
 	}
 	q.cur, q.wait, q.left = &n, nil, Frames(n.For)
-	return nil
+	return true
 }
 
 // Current is the note that shows, if any.
@@ -162,10 +165,6 @@ func (q *Toasts) Current() (Note, bool) {
 
 // Holding reports whether a grace window holds a send.
 func (q *Toasts) Holding() bool { return q.cur != nil && q.cur.Send != nil }
-
-// Sends is how many held sends have run: a test's count that undo means never and an
-// ended window means once.
-func (q *Toasts) Sends() int { return q.sends }
 
 // Text is the showing note's message as drawn now: a grace window's counts down to its
 // send in whole seconds, in the kit's unit style ("Paging payments on-call in 5s").
@@ -180,11 +179,13 @@ func (q *Toasts) Text() string {
 }
 
 // Tick advances the showing note one frame and ends it when its time is up, returning a
-// grace window's send. covered is true while a dialog (help, the palette) hides the row:
-// a note that offers a key then waits, so a window never sends, and an undo never
-// lapses, while its key is out of reach.
-func (q *Toasts) Tick(covered bool) tea.Cmd {
-	if q.cur == nil || (covered && q.cur.Key.Help().Key != "") {
+// grace window's send. Pass unreachable true whenever the app doesn't offer the note's
+// key right now (a dialog covers the row, an input takes letters, the screen is below
+// its floor, the state binds the key: toastAction returns nil): a note that offers a key
+// then waits, so a window never sends, and an undo never lapses, while its key is out of
+// reach. A plain note runs on.
+func (q *Toasts) Tick(unreachable bool) tea.Cmd {
+	if q.cur == nil || (unreachable && q.cur.Key.Help().Key != "") {
 		return nil
 	}
 	if q.left--; q.left > 0 {
