@@ -671,6 +671,9 @@ func TestGoldenFooters(t *testing.T) {
 		"| inbox | inbox | **↑↓ move** · **esc clear filter (if a filter is applied)** · **ctrl+p palette** (later) · **? help** |",
 		"| reply | overlay | **enter send** · **↑↓/jk scroll (while the body overflows)** · **esc cancel** · **a ask (later: ask)** |",
 		"| inbox-stale | inbox | **↑↓ move** · **d done (if read)** · **? help** |",
+		"| list-after | list | **↑↓ move** · **? help** |",
+		"| panes | list | **↑↓ move** · **? help** |",
+		"| panes-num | list | **1/2 pane** · **↑↓ move** · **? help** |",
 	}, "\n"), "ctrl+c quit")
 	cases := []struct {
 		name, frame string
@@ -698,6 +701,11 @@ func TestGoldenFooters(t *testing.T) {
 		{"inbox", footer("↑↓ move", "? help"), nil},
 		{"reply", footer("enter send", "esc cancel"), nil},
 		{"inbox-stale", footer("↑↓ move", "x close", "? help"), []string{"shows `x close`, which the row doesn't bind"}},
+		// a hint drawn after the help hint is still a hint, and a count is the whole chunk:
+		// `3/4 pane` and `1/2 pane` are keys
+		{"list-after", footer("↑↓ move", "? help", "d delete"), []string{"shows `d delete`, which the row doesn't bind"}},
+		{"panes", footer("↑↓ move", "3/4 pane", "? help"), []string{"shows `3/4 pane`, which the row doesn't bind"}},
+		{"panes-num", footer("1/2 pane", "↑↓ move", "? help"), nil},
 	}
 	dir := t.TempDir()
 	for _, c := range cases {

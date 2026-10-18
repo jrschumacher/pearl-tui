@@ -29,8 +29,8 @@ var asciiLone = map[string]string{"v": "↓"}
 // word reads as keys and is drawn in another style than the word after it (ui.Help's
 // Key and KeyDesc), so status text on the row ("5 variables") is not one; a row with
 // no style at all (NO_COLOR) takes every chunk that reads as keys. ui.Footer's right
-// status is not a hint: the chunks after the help hint ui.Help pins last (`? help  4 of
-// 101`), and a count ("1 of 9") anywhere. cut is a lone ellipsis among the chunks: Help
+// status is not a hint: a count (`4 of 101`), and after the help hint a chunk that leads
+// with a number (`? help  9 procs`). cut is a lone ellipsis among the chunks: Help
 // dropped hints behind it.
 func frameFooter(text string) (hints []frameHint, cut bool) {
 	f := framelint.Parse(strings.TrimSuffix(strings.ReplaceAll(text, "\r\n", "\n"), "\n"))
@@ -71,6 +71,7 @@ func frameFooter(text string) (hints []frameHint, cut bool) {
 		blanks = 0
 		cur = append(cur, c)
 	}
+	afterHelp := false
 	for i, ch := range chunks {
 		var sb strings.Builder
 		for _, c := range ch {
@@ -113,24 +114,22 @@ func frameFooter(text string) (hints []frameHint, cut bool) {
 		if !ok {
 			continue
 		}
-		if countRe.MatchString(h.text) {
-			continue // "4 of 101", "1/9": a position, ui.Footer's right status
+		if countRe.MatchString(h.text) || (afterHelp && numberRe.MatchString(h.text)) {
+			continue // "4 of 101", "1/9", and after the help hint "9 procs": ui.Footer's right status
 		}
 		hints = append(hints, h)
-		if pinsHelp(h) {
-			break // ui.Help pins the help hint last: what follows is ui.Footer's right status
-		}
+		afterHelp = afterHelp || (len(h.keys) == 1 && (h.keys[0].String() == "?" || h.keys[0].String() == "ctrl+g"))
 	}
 	return hints, cut
 }
 
-// countRe is a footer chunk that counts rather than binds: "4 of 101", "1/9", "3 / 12".
-var countRe = regexp.MustCompile(`^\d+\s*(?:of|/)\s*\d+\b`)
+// numberRe is a chunk that leads with a number ("9 procs"): after the help hint ui.Help
+// pins last, ui.Footer's right status, not a digit key.
+var numberRe = regexp.MustCompile(`^\d+\s`)
 
-// pinsHelp is ui.Help's test for the hint it pins last: its key is exactly ? or ctrl+g.
-func pinsHelp(h frameHint) bool {
-	return len(h.keys) == 1 && (h.keys[0].String() == "?" || h.keys[0].String() == "ctrl+g")
-}
+// countRe is a footer chunk that counts rather than binds, the whole chunk: "4 of 101",
+// "1/9", "3 / 12". "1/2 pane" is keys.
+var countRe = regexp.MustCompile(`^\d+\s*(?:of|/)\s*\d+$`)
 
 // startsWord reports a chunk whose first cell is a letter or digit: a status word, not
 // a prompt (/, >, ›) or a badge ([PROD]).

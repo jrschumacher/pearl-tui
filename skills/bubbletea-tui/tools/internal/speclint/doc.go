@@ -129,8 +129,9 @@
 //	                  enter keep") is not part of it; ASCII twins (^v, <>, ^v<>) read as arrows,
 //	                  and a lone v as v or ↓; a row "as list; x cancel" is list's keys and
 //	                  these; a badge one blank before the first hint ("[PROD] enter next") is not
-//	                  part of it, nor is ui.Footer's right status (what follows the help hint
-//	                  ui.Help pins last, and a count such as `4 of 101` or `1/9` anywhere); a
+//	                  part of it, nor is ui.Footer's right status: a chunk that is only a count
+//	                  (`4 of 101`, `1/9`; `1/2 pane` is keys), or after the help hint one that
+//	                  leads with a number (`9 procs`); a
 //	                  frame whose last row holds no hint (a toast) is not compared.
 //	S-REGION     [P2] (with --frames) a region of a screen block's budget line (`80×24: header
 //	                  0,0 80×1 · list 1,2 78×20 · …`) whose whole rectangle is blank in the
