@@ -40,7 +40,7 @@ the read names two things the kit won't choose for you, both for the main screen
 default frame (§6, question 2):
 
 - **move**: one region in other rows than the kit puts it, or absent, or added, following
-  from one of the three words. The kit's default is a one-row header (name left, context
+  from one of the three words; it and the signature are two different regions. The kit's default is a one-row header (name left, context
   right), the list or transcript leading, status in the header and the footer, a rule
   over the input and keys on the last row (`components.md`).
 - **signature**: one element the kit doesn't draw by default: a one-row cell-art mark
@@ -49,14 +49,15 @@ default frame (§6, question 2):
   header's details, a column of stamps on the list.
 
 **DO** name the word each follows from, and take the move from your words, not from these:
-"move: no tabs and no detail pane, the selected service's detail opens in place under its
-row, because terse" (a monitor); "move: no header row, the step count sits in the footer,
-because unobtrusive" (a setup form); "move: no turn-end row, the model and time sit right
-of the turn's first line, because conversational" (a chat).
-**DON'T** count a glyph, a rule style, a hue or a theme expression (`header`, `footer`,
-`titleCase`) as either: the kit already draws every variant, so `"header": "stamp"` is
-paint, and both brands in that pair chose `╌` as their motif, which has its own line. A
-recoloured `ui.Header` is the kit's element, not a signature.
+"move: no tab row; services, deploys and incidents stack as three short sections on one
+page, because at-a-glance" (a monitor); "move: no header row, the step count sits in the
+footer, because unobtrusive" (a setup form); "move: the session's files and cost are a
+22-cell column right of the transcript even at 80 columns, because attentive" (a chat).
+**DON'T** count a glyph, a rule style or a hue as either, and judge a theme expression by
+its effect: one that restyles a region (`"header": "stamp"`, `bar`, `titleCase`) is
+paint, one that removes a region or puts it in other rows is a move. Both brands in that
+pair chose `╌` as their motif, which has its own line. A recoloured `ui.Header` is the
+kit's element, not a signature.
 
 ## 2. Translate Traits Into Terminal Moves
 

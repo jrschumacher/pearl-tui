@@ -43,10 +43,11 @@ drifts), contact sheets in both modes, a passing diversity lint. Read
    without the baseline files it exits 2). If it fails on distance from `ink`, identity
    is only in the palette, so go back to the read's expression lines (step 3, `brand.md`
    §2). Each axis moved after the lint gets its product reason in the read and in
-   `TUI.md` § Decisions; an axis whose only reason is the count moves back, because a scrim dropped or a dialog edge changed to reach 8 is
-   the lint designing the product. Also `palette check` (every role is `#RGB` or
-   `#RRGGBB`), `tuilint frames frames/<brand> --theme themes/<brand>.json --bg <bg>` and
-   the light frames with `--bg <light bg>`, and the footprint: `go test` once the kit is
+   `TUI.md` § Decisions; an axis whose only reason is the count moves back, because a
+   scrim dropped or a dialog edge changed to reach 8 is the lint designing the product.
+   Also `palette check` (every role is `#RGB` or `#RRGGBB`),
+   `tuilint frames frames/<brand> --theme themes/<brand>.json --bg <bg>` and the light
+   frames with `--bg <light bg>`, and the footprint: `go test` once the kit is
    in the project (`craft` §1); until then the showcase's `-golden -w 80 -h 24` and
    `-w 120 -h 40` from step 7's `go -C` form, which tests every state's rows.
 9. **Judge** with the four questions in `brand.md` §6. The `ladder` frame shows every
