@@ -18,7 +18,7 @@ literal.
 | `border` / `borderFocus` | rules: quiet, but seen / the one dialog's border | 1.3–1.9, a warning under 1.5 (light pages the same: 1.5:1 is ~15 L* on either) / unchecked |
 | `success error warning` / `info` | state only | 3.5 / 3.0 |
 | `onPrimary onWarning` / `onSecondary onError onSuccess` | text on a filled role | 4.5 / 3.5 |
-| `fgSelected` | text on the primary selection fill | 3.5 (not under `focus: fg`) |
+| `fgSelected` | text on the primary selection fill | 3.5 (not under `focus: fg`); 4.5 at 16 colours, where the ink is black or white and one of them always clears 4.5 on a slot's hue |
 
 ## Derive The Palette From The Brand, Then Check It
 
@@ -47,9 +47,9 @@ palette check theme.json   # on any existing theme
   two hues the second is the brand's and the tertiary a complement
 - writes both a dark and a light set, the nearest xterm-256 index per role, and the
   `ansi16` pins its own `check` would ask for (most brands' warning lands on error's red
-  at 16 colours), so the first `palette check` of the theme prints no 16-colour pin.
-  The brand takes the slot nearest its hue first (an amber on yellow 11/3) and a
-  displaced warning moves; only a brand that is a status role's own colour (a yellow,
+  at 16 colours), so the first `palette check` of the theme prints no 16-colour pin and
+  exits 0. The warning keeps yellow; a warm brand takes 11 on a dark page and no hue on a
+  light one (§ The Four Palettes); a brand that is a status role's own colour (a yellow,
   within 25° of the slot's hue) yields it
 - warns when `warning` sits beside `primary` in hue and chroma (an amber brand's warning
   a shade brighter than its amber): a warning row then reads as a focused one
@@ -173,8 +173,11 @@ and look at the PNGs. What usually breaks:
   carries `▲`/`!`; on a light page it has no hue (`primary` pinned to 0, fg's grey: yellow
   3 is 1.35:1 on white) and the kit draws focus as fg and bold. Its secondary, tertiary
   and accent follow it off red and magenta. The warning never leaves yellow: `palette
-  check` fails it on green, and a pinned brand under 3:1 as text or 4.5:1 under its
-  selection ink (white on yellow 11 is 1.17:1), measured in the slot's colour.
+  check` fails it on green, and a pinned brand under 3:1 as text. Where yellow 3 is faint
+  on the page (1.35:1 on white), the kit draws the warning as a fill: a yellow cell with
+  a dark ink. At 16 colours the kit re-inks each on-colour that reads under its floor on
+  its fill's slot (white on yellow 11 is 1.17:1) with fg or bg; an ink the theme pins
+  itself is its own, and `check` judges it at the slot (cellshot's palette).
 
 ## DO / DON'T
 
