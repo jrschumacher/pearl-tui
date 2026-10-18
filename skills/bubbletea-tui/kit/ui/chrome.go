@@ -403,18 +403,35 @@ func Tabs(t *theme.Theme, names []string, active int, counts []string) []string 
 // TooSmall is the whole screen when the terminal is below the minimum: the wordmark,
 // "Terminal too small" in the theme's case, the sizes, and the keys the too-small
 // state binds (its action table's footer bindings, usually one: q quit), so the hint
-// is never a key the app doesn't handle.
+// is never a key the app doesn't handle. A spec with its own sentence uses TooSmallText.
 func TooSmall(t *theme.Theme, w, h, minW, minH int, bindings []key.Binding) string {
+	msg := append(strings.Split(Wordmark(t, t.AppName()), "\n"), "", t.S.Soft.Render(t.Sentence("Terminal too small")), t.S.Muted.Render(
+		strconv.Itoa(w)+"x"+strconv.Itoa(h)+", needs "+strconv.Itoa(minW)+"x"+strconv.Itoa(minH)))
+	return tooSmall(t, w, h, msg, bindings)
+}
+
+// TooSmallText is TooSmall in the product's own words: say (the spec's sentence, sizes
+// and all: "Terminal is 60×18; needs 80×24"), wrapped to the width and centred, then the
+// keys of bindings. No wordmark, and no key row when bindings has no enabled key: for a
+// spec whose too-small screen is its sentence and nothing else.
+func TooSmallText(t *theme.Theme, w, h int, say string, bindings []key.Binding) string {
+	var msg []string
+	for _, l := range strings.Split(lipgloss.NewStyle().Width(max(1, min(w-2, 56))).Render(say), "\n") {
+		msg = append(msg, t.S.Soft.Render(strings.TrimSpace(l)))
+	}
+	return tooSmall(t, w, h, msg, bindings)
+}
+
+// tooSmall centres msg in w×h, with the enabled bindings' keys under it after a blank row.
+func tooSmall(t *theme.Theme, w, h int, msg []string, bindings []key.Binding) string {
 	var keys []string
 	for _, b := range bindings {
 		if b.Enabled() {
 			keys = append(keys, t.S.Key.Render(HelpKey(t, b.Help().Key))+" "+t.S.KeyDesc.Render(b.Help().Desc))
 		}
 	}
-	msg := Wordmark(t, t.AppName()) + "\n\n" + t.S.Soft.Render(t.Sentence("Terminal too small")) + "\n" + t.S.Muted.Render(
-		strconv.Itoa(w)+"x"+strconv.Itoa(h)+", needs "+strconv.Itoa(minW)+"x"+strconv.Itoa(minH))
 	if len(keys) > 0 {
-		msg += "\n\n" + Trunc(t, strings.Join(keys, "  "), w)
+		msg = append(msg, "", Trunc(t, strings.Join(keys, "  "), w))
 	}
-	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, lipgloss.JoinVertical(lipgloss.Center, strings.Split(msg, "\n")...))
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, lipgloss.JoinVertical(lipgloss.Center, msg...))
 }

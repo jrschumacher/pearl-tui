@@ -274,8 +274,12 @@ for steps, nested agents and dependencies.
 See `cell-art.md`. Mark, wordmark, spinner with subject, version bottom-left, quit hint
 bottom-right, brand field behind with a clearing. It is shown only while something loads.
 
-## Too Small — `ui.TooSmall(t, w, h, minW, minH, bindings)`
+## Too Small — `ui.TooSmall(t, w, h, minW, minH, bindings)`, `ui.TooSmallText(t, w, h, say, bindings)`
 
 One centred line with the actual and the needed size, then the keys of the `toosmall`
 row of the action table (`m.footerBindings()` while the size is below the minimum),
 never a key typed into the screen: `TestHelpIsHandled` presses every one. Nothing else.
+A spec that words the screen itself ("Terminal is 60×18; needs 80×24") passes its
+sentence to `ui.TooSmallText`, which wraps it at 56 cells and drops the wordmark; with no
+enabled binding it draws no key row, for a spec that asks for the sentence and nothing
+else (ctrl+c still quits).
