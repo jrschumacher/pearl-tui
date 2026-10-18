@@ -146,6 +146,16 @@ func TestBulletIsDrawn(t *testing.T) {
 	if got := strings.TrimSpace(ansi.Strip(Empty(th, 40, "◇", "No incidents", "Nothing is paging.", "")[0])); got != "◇" {
 		t.Errorf("Empty's mark is %q, want the glyph the screen named", got)
 	}
+	// a state whose motion or mark lives elsewhere (a loading state whose spinner is in
+	// the footer) passes NoMark: the title is the first row, with no mark or blank above
+	// it (an app cut Empty's first two rows to get that)
+	bare := Empty(th, 40, NoMark, "No incidents", "Nothing is paging.", "")
+	if got := strings.TrimSpace(ansi.Strip(bare[0])); got != "No incidents" {
+		t.Errorf("Empty with NoMark starts %q, want the title", got)
+	}
+	if marked := Empty(th, 40, "", "No incidents", "Nothing is paging.", ""); len(bare) != len(marked)-2 {
+		t.Errorf("Empty with NoMark is %d rows, want the marked one's %d less the mark and its blank", len(bare), len(marked))
+	}
 	if got := ansi.Strip(Alert(th, "warning", "PROD", "customer traffic", 40)); !strings.HasPrefix(got, "PROD ▪ customer traffic") {
 		t.Errorf("Alert = %q, want the bullet between tag and message", got)
 	}

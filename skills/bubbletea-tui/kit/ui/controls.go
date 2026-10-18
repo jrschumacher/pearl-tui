@@ -300,13 +300,22 @@ func Count(n int) string {
 	return fmt.Sprint(n)
 }
 
+// NoMark, as Empty's glyph, draws no mark: the title is the first row. For a state whose
+// mark or motion lives elsewhere (a loading state whose spinner is in the footer, a
+// filter's no-match under its filter line).
+const NoMark = "\x00"
+
 // Empty is an empty state: what is missing, why, and the one thing to do.
-// Never a bare "No items". glyph is the mark above the title; "" draws the theme's bullet.
+// Never a bare "No items". glyph is the mark above the title (and a blank row under
+// it); "" draws the theme's bullet, NoMark none.
 func Empty(t *theme.Theme, w int, glyph, title, why, action string) []string {
 	if glyph == "" {
 		glyph = t.G.Bullet
 	}
 	rows := []string{t.S.Subtle.Render(glyph), "", t.S.Bold.Render(title)}
+	if glyph == NoMark {
+		rows = rows[2:]
+	}
 	for _, l := range strings.Split(lipgloss.NewStyle().Width(min(w, 56)).Align(lipgloss.Center).Render(why), "\n") {
 		rows = append(rows, t.S.Muted.Render(strings.TrimSpace(l)))
 	}

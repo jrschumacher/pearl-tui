@@ -314,7 +314,9 @@ says the state in words.
 Every list and pane designs all three:
 
 - **Empty**: a quiet glyph, what is missing, why (in context: "checkout-api has been
-  failing for 12 min"), and the one action that fixes it, as a key.
+  failing for 12 min"), and the one action that fixes it, as a key. Where the state's
+  mark or motion is elsewhere (a spinner in the footer), pass `ui.NoMark`: the title
+  is the first row. Don't cut `Empty`'s rows.
 - **Loading**: a skeleton of the real layout with dim placeholders, or one spinner with
   a subject. Never a blank screen.
 - **Error**: what failed, against what, the likely cause, and the key to retry. Keep the

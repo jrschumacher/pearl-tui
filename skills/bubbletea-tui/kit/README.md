@@ -9,7 +9,7 @@ ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                 chrome.go   Wordmark, Header, Details, Section, Rule, Help, Footer, Toast, Tabs, TooSmall
                 toast.go    ToastTTL, UndoTTL, GraceTTL, Frames, SecondsLeft, ToastKey (a toast that
                             offers one key: u undo)
-                controls.go Button(s), Tag, Alert, Dot, KV, Progress, Sparkline, Scrollbar, Count, Empty
+                controls.go Button(s), Tag, Alert, Dot, KV, Progress, Sparkline, Scrollbar, Count, Empty (NoMark: no mark)
                 list.go     List (selection styles, fuzzy underline, scrollbar), Table (borderless;
                             TableWith{NoRule} without the rule under its header),
                             Follow (scroll-into-view), Fuzzy (subsequence match with indices)
