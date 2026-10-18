@@ -10,10 +10,10 @@
 //
 // draft prints the exact issue (repo, template, labels, title, then the body as GitHub
 // renders the form) and sends nothing. similar lists existing issues, open and closed,
-// whose titles share the words of --title (gh search issues), so a finding can go on
-// one of them instead of a duplicate; without gh it prints the search link. submit files
-// the issue with gh issue create when gh is installed and gh auth status passes, and
-// prints its URL. Otherwise it files nothing: it prints the new-issue link with the
+// whose titles share the four longest words of --title (gh search issues), so a finding
+// can go on one of them instead of a duplicate; without gh it prints the search link.
+// submit files the issue with gh issue create when gh is installed and gh auth status
+// passes, and prints its URL. Otherwise it files nothing: it prints the new-issue link with the
 // template, title, labels and fields filled in, capped at 8000 bytes (fields that don't
 // fit are written to a file to paste, and dropdowns, which GitHub can't prefill, are
 // named to pick), and opens it in the browser only with --open (open, xdg-open, or the

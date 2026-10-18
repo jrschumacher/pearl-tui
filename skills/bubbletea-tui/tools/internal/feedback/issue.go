@@ -142,8 +142,8 @@ var stopwords = map[string]bool{
 }
 
 // Terms picks a title's search words: lowercased, punctuation dropped, stopwords and words
-// under three letters out, each once, at most six (GitHub search ANDs them, so fewer
-// words find more).
+// under three letters out, each once, at most four, the longest (GitHub search ANDs
+// them, so fewer words find more).
 func Terms(title string) []string {
 	seen := map[string]bool{}
 	var out []string
@@ -157,16 +157,16 @@ func Terms(title string) []string {
 		seen[w] = true
 		out = append(out, w)
 	}
-	if len(out) > 6 {
+	if len(out) > 4 {
 		// keep the longest: they carry the most meaning ("contrast", "dialog"), in title order
 		idx := make([]int, len(out))
 		for i := range idx {
 			idx[i] = i
 		}
 		sort.SliceStable(idx, func(a, b int) bool { return len(out[idx[a]]) > len(out[idx[b]]) })
-		idx = idx[:6]
+		idx = idx[:4]
 		sort.Ints(idx)
-		kept := make([]string, 0, 6)
+		kept := make([]string, 0, 4)
 		for _, i := range idx {
 			kept = append(kept, out[i])
 		}

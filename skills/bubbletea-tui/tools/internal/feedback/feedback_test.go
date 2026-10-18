@@ -236,8 +236,8 @@ func TestNewIssueURLLengthFallback(t *testing.T) {
 
 func TestTerms(t *testing.T) {
 	got := Terms("fix: tuilint F-CONTRAST fires on the ruled dialog's scrim under -profile ansi, at 80x24 too")
-	// nine words; the six longest stay, in title order
-	want := []string{"tuilint", "f-contrast", "fires", "ruled", "dialog", "profile"}
+	// nine words; the four longest stay, in title order
+	want := []string{"tuilint", "f-contrast", "dialog", "profile"}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Terms = %v, want %v", got, want)
 	}
@@ -539,9 +539,12 @@ func TestSimilar(t *testing.T) {
 	}
 
 	os.WriteFile(results, []byte(`[]`), 0o644)
+	os.Remove(r.log)
 	r.run("similar", "--title", "wordmark tracked style drops the last letter")
-	if !strings.Contains(r.stdout.String(), "no issues match") || !strings.Contains(r.calls(), "-- wordmark tracked letter") {
-		t.Errorf("no hits: stdout %q, retried with the three longest words? calls:\n%s", r.stdout.String(), r.calls())
+	calls := r.calls()
+	if !strings.Contains(r.stdout.String(), "no issues match") || !strings.Contains(calls, "-- wordmark tracked style letter\n") ||
+		strings.Count(calls, "search issues") != 1 {
+		t.Errorf("no hits: stdout %q; one search of the four longest words? calls:\n%s", r.stdout.String(), calls)
 	}
 
 	t.Setenv("STUB_AUTH", "0")

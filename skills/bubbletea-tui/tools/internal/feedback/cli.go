@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -343,28 +342,19 @@ func similar(repo, title string, stdout, stderr io.Writer, bad func(string, ...a
 		fmt.Fprintln(stdout, SearchURL(repo, terms))
 		return ExitNotFiled
 	}
-	queries := [][]string{terms}
-	if len(terms) > 3 {
-		longest := append([]string(nil), terms...)
-		sort.SliceStable(longest, func(i, j int) bool { return len(longest[i]) > len(longest[j]) })
-		queries = append(queries, longest[:3])
+	args := append([]string{"search", "issues", "--repo", repo, "--json", "number,title,state,url", "--limit", "10", "--"}, terms...)
+	out, errOut, err := gh(args)
+	if err != nil {
+		fmt.Fprintf(stderr, "feedback: gh search failed: %s\n", strings.TrimSpace(errOut))
+		return ExitFailed
 	}
-	for _, q := range queries {
-		args := append([]string{"search", "issues", "--repo", repo, "--json", "number,title,state,url", "--limit", "10", "--"}, q...)
-		out, errOut, err := gh(args)
-		if err != nil {
-			fmt.Fprintf(stderr, "feedback: gh search failed: %s\n", strings.TrimSpace(errOut))
-			return ExitFailed
-		}
-		var hits []hit
-		if err := json.Unmarshal([]byte(out), &hits); err != nil {
-			fmt.Fprintf(stderr, "feedback: gh search: %v\n", err)
-			return ExitFailed
-		}
-		if len(hits) == 0 {
-			continue
-		}
-		fmt.Fprintf(stdout, "issues matching %q:\n", strings.Join(q, " "))
+	var hits []hit
+	if err := json.Unmarshal([]byte(out), &hits); err != nil {
+		fmt.Fprintf(stderr, "feedback: gh search: %v\n", err)
+		return ExitFailed
+	}
+	if len(hits) > 0 {
+		fmt.Fprintf(stdout, "issues matching %q:\n", strings.Join(terms, " "))
 		for _, h := range hits {
 			fmt.Fprintf(stdout, "#%-4d %-6s %s\n      %s\n", h.Number, strings.ToLower(h.State), h.Title, h.URL)
 		}
