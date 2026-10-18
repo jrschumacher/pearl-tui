@@ -163,59 +163,63 @@ func TestToastKeysAreHandled(t *testing.T) { toastKeysOffered(t) }
 
 // A grace window (a toast holding a send: a page, an email) holds it until undo or its
 // end, wherever the app raises one (every key of every state is tried). Its key undoes
-// it, and nothing is sent then, not on quit either; quitting inside the window sends it
-// once; and no other key of the state sends it early or drops it. (ui's toast tests
-// hold the clock: the window's end, its countdown, and a dialog stopping it.)
+// it; quitting inside the window sends it first (Flush); no other key of the state ends
+// it early; and no key that starts a window is offered while one holds, since
+// ui.Toasts refuses a second (Raise returns false) and the app would have offered a key
+// that does nothing. (ui's toast tests hold the clock, the sends and the refusal.)
 func TestGraceWindowsHold(t *testing.T) {
+	type window struct {
+		name  string
+		raise func() *app
+	}
+	var windows []window
+	starts := map[string]bool{} // what the keys that open a window say they do
 	for _, s := range states {
 		if s == "toosmall" {
 			continue
 		}
-		// a state that opens on a window (a harness state), else each key that raises one
-		keys := []string{""}
-		if !fixture(t, s).toasts.Holding() {
-			keys = nil
-			for _, a := range fixture(t, s).actions() {
-				keys = append(keys, a.b.Keys()[0])
+		if fixture(t, s).toasts.Holding() { // a harness state that opens on a window
+			windows = append(windows, window{s, func() *app { return fixture(t, s) }})
+			continue
+		}
+		for _, a := range fixture(t, s).actions() {
+			k := a.b.Keys()[0]
+			raise := func() *app { m := fixture(t, s); m.key(press(k)); return m }
+			if raise().toasts.Holding() {
+				starts[a.b.Help().Desc] = true
+				windows = append(windows, window{s + " then " + k, raise})
 			}
 		}
-		for _, k := range keys {
-			raise := func() *app {
-				m := fixture(t, s)
-				if k != "" {
-					m.key(press(k))
-				}
-				return m
+	}
+	for _, w := range windows {
+		m := w.raise()
+		undo := m.toastAction()
+		if undo == nil {
+			t.Errorf("%s: a grace window offers no key to undo it", w.name)
+			continue
+		}
+		for _, a := range m.actions() {
+			if starts[a.b.Help().Desc] {
+				t.Errorf("%s: %s %s, which opens a grace window, is offered while one holds: the second would be refused", w.name, a.b.Help().Key, a.b.Help().Desc)
 			}
-			if !raise().toasts.Holding() {
+		}
+		m.key(press(undo.b.Keys()[0]))
+		if m.toasts.Holding() {
+			t.Errorf("%s: %s didn't undo the window", w.name, undo.b.Keys()[0])
+		}
+		m = w.raise()
+		if cmd := m.key(press("ctrl+c")); cmd == nil || m.toasts.Holding() {
+			t.Errorf("%s: ctrl+c inside the window left the send held: it never goes", w.name)
+		}
+		for _, b := range w.raise().actions() {
+			o := b.b.Keys()[0]
+			if b.b.Help().Desc == "quit" || slices.Contains(undo.b.Keys(), o) {
 				continue
 			}
-			name := strings.TrimSuffix(s+" then "+k, " then ")
-			m := raise()
-			undo := m.toastAction()
-			if undo == nil {
-				t.Errorf("%s: a grace window offers no key to undo it", name)
-				continue
-			}
-			m.key(press(undo.b.Keys()[0]))
-			m.key(press("ctrl+c"))
-			if m.toasts.Sends() != 0 || m.toasts.Holding() {
-				t.Errorf("%s: undone with %s, and the send ran %d times", name, undo.b.Keys()[0], m.toasts.Sends())
-			}
-			m = raise()
-			if cmd := m.key(press("ctrl+c")); cmd == nil || m.toasts.Sends() != 1 {
-				t.Errorf("%s: ctrl+c inside the window ran the send %d times, want once, ahead of quitting", name, m.toasts.Sends())
-			}
-			for _, b := range raise().actions() {
-				o := b.b.Keys()[0]
-				if b.b.Help().Desc == "quit" || slices.Contains(undo.b.Keys(), o) {
-					continue
-				}
-				f := raise()
-				f.key(press(o))
-				if f.toasts.Sends() != 0 || !f.toasts.Holding() {
-					t.Errorf("%s then %q: the window was cut short (sent %d times, holding %v)", name, o, f.toasts.Sends(), f.toasts.Holding())
-				}
+			f := w.raise()
+			f.key(press(o))
+			if !f.toasts.Holding() {
+				t.Errorf("%s then %q: the window was cut short", w.name, o)
 			}
 		}
 	}

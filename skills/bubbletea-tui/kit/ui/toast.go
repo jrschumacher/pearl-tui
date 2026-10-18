@@ -121,35 +121,33 @@ type Note struct {
 // A grace window is never cut short: while a send is held its note keeps the row until
 // undo or its end, and a note raised meanwhile waits and shows after the window's own
 // confirmation (the latest waiting one only), so an unrelated key never sends early and
-// "Declared INC-2041" is never covered by "No incidents". One window at a time: a second
-// one raised while a send is held is undone at once (its Act runs, its Send never), so
-// offer the key that starts one only while Holding is false.
+// "Declared INC-2041" is never covered by "No incidents". One window at a time: Raise
+// refuses a second while a send is held (it returns false and changes nothing, never
+// running the refused window's Act or Send), so offer the key that starts one only while
+// Holding is false, and check what Raise returns.
 type Toasts struct {
 	cur, wait *Note
 	left      int // frames the showing note has left
-	sends     int // held sends run so far
+	sends     int // held sends run so far (toast_test.go reads it)
 }
 
 // Raise shows n now, or, while a grace window holds a send, keeps it waiting behind that
-// window (the latest waiting one wins). It never runs a held send. Its command is the
-// undo of a second grace window refused while one holds (see Toasts), else nil; return
-// it, as from every call that raises a note, so no path drops a command.
-func (q *Toasts) Raise(n Note) tea.Cmd {
+// window (the latest waiting one wins). It never runs anything: not a held send, not an
+// Act. It returns false, and does nothing, for a grace window (a Note with a Send) raised
+// while another holds: the caller still owns that send, and says it didn't start.
+func (q *Toasts) Raise(n Note) bool {
 	if n.For <= 0 {
 		n.For = ToastTTL
 	}
 	if q.Holding() {
 		if n.Send != nil {
-			if n.Act != nil {
-				return n.Act() // refused: undone before it opened, its send never goes
-			}
-			return nil
+			return false // refused: one window at a time
 		}
 		q.wait = &n
-		return nil
+		return true
 	}
 	q.cur, q.wait, q.left = &n, nil, Frames(n.For)
-	return nil
+	return true
 }
 
 // Current is the note that shows, if any.
@@ -162,10 +160,6 @@ func (q *Toasts) Current() (Note, bool) {
 
 // Holding reports whether a grace window holds a send.
 func (q *Toasts) Holding() bool { return q.cur != nil && q.cur.Send != nil }
-
-// Sends is how many held sends have run: a test's count that undo means never and an
-// ended window means once.
-func (q *Toasts) Sends() int { return q.sends }
 
 // Text is the showing note's message as drawn now: a grace window's counts down to its
 // send in whole seconds, in the kit's unit style ("Paging payments on-call in 5s").

@@ -427,26 +427,31 @@ func backspace(m *app, _ tea.KeyPressMsg) tea.Cmd {
 	return nil
 }
 
-// say raises a plain toast: what happened, for ui.ToastTTL. Return its command, as from
-// every call that raises a toast (ui.Toasts.Raise): no path may drop one.
+// say raises a plain toast: what happened, for ui.ToastTTL. Raising runs nothing
+// (ui.Toasts.Raise), so its command is nil; callers return it beside their own anyway,
+// so a toast that one day starts work can't be dropped on the way out.
 func (m *app) say(kind, label, msg string) tea.Cmd {
-	return m.toasts.Raise(ui.Note{Kind: kind, Label: label, Msg: msg})
+	m.toasts.Raise(ui.Note{Kind: kind, Label: label, Msg: msg})
+	return nil
 }
 
 // sayUndo raises an undo toast, rung 1 of the confirm ladder: what happened and the key
 // that takes it back (b, bound while the toast shows), for ui.UndoTTL, long enough to
 // reach the key.
 func (m *app) sayUndo(kind, label, msg string, b key.Binding, undo func(m *app) tea.Cmd) tea.Cmd {
-	return m.toasts.Raise(ui.Note{Kind: kind, Label: label, Msg: msg, For: ui.UndoTTL, Key: b,
+	m.toasts.Raise(ui.Note{Kind: kind, Label: label, Msg: msg, For: ui.UndoTTL, Key: b,
 		Act: func() tea.Cmd { return undo(m) }})
+	return nil
 }
 
 // hold raises a grace window, rung 2's default for a send that can't be recalled: msg
 // says what will happen ("Paging payments on-call"), the row counts down to it ("in 5s")
 // and offers u undo for ui.GraceTTL. send runs once, when the window ends or on quit,
 // and returns the command that sends; undo runs instead of it. No other toast cuts the
-// window short: one raised meanwhile waits (ui.Toasts).
-func (m *app) hold(kind, label, msg string, send, undo func(m *app) tea.Cmd) tea.Cmd {
+// window short: one raised meanwhile waits (ui.Toasts). It reports whether the window
+// opened: one holds at a time, so offer the key that starts one only while
+// m.toasts.Holding() is false (TestGraceWindowsHold), and start nothing on false.
+func (m *app) hold(kind, label, msg string, send, undo func(m *app) tea.Cmd) bool {
 	return m.toasts.Raise(ui.Note{Kind: kind, Label: label, Msg: msg, For: ui.GraceTTL,
 		Key:  bind([]string{"u"}, "u", "undo"),
 		Act:  func() tea.Cmd { return undo(m) },
@@ -664,12 +669,11 @@ func (m *app) stateActions() []action {
 		)
 	case scrIncidents:
 		acts := []action{}
-		if !m.declared && !m.paging {
+		if !m.declared && !m.paging && !m.toasts.Holding() { // one window at a time
 			// a page is a send to people one labelled key starts: the label is the judgement
 			// (rung 2), so no confirm, but it waits out a grace window under an undo toast
 			acts = append(acts, action{bind([]string{"n"}, "n", "declare incident"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
-				m.paging = true
-				return m.hold("warning", "HELD", "Paging payments on-call", func(m *app) tea.Cmd {
+				m.paging = m.hold("warning", "HELD", "Paging payments on-call", func(m *app) tea.Cmd {
 					m.paging, m.declared = false, true
 					// the send is a command: dropped, nobody is paged whatever the row says
 					return tea.Batch(m.say("ok", "SENT", "Declared INC-2041 "+m.t.G.Sep+" paged payments on-call"), page("INC-2041"))
@@ -677,6 +681,7 @@ func (m *app) stateActions() []action {
 					m.paging = false
 					return m.say("info", "CANCELED", "Nobody was paged "+m.t.G.Sep+" INC-2041 not declared")
 				})
+				return nil
 			}})
 		}
 		return append(acts,
