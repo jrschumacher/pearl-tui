@@ -1,6 +1,6 @@
 ---
 name: pearl
-description: Design and build terminal UIs that look as considered as Charm's Crush and unmistakably like the product's own brand. The design laws, brand, colour, layout and verify loop are framework-neutral; the first and only framework with a kit and code lint today is Bubble Tea v2 (Go, with Lip Gloss, Bubbles and Huh). Use when the user wants to build, design, redesign, restyle, theme, brand, critique, audit, polish, harden or animate a TUI, CLI dashboard, interactive CLI, terminal wizard, chat/agent interface, splash screen, terminal logo or wordmark; for any Bubble Tea, Lip Gloss, Bubbles, Huh or Charm work; or to port a v1 Bubble Tea app to v2. Covers column budgets, colour roles and contrast, glyphs, focus and keys, empty/loading/error states, motion, cell art, a theme contract per brand, and a render-lint-critique loop that lets you see the terminal before the user does. Ships a compile-verified Bubble Tea kit, an ANSI-to-PNG renderer, a palette deriver and a slop linter. Not for web UIs.
+description: Design and build terminal UIs that look as considered as Charm's Crush and unmistakably like the product's own brand. The design laws are framework-neutral, but pearl builds Bubble Tea v2 apps today (Go, with Lip Gloss, Bubbles and Huh), the one framework its kit and code lint support. Use when the user wants to build, design, redesign, restyle, theme, brand, critique, audit, polish, harden or animate a TUI, CLI dashboard, interactive CLI, terminal wizard, chat/agent interface, splash screen, terminal logo or wordmark; for any Bubble Tea, Lip Gloss, Bubbles, Huh or Charm work; or to port a v1 Bubble Tea app to v2. Covers column budgets, colour roles and contrast, glyphs, focus and keys, empty/loading/error states, motion, cell art, a theme contract per brand, and a render-lint-critique loop that lets you see the terminal first. Ships a compile-verified Bubble Tea kit, an ANSI-to-PNG renderer, a palette tool and a slop linter. Not for web UIs, nor yet for ratatui, Textual, Ink or other non-Go TUI frameworks.
 license: MIT
 compatibility: Go ≥ 1.26.7 (Bubble Tea v2.1, Lip Gloss v2.0.6, Bubbles v2.2). Python 3 with Pillow and numpy only for the wordmark and logo converters.
 metadata:
@@ -31,6 +31,8 @@ with Lip Gloss, Bubbles and Huh) is the one framework the kit (`kit/theme/bubble
 `bubbletea-architecture.md` whole, and the sections a mixed reference names in its
 italic *Bubble Tea:* line (`components.md`, `cmd-init.md`, `cmd-craft.md`,
 `cmd-restyle.md`, `medium.md`, `motion.md`, `color.md`, `layout.md`, `verify.md`).
+Asked to build in another framework (ratatui, Textual, Ink, tview), tell the user pearl
+supports only Bubble Tea today; its design references still read as guidance there.
 
 ## Setup (Every Time, Before Any UI Code)
 
