@@ -29,7 +29,7 @@ func Default() File {
 		Brand: "app",
 		Read: "The fallback: monochrome ink with one cold accent, plain rule header, nothing to remember it by. " +
 			"It exists so a partial theme renders. Never ship it; derive a theme from the product's own brand.",
-		ANSI16: map[string]map[string]int{"dark": {"warning": 11}, "light": {"warning": 3}},
+		ANSI16: map[string]map[string]int{"dark": {"warning": 11}, "light": {"tertiary": 0, "warning": 3}},
 		Glyphs: Glyphs{Pending: "◌"}, // waiting is not now: the default current is ●
 		Expressions: Expressions{Header: "rule", Wordmark: "solid", SectionTitle: "fg", Selection: "bar", Button: "pill",
 			Tag: "filled", Dialog: "rounded", DialogTitle: "plain", Tabs: "underline", Footer: "keys", Density: "airy"},
@@ -50,8 +50,8 @@ func Default() File {
 
 // derive resolves a role set into colours, filling any missing role from the
 // ones present so a theme with only the core roles still renders well. pins (the
-// theme's ansi16 at 16 colours, else nil) replace the roles they name with one of the
-// 16 colours, before anything is derived from them.
+// theme's ansi16 at 16 colours, its ansi256 at 256, else nil) replace the roles they
+// name with one of those colours, before anything is derived from them.
 func derive(r Roles, dark bool, pins map[string]int) Palette {
 	var p Palette
 	if len(pins) > 0 {
@@ -63,6 +63,9 @@ func derive(r Roles, dark bool, pins map[string]int) Palette {
 		}
 		if n, ok := strings.CutPrefix(s, "ansi:"); ok {
 			i, _ := strconv.Atoi(n)
+			if i > 15 {
+				return ansi.IndexedColor(i) // an ansi256 pin
+			}
 			return ansi.BasicColor(i)
 		}
 		return lipgloss.Color(s)
@@ -154,7 +157,7 @@ func pins16(f File, mode string, dark bool) map[string]int {
 }
 
 // pinned writes each pinned role as "ansi:<n>", which derive's c reads as that basic
-// colour: a hex can't name one (the xterm hex of ANSI 8 downsamples to 7), and a role
+// colour (0-15) or indexed one (16-255): a hex can't name one (the xterm hex of ANSI 8 downsamples to 7), and a role
 // derived from a pinned one then follows it.
 func pinned(r Roles, pins map[string]int) Roles {
 	v, t := reflect.ValueOf(&r).Elem(), reflect.TypeOf(r)
@@ -469,12 +472,44 @@ func CheckGlyphs(g Glyphs) error {
 	if err != nil {
 		return err
 	}
+	// the product's own marks: each with a twin, and no two that differ on one twin (a
+	// progress pair • ◦ drawn as one ASCII mark has no progress)
+	names := make([]string, 0, len(g.Marks))
+	for n := range g.Marks {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	twinOf := map[string]string{}
+	for _, n := range names {
+		m := g.Marks[n]
+		if n == "" || m == "" {
+			return fmt.Errorf("glyphs.marks: %q → %q: name a mark and give it a glyph", n, m)
+		}
+		tw := twin(g.ASCII, m)
+		if tw == "?" {
+			return fmt.Errorf("glyphs.marks.%s %q has no ASCII twin: -ascii and TERM=linux would draw it as \"?\"; add \"ascii\": {%q: \"<twin>\"} to glyphs", n, m, m)
+		}
+		if other, dup := twinOf[tw]; dup && g.Marks[other] != m {
+			return fmt.Errorf("glyphs.marks.%s %q and glyphs.marks.%s %q both draw as %q under ASCII, so two marks read as one: give one of them another twin in glyphs.ascii", other, g.Marks[other], n, m, tw)
+		}
+		twinOf[tw] = n
+	}
 	out := ASCII(src)
 	sv, ov, t := reflect.ValueOf(src), reflect.ValueOf(out), reflect.TypeOf(src)
 	jsonKey := func(name string) string {
 		f, _ := t.FieldByName(name)
 		k, _, _ := strings.Cut(f.Tag.Get("json"), ",")
 		return k
+	}
+	// a mark is no status mark under ASCII either: reading dots • ◦ twin to * o, the
+	// current and todo marks, so a row of them reads as a step ladder once colour is gone
+	for _, n := range names {
+		for _, s := range glyphMeanings[0] {
+			if m, gs := g.Marks[n], sv.FieldByName(s).String(); m != gs && twin(g.ASCII, m) == ov.FieldByName(s).String() {
+				return fmt.Errorf("glyphs.marks.%s %q draws as %q under ASCII, glyphs.%s %q's twin, so the mark reads as that state: give it another twin in glyphs.ascii",
+					n, m, twin(g.ASCII, m), jsonKey(s), gs)
+			}
+		}
 	}
 	sv0 := reflect.ValueOf(src)
 	for _, fr := range src.Spinner {
@@ -569,6 +604,13 @@ func ASCII(g Glyphs) Glyphs {
 		g.Current = "*"
 	}
 	g.Spinner = asciiSpinner(g)
+	if len(g.Marks) > 0 {
+		marks := make(map[string]string, len(g.Marks))
+		for name, m := range g.Marks {
+			marks[name] = twin(g.ASCII, m)
+		}
+		g.Marks = marks
+	}
 	// ┃ thumb and │ track both twin to "|": without colour the scrollbar would have no
 	// position, so the thumb becomes the solid block it stands for
 	if g.Thumb == g.Track && g.Thumb != "" {

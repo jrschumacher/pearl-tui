@@ -112,6 +112,14 @@ type Glyphs struct {
 	TurnBar       string `json:"turnBar"`       // the user's turn in a chat when blurred: │ ┆ (focusBar when focused; blurBar wins when set)
 	TabUnderline  string `json:"tabUnderline"`  // the active tab's underline under tabs "underline": ▔ ─ ▀ (ASCII draws the rule glyph instead)
 
+	// Marks are the product's own marks by name, for a signature the kit has no slot for:
+	// {"stop": "•", "stopAhead": "◦"} for a progress pair, one dot per tour stop. Each has
+	// an ASCII twin (glyphs.ascii, {"•": "#", "◦": "_"}, or the kit's map), which
+	// Theme.ProductMark draws under ASCII; no two marks that differ share one, and none
+	// twins to a status mark's twin (the kit's • ◦ are * o, current's and todo's), checked
+	// by CheckGlyphs, so a screen never keeps a glyph literal or its own twin table for them.
+	Marks map[string]string `json:"marks,omitempty"`
+
 	// ASCII is the theme's own twins, glyph → ASCII, for glyphs the kit's map lacks
 	// or draws differently: {"✎": ">", "◔": "~"}. It wins over the kit's map.
 	ASCII map[string]string `json:"ascii,omitempty"`
@@ -244,6 +252,14 @@ type File struct {
 	// error's slot; no hex fixes that without leaving amber at 256 colours. A role derived
 	// from a pinned one (secondary from primary) follows it. See ANSI16Clashes.
 	ANSI16 map[string]map[string]int `json:"ansi16,omitempty"`
+	// ANSI256 pins roles to one of the 256 colours (0-255) per mode, used only when the
+	// terminal has 256 (ResolveProfile with colorprofile.ANSI256): {"dark": {"primary":
+	// 172}}. Downsampling picks by RGB distance, which draws an amber brand as 173, a
+	// salmon, where the perceptual nearest (palette derive's ansi256 block, the same
+	// shape) is 172. A role derived from a pinned one follows it. Unpinned, the kit
+	// keeps the background ramp apart there (bgPanel, bgSubtle and bgOverlay each on an
+	// index of its own, Ramp256); palette check judges a pin far from its hex.
+	ANSI256 map[string]map[string]int `json:"ansi256,omitempty"`
 	// Ladder is the product's own status ladder, in the order a thing moves through it:
 	// [{"glyph": "current", "meaning": "new", "role": "primary"}, …]. Set, ui.Rungs and
 	// the ladder state draw these rungs instead of the kit's default ones, and
@@ -289,6 +305,9 @@ func Parse(b []byte) (File, error) {
 	if err := CheckANSI16(f); err != nil {
 		return f, err
 	}
+	if err := CheckANSI256(f); err != nil {
+		return f, err
+	}
 	return f, nil
 }
 
@@ -306,6 +325,25 @@ func CheckANSI16(f File) error {
 			}
 			if n := f.ANSI16[m][role]; n < 0 || n > 15 {
 				return fmt.Errorf("ansi16.%s.%s: %d is not one of the 16 colours (0-15)", m, role, n)
+			}
+		}
+	}
+	return nil
+}
+
+// CheckANSI256 validates the theme's ansi256 pins as CheckANSI16 does its ansi16 ones:
+// a mode (dark, light), a role the theme contract knows, and an index 0-255.
+func CheckANSI256(f File) error {
+	for _, m := range sortedKeys(f.ANSI256) {
+		if m != "dark" && m != "light" {
+			return fmt.Errorf("ansi256.%s: not a mode (dark, light)", m)
+		}
+		for _, role := range sortedKeys(f.ANSI256[m]) {
+			if !roleKey(role) {
+				return fmt.Errorf("ansi256.%s.%s: not a role (primary, bgPanel, warning, …)", m, role)
+			}
+			if n := f.ANSI256[m][role]; n < 0 || n > 255 {
+				return fmt.Errorf("ansi256.%s.%s: %d is not one of the 256 colours (0-255)", m, role, n)
 			}
 		}
 	}
@@ -402,11 +440,15 @@ var KitSlots = []string{"done", "current", "todo", "pending", "partial", "busy",
 // CheckLadder reports a rung of the theme's ladder the kit can't draw: a role that is
 // neither a colour role nor focus / working, a meaning that is a kit slot's name (the
 // kit's slots keep their inks), a glyph that is neither a status slot nor a one-cell
-// literal with an ASCII twin, two rungs with one meaning, or two rungs that draw as
-// one mark under ASCII. palette check fails on it (through CheckKeys); Load doesn't,
-// so an app still starts, drawing the rung in fg.
+// literal with an ASCII twin, two rungs with one meaning, two rungs that draw as
+// one mark under ASCII, or a rung in warning that isn't the warn glyph (every mark in
+// the warning's ink carries it, so a warning reads without colour and beside whatever
+// else shares its slot).
+// palette check fails on it (through CheckKeys); Load doesn't, so an app still starts,
+// drawing the rung in fg.
 func CheckLadder(f File) error {
-	g := ASCII(glyphDefaults(f.Glyphs))
+	g0 := glyphDefaults(f.Glyphs)
+	g := ASCII(g0)
 	seen, twins := map[string]int{}, map[string]int{}
 	for i, r := range f.Ladder {
 		where := fmt.Sprintf("ladder[%d]", i)
@@ -432,6 +474,9 @@ func CheckLadder(f File) error {
 		}
 		if j, dup := twins[tw]; dup {
 			return fmt.Errorf("%s.glyph %q and ladder[%d].glyph %q both draw as %q under ASCII, so two states read as one", where, r.Glyph, j, f.Ladder[j].Glyph, tw)
+		}
+		if r.Role == "warning" && r.Glyph != "warn" && r.Glyph != g0.Warn {
+			return fmt.Errorf("%s draws in warning with glyph %q, not the warn slot's %q: every mark in the warning's ink carries the warn glyph, so a warning reads under NO_COLOR and beside anything that shares its colour (the kit's TestWarningInkCarriesItsGlyph); use \"glyph\": \"warn\", or another role", where, r.Glyph, g0.Warn)
 		}
 		twins[tw] = i
 	}
@@ -807,10 +852,16 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 	}
 	t := &Theme{File: f, Dark: dark, ASCII: ascii, Profile: profile}
 	var pins map[string]int
-	if profile == colorprofile.ANSI {
+	switch profile {
+	case colorprofile.ANSI:
 		pins = pins16(f, mode, dark)
+	case colorprofile.ANSI256:
+		pins = f.ANSI256[mode]
 	}
 	t.P = derive(r, dark, pins)
+	if profile == colorprofile.ANSI256 {
+		t.ramp256(pins, derive(r, dark, nil))
+	}
 	// the prompt takes the focus ink, unless that ink is under 3:1 on bgOverlay, where
 	// a palette's filter input sits (Charm's #6B50FF on #4D4C57 is 1.7:1): judged on the
 	// colours as written, so one theme and mode draws one prompt colour in every profile
@@ -828,7 +879,7 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 	// primary pinned to a grey at 16 colours has no hue there (a warm brand on a light
 	// page: yellow 3 is unreadable on white, magenta is pink): the kit's emphasis falls
 	// back as under focus "fg", and brand text is fg and bold
-	if n, ok := pins["primary"]; ok && Grey16(n) {
+	if n, ok := pins["primary"]; ok && profile == colorprofile.ANSI && Grey16(n) {
 		t.X.Focus, t.plainBrand = "fg", true
 	}
 	if t.X.Focus == "fg" && r.BorderFocus == "" {
@@ -844,7 +895,7 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 	// floor on its fill's slot (Contrast16) takes fg or bg, whichever reads best: once,
 	// in the palette, for every component that draws it
 	// (an ink the theme pins itself is its own choice, and palette check judges it)
-	if pins != nil {
+	if profile == colorprofile.ANSI {
 		p := &t.P
 		for _, x := range []struct {
 			key   string
@@ -892,6 +943,12 @@ func Resolve16(f File, dark bool) *Theme {
 	return ResolveProfile(f, dark, false, colorprofile.ANSI)
 }
 
+// Resolve256 is ResolveProfile at 256 colours (colorprofile.ANSI256), without ASCII: what
+// a checker judges a theme's ansi256 pins by.
+func Resolve256(f File, dark bool) *Theme {
+	return ResolveProfile(f, dark, false, colorprofile.ANSI256)
+}
+
 // Distinct reports whether a and b draw as different colours at the theme's profile:
 // under 16 or 256 colours two hexes can land on one index, and under NO_COLOR (or
 // no TTY) nothing has a colour at all.
@@ -907,6 +964,132 @@ func (t *Theme) Distinct(a, b color.Color) bool {
 	r1, g1, b1, _ := ca.RGBA()
 	r2, g2, b2, _ := cb.RGBA()
 	return r1 != r2 || g1 != g2 || b1 != b2
+}
+
+// rampRoles are the background ramp's steps above the page, in order away from it.
+var rampRoles = []string{"bgPanel", "bgSubtle", "bgOverlay"}
+
+// xtermGreys are the 256 colours' greys, darkest first: black 16, the ramp 232-255
+// (#080808 to #EEEEEE) and white 231.
+var xtermGreys = func() []int {
+	out := []int{16}
+	for n := 232; n <= 255; n++ {
+		out = append(out, n)
+	}
+	return append(out, 231)
+}()
+
+// Index256 is the one of the 256 colours c draws as at 256 colours: c itself when it is
+// one (a pinned role), else the nearest by the kit's downsampling. -1 for nil.
+func Index256(c color.Color) int {
+	switch v := colorprofile.ANSI256.Convert(c).(type) {
+	case ansi.IndexedColor:
+		return int(v)
+	case ansi.BasicColor:
+		return int(v)
+	}
+	return -1
+}
+
+// ramp256 keeps the background ramp apart at 256 colours. Its steps are small by design
+// (bgPanel ~0.035 L above bg), and downsampling can put two of them on one index:
+// halyard's, moss's and terrarium's dark bg and bgPanel both draw as 234, and every
+// panel, output block and borderless dialog loses its edge. Each step the theme doesn't
+// pin that lands on the index of the page or of a step below it moves to the first grey
+// past all of them, away from the page (lighter on a dark page, darker on a light one),
+// so the order holds. A pinned step is the theme's own choice (palette check reports
+// it), and so is a step the theme writes as the colour of one below it (ferrous's
+// bgOverlay is its bg): tc is the palette as written.
+func (t *Theme) ramp256(pins map[string]int, tc Palette) {
+	p := &t.P
+	steps := map[string]*color.Color{"bgPanel": &p.BgPanel, "bgSubtle": &p.BgSubtle, "bgOverlay": &p.BgOverlay}
+	taken := []int{Index256(p.Bg)}
+	for i, role := range rampRoles {
+		c := steps[role]
+		n := Index256(*c)
+		_, own := pins[role]
+		same := slices.ContainsFunc(append([]string{"bg"}, rampRoles[:i]...), func(below string) bool {
+			return sameColor(paletteRole(tc, below), paletteRole(tc, role))
+		})
+		if own || same || !slices.Contains(taken, n) {
+			taken = append(taken, n)
+			continue
+		}
+		if g := NextGrey256(taken, t.Dark); g >= 0 {
+			*c = ansi.IndexedColor(g)
+			n = g
+		}
+		taken = append(taken, n)
+	}
+}
+
+// NextGrey256 is the first of the 256 colours' greys past every index in taken, away
+// from the page (lighter when dark), and not one of them; -1 when none is left: where
+// the kit moves a ramp step that shares an index (ramp256), and palette derive too.
+func NextGrey256(taken []int, dark bool) int {
+	edge := -1.0
+	for _, n := range taken {
+		l := Luminance(ansi.IndexedColor(n))
+		if edge < 0 || dark && l > edge || !dark && l < edge {
+			edge = l
+		}
+	}
+	greys := slices.Clone(xtermGreys)
+	if !dark {
+		slices.Reverse(greys)
+	}
+	for _, g := range greys {
+		l := Luminance(ansi.IndexedColor(g))
+		if (dark && l > edge || !dark && l < edge) && !slices.Contains(taken, g) {
+			return g
+		}
+	}
+	return -1
+}
+
+// Shared256 is two steps of the background ramp a 256-colour terminal draws as one
+// index (Ramp256Shares), and where the kit draws the upper one there.
+type Shared256 struct {
+	Mode       string      // dark | light
+	A, B       string      // role keys, bg first
+	ColA, ColB color.Color // as the theme writes them (truecolour)
+	Index      int         // the index both land on: B as written (after the theme's ansi256 pins), A as the kit draws it
+	Kit        int         // the index the kit draws B at (ramp256); Index when it can't move it (a pin)
+}
+
+func (s Shared256) String() string {
+	return fmt.Sprintf("%s: %s and %s both xterm %d", s.Mode, s.A, s.B, s.Index)
+}
+
+// Ramp256Shares are the pairs of background roles (bg, bgPanel, bgSubtle, bgOverlay)
+// that differ at truecolour but land on one of the 256 colours, after the theme's
+// ansi256 pins, per mode: a panel, a button or a popover with no edge there. The kit
+// moves an unpinned upper step to a grey of its own (Kit); palette check warns on each
+// with the pin that keeps it.
+func Ramp256Shares(f File) []Shared256 {
+	var out []Shared256
+	for _, mode := range modes16(f) {
+		dark := mode != "light"
+		tc := ResolveProfile(f, dark, false, colorprofile.TrueColor).P
+		raw := derive(f.Roles[mode], dark, f.ANSI256[mode])
+		kit := ResolveProfile(f, dark, false, colorprofile.ANSI256).P
+		roles := append([]string{"bg"}, rampRoles...)
+		// each step as written against the steps below it as the kit draws them, so a
+		// step that lands where the kit moved the one below (terrarium's bgSubtle on
+		// the 235 its bgPanel moved to) is named in the same pass
+		for i, b := range roles[1:] {
+			for _, a := range roles[:i+1] {
+				ca, cb := paletteRole(tc, a), paletteRole(tc, b)
+				ia, ib := Index256(paletteRole(kit, a)), Index256(paletteRole(raw, b))
+				if sameColor(ca, cb) || ia != ib {
+					continue
+				}
+				out = append(out, Shared256{mode, a, b, ca, cb, ia, Index256(paletteRole(kit, b))})
+				break
+			}
+		}
+	}
+	return out
 }
 
 // edge is c, a rule or border colour, or where c lands on the page's colour at the
@@ -980,6 +1163,51 @@ func (t *Theme) Role(key string) color.Color {
 	return paletteRole(t.P, key)
 }
 
+// RoleStyle is the style text in the role with JSON key key draws in, as the kit's own
+// components draw it: a state role is its state style, so a mark in warning is a fill
+// where the warning's slot is faint at 16 colours (Styles.Warn), and a primary pinned to
+// a grey is bold; focus and working are the inks expressions.focus and
+// expressions.spinner resolve to (focus bold, as the current rung is). Any other colour
+// role is that colour; a name the theme doesn't know is fg. What a ladder rung's role
+// draws in (ui.RoleInk), so a product's warning rung reads as the kit's warn slot does.
+func (t *Theme) RoleStyle(key string) lipgloss.Style {
+	s := t.S
+	switch key {
+	case "focus":
+		return s.Focus.Bold(true)
+	case "working":
+		return s.Working
+	case "primary":
+		return s.Primary
+	case "secondary":
+		return s.Secondary
+	case "tertiary":
+		return s.Tertiary
+	case "accent":
+		return s.Accent
+	case "success":
+		return s.OK
+	case "error":
+		return s.Err
+	case "warning":
+		return s.Warn
+	case "info":
+		return s.Info
+	case "fg":
+		return s.Base
+	case "fgSoft":
+		return s.Soft
+	case "fgMuted":
+		return s.Muted
+	case "fgSubtle":
+		return s.Subtle
+	}
+	if c := t.Role(key); c != nil {
+		return lipgloss.NewStyle().Foreground(c)
+	}
+	return s.Base
+}
+
 // LadderGlyph is the glyph rung r draws in this theme: the slot's glyph when r.Glyph
 // names a status slot, else the literal; under ASCII, its twin either way.
 func (t *Theme) LadderGlyph(r LadderRung) string {
@@ -990,6 +1218,17 @@ func (t *Theme) LadderGlyph(r LadderRung) string {
 		return twin(t.File.Glyphs.ASCII, r.Glyph)
 	}
 	return r.Glyph
+}
+
+// ProductMark is the theme's own mark called name (glyphs.marks), its ASCII twin under ASCII:
+// a product's signature (a motif dot, a progress pair) drawn through the theme like
+// every other glyph. A name the theme doesn't declare draws as "?", loud on every sheet
+// and failed by tuilint frames --ascii.
+func (t *Theme) ProductMark(name string) string {
+	if g, ok := t.G.Marks[name]; ok {
+		return g
+	}
+	return "?"
 }
 
 // BlurBar is the marker a blurred selection keeps (ui.List, ui.Table): glyphs.blurBar,

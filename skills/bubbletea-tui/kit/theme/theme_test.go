@@ -1,6 +1,7 @@
 package theme
 
 import (
+	"encoding/json"
 	"image/color"
 	"os"
 	"path/filepath"
@@ -125,6 +126,11 @@ func TestCheckKeys(t *testing.T) {
 		// only the status slots are slot names: a chrome glyph's key is a literal, and no literal is a word
 		{`{"ladder": [{"glyph": "focusBar", "meaning": "new", "role": "primary"}]}`, `ladder[0].glyph "focusBar" is neither a status slot`},
 		{`{"ladder": [{"glyph": "▌", "meaning": "new", "role": "primary"}, {"glyph": "caret", "meaning": "typing", "role": "info"}]}`, `ladder[1].glyph "caret" is neither a status slot`},
+		// a rung in warning carries the warn glyph: at 16 colours a warm brand is the warning's yellow
+		{`{"ladder": [{"glyph": "current", "meaning": "high", "role": "warning"}]}`, `ladder[0] draws in warning with glyph "current", not the warn slot's "▲"`},
+		{`{"ladder": [{"glyph": "◬", "meaning": "high", "role": "warning"}], "glyphs": {"ascii": {"◬": "%"}}}`, `ladder[0] draws in warning with glyph "◬"`},
+		{`{"ladder": [{"glyph": "warn", "meaning": "high", "role": "warning"}]}`, ""},
+		{`{"ladder": [{"glyph": "◬", "meaning": "high", "role": "warning"}], "glyphs": {"warn": "◬", "ascii": {"◬": "%"}}}`, ""},
 		{`{"ladder": [{"glyph": "current", "meaning": "new", "role": "primary"}, {"glyph": "◔", "meaning": "queued", "role": "working"}, {"glyph": "✔", "meaning": "reviewed", "role": "fgSubtle"}], "glyphs": {"ascii": {"◔": "%"}}}`, ""},
 	} {
 		err := CheckKeys([]byte(c.json))
@@ -733,6 +739,147 @@ func TestASCIIMultiCellSpinnerKeepsItsShape(t *testing.T) {
 		for i := range uni {
 			if ansi.StringWidth(asc[i]) != ansi.StringWidth(uni[i]) {
 				t.Errorf("%s: ASCII frame %q is %d cells, unicode %q %d", filepath.Base(path), asc[i], ansi.StringWidth(asc[i]), uni[i], ansi.StringWidth(uni[i]))
+			}
+		}
+	}
+}
+
+// A ladder rung draws in its role through RoleStyle (ui.RoleInk), and a state role is the
+// kit's state style: a rung in warning drew plain yellow text where the kit's own warn
+// slot is a fill (yellow 3 on a white page is 1.35:1), so two cold apps deleted their
+// warning rung to pass TestWarningIsAFillWhereItsSlotIsFaint (#70). Every kit theme and
+// test theme, both modes, every profile: each state role renders as its Styles field.
+func TestRoleStyleIsTheStateStyle(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	test, _ := filepath.Glob(filepath.Join("testdata", "*.json"))
+	for _, path := range append(files, test...) {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dark := range []bool{true, false} {
+			for _, prof := range []colorprofile.Profile{colorprofile.TrueColor, colorprofile.ANSI256, colorprofile.ANSI} {
+				th := ResolveProfile(f, dark, false, prof)
+				for role, want := range map[string]lipgloss.Style{"warning": th.S.Warn, "error": th.S.Err, "success": th.S.OK,
+					"info": th.S.Info, "primary": th.S.Primary, "fgMuted": th.S.Muted, "working": th.S.Working, "focus": th.S.Focus.Bold(true)} {
+					if got, w := th.RoleStyle(role).Render("x"), want.Render("x"); got != w {
+						t.Errorf("%s dark=%v %v: RoleStyle(%q) draws %q, want the kit's own %q", filepath.Base(path), dark, prof, role, got, w)
+					}
+				}
+			}
+		}
+	}
+}
+
+// A product's own marks (a motif dot, a progress pair) have a slot in the theme,
+// glyphs.marks, with ASCII twins (#64): an app kept them in a table of its own named
+// ascii, or borrowed the spinner's frames, which ASCII draws as another shape. Each mark
+// needs a twin, no two marks that differ share one, and ProductMark draws the twin under
+// ASCII.
+func TestProductMarks(t *testing.T) {
+	for _, c := range []struct{ json, want string }{
+		// under ASCII the kit's twins * o are the current and todo marks: a row of reading
+		// dots would read as a step ladder
+		{`{"marks": {"stop": "•", "stopAhead": "◦"}}`, `glyphs.marks.stop "•" draws as "*" under ASCII, glyphs.current "●"'s twin`},
+		{`{"marks": {"stop": "•", "stopAhead": "◦"}, "ascii": {"•": "#"}}`, `glyphs.marks.stopAhead "◦" draws as "o" under ASCII, glyphs.todo "○"'s twin`},
+		{`{"marks": {"here": "●"}}`, ""}, // the current mark itself, by name: one glyph, one twin
+		{`{"marks": {"stop": "•", "stopAhead": "◦"}, "ascii": {"•": "#", "◦": "_"}}`, ""},
+		{`{"marks": {"stop": "✪"}}`, `glyphs.marks.stop "✪" has no ASCII twin`},
+		{`{"marks": {"stop": "•", "stopAhead": "▪"}, "ascii": {"•": "#", "▪": "#"}}`, `glyphs.marks.stop "•" and glyphs.marks.stopAhead "▪" both draw as "#" under ASCII`},
+		{`{"marks": {"stop": ""}}`, `glyphs.marks: "stop" → "": name a mark and give it a glyph`},
+	} {
+		var g Glyphs
+		if err := json.Unmarshal([]byte(c.json), &g); err != nil {
+			t.Fatal(err)
+		}
+		err := CheckGlyphs(g)
+		if c.want == "" && err != nil || c.want != "" && (err == nil || !strings.Contains(err.Error(), c.want)) {
+			t.Errorf("CheckGlyphs(%s) = %v, want %q", c.json, err, c.want)
+		}
+	}
+	f, err := Parse([]byte(`{"glyphs": {"marks": {"stop": "•", "stopAhead": "◦"}, "ascii": {"•": "#", "◦": "_"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CheckKeys([]byte(`{"glyphs": {"marks": {"stop": "•"}}}`)); err != nil {
+		t.Errorf("CheckKeys refuses glyphs.marks: %v", err)
+	}
+	for _, c := range []struct {
+		ascii            bool
+		stop, ahead, bad string
+	}{{false, "•", "◦", "?"}, {true, "#", "_", "?"}} {
+		th := Resolve(f, true, c.ascii)
+		if got := th.ProductMark("stop") + th.ProductMark("stopAhead") + th.ProductMark("nope"); got != c.stop+c.ahead+c.bad {
+			t.Errorf("ascii=%v: ProductMark draws %q, want %q", c.ascii, got, c.stop+c.ahead+c.bad)
+		}
+	}
+	if Resolve(f, true, true); f.Glyphs.Marks["stop"] != "•" {
+		t.Errorf("resolving under ASCII rewrote the theme's own marks map")
+	}
+}
+
+// Under focus "fg" the motif (the header rule, a dialog's and a palette's title rule) is
+// a rule colour, and it runs on the page and on a dialog's or palette's fill: at 16
+// colours a light page's border is grey 7, the overlay's own slot, so the palette's title
+// rule vanished once a cyan brand was pinned to fg's grey (#60). Every kit theme and test
+// theme with focus forced to fg, both modes, every profile: the motif's ink is apart from
+// bg, bgPanel and bgOverlay.
+func TestMotifStaysOffItsFills(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	test, _ := filepath.Glob(filepath.Join("testdata", "*.json"))
+	for _, path := range append(files, test...) {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.Expressions.Focus = "fg"
+		for _, dark := range []bool{true, false} {
+			for _, prof := range []colorprofile.Profile{colorprofile.TrueColor, colorprofile.ANSI256, colorprofile.ANSI} {
+				th := ResolveProfile(f, dark, false, prof)
+				ink := th.S.Motif.GetForeground()
+				for name, fill := range map[string]color.Color{"bg": th.P.Bg, "bgPanel": th.P.BgPanel, "bgOverlay": th.P.BgOverlay} {
+					if !th.Distinct(ink, fill) {
+						t.Errorf("%s dark=%v %v: the motif draws on %s's own colour", filepath.Base(path), dark, prof, name)
+					}
+				}
+			}
+		}
+	}
+}
+
+// A theme pins info at 16 colours to keep it apart from the brand: charm's primary and
+// info both drew as bright blue 12, so its NEW and SETUP chips were one chip, black on
+// blue, told apart by the word alone (#60). Every kit theme that pins info, both modes:
+// an info tag and a primary tag draw differently at 16 colours.
+func TestPinnedInfoTagIsNotThePrimaryTag(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	for _, path := range files {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, mode := range []string{"dark", "light"} {
+			if _, ok := f.ANSI16[mode]["info"]; !ok {
+				continue
+			}
+			th := Resolve16(f, mode != "light")
+			if a, b := th.S.TagInfo.Render("TAG"), th.S.TagPrimary.Render("TAG"); a == b {
+				t.Errorf("%s %s: info pinned, but its tag draws as the primary tag at 16 colours: %q", filepath.Base(path), mode, a)
 			}
 		}
 	}

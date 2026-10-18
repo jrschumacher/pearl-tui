@@ -5,6 +5,7 @@ import (
 	"math"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -35,6 +36,11 @@ type Palette struct {
 	cols    map[RGB]struct{} // every colour before quantising, for Indexed
 	indexed map[RGB]bool     // built on first use
 
+	// the theme's "ansi256" pins as xterm colours, with the roles and backgrounds they
+	// blend with: at 256 colours a pinned role draws as its index, which can sit further
+	// from its hex than the buckets allow (derive pins info #41A5E4 to 38, #00AFD7)
+	pins, base, bgs []RGB
+
 	Ellipsis string // the theme's glyphs.ellipsis, "" when it sets none (F-TRUNC)
 }
 
@@ -43,10 +49,19 @@ type Palette struct {
 func (p *Palette) Indexed() map[RGB]bool {
 	if p.indexed == nil {
 		p.indexed = map[RGB]bool{}
-		for c := range p.cols {
+		cols := p.cols
+		if len(p.pins) > 0 {
+			// a pinned role's index, and its blends with the other roles and toward the
+			// backgrounds (a dim, a gradient, a scrim), each downsampled again
+			cols = buildPalette(append(slices.Clone(p.base), p.pins...), p.bgs).cols
+		}
+		for c := range cols {
 			cube, grey := to256(c)
 			p.indexed[cube] = true
 			p.indexed[grey] = true
+		}
+		for _, c := range p.pins {
+			p.indexed[c] = true
 		}
 	}
 	return p.indexed
@@ -172,6 +187,25 @@ func LoadPalette(path string) (*Palette, error) {
 	if m, ok := t.(map[string]any); ok {
 		if g, ok := m["glyphs"].(map[string]any); ok {
 			p.Ellipsis, _ = g["ellipsis"].(string)
+		}
+		// "ansi256": {mode: {role: index}}, drawn at -profile ansi256 only (Indexed)
+		if a, ok := m["ansi256"].(map[string]any); ok {
+			seenPin := map[RGB]bool{}
+			for _, set := range a {
+				roles, ok := set.(map[string]any)
+				if !ok {
+					continue
+				}
+				for _, v := range roles {
+					if n, ok := v.(float64); ok && n >= 0 && n <= 255 && n == math.Trunc(n) {
+						if c := xterm(int(n)); !seenPin[c] {
+							seenPin[c] = true
+							p.pins = append(p.pins, c)
+						}
+					}
+				}
+			}
+			p.base, p.bgs = base, bgs
 		}
 	}
 	return p, nil

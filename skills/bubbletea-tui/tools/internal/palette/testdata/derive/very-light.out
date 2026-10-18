@@ -114,6 +114,7 @@
    "warning": 11
   },
   "light": {
+   "accent": 0,
    "warning": 3
   }
  }

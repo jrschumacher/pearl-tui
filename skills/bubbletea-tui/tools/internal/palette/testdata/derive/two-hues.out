@@ -113,6 +113,7 @@
    "warning": 11
   },
   "light": {
+   "secondary": 5,
    "warning": 3
   }
  }

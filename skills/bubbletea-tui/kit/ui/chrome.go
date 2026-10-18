@@ -106,9 +106,13 @@ func Header(t *theme.Theme, w, h int, brand, details string, right ...string) []
 	return []string{Fit(pad+b+" "+fill+" "+details, w)}
 }
 
+// bannerRow draws one row of the banner wordmark, art in the brand's colour and no
+// weight: where primary has no hue (a brand pinned to a grey at 16 colours) S.Primary is
+// bold, and a bold pixel banner made a third of a frame's text bold (F-BOLD).
 func bannerRow(t *theme.Theme, r string) string {
+	art := lipgloss.NewStyle().Foreground(t.P.Primary)
 	if !strings.ContainsAny(r, theme.ShadeDark+theme.ShadeMid) {
-		return t.S.Primary.Render(r)
+		return art.Render(r)
 	}
 	var sb strings.Builder
 	for _, ch := range r {
@@ -116,7 +120,7 @@ func bannerRow(t *theme.Theme, r string) string {
 		case theme.ShadeFull:
 			sb.WriteString(t.S.Accent.Render(theme.ShadeFull))
 		case theme.ShadeDark:
-			sb.WriteString(t.S.Primary.Render(theme.ShadeDark))
+			sb.WriteString(art.Render(theme.ShadeDark))
 		case theme.ShadeMid:
 			sb.WriteString(t.S.Muted.Render(theme.ShadeMid))
 		default:

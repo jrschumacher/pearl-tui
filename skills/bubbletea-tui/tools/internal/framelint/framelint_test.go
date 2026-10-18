@@ -1489,3 +1489,42 @@ func TestContrastExemptsASCIIRuleTwins(t *testing.T) {
 		t.Errorf("prose dashes: %s", hits[0].Msg)
 	}
 }
+
+// A theme's "ansi256" pins draw at -profile ansi256 (theme.ResolveProfile), so a frame
+// there holds the pinned index, which can sit further from the role's hex than the
+// palette's buckets: palette derive pins an amber theme's info #41A5E4 to 38 (#00AFD7),
+// and tuilint frames failed derive's own block with F-OFFPAL until it read the pins.
+// testdata/pins256 is that theme (palette derive "#D4883C" --bg "#17140F") rendered by
+// the showcase at -profile ansi256: clean with its block, F-OFFPAL without it.
+func TestANSI256PinsAreInThePalette(t *testing.T) {
+	offpal := func(theme string) int {
+		fs, _, _ := run(t, "testdata/pins256", "--theme", theme)
+		n := 0
+		for _, f := range fs {
+			if f.Rule == "F-OFFPAL" {
+				n++
+			}
+		}
+		return n
+	}
+	if n := offpal("testdata/pins256/amber.json"); n != 0 {
+		t.Errorf("derive's ansi256 block, rendered at 256 colours: %d F-OFFPAL, want 0", n)
+	}
+	b, err := os.ReadFile("testdata/pins256/amber.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(b, &m); err != nil {
+		t.Fatal(err)
+	}
+	delete(m, "ansi256")
+	b, _ = json.Marshal(m)
+	nopin := filepath.Join(t.TempDir(), "amber.json")
+	if err := os.WriteFile(nopin, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if n := offpal(nopin); n == 0 {
+		t.Error("the same frames judged without the pins: no F-OFFPAL, so the fixture no longer tests them")
+	}
+}

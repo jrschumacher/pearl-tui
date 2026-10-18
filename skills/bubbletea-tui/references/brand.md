@@ -131,7 +131,8 @@ read it too.
     "up": "↑", "down": "↓",      // one arrow key in a footer ("↓ select"); optional, these defaults
     "progressFill": "━", "progressEmpty": "╌", "progressHead": "╸",
     "turnBar": "│", "tabUnderline": "▔",                  // a blurred chat turn; the active tab
-    "ascii": { "◭": "~" }         // twins for glyphs the kit's map lacks (theme.ASCIITwin)
+    "marks": { "stop": "•", "stopAhead": "◦" },  // the product's own marks, t.ProductMark("stop"): a signature with no kit slot
+    "ascii": { "◭": "~", "•": "#", "◦": "_" }  // twins the kit's map lacks or draws as a state (• ◦ are * o, current and todo)
   },
   "expressions": {
     "header": "bar",            // rule | bar | minimal | stamp | banner
@@ -165,8 +166,9 @@ read it too.
     "gutter": 2, "measure": 100
   },
   "wordmark": { "rows": ["…"], "style": "half" },   // optional, from wordmark.py; style is its note, the kit reads rows
-  "ladder": [{ "glyph": "current", "meaning": "new", "role": "primary" }, …],   // optional: the product's own rungs (a status slot or a one-cell literal with a twin; a meaning that is no kit slot; any colour role or focus / working), drawn by ui.Mark(t, "new"), ui.Rungs and the ladder state
-  "ansi16": { "dark": { "warning": 11 }, "light": { "warning": 3 } }  // optional, color.md
+  "ladder": [{ "glyph": "current", "meaning": "new", "role": "primary" }, …],   // optional: the product's own rungs (a status slot or a one-cell literal with a twin; a meaning that is no kit slot; any colour role or focus / working; a rung in warning takes "glyph": "warn"), drawn by ui.Mark(t, "new"), ui.Rungs and the ladder state
+  "ansi16": { "dark": { "warning": 11 }, "light": { "warning": 3 } },  // optional, color.md
+  "ansi256": { "dark": { "primary": 172 } }  // optional, color.md: drawn at 256 colours only
 }
 ```
 

@@ -42,7 +42,9 @@ import (
 // (TestBorderFloor): every check/*.txt border line, every derive/* border (its .out,
 // .err and the swatch's rule row) and the kit themes' own borders were regenerated for
 // that alone; corpus.txt keeps palette.py's rows, with border compared against the new
-// rule instead.
+// rule instead. A brand whose own slot reads under 3:1 on a light page (green 2, cyan 6)
+// takes fg's grey there (faintSlot16): derive/tint and derive/tint-zero, a green, gained
+// "primary": 0 in their light ansi16 block and on stderr, and nothing else.
 
 const kitThemes = "../../../kit/themes"
 
@@ -612,6 +614,47 @@ func TestCheckWarnsWarningBesidePrimary(t *testing.T) {
 	}
 }
 
+// A theme may make warning and error one colour by decision (an app that never draws a
+// warning), but the kit's graded components then tell them apart by glyph alone, and the
+// kit's TestTraceInksByLevel once failed such a theme with nothing in check to say why
+// (#64): check names the merge, exit unchanged. Two written roles only: a warning left
+// to the kit's default is no decision, and no kit theme merges them.
+func TestCheckNamesAMergedWarning(t *testing.T) {
+	for _, c := range []struct {
+		roles string
+		want  string
+	}{
+		{`{"dark": {"bg": "#17140F", "fg": "#E8E2D6", "primary": "#D99A3B", "error": "#E0605A", "warning": "#E0605A"}}`,
+			`dark: warning #E0605A and error #E0605A are one colour`},
+		{`{"dark": {"bg": "#17140F", "fg": "#E8E2D6", "primary": "#D99A3B", "error": "#E0605A", "warning": "#e1605b"}}`,
+			`dark: warning #e1605b and error #E0605A are one colour`},
+		{`{"dark": {"bg": "#17140F", "fg": "#E8E2D6", "primary": "#D99A3B", "error": "#E0605A", "warning": "#C8C46A"}}`, ""},
+		{`{"dark": {"bg": "#17140F", "fg": "#E8E2D6", "primary": "#D99A3B", "error": "#E0605A"}}`, ""},
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		if err := os.WriteFile(path, []byte(`{"roles": `+c.roles+`}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		Main([]string{"check", path}, "", &out, &errb)
+		if got := errb.String(); strings.Contains(got, "are one colour") != (c.want != "") || !strings.Contains(got, c.want) {
+			t.Errorf("%s: stderr %q, want %q", c.roles, got, c.want)
+		}
+	}
+	kit, _ := filepath.Glob(kitThemes + "/*.json")
+	for _, path := range kit {
+		f, err := theme.Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for mode, r := range f.Roles {
+			if MergedStates(map[string]string{"warning": r.Warning, "error": r.Error}) {
+				t.Errorf("%s %s: warning %s and error %s merge", filepath.Base(path), mode, r.Warning, r.Error)
+			}
+		}
+	}
+}
+
 // A role, glyph or wordmark key the kit doesn't read is dropped by theme.Load, and the
 // role it meant falls back to the derived colour with nothing to say why: check exits 2
 // naming it, as it does for an expressions key.
@@ -691,23 +734,20 @@ func TestCheckReportsNeutralsAt16Colours(t *testing.T) {
 }
 
 // A yellow brand sits natively on warning's slot (#FFE600 is ANSI 3 on a light page)
-// while its warning lands on red: primary moves off it and warning takes its own yellow,
-// rather than warning going to cyan around a primary that stays. On a dark page the
-// brand is evicted to the nearest free hue; on a light one it has no hue (WarmPin16:
-// cyan 6, the nearest, is 2.8:1 on white).
+// while its warning lands on red: the warning keeps yellow 3, never cyan around a
+// primary that stays. The brand is placed as a warm one is (WarmPin16): on a dark page
+// it takes bright yellow 11 beside the warning's 3, told apart by the warning's glyph,
+// where it was evicted to cyan 14, info's slot, and drew as an info mark (#60); on a
+// light page it has no hue (cyan 6, the nearest, is 2.8:1 on white).
 func TestYellowBrandKeepsWarningYellow(t *testing.T) {
 	f := themeOf(Derive("#FFE600", "#556B2F", "", "", "", 0.012))
 	pins := Pins16(f)
-	for mode, yellow := range map[string]int{"light": 3, "dark": 11} {
-		if got := pins[mode]["warning"]; got != yellow {
-			t.Errorf("%s: warning pinned to %d, want its own %d (pins %v)", mode, got, yellow, pins[mode])
+	for mode, want := range map[string][2]int{"light": {0, 3}, "dark": {11, 3}} {
+		if got := pins[mode]["warning"]; got != want[1] {
+			t.Errorf("%s: warning pinned to %d, want yellow %d (pins %v)", mode, got, want[1], pins[mode])
 		}
-		if p, ok := pins[mode]["primary"]; ok && p == yellow {
-			t.Errorf("%s: primary pinned onto warning's %d", mode, yellow)
-		}
-		f.ANSI16 = pins
-		if i := theme.ANSI16Index(f, mode, "primary"); i == yellow || i == 1 || i == 9 {
-			t.Errorf("%s: primary draws as ANSI %d with the pins", mode, i)
+		if got := pins[mode]["primary"]; got != want[0] {
+			t.Errorf("%s: primary pinned to %d, want %d (pins %v)", mode, got, want[0], pins[mode])
 		}
 	}
 	// check on the unpinned roles names the eviction, with the brand's own hex
@@ -722,9 +762,9 @@ func TestYellowBrandKeepsWarningYellow(t *testing.T) {
 	for _, mode := range []string{"dark", "light"} {
 		hex := f.Roles[mode].Primary
 		native := theme.ANSI16Index(theme.File{Roles: f.Roles}, mode, "primary")
-		if native == 3 || native == 11 {
+		if (native == 3 || native == 11) && native != pins[mode]["primary"] {
 			evicted = true
-			want := fmt.Sprintf(`%s: primary %s draws as ANSI %d at 16 colours (-profile ansi), warning's own slot, which warning needs; "ansi16": {%q: {"primary": `, mode, hex, native, mode)
+			want := fmt.Sprintf(`%s: primary %s (hue %.0f°, yellow) draws as ANSI %d at 16 colours (-profile ansi), %s, another state's hue; a yellow brand shares its slot with the warning, so it takes bright yellow`, mode, hex, hueOf(hex), native, slotName(native))
 			if mode == "light" { // a yellow brand has no hue on a light page (WarmPin16): it moves to fg's grey, not to cyan 6
 				want = fmt.Sprintf(`%s: primary %s (hue %.0f°, yellow) draws as ANSI %d at 16 colours (-profile ansi), yellow; on a light page a yellow brand has no slot`, mode, hex, hueOf(hex), native)
 			}
@@ -734,7 +774,7 @@ func TestYellowBrandKeepsWarningYellow(t *testing.T) {
 		}
 	}
 	if !evicted {
-		t.Errorf("#FFE600 sits on neither yellow natively (pins %v); the case no longer tests eviction", pins)
+		t.Errorf("#FFE600 sits on no yellow it must leave natively (pins %v); the case no longer tests eviction", pins)
 	}
 }
 
@@ -889,10 +929,10 @@ func TestDerivePinsPrimaryToItsHueFirst(t *testing.T) {
 	}
 }
 
-// The yellow brand's eviction is per mode: a dark lime natively on 11 yields the yellow
-// to its warning there, and that must not send the light amber primary, natively on
-// red, back to the status-first order and onto magenta 5 (the K12 miss again: it is
-// warm, so it has no hue on a light page, WarmPin16); and
+// The yellow brand's placement is per mode: a dark lime natively on 11 keeps it, with
+// its warning on the other yellow, 3 (WarmPin16), and that must not send the light amber
+// primary, natively on red, back to the status-first order and onto magenta 5 (the K12
+// miss again: it is warm, so it has no hue on a light page, WarmPin16); and
 // derive's own pins for the evicted yellow brand (#FFE600, light primary 0, warning 3)
 // draw no far-pin warning, since the lifted theme pins primary nowhere, so there is no
 // nearer pin to name (naming warning's 3 put both on one slot).
@@ -905,9 +945,14 @@ func TestEvictionIsPerMode(t *testing.T) {
 		t.Fatalf("dark lime draws as ANSI %d natively, want 11: the probe no longer tests an eviction", n)
 	}
 	pins := Pins16(f)
-	if got := pins["dark"]["warning"]; got != 11 {
-		t.Errorf("dark: warning pinned to %d, want its own 11 (the lime yields it)", got)
+	if got := pins["dark"]["warning"]; got != 3 {
+		t.Errorf("dark: warning pinned to %d, want yellow 3 beside the lime's 11", got)
 	}
+	f.ANSI16 = pins
+	if got := theme.ANSI16Index(f, "dark", "primary"); got != 11 {
+		t.Errorf("dark: the lime draws as ANSI %d, want its own bright yellow 11 (pins %v)", got, pins["dark"])
+	}
+	f.ANSI16 = nil
 	if got := pins["light"]["primary"]; got != 0 {
 		t.Errorf("light: primary pinned to %d, want fg's grey 0, a warm brand's on a light page (pins %v)", got, pins["light"])
 	}

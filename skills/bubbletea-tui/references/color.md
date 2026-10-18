@@ -45,14 +45,18 @@ palette check theme.json   # on any existing theme
 - from one brand hue makes `secondary` and `tertiary` lightness steps of it (and
   `accent` its pale tint), not a hue shift and a complement the brand never chose; with
   two hues the second is the brand's and the tertiary a complement
-- writes both a dark and a light set, the nearest xterm-256 index per role, and the
+- writes both a dark and a light set, the `ansi256` pins (each role's nearest xterm-256
+  index in OKLab, the background ramp's steps on indices of their own), and the
   `ansi16` pins its own `check` would ask for (most brands' warning lands on error's red
   at 16 colours), so the first `palette check` of the theme prints no 16-colour pin and
-  exits 0. The warning keeps yellow; a warm brand takes 11 on a dark page and no hue on a
-  light one (§ The Four Palettes); a brand that is a status role's own colour (a yellow,
-  within 25° of the slot's hue) yields it
+  exits 0. The warning keeps yellow; a warm or yellow brand takes 11 on a dark page and
+  no hue on a light one (§ The Four Palettes); a brand that is another status role's own
+  colour (a green or blue within 25° of the slot's hue) yields it
 - warns when `warning` sits beside `primary` in hue and chroma (an amber brand's warning
   a shade brighter than its amber): a warning row then reads as a focused one
+- `check` names `warning` and `error` written as one colour: a Trace's 75 % and 90 %
+  cells, a meter and the status marks then differ by glyph alone. Merge them only when
+  the app never draws a warning, and record it in TUI.md § Decisions
 
 Then tune by hand. The tool gets you a correct palette; the brand read decides whether
 the tertiary should be a complement or a quiet tint, and what an amber brand's warning is.
@@ -128,8 +132,15 @@ go run ./cmd/<app> -out frames -profile ascii
 
 and look at the PNGs. What usually breaks:
 
-- the `bg`/`bgSubtle` step merges at 256 colours, so selection disappears. Move it further
-  apart, or add the glyph marker.
+- the background ramp merges at 256 colours: moss's dark `bg` `#1A1C19` and `bgPanel`
+  `#1A2720` are both xterm 234, so every panel and borderless dialog loses its edge. The
+  kit draws a step that lands on a lower step's index on the next grey past it (`bgPanel`
+  235), so leave it unpinned: `palette check` warns only on an `ansi256` pin that holds
+  a step on the shared index, and names the grey that parts them.
+- downsampling at 256 colours goes by RGB distance, so an amber `#D4883C` draws as 173, a
+  salmon, where the perceptual nearest is 172. Pin it, as at 16 colours, for 256 only:
+  `"ansi256": {"dark": {"primary": 172}}`. `palette derive` writes the block for every
+  role; `check` warns on a pin far from its hex (one the hex was tuned away from).
 - a tinted neutral downsamples by distance onto a hue at 16 colours: a warm page lands on
   yellow, warm hints on red, and three cool text levels on one blue; a warm `borderFocus`
   one notch lighter than its neighbour draws a ruled dialog's edge in error's red. The
@@ -166,17 +177,24 @@ and look at the PNGs. What usually breaks:
   the brand accepts it in its read. Pin bright (9-14) on dark, normal (1-6) on light,
   error to 9/1, a status role to its own slot (warning 3/11, success 2/10, info 4/12 or
   6/14), never a grey but for the brand on a light page, when it is warm (below) or its
-  slot reads under 3:1 there (green 2, cyan 6); the user's terminal
+  slot reads under 3:1 there (green 2, cyan 6: `check` fails such a brand pinned or not,
+  and `derive` pins it to 0; a step there takes 0 too, or a bright slot's normal twin
+  when that reads and is no state's: pink 13 to magenta 5); the user's terminal
   palette decides the exact colour. A pin that moves a role more than 60° of hue while
   a nearer slot is free (a rose brand on blue 12, with magenta 13 free) warns with the
   hex, the slot and the nearer pin: the brand reads as info there.
 - a warm brand (OKLCH 25°–85°: coral, orange, copper, amber) has no slot of its own at
   16 colours: red is error's, yellow the warning's, magenta the pink an orange is not.
+  A yellow one (85°–135°: gold, lime) has none either, and is placed the same way: its
+  next hue, cyan 14, is info's, where it drew as an info mark.
   On a dark page it takes yellow 11 and the warning keeps yellow 3, so every warning mark
-  carries `▲`/`!`; on a light page it has no hue (`primary` pinned to 0, fg's grey: yellow
+  carries `▲`/`!` (a `ladder` rung in `warning` too: give it `"glyph": "warn"`, which
+  `palette check` asks for, and it draws as the kit's warn slot, a fill where yellow is
+  faint); on a light page it has no hue (`primary` pinned to 0, fg's grey: yellow
   3 is 1.35:1 on white) and the kit draws focus as fg and bold. Its secondary, tertiary
   and accent follow it off red and magenta. The warning never leaves yellow: `palette
-  check` fails it on green, and a pinned brand under 3:1 as text. Where yellow 3 is faint
+  check` fails it on green, and the brand or a step of it (`secondary`, `tertiary`,
+  `accent`) under 3:1 as text, pinned or not. Where yellow 3 is faint
   on the page (1.35:1 on white), the kit draws the warning as a fill: a yellow cell with
   a dark ink. At 16 colours the kit re-inks each on-colour that reads under its floor on
   its fill's slot (white on yellow 11 is 1.17:1) with fg or bg; an ink the theme pins

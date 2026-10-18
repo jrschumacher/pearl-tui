@@ -1,0 +1,24 @@
+[48;5;233m  [38;5;215;1ma[38;5;215mp[38;5;172mp[39;22m                                          [38;5;248mprod[38;5;240m · [38;5;244mus-east-1[38;5;240m · [38;5;244mcheckout-api[39m  [m
+[48;5;233m                                                                                [m
+[48;5;233m  [38;5;244mServices [38;5;240m8[39m   [38;5;244mDeploys[39m   [38;5;244mIncidents[39m   [38;5;251;1mAssistant[39;22m                                  [m
+[48;5;233m                                     [38;5;172m▔▔▔▔▔▔▔▔▔[39m                                  [m
+[48;5;233m                                                                                [m
+[48;5;233m    [38;5;71m✓[39m [38;5;38;1mBash[39;22m [38;5;244mgo test ./internal/...[39m                              [38;5;240m↑ 30 more[39m  [38;5;244mpgup[39m  [m
+[48;5;233m    [38;5;244;48;5;234m  ok      checkout-api/internal/config    0.087s                          [39;48;5;233m  [m
+[48;5;233m    [38;5;244;48;5;234m  ok      checkout-api/internal/payments  0.412s                          [39;48;5;233m  [m
+[48;5;233m                                                                                [m
+[48;5;233m    [38;5;248mThe 502s start at 14:02, two minutes after [38;5;223mv2.4.0[38;5;248m rolled out. The new[39m       [m
+[48;5;233m    [38;5;248mversion reads [38;5;223mPAYMENTS_TIMEOUT[38;5;248m as seconds, but the config still sets it in[39m  [m
+[48;5;233m    [38;5;248mmilliseconds, so every call to the payments provider waits 2,000 s and the[39m  [m
+[48;5;233m    [38;5;248mgateway gives up first.[39m                                                     [m
+[48;5;233m                                                                                [m
+[48;5;233m    [38;5;248mI've changed the parser to accept a unit suffix and kept the old value[39m      [m
+[48;5;233m    [38;5;248mworking. Roll back now, or ship the fix as [38;5;223mv2.4.1[38;5;248m?[39m                          [m
+[48;5;233m                                                                                [m
+[48;5;233m    [38;5;71m✓[38;5;244m opus[38;5;240m via anthropic in 41s[39m [38;5;237m──────────────────────────────────────────────[39m  [m
+[48;5;233m                                                                                [m
+[48;5;233m  [38;5;237m────────────────────────────────────────────────────────────────────────────[39m  [m
+[48;5;233m  [38;5;172;1m>[39;22m [38;5;251mship it as v2.4.1, and add a test for the unit parsing[38;5;172m▏[39m                     [m
+[48;5;233m                                                                                [m
+[48;5;233m                                                                                [m
+[48;5;233m  [38;5;244menter[39m [38;5;240msend  [38;5;244mctrl+o[39m [38;5;240mexpand output  [38;5;244mpgup[39m [38;5;240mscroll  [38;5;244mtab[39m [38;5;240mnext view  …  [38;5;244mctrl+g[39m [38;5;240mkeys[39m  [m

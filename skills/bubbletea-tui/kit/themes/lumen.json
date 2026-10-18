@@ -7,6 +7,8 @@
    "warning": 11
   },
   "light": {
+   "accent": 0,
+   "primary": 0,
    "warning": 3
   }
  },

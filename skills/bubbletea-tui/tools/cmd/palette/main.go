@@ -14,9 +14,11 @@
 //	                                "contrastAccept": {"dark.primary": "the brand's own hex, used as a fill"}
 //
 // `derive` prints the roles as JSON (`{"dark": {...}, "light": {...}}`, the theme contract's
-// shape), a contrast table, the nearest xterm-256 index for each role (for the
-// ANSI256 fallback), and the "ansi16" pins its own check would ask for (below), so the
-// first check of the theme prints no 16-colour pin. With one hex, secondary and tertiary are
+// shape), a contrast table, the "ansi256" pins (each role's nearest xterm-256 index in
+// OKLab, which the kit draws at 256 colours where its own downsampling by RGB distance
+// would pick another: an amber 172, not the salmon 173; the background ramp's steps on
+// indices of their own, the next grey where two would share one), and the "ansi16" pins
+// its own check would ask for (below), so the first check of the theme prints no pin. With one hex, secondary and tertiary are
 // lightness steps of it (accent its pale tint), not a hue 40° off and a complement the
 // brand never chose; with two, the second is the brand's and tertiary a complement.
 // `--swatch` writes an .ansi file you can render with cellshot.
@@ -75,13 +77,16 @@
 // warning's, magenta the pink an orange is not. On a dark page it takes bright yellow 11
 // and the warning the other yellow, 3, told apart by the warning's glyph (▲ !); on a
 // light page it has no hue, pinned to fg's grey 0 (yellow 3 is 1.35:1 on white), and the
-// kit draws focus as fg and bold, as under "focus": "fg". A yellow brand has no hue on a
-// light page either. Each off its slot is a warning with the pin.
+// kit draws focus as fg and bold, as under "focus": "fg". A yellow brand (85°–135°: a
+// gold, a lime) is placed the same way in both modes: the hue past yellow, cyan 14, is
+// info's. Each off its slot is a warning with the pin.
 //
-// A primary the theme pins to a hue is checked there, in cellshot's palette (VS Code's
-// terminal, the one every sheet shows): primary as text on the page at 3:1, and
-// fgSelected (unless "focus": "fg") and onPrimary on it at 4.5:1, each as the kit draws
-// it. Under one, it exits 1: yellow 3 on white is 1.35:1, which the truecolour check of
+// The brand is checked where it draws at 16 colours, in cellshot's palette (VS Code's
+// terminal, the one every sheet shows): primary, secondary, tertiary and accent as text
+// on the page at 3:1, pinned or not (a light page's green 2 and cyan 6 are under it, so
+// a brand or a step there takes fg's grey, or a bright slot's readable normal twin), and
+// for a primary pinned to a hue, fgSelected (unless "focus": "fg") and onPrimary on it
+// at 4.5:1, each as the kit draws it. Under one, it exits 1: yellow 3 on white is 1.35:1, which the truecolour check of
 // the hex never sees. The kit re-inks an on-colour written as a hex that reads under its
 // floor on its fill's slot (white on bright yellow, 1.17:1, draws black there); one the
 // theme pins in "ansi16" is judged as pinned.
@@ -90,12 +95,22 @@
 // red and never the other brightness of a slot another state draws (10 beside success's
 // 2 reads as success). When the brand and a status role are both displaced (an amber and
 // its warning, both on red), the brand takes its slot first and the status role moves. A
-// brand that is a status role's own colour (a yellow on 3, or within 25° of yellow's
-// hue) yields the slot, each mode for itself. It warns on a pin, the theme's or
+// brand that is another status role's own colour (within 25° of green's or blue's hue)
+// yields the slot, each mode for itself. It warns on a pin, the theme's or
 // derive's, that moves a role more than 60° of OKLCH hue from its truecolour value while
 // the tool would pin it nearer (a rose pinned to blue 12 while magenta is free), naming
 // the hex, its hue, the slot and the nearer pin; a pin that is the nearest free hue,
 // however far, is not reported.
+//
+// At 256 colours (-profile ansi256) two steps of the background ramp (bg, bgPanel,
+// bgSubtle, bgOverlay) can draw as one xterm index (moss's dark bg and bgPanel are both
+// 234). The kit draws an unpinned step on the next grey past the steps below it, so check
+// says nothing of it; it warns on an "ansi256" pin that holds a step on a lower step's
+// index (a panel, a button or a popover with no edge), naming the grey that parts them.
+// An "ansi256" pin that names no mode, role or
+// colour 0-255 exits 2; one further from its role's hex than the nearest index by more
+// than 0.06 in OKLab (a pin left behind when the hex was tuned) warns, unless it is the
+// grey the kit gives that ramp step.
 //
 // Thresholds (WCAG 2 contrast ratio against the role's background):
 //
