@@ -885,7 +885,8 @@ func fenceToggle(fence *string, t string) bool {
 // value, a fenced line (the sketch) or a slot word in backticks; the critic judges
 // what the line says. A `flow:` line is optional in any block, the main screen's too,
 // but one that is there and holds only such a value is flagged where it stands: the
-// template ships one in every block it copies.
+// template ships one in every block it copies. A block still named `<screen>` is the
+// template itself, and is skipped.
 func (s *spec) screenBrand(add func(string, int, string, ...any)) {
 	type heading struct {
 		line, level int
@@ -963,7 +964,8 @@ func (s *spec) screenBrand(add func(string, int, string, ...any)) {
 		}
 		bare := strings.NewReplacer("**", "", "__", "").Replace(t)
 		if f := flowLine.FindStringSubmatch(bare); f != nil {
-			if v := strings.TrimSpace(f[1]); v == "" || brandSkip.MatchString(v) {
+			// a block still named as the template names it (`<screen>`) is the template
+			if v := strings.TrimSpace(f[1]); (v == "" || brandSkip.MatchString(v)) && !(strings.HasPrefix(name, "<") && strings.HasSuffix(name, ">")) {
 				add("S-SLOTS", i+1, "%s: `%s` is a placeholder. Name the domain fact behind this screen's depth (who acts, on how many objects, whether the act can be taken back) and any brand word that moves it, or, on a block after the main screen's, delete the line where its flow is the spec's (references/cmd-shape.md § Depth Follows The Domain, Then The Brand)", name, strings.TrimSpace(s.lines[i]))
 			}
 			continue

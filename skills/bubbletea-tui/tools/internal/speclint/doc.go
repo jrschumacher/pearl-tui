@@ -124,7 +124,8 @@
 //	                  for word (references/cmd-shape.md § Behind The Main Screen).
 //	             [P2] in the same blocks, the main screen's included, a `flow:` line whose value is
 //	                  empty or one of those placeholders (the template's `<…>` most of all). The
-//	                  line is optional, so a block without one is not a finding; one that is there
+//	                  line is optional, so a block without one is not a finding, nor is the
+//	                  template's own block, still named `<screen>`; one that is there
 //	                  names the domain fact or brand word behind the screen's depth
 //	                  (references/cmd-shape.md § Depth Follows The Domain, Then The Brand).
 //	S-GOLDEN     [P2] (with --frames) a state's footer in <state>-80x24.ansi and its row disagree:

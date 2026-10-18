@@ -211,6 +211,7 @@ func TestRules(t *testing.T) {
 		// S-SLOTS: a `flow:` line is optional, but one that is there says something
 		{"no flow line is fine", "### Screens\n#### list — every job\n#### detail — one job\nbrand: terse\n" + table("| list | list | enter open |", ""), nil},
 		{"a flow placeholder is no reason", "### Screens\n#### list — every job\nflow: <the main screen's: how deep the flow goes>\n#### detail — one job\nbrand: terse\nflow: TBD\n#### help — every key\nbrand: plain\n**flow:** todo\n#### confirm — stop it\nbrand: plain\nflow: ?\n#### picker — pick one\nbrand: plain\nflow: nothing yet\n#### toosmall — too small\nbrand: plain\nflow:\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 6}},
+		{"the template's own block is skipped", "### Screens\n#### <screen> — <its job>\nflow: <main screen: how deep>\n" + table("| list | list | enter open |", ""), nil},
 		{"a flow line with its reason passes", "### Screens\n#### list — every job\nflow: the spec's, because one person's own list: every act is one key and the same key undoes it\n#### confirm — purge one queue\nbrand: plain\nflow: the rung-3 confirm lists each job it purges, because purged jobs can't be brought back\n```\nflow: <in the sketch>\n```\n" + table("| list | list | enter open |", ""), nil},
 		{"a brand line in a ~~~ fence is not one", "### Screens\n#### list — every job\n#### detail — one job\n~~~\nbrand: terse\n```\n~~~\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
 		{"group headings hold blocks", "## Screens\n### Main\n#### list — every job\n### Overlays\n#### confirm — stop it\n#### help — every key\nbrand: nothing, because help lists the tables\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
@@ -396,7 +397,8 @@ func TestReviewInbox(t *testing.T) {
 }
 
 // cmd-init.md's template, and the template filled in for a product, both lint clean, so
-// an agent that follows it starts from a passing TUI.md.
+// an agent that follows it starts from a passing TUI.md. The template's block passes
+// only while it is still named `<screen>`: named, its `flow:` placeholder is flagged.
 func TestTemplatePasses(t *testing.T) {
 	src, err := os.ReadFile(filepath.Join("..", "..", "..", "references", "cmd-init.md"))
 	if err != nil {
@@ -407,11 +409,15 @@ func TestTemplatePasses(t *testing.T) {
 	if !ok || !ok2 {
 		t.Fatal("cmd-init.md has no ````markdown template block")
 	}
-	// one finding on purpose: the block's `flow:` placeholder, so a block copied from the
-	// template that keeps it is flagged
-	fs0 := Lint("cmd-init.md template", tmpl)
+	if fs := Lint("cmd-init.md template", tmpl); len(fs) != 0 {
+		t.Errorf("the template in cmd-init.md fails tuilint spec:\n%s", dump(fs))
+	}
+	// its block passes because it is still named `<screen>`: once named, a block that
+	// keeps the template's `flow:` placeholder is flagged
+	named := strings.Replace(tmpl, "#### <screen>", "#### list", 1)
+	fs0 := Lint("cmd-init.md template, block named", named)
 	if len(fs0) != 1 || fs0[0].Rule != "S-SLOTS" || !strings.Contains(fs0[0].Msg, "`flow: <") {
-		t.Errorf("the template in cmd-init.md: want one S-SLOTS on its flow: placeholder, got:\n%s", dump(fs0))
+		t.Errorf("the template with its block named: want one S-SLOTS on its flow: placeholder, got:\n%s", dump(fs0))
 	}
 	ex, err := os.ReadFile(filepath.Join("testdata", "template-example.md"))
 	if err != nil {
