@@ -4,6 +4,9 @@ Read from Crush's source (`internal/ui/`, October 2026), not from screenshots. A
 screenshot gives you an impression. The source gives you the rules. Every move below is
 implemented in the kit (`kit/ui/bubbletea`), so copy it from there instead of re-deriving it.
 
+*Bubble Tea: each move's `ui.*` call, and the Lip Gloss, `tea.View` and Ultraviolet names
+in §4, §13 and §16, are Bubble Tea v2's; the moves hold for any framework.*
+
 The idiom is fixed. A brand changes *how* each move is drawn (the theme's expressions and
 glyphs), never *whether* the screen follows it.
 

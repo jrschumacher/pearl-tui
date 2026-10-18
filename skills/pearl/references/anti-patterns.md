@@ -10,6 +10,10 @@ A default is not banned because it is ugly. It is banned because it is *everyone
 choosing it says nothing about this product. The brief can earn any of these back. Say
 so in one line when it does.
 
+*Bubble Tea: the fixes name Bubble Tea v2, Lip Gloss, Huh and kit calls, and the `C-` rule
+IDs are `tuilint code`'s, which lints Bubble Tea code; the patterns hold for any
+framework.*
+
 ## Structure
 
 **S1 Box soup** [F-BOXES]. Every region in a `RoundedBorder()`, boxes beside boxes, boxes

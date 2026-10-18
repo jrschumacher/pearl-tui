@@ -9,6 +9,10 @@ brand.
 The fix has three parts: a **brand read** (decisions, with reasons), a **theme file**
 (the decisions as data), and a **lint** (proof the decisions differ from the default).
 
+*Bubble Tea: the kit's Go names in § Move A Region, § 4 (`ui.Mark`, `theme.Load`,
+`theme.CheckLadder`) and § 7 are the Bubble Tea kit's; the theme file and its keys are
+framework-neutral.*
+
 ## 1. The Brand Read (Write It First)
 
 Gather what exists: logo files, the site's CSS, the style guide, the typeface, the

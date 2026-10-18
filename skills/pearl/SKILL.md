@@ -29,8 +29,9 @@ framework-neutral: they judge cells, and `cellshot`, `tuilint frames`, `palette`
 with Lip Gloss, Bubbles and Huh) is the one framework the kit (`kit/theme/bubbletea`,
 `kit/ui/bubbletea`, `kit/cmd/showcase`) and `tuilint code` support today. Its references:
 `bubbletea-architecture.md` whole, and the sections a mixed reference names in its
-italic *Bubble Tea:* line (`components.md`, `cmd-init.md`, `cmd-craft.md`,
-`cmd-restyle.md`, `medium.md`, `motion.md`, `color.md`, `layout.md`, `verify.md`).
+italic *Bubble Tea:* line (`idiom.md`, `components.md`, `interaction.md`, `brand.md`,
+`anti-patterns.md`, `cmd-init.md`, `cmd-craft.md`, `cmd-restyle.md`, `medium.md`,
+`motion.md`, `color.md`, `layout.md`, `verify.md`).
 Asked to build in another framework (ratatui, Textual, Ink, tview), tell the user pearl
 supports only Bubble Tea today; its design references still read as guidance there.
 

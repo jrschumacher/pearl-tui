@@ -3,8 +3,8 @@
 Input: `TUI.md`, the theme, the screen spec (`shape`). Output: a running Bubble Tea v2
 program with the harness, rendered and critiqued.
 
-*Bubble Tea: §1, §2 and §5 build on the kit, its harness and `tea.Cmd`, which are
-Bubble Tea v2's today; §0, §3, §4 and §6 hold for any framework.*
+*Bubble Tea: §1, §2 and §5 build on the kit, its harness and `tea.Cmd`, and §4's loop runs
+`tuilint code`, all Bubble Tea v2's today; §0, §3 and §6 hold for any framework.*
 
 ## 0. Read TUI.md First
 

@@ -5,8 +5,9 @@ and nobody has looked at it. Every defect in `anti-patterns.md` survives that. T
 is how you see. Run it before you show the user anything, and never ask the user for a
 screenshot.
 
-*Bubble Tea: the RENDER and GOLDEN commands in § The Loop run the kit's Bubble Tea harness;
-any harness that writes the same `.ansi` frames takes the rest of the loop unchanged.*
+*Bubble Tea: the RENDER and GOLDEN commands in § The Loop run the kit's Bubble Tea harness,
+and LINT's `tuilint code` lints Bubble Tea code; any harness that writes the same `.ansi`
+frames takes the rest of the loop unchanged.*
 
 ## The Loop
 

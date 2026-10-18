@@ -1,7 +1,8 @@
 # restyle — bring an existing Bubble Tea app onto the system
 
-*Bubble Tea: steps 2 and 3 (the kit's harness, the v1 → v2 migration) are Bubble Tea's;
-the rest holds for any framework.*
+*Bubble Tea: steps 2 and 3 (the kit's harness, the v1 → v2 migration), step 4's
+`tuilint code` and steps 6 and 7's kit components are Bubble Tea's; steps 0, 1, 5, 8
+and 9 hold for any framework.*
 
 For an app that works but looks like every other one (or like five different ones). The
 goal is the same behaviour **at the idiom's richness**: a theme, a harness, and the moves

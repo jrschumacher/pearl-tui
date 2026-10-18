@@ -1,5 +1,9 @@
 # Interaction and copy: keys, focus, states, words
 
+*Bubble Tea: the `tea.*`, Bubbles and Huh names in § Keys Are A Contract, § Async And Long
+Work, § Terminal Citizenship and § Screen Readers are Bubble Tea v2's; the rules hold for
+any framework.*
+
 ## Keys Are A Contract
 
 - Define every key once, in a per-state **action table** (binding + handler), which
