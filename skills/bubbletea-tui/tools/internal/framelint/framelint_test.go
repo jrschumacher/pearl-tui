@@ -833,6 +833,60 @@ func TestTruncatedColumn(t *testing.T) {
 	if got := truncs(sidebar("files-80x7.ansi", fmt.Sprintf("  %-46s%s", "chat", "Files (5)"))); len(got) != 0 {
 		t.Errorf("a column headed \"Files (5)\": %+v, want none", got)
 	}
+	// columns one blank apart (a process list: program padded, trace, command): the
+	// column starts where the header row's word does, not after the last 2-cell gap
+	procs := func(name, last string, top ...string) string {
+		var b strings.Builder
+		for _, l := range top {
+			b.WriteString(fmt.Sprintf("%-50s\n", l))
+		}
+		b.WriteString(fmt.Sprintf("%-50s\n", fmt.Sprintf("    pid program  user cpu 20s    %s", last)))
+		for i, cmd := range []string{"/usr/lib/go/pkg/t…", "/root/.local/shar…", "/opt/claude-code/…", "/process_api --fi…", "timeout 60 sh -c …"} {
+			b.WriteString(fmt.Sprintf("%-50s\n", fmt.Sprintf("  %5d %-8s root ▂▂▂▂▂▂▂▂▂▂ %s", 9700+i, []string{"compile", "posting", "claude", "api", "timeout"}[i], cmd)))
+		}
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	if got := truncs(procs("gaps-50x6.ansi", "command")); len(got) != 0 {
+		t.Errorf("a last column headed command, one blank from the trace: %+v, want none", got)
+	}
+	if got := truncs(procs("gaps-title-50x6.ansi", "title")); len(got) != 1 {
+		t.Errorf("a last column headed title, one blank from the trace: %+v, want one", got)
+	}
+	// a header word earlier on the row heads its own column, not the cut one
+	paths := filepath.Join(dir, "paths-first-40x6.ansi")
+	var pb strings.Builder
+	pb.WriteString(fmt.Sprintf("%-40s\n", "  path   size name"))
+	for i := range 5 {
+		pb.WriteString(fmt.Sprintf("%-40s\n", fmt.Sprintf("  /a/%d    12K  a name too long to f…", i)))
+	}
+	if err := os.WriteFile(paths, []byte(pb.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := truncs(paths); len(got) != 1 {
+		t.Errorf("a cut name column after a path column: %+v, want one", got)
+	}
+	// on an overlay frame the dialog's band can hide the header: the page's own frame
+	// shows it and is judged there
+	under := filepath.Join(dir, "confirm-50x12.ansi")
+	var ub strings.Builder
+	for _, l := range []string{"", "", "             ╭──────────────────╮", "             │ send it?         │", "             ╰──────────────────╯", ""} {
+		ub.WriteString(fmt.Sprintf("%-50s\n", l))
+	}
+	b, err := os.ReadFile(procs("page-50x6.ansi", "title"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ub.WriteString(strings.SplitN(string(b), "\n", 2)[1])
+	if err := os.WriteFile(under, []byte(ub.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := truncs(under); len(got) != 0 {
+		t.Errorf("a cut column whose header the dialog's band hides: %+v, want none", got)
+	}
 }
 
 // F-LEVELS isn't judged on a frame with no colour (NO_COLOR): it has one text level by

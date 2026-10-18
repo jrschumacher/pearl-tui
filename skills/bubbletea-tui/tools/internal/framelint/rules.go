@@ -1221,7 +1221,11 @@ func LintTrunc(name string, f Frame, ellipses []string) []Finding {
 	}
 	ys := rowsAt[best]
 	slices.Sort(ys)
-	if unboundedColumn(f, ys, best) {
+	var hidden func(y int) bool
+	if d := dialog; d != nil && !slices.ContainsFunc(ys, func(y int) bool { return y >= d.y0 && y <= d.y1 }) {
+		hidden = func(y int) bool { return y >= d.y0 && y <= d.y1 } // page rows: the dialog may hide their header
+	}
+	if unbounded, covered := unboundedColumn(f, ys, best, hidden); unbounded || covered {
 		return nil
 	}
 	if slices.ContainsFunc(ys, func(y int) bool { return unsureRows[y] }) {
@@ -1240,77 +1244,111 @@ var unboundedHeaders = map[string]bool{"path": true, "file": true, "command": tr
 var headerCount = regexp.MustCompile(`^(?:[(\[]?\d+[)\]]?|·)$`)
 
 // unboundedColumn reports whether the column cut at x on rows ys is a table's last column
-// under a header in unboundedHeaders: nothing follows x on any cut row, and walking up
-// from the first cut through the column's other rows (text starting where the cut rows'
-// text starts, past at most one rule or blank row), the first row that isn't one holds,
-// at that start, a cell that is the header word alone or with a count ("pid  program
-// command"). A heading ("Recent files") or a hint ("press y to Copy path") is not one.
-func unboundedColumn(f Frame, ys []int, x int) bool {
+// under a header in unboundedHeaders: nothing follows x on any cut row, and its header
+// (columnHeader) is the header word alone or with a count ("pid  program  command"). A
+// heading ("Recent files") or a hint ("press y to Copy path") is not one. covered is a
+// header the dialog's band hides on an overlay frame (hidden rows): the page's own frame
+// shows it and is judged there.
+func unboundedColumn(f Frame, ys []int, x int, hidden func(y int) bool) (unbounded, covered bool) {
 	for _, y := range ys {
 		for _, c := range f.Rows[y][x+1:] {
 			if !cutsNothing(c.Ch) {
-				return false
+				return false, false
 			}
 		}
 	}
-	// the column starts after the last gap of two blank cells left of the cut, the same
-	// on most cut rows
-	starts := map[int]int{}
-	col := -1
-	for _, y := range ys {
-		row, start := f.Rows[y], 0
-		for i := x - 1; i >= 1; i-- {
-			if cutsNothing(row[i].Ch) && cutsNothing(row[i-1].Ch) && row[i].Ch != "" && row[i-1].Ch != "" {
-				start = i + 1
-				break
-			}
-		}
-		starts[start]++
-		if col < 0 || starts[start] > starts[col] {
-			col = start
-		}
-	}
-	gaps := 0
-	for y := ys[0] - 1; y >= 0; y-- {
-		row := f.Rows[y]
-		if col >= len(row) {
+	return columnHeader(f, ys, x, hidden, func(words []string) bool {
+		if !unboundedHeaders[strings.TrimSuffix(strings.ToLower(words[0]), "s")] {
 			return false
 		}
-		if cutsNothing(row[col].Ch) || row[col].Ch == "-" || row[col].Ch == "=" { // a rule (ASCII's too) or a blank row under the header: one at most
-			if gaps++; gaps > 1 {
+		for _, w := range words[1:] {
+			if !headerCount.MatchString(w) {
 				return false
 			}
-			continue
 		}
-		if col > 0 && !cutsNothing(row[col-1].Ch) {
-			return false // text that doesn't start at the column: no header
-		}
-		var cell strings.Builder // the cell: to the next gap of two blank cells
-		for i := col; i < len(row); i++ {
-			if row[i].Ch == "" {
-				continue // a wide glyph's second cell
-			}
-			if cutsNothing(row[i].Ch) && (i+1 >= len(row) || cutsNothing(row[i+1].Ch)) {
+		return true
+	})
+}
+
+// columnHeader walks up the column cut at x on rows ys and reports whether a row of it
+// holds a cell isHeader accepts. The column may start at any cell right of the cut rows'
+// last gap of two blank cells (left of it is another column) where most cut rows' text
+// starts after a blank, so columns one blank apart (a process list's trace and command)
+// are found; the walk tries the start nearest the cut first. It passes the column's
+// other rows (text starting where the cut rows' does) and at most one rule or blank row;
+// the cell it reads runs to the next gap of two blank cells, and must be the last text on
+// its row before x, so a header word earlier on the row ("path  size  name") heads its
+// own column. covered: the walk reached a row the dialog covers (hidden) first.
+func columnHeader(f Frame, ys []int, x int, hidden func(y int) bool, isHeader func(words []string) bool) (found, covered bool) {
+	counts := map[int]int{}
+	for _, y := range ys {
+		row, from := f.Rows[y], 1
+		for i := x - 1; i >= 1; i-- { // no column starts left of a gap of two blank cells
+			if cutsNothing(row[i].Ch) && cutsNothing(row[i-1].Ch) && row[i].Ch != "" && row[i-1].Ch != "" {
+				from = i + 1
 				break
 			}
-			cell.WriteString(row[i].Ch)
 		}
-		words := strings.Fields(cell.String())
-		if unboundedHeaders[strings.TrimSuffix(strings.ToLower(words[0]), "s")] {
-			header := true
-			for _, w := range words[1:] {
-				header = header && headerCount.MatchString(w)
-			}
-			if header {
-				return true
+		for s := from; s <= x && s < len(row); s++ {
+			if cutsNothing(row[s-1].Ch) && row[s-1].Ch != "" && !cutsNothing(row[s].Ch) {
+				counts[s]++
 			}
 		}
-		if gaps > 0 {
-			return false // past a rule or blank, the row is the header or there is none
-		}
-		// another row of the column (a row not cut): keep walking up
 	}
-	return false
+	var starts []int
+	for s, n := range counts {
+		if 2*n > len(ys) {
+			starts = append(starts, s)
+		}
+	}
+	slices.Sort(starts)
+	slices.Reverse(starts)
+	for _, col := range starts {
+		gaps := 0
+	walk:
+		for y := ys[0] - 1; y >= 0; y-- {
+			if hidden != nil && hidden(y) {
+				return false, true
+			}
+			row := f.Rows[y]
+			if col >= len(row) {
+				break
+			}
+			if cutsNothing(row[col].Ch) || row[col].Ch == "-" || row[col].Ch == "=" { // a rule (ASCII's too) or a blank row under the header: one at most
+				if gaps++; gaps > 1 {
+					break
+				}
+				continue
+			}
+			if !cutsNothing(row[col-1].Ch) {
+				break // text that doesn't start at the column: no header
+			}
+			var cell strings.Builder // the cell: to the next gap of two blank cells
+			end := col
+			for i := col; i < len(row); i++ {
+				if row[i].Ch == "" {
+					continue // a wide glyph's second cell
+				}
+				if cutsNothing(row[i].Ch) && (i+1 >= len(row) || cutsNothing(row[i+1].Ch)) {
+					break
+				}
+				cell.WriteString(row[i].Ch)
+				end = i
+			}
+			last := true // nothing else on the row up to the cut
+			for i := end + 1; i <= x && i < len(row); i++ {
+				last = last && cutsNothing(row[i].Ch)
+			}
+			if last && isHeader(strings.Fields(cell.String())) {
+				return true, false
+			}
+			if gaps > 0 {
+				break walk // past a rule or blank, the row is the header or there is none
+			}
+			// another row of the column (a row not cut): keep walking up
+		}
+	}
+	return false, false
 }
 
 // cutsNothing is a cell an ellipsis can't have cut: blank, or a rule or box glyph.
