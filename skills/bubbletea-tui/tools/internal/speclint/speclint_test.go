@@ -165,6 +165,15 @@ func TestRules(t *testing.T) {
 		{"77 columns don't", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 43)+" |", ""), map[string]int{"S-FOOTER": 1}},
 		{"Global keys are not in the footer", table("| list | list | ↑↓ move · enter open · ? help |", "ctrl+c quit · ctrl+p palette · ctrl+o switch · ctrl+s save · ctrl+r reload · ctrl+t theme · f1 manual"), nil},
 		{"an empty cell has no footer", table("| splash | splash | — |", ""), nil},
+		// the help overlay is full help: it needs no key that opens it; a state drawn with
+		// no footer row (toosmall through ui.TooSmallText) shows no keys at all
+		{"the help overlay hides keys behind nothing", table("| help | overlay | **esc close** · ↑↓ scroll · ?/h/f1/ctrl+g close |", ""), nil},
+		{"help over a tour is help too", table("| help-tour | overlay | esc close ‖ ↑↓ scroll |", ""), nil},
+		{"a state with no footer row", table("| toosmall | any | ‖ q quit |", ""), nil},
+		// a help item's aliases are for the dispatcher: the footer draws its first key
+		// (`? help`), which ui.Help pins
+		{"?/h/f1 help counts as ? help", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 34)+" · ?/h/f1 help |", ""), nil},
+		{"? help that doesn't fit", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 35)+" · ?/h/f1 help |", ""), map[string]int{"S-FOOTER": 1}},
 
 		// S-SLOTS: a read from before move and signature replaced remember
 		{"remember alone", "### Brand read\ntone: calm\nremember: the orange row\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
@@ -554,9 +563,9 @@ func TestSuggestCut(t *testing.T) {
 		{"f1 help is not pinned, so it is packed last",
 			"↑↓/jk move · enter open · e done · s snooze · x select · E done selected · / filter · r refresh · f1 help",
 			"↑↓/jk move · enter open · e done · s snooze · x select · E done selected · f1 help", "/ filter · r refresh"},
-		{"?/f1 help is not pinned either",
+		{"?/f1 help is drawn as ? help, pinned last",
 			"↑↓/jk move · enter open · e done · s snooze · x select · E done selected · / filter · r refresh · ?/f1 help",
-			"↑↓/jk move · enter open · e done · s snooze · x select · ?/f1 help", "E done selected · / filter · r refresh"}, // 2 columns wider than f1 help
+			"↑↓/jk move · enter open · e done · s snooze · x select · E done selected · ?/f1 help", "/ filter · r refresh"}, // as narrow as f1 help
 		{"the way out and the state's purpose stay in front",
 			"↑↓/jk scroll · pgup/pgdn page · g/G top/bottom · tab next section · shift+tab previous section · r write the rest · esc stop writing · ? help",
 			"↑↓/jk scroll · pgup/pgdn page · r write the rest · esc stop writing · ? help", "g/G top/bottom · tab next section · shift+tab previous section"},
