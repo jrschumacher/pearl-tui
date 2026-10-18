@@ -223,7 +223,7 @@ and ASCII alike), never a multi-cell spinner that pushes the name out of line; t
 clock for such a row runs only when `ui.BusyAnimates(t)`. The label or a tag beside it
 says the state in words.
 
-## Progress, Sparkline, Meter — `ui.Progress`, `ui.Sparkline`
+## Progress, Trace, Sparkline — `ui.Progress`, `ui.Trace`, `ui.Sparkline`
 
 - Progress: `━━━━╸╌╌╌` with the fill in a short gradient, then the fraction and what is
   progressing ("3/5 pods"). Indeterminate work gets a spinner, not a fake bar.
@@ -232,8 +232,19 @@ says the state in words.
   past its error level the fail mark, not only amber or red: at 16 colours amber is often
   red's slot and under NO_COLOR it is the text colour, so the band is the mark's to say.
   The `ladder` frame shows the marks a reading can carry.
-- Sparkline: `▁▂▃▅▇` over a fixed column, coloured by state, with a flat series kept
-  flat. Always print the current value beside it. A warning's ends in the warn mark
+- Trace: a history of a reading with a fixed range (cpu %, a disk, a load) is
+  `ui.Trace(t, vals, w, ui.TraceOpts{Min, Max, Per, Rows, Warn, Fail})`, never a
+  Sparkline, which scales each series to itself and draws an idle 3 % full height (both
+  cold monitors hand-wrote this). Newest sample at the right; a cell holds `Per` samples
+  drawn as their max (60 s at Per 4 is 15 cells, and a 1 s spike survives); cells before
+  the first sample are blank, not zero; a cell at or over `Warn` takes the warning's ink
+  and over `Fail` the error's; `Rows: 3` is 24 heights, the floor on the bottom row. A
+  sample under 1/16 of the scale is idle and draws the floor, `⣀` (`▁` under a dotted
+  rule; ASCII `.` or `_`), never the rule's glyph: `▁▁▁▁` beside a `─` rule reads as one
+  more rule. ASCII heights are `.:;-=%#@` less the rule's twin: dots low, so a quiet
+  series never reads as a `----` rule.
+- Sparkline: `▁▂▃▅▇` over a fixed column, scaled to the series (latency, throughput),
+  coloured by state, with a flat series kept flat. Always print the current value beside it. A warning's ends in the warn mark
   (`ui.StateSparkline`: `▁▃▅▇█▲`): at 16 colours a warm brand's yellow and the
   warning's are one hue, so bars in yellow alone read as the selection. A sparkline taller than one row grows
   upward from the label's row: label, value and the bar's base share the bottom row,

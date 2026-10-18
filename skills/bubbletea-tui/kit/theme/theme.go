@@ -161,13 +161,50 @@ const (
 // (ui.Fit); ui.Trunc cuts with the theme's own glyphs.ellipsis.
 const Ellipsis = "…"
 
-// SparkRamp is the eight heights of a sparkline, lowest first, and SparkRampASCII what
-// an ASCII terminal draws in their place (controls.go Sparkline): no "*" or "+", the
-// current and done twins, so a peak never reads as a status mark beside the dots.
+// SparkRamp is the eight heights of a trace or sparkline, lowest first, and SparkRampASCII
+// what an ASCII terminal draws in their place: no "*" or "+", the current and done twins,
+// so a peak never reads as a status mark beside the dots, and no "_", whose run is an
+// underline; the low steps are dots, so a quiet series never reads as a "----" rule. TraceFloor is a sample at the floor of its scale (an idle 2 % of 0..100), in
+// dots so an idle history never reads as a section rule; TraceFloorSolid replaces it
+// under a dotted rule (· ┄ ╌). Theme.TraceGlyphs picks between them for the theme.
 const (
-	SparkRamp      = "▁▂▃▄▅▆▇█"
-	SparkRampASCII = "_.-=:;%#@"
+	SparkRamp            = "▁▂▃▄▅▆▇█"
+	SparkRampASCII       = ".:;-=%#@"
+	TraceFloor           = "⣀"
+	TraceFloorASCII      = "."
+	TraceFloorSolid      = "▁"
+	TraceFloorSolidASCII = "_"
 )
+
+// dottedRules are rule glyphs (and their twins) drawn as dots or dashes, not a line: a
+// floor of dots beside them would read as one more rule, so the floor goes solid.
+var dottedRules = []string{"·", "┄", "┈", "╌", "┅", "┉", "╍", "⋯", "…", "‥", "⣀", "⠤", "⠒", ".", ":"}
+
+// TraceGlyphs are the glyphs ui.Trace and ui.Sparkline draw a history in: the floor (a
+// sample at the bottom of its scale: idle) and the heights above it, lowest first. The
+// floor is dots, or a solid ▁ (ASCII _) where the theme's rule is dotted, so an idle
+// history is never the rule's texture; no height is the rule's or the header rule's glyph
+// (ASCII - under ─, = under ━), so no level reads as a rule. The heights keep ▁ beside a
+// dotted rule, so a series draws at the same heights in every theme.
+func (t *Theme) TraceGlyphs() (floor string, ramp []string) {
+	floor, all := TraceFloor, SparkRamp
+	if t.ASCII {
+		floor, all = TraceFloorASCII, SparkRampASCII
+	}
+	if slices.Contains(dottedRules, t.G.Rule) {
+		floor = TraceFloorSolid
+		if t.ASCII {
+			floor = TraceFloorSolidASCII
+		}
+	}
+	for _, r := range all {
+		g := string(r)
+		if g != t.G.Rule && g != t.G.HeaderRule {
+			ramp = append(ramp, g)
+		}
+	}
+	return floor, ramp
+}
 
 // Wordmark is an optional multi-row wordmark (scripts/wordmark.py output).
 type Wordmark struct {

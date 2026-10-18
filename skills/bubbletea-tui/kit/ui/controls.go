@@ -214,7 +214,12 @@ func warnIsFill(t *theme.Theme) bool {
 	return bg != nil && !none
 }
 
-// Sparkline draws values as ▁▂▃▄▅▆▇█ over w cells (the last w values).
+// Sparkline draws values as ▁▂▃▄▅▆▇█ over w cells (the last w values, left-aligned),
+// scaled to the series itself: for a reading whose shape matters more than its level
+// (latency, throughput). A reading with a fixed range (a percentage, a load) is a Trace,
+// where an idle 3 % stays at the floor. A series that is flat to within 25 % stays a low
+// line, ▂▃ (±5 % noise drawn full height reads as an incident), and a constant one draws
+// the floor (⣀, Theme.TraceGlyphs), never the rule's glyph.
 func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) string {
 	if len(vals) > w {
 		vals = vals[len(vals)-w:]
@@ -223,27 +228,23 @@ func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) stri
 	for _, v := range vals {
 		lo, hi = math.Min(lo, v), math.Max(hi, v)
 	}
-	// a flat series stays a low flat line: ±5% noise drawn full-height reads
-	// as an incident
 	flat := hi <= 0 || (hi-lo)/hi < 0.25
-	bars := []rune(theme.SparkRamp)
-	if t.ASCII {
-		bars = []rune(theme.SparkRampASCII)
-	}
-	var b strings.Builder
-	for _, v := range vals {
-		k := 0
+	_, ramp := t.TraceGlyphs()
+	levels := make([]int, len(vals))
+	inks := make([]lipgloss.Style, len(vals))
+	for i, v := range vals {
+		inks[i] = style
 		switch {
 		case flat && hi > lo:
-			k = 1 + int(math.Round((v-lo)/(hi-lo)))
+			levels[i] = 2 + int(math.Round((v-lo)/(hi-lo)))
 		case flat:
-			k = 0
+			levels[i] = 0
 		default:
-			k = int(math.Round((v - lo) / (hi - lo) * float64(len(bars)-1)))
+			levels[i] = 1 + int(math.Round((v-lo)/(hi-lo)*float64(len(ramp)-1)))
 		}
-		b.WriteRune(bars[k])
 	}
-	return style.Render(Fit(b.String(), w))
+	line := traceRows(t, levels, inks, 1)[0]
+	return line + strings.Repeat(" ", max(0, w-len(vals)))
 }
 
 // Scrollbar returns h cells (top to bottom) for a list of total rows with

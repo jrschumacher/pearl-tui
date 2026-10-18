@@ -116,7 +116,7 @@ signals, or holes in filled bars.
 
 ### Components → *Consult `references/components.md`*
 **DO** copy `kit/ui`: Header, Tabs, Section, List, Table, KV, Dialog + Overlay, Button,
-Tag, Alert, Toast, Footer/Help, ToolCall, Thinking, Progress, Sparkline, Tree, Empty,
+Tag, Alert, Toast, Footer/Help, ToolCall, Thinking, Progress, Trace, Sparkline, Tree, Empty,
 TooSmall; for wizards and status, Steps, Summary, Form/Confirm, Dot/Busy, Anim, Field,
 Canvas.
 **DON'T** leave a bare "No items", focus the destructive button, or let a blurred list
