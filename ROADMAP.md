@@ -3,7 +3,7 @@
 Where the skill is, what comes next, and the open problems that are bigger than this
 repository. Items move from here into issues when someone picks them up.
 
-## Where it is (v0.1)
+## Where it is (1.0.0-rc.1)
 
 - The skill: a stance, laws, domain references, 11 commands (`init` interviews the user and
   writes design and architecture into `TUI.md`), and about 40 named anti-patterns.
@@ -88,8 +88,13 @@ agreeing with your grades line for line.
   (`.claude-plugin/marketplace.json`).
 - **Theme gallery**: a browsable page of every kit theme, with the same states side by
   side, to pick a starting point for `brand`.
-- **Other renderers**: the theme JSON is language-neutral by design. A ratatui (Rust) or
-  Textual (Python) reader would test that claim and widen the audience.
+- **Further frameworks** (ratatui, Textual, Ink, tview): the theme JSON and the design
+  laws are framework-neutral by design, and Bubble Tea v2 is the only framework with a
+  kit today. Each new one needs a kit under `kit/theme/<framework>` and
+  `kit/ui/<framework>` that reads the same `kit/themes/*.json`, plus a harness that
+  writes every state as `.ansi` frames, so `cellshot`, `tuilint frames`, `palette` and
+  `diversity` apply unchanged. Its code lint and its references
+  (`<framework>-<topic>.md`) come with it.
 - **Design tokens interop**: export roles in the W3C Design Tokens (DTCG) format so a
   brand's web tokens and terminal theme can come from one source.
 

@@ -4,7 +4,7 @@ description: Design and build terminal UIs that look as considered as Charm's Cr
 license: MIT
 compatibility: Go ≥ 1.26.7 (Bubble Tea v2.1, Lip Gloss v2.0.6, Bubbles v2.2). Python 3 with Pillow and numpy only for the wordmark and logo converters.
 metadata:
-  version: "0.1.0"
+  version: "1.0.0-rc.1"
 ---
 
 # Pearl

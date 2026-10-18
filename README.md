@@ -3,6 +3,10 @@
 **An agent skill for designing and building terminal UIs that look as considered as Charm's
 Crush, and unmistakably like *your* product.**
 
+Pearl's laws, brand system and frame tools are framework-neutral. Its first framework is
+Bubble Tea v2: the kit, the code lint and the harness are Go, with Lip Gloss, Bubbles and
+Huh, and today they are the only ones it ships.
+
 Models are excellent at HTML. Ask one for a TUI and you get the same app every time:
 rounded borders around every region, the Lip Gloss README purple, emoji for icons,
 "Loading...", a paragraph of help text, and a frame that tears at 79 columns. This skill
@@ -100,7 +104,7 @@ Just ask for a TUI ("build a Bubble Tea dashboard for our job queues, brand colo
 skills/pearl/
 ├── SKILL.md              the stance, the laws, per-domain DO/DON'T, the TUI slop test, the command router
 ├── references/           medium · idiom · color · layout · components · interaction · motion · brand
-│                         cell-art · architecture · verify · anti-patterns, plus one file per command
+│                         cell-art · bubbletea-architecture · verify · anti-patterns, plus one file per command
 ├── tools/                Go, built once per project: go -C <skill>/tools build -o "$PWD/.tuitools/" ./cmd/...
 │   ├── cellshot          ANSI → PNG / GIF / contact sheet, drawn like Ghostty/Kitty/WezTerm draw it
 │   ├── tuilint           slop + correctness lint on rendered frames, on Go source and on TUI.md's keys (rule IDs)
