@@ -5,7 +5,8 @@ A compiling Bubble Tea v2 module. Copy from it; don't re-derive it from the refe
 ```
 theme/          theme.go (the JSON contract), derive.go (fills missing roles, ASCII glyphs),
                 styles.go (every style from the palette, Grad, Case, Label, Gap)
-ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, PaintBackground, ASCIIfy, Fit, OnBg
+ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, PaintBackground, ASCIIfy, Fit, OnBg;
+                            Body and Keep (what a dialog hides where the page can't dim)
                 chrome.go   Wordmark, Header, Details, Section, Rule, Help, Footer, Toast, Tabs, TooSmall
                 toast.go    ToastTTL, UndoTTL, GraceTTL, Frames, SecondsLeft, ToastKey (a toast that
                             offers one key: u undo)
@@ -161,7 +162,8 @@ whole. They read your tables and these from your app:
 - the canvas's `Body`, set in `render` to the body's rect (`c.Body = body`, the same
   rect as `m.body`): where the page can't be dimmed a centred dialog hides its rows and
   keeps the header (unset, the header goes too), and the tests fail a `Body` that
-  doesn't span `m.body`'s rows;
+  doesn't span `m.body`'s rows; `c.Keep` names rects of those rows that stay (a pane's
+  header beside a sidebar), and the tests read it;
 - help's shape: one row per binding, the key then what it does (a key name holds no
   space), and `esc` closing help back to whatever it was opened over;
 - focus drawn in the theme's marks: the focus bar, cursor, caret or prompt glyph in its

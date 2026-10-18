@@ -106,7 +106,9 @@ the keys; hue stays for state (color.md).
   NO_COLOR, `scrim: none`; ASCII glyphs at truecolour still dim) a centred dialog hides
   the rows of the page's body too, since at full ink a page under a confirm showed the
   reply's tail a second time: set `c.Body = body`, the rect you draw the body in, so the
-  header stays (unset, everything goes but the dialog and the footer you redraw). A
+  header stays (unset, everything goes but the dialog and the footer you redraw). Body
+  hides whole rows; to keep a pane's header that shares rows with a sidebar, name it in
+  `c.Keep` (`[]uv.Rectangle{paneHeader}`), never content or a focus mark. A
   popover anchored to its trigger (`anchor.X ≥ 0`, a completion list) clears only its
   own rows, so the line it completes stays.
 - Max ~64–70 cols wide; fullscreen below the minimum size.

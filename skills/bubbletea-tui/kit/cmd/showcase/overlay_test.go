@@ -79,7 +79,7 @@ func rowText(c *ui.Canvas, y int) string {
 //     cursor, a caret), which drawing it unfocused takes away or turns blurred;
 //   - with no scrim (16 colours, NO_COLOR, scrim: none, whatever the glyphs), the rows
 //     of the page's body (Canvas.Body, everything when unset) are blank outside the
-//     dialog, and the rest, the header, holds its glyphs: at full ink a confirm over a composer showed the
+//     dialog and what the app names in Canvas.Keep, and the rest, the header, holds its glyphs: at full ink a confirm over a composer showed the
 //     reply's last lines under its edge, a second copy of what it would send.
 func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 	for _, f := range testThemes(t) {
@@ -114,7 +114,7 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 								}
 								want, got := cellText(base, x, y), cellText(c, x, y)
 								switch {
-								case band || (!scrim && uv.Pos(x, y).In(hidden)):
+								case band || (!scrim && uv.Pos(x, y).In(hidden) && !kept(c, x, y)):
 									if got == " " {
 										continue
 									}
@@ -187,6 +187,12 @@ func hiddenBody(c *ui.Canvas) uv.Rectangle {
 		return b
 	}
 	return uv.Rect(b.Min.X, c.Body.Min.Y, b.Dx(), c.Body.Dy())
+}
+
+// kept reports whether the app named the cell at x, y in Canvas.Keep: what stays of
+// the hidden body (a pane's header beside a sidebar).
+func kept(c *ui.Canvas, x, y int) bool {
+	return slices.ContainsFunc(c.Keep, func(r uv.Rectangle) bool { return uv.Pos(x, y).In(r) })
 }
 
 // bodyIsThePage reports what is wrong with the Canvas.Body an app set, or "": unset is

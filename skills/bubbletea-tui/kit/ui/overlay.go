@@ -21,8 +21,9 @@ import (
 //     (Canvas.Body) across: at full ink, a page above and below the dialog is as live
 //     as the dialog, and a confirm over a composer showed the reply's last lines under
 //     its edge, a second copy of what it was about to send. The rows outside the body
-//     (the app's header) are kept; with no Body set, everything outside the dialog is
-//     cleared, and the app draws its footer over the dialog as it does anyway.
+//     (the app's header) are kept, and so are the rects the app names in Canvas.Keep
+//     (a pane's header beside a sidebar); with no Body set, everything outside the
+//     dialog is cleared, and the app draws its footer over the dialog as it does anyway.
 //   - A popover anchored to its trigger (anchor.X ≥ 0: a completion list above the line
 //     being typed) is not modal, and clears only its band, so the line it completes
 //     stays on screen.
@@ -52,18 +53,27 @@ func (c *Canvas) clearPage(r uv.Rectangle, scrim, modal bool) {
 		if !c.Body.Empty() {
 			body = uv.Rect(b.Min.X, c.Body.Min.Y, b.Dx(), c.Body.Dy())
 		}
-		c.clearOutside(body, r)
+		c.clearOutside(body, r, c.Keep...)
 	}
 }
 
-// clearOutside blanks every cell of area that isn't in the dialog's rectangle r.
-func (c *Canvas) clearOutside(area, r uv.Rectangle) {
+// clearOutside blanks every cell of area that isn't in the dialog's rectangle r or in
+// one of keep.
+func (c *Canvas) clearOutside(area, r uv.Rectangle, keep ...uv.Rectangle) {
 	area = area.Intersect(c.Bounds())
 	for y := area.Min.Y; y < area.Max.Y; y++ {
+	cells:
 		for x := area.Min.X; x < area.Max.X; x++ {
-			if !uv.Pos(x, y).In(r) {
-				c.blank(x, y)
+			p := uv.Pos(x, y)
+			if p.In(r) {
+				continue
 			}
+			for _, k := range keep {
+				if p.In(k) {
+					continue cells
+				}
+			}
+			c.blank(x, y)
 		}
 	}
 }
