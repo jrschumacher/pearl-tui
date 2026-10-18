@@ -14,8 +14,9 @@
 //	                 shapes, misc symbols and technical, dingbats, braille, the marks · • …, and
 //	                 any rune the kit's twin table maps. Screens take those from the theme, so a
 //	                 brand can change them and ASCII gets a twin. Text is not a glyph: letters
-//	                 and digits of any script, quotation marks and dashes (it’s, «q», a — b),
-//	                 currency (£5) and units, marks and maths (72°F © ® ™ × ÷ ± ≥ ≤ ≠ ¹ ² ³ ½ µ)
+//	                 and digits of any script, quotation marks and dashes (it’s, «q», a — b, a
+//	                 range's 1–9), currency (£5) and units, marks and maths (72°F © ® ™ × ÷ ± ≥
+//	                 ≤ ≠ ¹ ² ³ ½ µ, 80×24); the canvas's ASCII sweep maps × and the dashes itself
 //	C-ELLIPSIS  [P1] the bare theme.Ellipsis outside the ui package: cut with ui.Trunc(t, s, w), which
 //	                 fits the theme's glyph t.G.Ellipsis and its ASCII twin inside w
 //	C-V1        [P1] Bubble Tea / Lip Gloss / Bubbles / Huh v1 import paths
@@ -83,7 +84,8 @@ files are analysed syntax-only and stderr says so.
                    literal outside the theme package and the ASCII twin table (a composite
                    literal of a package-level var named *ascii*): screens take glyphs from
                    the theme. Text is not a glyph: other scripts, quotes and dashes (it’s,
-                   «q», a — b), currency (£5), units and maths (72°F © ™ × ± ≥ ½ µ)
+                   «q», a — b, 1–9), currency (£5), units and maths (72°F © ™ × ± ≥ ½ µ,
+                   80×24); the ASCII sweep maps × and the dashes itself
   C-ELLIPSIS  [P1] the bare theme.Ellipsis outside the ui package: cut with
                    ui.Trunc(t, s, w), which fits the theme's glyph and its twin inside w
   C-V1        [P1] Bubble Tea / Lip Gloss / Bubbles / Huh v1 import paths

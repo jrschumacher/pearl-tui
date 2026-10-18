@@ -5,23 +5,29 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
+	"unicode"
 
 	"tuitools/internal/framelint"
+	"tuitools/internal/tuimd"
 )
 
 // frameHint is one `key action` hint read off a golden frame's footer row.
 type frameHint struct {
 	text string
 	keys []key
+	twin []key // the keys again with a lone "v" read as ↓, its ASCII twin and a key of its own
 }
 
 // frameFooter reads the footer of a golden frame: its last non-blank row, split where
 // two or more blank cells fall, as ui.Help joins hints. A chunk is a hint when its first
 // word reads as keys and is drawn in another style than the word after it (ui.Help's
 // Key and KeyDesc), so status text on the row ("5 variables") is not one; a row with
-// no style at all (NO_COLOR) takes every chunk that reads as keys. cut is a lone
-// ellipsis among the chunks: Help dropped hints behind it.
+// no style at all (NO_COLOR) takes every chunk that reads as keys. ui.Footer's right
+// status is not a hint: a count (`4 of 101`), and after the help hint a chunk that leads
+// with a number (`? help  9 procs`). cut is a lone ellipsis among the chunks: Help
+// dropped hints behind it.
 func frameFooter(text string) (hints []frameHint, cut bool) {
 	f := framelint.Parse(strings.TrimSuffix(strings.ReplaceAll(text, "\r\n", "\n"), "\n"))
 	var row []framelint.Cell
@@ -61,7 +67,8 @@ func frameFooter(text string) (hints []frameHint, cut bool) {
 		blanks = 0
 		cur = append(cur, c)
 	}
-	for _, ch := range chunks {
+	afterHelp := false
+	for i, ch := range chunks {
 		var sb strings.Builder
 		for _, c := range ch {
 			sb.WriteString(c.Ch)
@@ -71,6 +78,21 @@ func frameFooter(text string) (hints []frameHint, cut bool) {
 			continue
 		}
 		h, ok := chunkHint(ch, styled)
+		if !ok && !styled && i == 0 && !startsWord(ch) {
+			// NO_COLOR: a prompt or badge one blank before the first hint ("/yes▏ enter
+			// keep", "[PROD] enter next"), with no style to tell them apart: the hint
+			// starts at the next word
+			at := 0
+			for at < len(ch) && strings.TrimSpace(ch[at].Ch) != "" {
+				at++
+			}
+			for at < len(ch) && strings.TrimSpace(ch[at].Ch) == "" {
+				at++
+			}
+			if at < len(ch) {
+				h, ok = chunkHint(ch[at:], styled)
+			}
+		}
 		if !ok && styled {
 			// a badge one blank before the first hint ("[PROD] enter next field"): the
 			// hint starts at the next word when that is drawn in another style
@@ -85,16 +107,47 @@ func frameFooter(text string) (hints []frameHint, cut bool) {
 				h, ok = chunkHint(ch[at:], styled)
 			}
 		}
-		if ok {
-			hints = append(hints, h)
+		if !ok {
+			continue
 		}
+		if countRe.MatchString(h.text) || (afterHelp && numberRe.MatchString(h.text)) {
+			continue // "4 of 101", "1/9", and after the help hint "9 procs": ui.Footer's right status
+		}
+		hints = append(hints, h)
+		afterHelp = afterHelp || (len(h.keys) == 1 && (h.keys[0].String() == "?" || h.keys[0].String() == "ctrl+g"))
 	}
 	return hints, cut
 }
 
+// numberRe is a chunk that leads with a number ("9 procs"): after the help hint ui.Help
+// pins last, ui.Footer's right status, not a digit key.
+var numberRe = regexp.MustCompile(`^\d+\s`)
+
+// countRe is a footer chunk that counts rather than binds, the whole chunk: "4 of 101",
+// "1/9", "3 / 12". "1/2 pane" is keys.
+var countRe = regexp.MustCompile(`^\d+\s*(?:of|/)\s*\d+$`)
+
+// startsWord reports a chunk whose first cell is a letter or digit: a status word, not
+// a prompt (/, >, ›) or a badge ([PROD]).
+func startsWord(ch []framelint.Cell) bool {
+	for _, c := range ch {
+		if strings.TrimSpace(c.Ch) == "" {
+			continue
+		}
+		r := []rune(c.Ch)[0]
+		return unicode.IsLetter(r) || unicode.IsDigit(r)
+	}
+	return false
+}
+
 // asciiArrows are the arrow keys as an ASCII frame draws them (theme.ASCIITwin): "^v"
-// would read as ctrl+v.
-var asciiArrows = map[string]string{"^v": "↑↓", "<>": "←→", "^": "↑", "<-": "←", "->": "→"}
+// would read as ctrl+v. arrowPairs is an alternative made of the pairs alone ("^v",
+// "<>", "^v<>"), which arrowTwins turns back.
+var (
+	asciiArrows = map[string]string{"^": "↑", "<-": "←", "->": "→"}
+	arrowPairs  = regexp.MustCompile(`^(?:\^v|<>)+$`)
+	arrowTwins  = strings.NewReplacer("^v", "↑↓", "<>", "←→")
+)
 
 // unASCII turns a key token's ASCII arrow twins back into arrows, alternative by
 // alternative ("^v/jk" is ↑↓/jk).
@@ -103,6 +156,8 @@ func unASCII(tok string) string {
 	for i, a := range alts {
 		if r, ok := asciiArrows[a]; ok {
 			alts[i] = r
+		} else if arrowPairs.MatchString(a) {
+			alts[i] = arrowTwins.Replace(a)
 		}
 	}
 	return strings.Join(alts, "/")
@@ -139,7 +194,16 @@ func chunkHint(ch []framelint.Cell, styled bool) (frameHint, bool) {
 			return frameHint{}, false
 		}
 	}
-	return frameHint{text: s, keys: b.keys}, true
+	h := frameHint{text: s, keys: b.keys}
+	if alts := splitAlts(words[0]); slices.Contains(alts, "v") { // "v select": v, or ↓ under -ascii
+		for i, a := range alts {
+			if a == "v" {
+				alts[i] = "↓"
+			}
+		}
+		h.twin = readItem(append([]string{strings.Join(alts, "/")}, words[1:]...)).keys
+	}
+	return h, true
 }
 
 // sameAs is a keys cell that borrows another state's: "as chat", "same as chat",
@@ -191,20 +255,21 @@ func (s *spec) goldenFooters(dir string, add func(string, int, string, ...any)) 
 		if len(hints) == 0 {
 			continue // a toast or a prompt holds the row: no footer to compare
 		}
-		bound := map[key]bool{}
+		bound, maybe := map[key]bool{}, map[key]bool{}
 		for _, k := range global {
 			bound[k] = true
 		}
 		for _, b := range keysOf.bindings {
 			for _, k := range b.keys {
 				bound[k] = true
+				maybe[k] = maybe[k] || b.cond != ""
 			}
 		}
 		shown := map[key]bool{}
 		var extra []string
 		for _, h := range hints {
 			any := false
-			for _, k := range h.keys {
+			for _, k := range append(append([]key{}, h.keys...), h.twin...) {
 				shown[k] = true
 				any = any || bound[k]
 			}
@@ -221,7 +286,7 @@ func (s *spec) goldenFooters(dir string, add func(string, int, string, ...any)) 
 				}
 				any := false
 				for _, k := range b.keys {
-					any = any || shown[k]
+					any = any || shown[k] || maybe[k] // shown only under a condition, or later
 				}
 				if !any {
 					missing = append(missing, "`"+item+"`")
@@ -233,11 +298,49 @@ func (s *spec) goldenFooters(dir string, add func(string, int, string, ...any)) 
 			parts = append(parts, fmt.Sprintf("shows %s, which the row doesn't bind", strings.Join(extra, ", ")))
 		}
 		if len(missing) > 0 {
-			parts = append(parts, fmt.Sprintf("lacks %s, which the row puts in the footer", strings.Join(missing, ", ")))
+			parts = append(parts, fmt.Sprintf("lacks %s, which the row puts in the footer (end an item with `(if …)` when the footer shows it only then, or `(later)` when its screen comes later in the slice)", strings.Join(missing, ", ")))
 		}
 		if len(parts) > 0 {
 			add("S-GOLDEN", r.line, "%s: the footer of %s %s: the footer and the table disagree, so one of them lies. Make the state's actions() and this row the same keys, then re-render",
 				r.state, filepath.Join(filepath.Base(dir), name), strings.Join(parts, ", and "))
+		}
+	}
+}
+
+// blankRegion names a budget region that is blank by design: a gap between regions.
+var blankRegion = regexp.MustCompile(`(?i)^(?:gap|gutter|margin|spacer|padding|blank)s?\b`)
+
+// regionBudgets is S-REGION: each `<W>×<H>:` budget line of a screen block against that
+// screen's golden at that size (dir/<screen>-<W>x<H>.ansi). A region whose whole
+// rectangle is blank there is drawn somewhere else, or not at all: the layout moved and
+// the budget went stale. A region with any text in it is not reported, even when the
+// text is another region's (a status line under a transcript touches it on purpose), so
+// a budget whose region the body moved into passes.
+func (s *spec) regionBudgets(dir string, add func(string, int, string, ...any)) {
+	for _, b := range tuimd.Budgets(strings.Join(s.lines, "\n")) {
+		name := fmt.Sprintf("%s-%dx%d.ansi", b.Screen, b.W, b.H)
+		data, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			continue
+		}
+		f := framelint.Parse(strings.TrimSuffix(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n"))
+		for _, r := range b.Regions {
+			if blankRegion.MatchString(r.Name) {
+				continue
+			}
+			blank := true
+			for y := r.Y; y < r.Y+r.H && y < len(f.Rows) && blank; y++ {
+				for x := r.X; x < r.X+r.W && x < len(f.Rows[y]); x++ {
+					if strings.TrimSpace(f.Rows[y][x].Ch) != "" {
+						blank = false
+						break
+					}
+				}
+			}
+			if blank {
+				add("S-REGION", b.Line, "%s: `%s %d,%d %d×%d` is blank in %s: the region is drawn elsewhere or not at all, so the budget went stale. Measure the region in the golden and write its rectangle here (cmd-init.md: update TUI.md when a decision changes), or move the region back",
+					b.Screen, r.Name, r.X, r.Y, r.W, r.H, filepath.Join(filepath.Base(dir), name))
+			}
 		}
 	}
 }

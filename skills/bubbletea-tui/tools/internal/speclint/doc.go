@@ -6,7 +6,8 @@
 // line, as frames and code do). P0/P1 findings fail the run (exit 1); P2 are warnings to
 // fix or justify in one line. Exit 2 on usage errors, an unreadable file, or a --frames
 // that is not a directory. --frames names the golden frames (<state>-80x24.ansi, by
-// harness name) to hold the table to (S-GOLDEN).
+// harness name) to hold the table to (S-GOLDEN) and the screens' region budgets
+// (S-REGION).
 //
 // It reads the table in the template's format, keys as `key action · key action`, and
 // a `Global:` line (or a row whose state is "global") whose keys apply in every state.
@@ -31,6 +32,12 @@
 // A key token may list alternatives with "/" (`shift+enter/ctrl+j`, `↑↓/jk`, `1-9`), and
 // an item may list more tokens before its action: `j/k, ↑/↓ move`, `h/l or ←/→ switch`,
 // `q / ctrl+c quit`, `[ ] back`. A trailing ":" ends the keys (`enter: open`).
+//
+// An item the footer shows only under a condition ends with it in parentheses, after
+// `if`, `when` or `while`: `**esc clear filter (if a filter is applied)**`, `**↑↓ scroll
+// (while the body overflows)**`. An item whose screen comes later in the slice ends with
+// `(later)` or `(later: <screen>)`. The rules read the item without the mark (it takes no
+// footer width), and S-GOLDEN doesn't ask a golden to show it.
 //
 //	S-TABLE      [P1] no States-and-keys table in the template's format: nothing else can be checked
 //	             [P2] a key token it can't read as a key: the key rules skip it
@@ -75,7 +82,10 @@
 //	                  for "…" while hints remain, pins the first `?` or `ctrl+g` hint last wherever
 //	                  it sits, and drops the rest. A token pairing a key some terminals can't tell
 //	                  apart with its fallback (`shift+enter/ctrl+j`) counts as its widest single
-//	                  alternative: ui.HelpKey draws only the one that works. A badge the cell
+//	                  alternative: ui.HelpKey draws only the one that works. A help item that
+//	                  lists aliases for the dispatcher (`?/h/f1 help`) counts as its first key,
+//	                  `? help`, the hint the footer draws and pins when the binding's help label
+//	                  is that key alone (key.WithHelp("?", "help"), as the kit's are). A badge the cell
 //	                  names first (`[plan] · …`) takes its width and a space from the 76; status
 //	                  text on the row takes more. The message names what it drops and suggests a
 //	                  footer that fits, with the state's way out (esc, quit, back, close, cancel)
@@ -83,7 +93,9 @@
 //	                  Global keys are not in a state's footer.
 //	             [P2] a state with a marked footer and help-only keys whose footer shows no key
 //	                  that opens help (`?`, ctrl+g, an action that says help), when Global doesn't
-//	                  bind one: nobody finds the help-only keys.
+//	                  bind one: nobody finds the help-only keys. Not the help overlay itself, full
+//	                  help (a state named help, keys or shortcuts, or help-over-<state>), nor
+//	                  toosmall (or too-small), which ui.TooSmallText draws with no footer.
 //	S-ACCENT     [P2] the `accents:` lines give each hue one meaning (`accents: amber = new,
 //	                  nothing else; teal = running`) and another line puts "the accent" or "the
 //	                  primary hue/colour" on something else (the wordmark, the spinner's dots, a
@@ -101,18 +113,33 @@
 //	                  the first, which is read as the main screen (so its block comes first),
 //	                  with no `brand:` line: a secondary screen or overlay that doesn't say what
 //	                  the brand's three words change on it (copy voice, dialog form, footer
-//	                  phrasing). A heading with no job (no dash or colon) whose next heading is
-//	                  deeper groups blocks (`Main`, `Overlays`) and is not one. `brand: nothing,
-//	                  because …` counts; a bare `nothing`, `none`, `n/a` or `-`, an empty value,
-//	                  a line in a ``` or ~~~ fence (the sketch) or in backticks doesn't. Two
+//	                  phrasing). Blocks sit at the level of the section's first heading with a
+//	                  job (a dash or a colon); a heading above it whose next heading is deeper
+//	                  groups blocks (`Main`, `Overlays — dialogs and help`) and is not one, and
+//	                  one below it (`regions`, `layout: two panes`) is part of its block. `brand: nothing,
+//	                  because …` counts; a bare `nothing`, `none`, `n/a` or `-`, a placeholder
+//	                  (`TBD`, `todo`, `?`, `nothing yet`, `<…>`), an empty value, a line in a
+//	                  ``` or ~~~ fence (the sketch) or in backticks doesn't. Two
 //	                  brands on one spec otherwise share every screen behind the main one word
 //	                  for word (references/cmd-shape.md § Behind The Main Screen).
 //	S-GOLDEN     [P2] (with --frames) a state's footer in <state>-80x24.ansi and its row disagree:
 //	                  the footer shows a hint whose keys neither the row nor Global binds (row
 //	                  keys over an empty table), or lacks a key the row puts in the footer while
-//	                  nothing is dropped behind …. A hint is a key drawn in another style than its
-//	                  action, as ui.Help draws it, so status text on the row is not one; ASCII
-//	                  twins (^v, <>) read as arrows; a row "as list; x cancel" is list's keys and
+//	                  nothing is dropped behind … (not one marked `(if …)` or `(later)`). A hint is a key drawn in another style than its
+//	                  action, as ui.Help draws it, so status text on the row is not one; with no
+//	                  style (NO_COLOR), a prompt or badge one blank before the first hint ("/yes▏
+//	                  enter keep") is not part of it; ASCII twins (^v, <>, ^v<>) read as arrows,
+//	                  and a lone v as v or ↓; a row "as list; x cancel" is list's keys and
 //	                  these; a badge one blank before the first hint ("[PROD] enter next") is not
-//	                  part of it; a frame whose last row holds no hint (a toast) is not compared.
+//	                  part of it, nor is ui.Footer's right status: a chunk that is only a count
+//	                  (`4 of 101`, `1/9`; `1/2 pane` is keys), or after the help hint one that
+//	                  leads with a number (`9 procs`); a
+//	                  frame whose last row holds no hint (a toast) is not compared.
+//	S-REGION     [P2] (with --frames) a region of a screen block's budget line (`80×24: header
+//	                  0,0 80×1 · list 1,2 78×20 · …`) whose whole rectangle is blank in the
+//	                  screen's golden at that size, <screen>-80x24.ansi or -120x40.ansi (the
+//	                  block's heading up to its job): the region is drawn elsewhere or not at
+//	                  all, so the budget went stale. A gap (gap, gutter, margin, spacer) is
+//	                  blank by design; a region with any text in it is not reported, even when
+//	                  the text is another region's that moved into it.
 package speclint
