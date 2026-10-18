@@ -88,6 +88,15 @@ func build(t *Theme) Styles {
 	}
 	if fgFocus {
 		s.Focus, s.Prompt, s.Mark, s.Motif = s.Bold, s.Bold, s.Base, s.Rule
+		// the motif runs on the page (the header rule) and on a dialog's or a palette's
+		// fill (its title rule): at 16 colours a light page's border is grey 7, the
+		// overlay's own slot, so a cyan brand pinned to fg's grey lost its palette's rule
+		for _, c := range []color.Color{p.Border, p.FgSubtle, p.FgMuted} {
+			if t.Distinct(c, p.Bg) && t.Distinct(c, p.BgPanel) && t.Distinct(c, p.BgOverlay) {
+				s.Motif = s.Base.Foreground(c)
+				break
+			}
+		}
 	}
 	// the working marks follow the focus ink unless the theme names a role for them
 	s.Working = s.Mark

@@ -822,3 +822,37 @@ func TestProductMarks(t *testing.T) {
 		t.Errorf("resolving under ASCII rewrote the theme's own marks map")
 	}
 }
+
+// Under focus "fg" the motif (the header rule, a dialog's and a palette's title rule) is
+// a rule colour, and it runs on the page and on a dialog's or palette's fill: at 16
+// colours a light page's border is grey 7, the overlay's own slot, so the palette's title
+// rule vanished once a cyan brand was pinned to fg's grey (#60). Every kit theme and test
+// theme with focus forced to fg, both modes, every profile: the motif's ink is apart from
+// bg, bgPanel and bgOverlay.
+func TestMotifStaysOffItsFills(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	test, _ := filepath.Glob(filepath.Join("testdata", "*.json"))
+	for _, path := range append(files, test...) {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.Expressions.Focus = "fg"
+		for _, dark := range []bool{true, false} {
+			for _, prof := range []colorprofile.Profile{colorprofile.TrueColor, colorprofile.ANSI256, colorprofile.ANSI} {
+				th := ResolveProfile(f, dark, false, prof)
+				ink := th.S.Motif.GetForeground()
+				for name, fill := range map[string]color.Color{"bg": th.P.Bg, "bgPanel": th.P.BgPanel, "bgOverlay": th.P.BgOverlay} {
+					if !th.Distinct(ink, fill) {
+						t.Errorf("%s dark=%v %v: the motif draws on %s's own colour", filepath.Base(path), dark, prof, name)
+					}
+				}
+			}
+		}
+	}
+}
