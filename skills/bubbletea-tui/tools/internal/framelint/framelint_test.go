@@ -621,25 +621,27 @@ func TestBoldSkipsSparseFrames(t *testing.T) {
 // F-TRUNC on an overlay frame: the kit's Overlay clears the word a dialog cuts and puts
 // an ellipsis where the kept text ends, so rows the dialog cuts end near its left edge,
 // at one column when their words break alike. Those are the dialog's cut, not a column
-// budgeted short: an ellipsis with only blanks between it and the dialog doesn't count.
-// The same rows with no dialog, or with text between them and the dialog, still do; a
-// borderless dialog, whose edges can't be found, isn't judged (its page is, in its own
-// frame).
+// budgeted short, and don't count: beside a bordered dialog, and beside a dialog found
+// by its fill (no edge the lint can find). The dialog's own rows still count: a
+// palette's description column cut on 4 rows is reported, with no dialog edge at all
+// and inside a bordered dialog beside a bordered sidebar. Where neither the dialog's
+// edges nor its fill can be found and the cut rows run on past the ellipsis, the rule
+// says it was not run rather than nothing.
 func TestTruncatedBesideADialog(t *testing.T) {
 	dir := t.TempDir()
-	write := func(name, body string) string {
+	write := func(name string, rows []string) string {
 		p := filepath.Join(dir, name)
-		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+		if err := os.WriteFile(p, []byte(strings.Join(rows, "\n")+"\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		return p
 	}
-	page := func(edge func(y int) string, gap string) string {
-		var b strings.Builder
+	page := func(edge func(y int) string, gap string) []string {
+		var rows []string
 		for y := range 8 {
-			b.WriteString("  14:0" + strconv.Itoa(y) + "  circuit opened on…" + gap + edge(y) + " body text     \n")
+			rows = append(rows, "  14:0"+strconv.Itoa(y)+"  circuit opened on…"+gap+edge(y)+" body text     ")
 		}
-		return b.String()
+		return rows
 	}
 	box := func(y int) string {
 		switch y {
@@ -651,27 +653,63 @@ func TestTruncatedBesideADialog(t *testing.T) {
 		return "│  dialog  │"
 	}
 	bare := func(int) string { return "   dialog    " }
-	truncs := func(p string) int {
+	filled := func(int) string { return "\x1b[48;2;60;60;70m   dialog    \x1b[0m" }
+	truncs := func(p string) []Finding {
 		fs, _, _ := run(t, p)
-		n := 0
+		var out []Finding
 		for _, f := range fs {
 			if f.Rule == "F-TRUNC" {
-				n++
+				out = append(out, f)
 			}
 		}
-		return n
+		return out
 	}
-	if n := truncs(write("confirm-60x8.ansi", page(box, "  "))); n != 0 {
-		t.Errorf("an overlay frame, ellipses beside its dialog: %d F-TRUNC, want 0", n)
+	cut := func(fs []Finding) bool { return len(fs) == 1 && fs[0].Where != "frame" }
+	notRun := func(fs []Finding) bool {
+		return len(fs) == 1 && fs[0].Where == "frame" && strings.Contains(fs[0].Msg, "not run on this frame (no dialog found)")
 	}
-	if n := truncs(write("services-60x8.ansi", page(box, "  "))); n != 1 {
-		t.Errorf("the same rows on a page with a box: %d F-TRUNC, want 1", n)
+	if got := truncs(write("confirm-60x8.ansi", page(box, "  "))); len(got) != 0 {
+		t.Errorf("an overlay frame, ellipses beside its bordered dialog: %+v, want none", got)
 	}
-	if n := truncs(write("help-61x8.ansi", page(box, " x "))); n != 1 {
-		t.Errorf("an overlay frame, text between the ellipses and the dialog: %d F-TRUNC, want 1", n)
+	if got := truncs(write("services-60x8.ansi", page(box, "  "))); !cut(got) {
+		t.Errorf("the same rows on a page with a box: %+v, want one F-TRUNC", got)
 	}
-	if n := truncs(write("palette-61x8.ansi", page(bare, "  "))); n != 0 {
-		t.Errorf("a borderless dialog: %d F-TRUNC, want 0", n)
+	if got := truncs(write("help-61x8.ansi", page(box, " x "))); !cut(got) {
+		t.Errorf("an overlay frame, text between the ellipses and the dialog: %+v, want one F-TRUNC", got)
+	}
+	if got := truncs(write("help-60x8.ansi", page(filled, "  "))); len(got) != 0 {
+		t.Errorf("an overlay frame, ellipses beside a filled dialog with no edge: %+v, want none", got)
+	}
+	if got := truncs(write("palette-61x8.ansi", page(bare, "  "))); !notRun(got) {
+		t.Errorf("no dialog found, cut rows running on: %+v, want the not-run line", got)
+	}
+	// the dialog's own column, with no dialog edge or fill to find
+	pal := []string{"  header", "     Commands", "     > ro"}
+	for _, r := range [][2]string{{"Roll back", "return to the previous healthy version"},
+		{"Switch env", "prod, staging, dev or preview"}, {"Deploy", "ship the selected version to the env"},
+		{"Pause", "stop the auto-refresh loop of the list"}} {
+		pal = append(pal, fmt.Sprintf("     %-16s%s…", r[0], r[1][:25]))
+	}
+	pal = append(pal, "")
+	for i := range pal {
+		pal[i] = fmt.Sprintf("%-60s", pal[i])
+	}
+	if got := truncs(write("palette-60x8.ansi", pal)); !cut(got) || !strings.Contains(got[0].Msg, "4 rows") {
+		t.Errorf("a palette's own description column cut on 4 rows: %+v, want one F-TRUNC naming 4 rows", got)
+	}
+	// the same column inside a bordered dialog beside a bordered sidebar
+	boxed := []string{
+		"┌──────────┐                                                ",
+		"│ sidebar  │   ┌──────────────────────────────────┐         ",
+		"└──────────┘   │ Roll back  return to the previou…│         ",
+		"               │ Switch     prod, staging or dev,…│         ",
+		"               │ Deploy     ship the selected ver…│         ",
+		"               │ Pause      stop the auto-refresh…│         ",
+		"               │ Tail logs  follow the service's …│         ",
+		"               └──────────────────────────────────┘         ",
+	}
+	if got := truncs(write("palette-boxed-60x8.ansi", boxed)); !cut(got) {
+		t.Errorf("a cut column inside a bordered dialog beside a bordered sidebar: %+v, want one F-TRUNC", got)
 	}
 }
 

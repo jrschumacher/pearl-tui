@@ -943,6 +943,92 @@ func findDialog(name string, f Frame, cornersSeen []corner) *region {
 	return dialog
 }
 
+// bgKey is a cell's background as a comparable key; "" for the terminal default.
+func bgKey(c Cell) string {
+	if c.BG == nil {
+		return ""
+	}
+	return fmt.Sprint(*c.BG)
+}
+
+// pageBG is a frame's page background, the one most of its cells sit on, and whether
+// any cell sits on another (a panel's fill can be told from the page).
+func pageBG(f Frame) (string, bool) {
+	n := map[string]int{}
+	for _, row := range f.Rows {
+		for _, c := range row {
+			n[bgKey(c)]++
+		}
+	}
+	page := ""
+	for k, v := range n {
+		if v > n[page] || (v == n[page] && k < page) {
+			page = k
+		}
+	}
+	return page, len(n) > 1
+}
+
+// pickBox is the dialog among two or more bordered boxes (a dialog over a bordered
+// pane, a bordered input inside a dialog): the one box whose inside is filled off the
+// page's background, as a dialog's panel is; else, when none or several are, the
+// largest. nil with fewer than two boxes.
+func pickBox(f Frame, cornersSeen []corner, page string) *region {
+	var boxes []region
+	for _, c := range cornersSeen {
+		if !strings.ContainsRune(topLeft, c.ch) {
+			continue
+		}
+		y1 := -1
+		for _, d := range cornersSeen {
+			if strings.ContainsRune(botLeft, d.ch) && d.x == c.x && d.y > c.y {
+				y1 = d.y
+				break
+			}
+		}
+		x1, row := -1, f.Rows[c.y]
+		for k := c.x + 1; k < len(row); k++ {
+			if closesBox(row[k].Ch) {
+				x1 = k
+				break
+			}
+		}
+		if y1 > c.y+1 && x1 > c.x+1 {
+			boxes = append(boxes, region{c.y, c.x, y1, x1})
+		}
+	}
+	if len(boxes) < 2 {
+		return nil
+	}
+	area := func(r region) int { return (r.y1 - r.y0) * (r.x1 - r.x0) }
+	var filled []region
+	for _, r := range boxes {
+		in, off := 0, 0
+		for y := r.y0 + 1; y < r.y1; y++ {
+			for x := r.x0 + 1; x < r.x1 && x < len(f.Rows[y]); x++ {
+				in++
+				if bgKey(f.Rows[y][x]) != page {
+					off++
+				}
+			}
+		}
+		if in > 0 && off*10 >= in*9 {
+			filled = append(filled, r)
+		}
+	}
+	pick := boxes
+	if len(filled) > 0 {
+		pick = filled
+	}
+	best := pick[0]
+	for _, r := range pick[1:] {
+		if area(r) > area(best) {
+			best = r
+		}
+	}
+	return &best
+}
+
 // frameCorners are a frame's box corner cells, for findDialog.
 func frameCorners(f Frame) []corner {
 	var out []corner
@@ -967,35 +1053,78 @@ const truncMax = 3
 // is too narrow. An ellipsis ends text when a non-blank cell precedes it and a blank
 // cell, a rule or box glyph, or the row's end follows. One finding per frame, at the
 // column with the most. A table's last column headed path, file, command or url is
-// skipped (unboundedColumn): no budget fits a path, so cutting it is the design. On an
-// overlay frame an ellipsis with only blanks between it and the dialog is skipped: the
-// kit's Overlay put it where the dialog cut a word, and rows the dialog cuts all end
-// near its edge; under a borderless dialog, which can't be found, the rule is skipped
-// (the page is linted in its own frame).
+// skipped (unboundedColumn): no budget fits a path, so cutting it is the design.
+//
+// On an overlay frame an ellipsis the kit's Overlay put where the dialog cut a word is
+// skipped (rows a dialog cuts all end near its edge); the dialog's own rows are judged
+// like any column. The dialog is found by its border (with two or more boxes, the one
+// filled off the page's background, else the largest) or, when it has no edge the
+// lint can find (a filled panel, a ruled dialog at 16 colours), by its fill: an
+// ellipsis on the page's background followed by blanks up to another background. With
+// neither, a column that would be reported with rows running on past the ellipsis is
+// reported as not run, to judge by eye.
 func LintTrunc(name string, f Frame, ellipses []string) []Finding {
+	overlay := overlayName.MatchString(name)
 	var dialog *region
-	if overlayName.MatchString(name) {
-		if dialog = findDialog(name, f, frameCorners(f)); dialog == nil {
-			return nil // a borderless dialog: what it cuts of the page can't be told apart
+	page, fill := pageBG(f)
+	if overlay {
+		cs := frameCorners(f)
+		if dialog = findDialog(name, f, cs); dialog == nil {
+			dialog = pickBox(f, cs, page)
 		}
 	}
-	// beside reports an ellipsis with nothing but blanks between it and the dialog on
-	// the dialog's rows: the kit's Overlay marks a word the dialog cut there
-	beside := func(y, x int) bool {
-		if dialog == nil || y < dialog.y0 || y > dialog.y1 {
+	// beside reports an ellipsis the kit's Overlay put where a dialog cut a word: on the
+	// dialog's rows with nothing but blanks between it and the dialog's left edge; or,
+	// where the dialog's edges can't be found (a ruled dialog at 16 colours, a filled
+	// one with no edge), on the page's background with only blanks on it after it,
+	// up to a cell on another background (the dialog's fill)
+	beside := func(y, start, end int) bool {
+		row := f.Rows[y]
+		if dialog != nil {
+			if y < dialog.y0 || y > dialog.y1 || start >= dialog.x0 {
+				return false // off the dialog's rows, inside it, or right of it ("…latency")
+			}
+			for k := end + 1; k < dialog.x0; k++ {
+				if strings.TrimSpace(row[k].Ch) != "" {
+					return false
+				}
+			}
+			return true
+		}
+		if !overlay || !fill {
 			return false
 		}
-		row := f.Rows[y]
-		if x >= dialog.x0 {
-			return false // inside the dialog, or right of it ("…latency" ends in text)
+		for k := start; k <= end; k++ {
+			if bgKey(row[k]) != page {
+				return false // on a panel: the dialog's own text
+			}
 		}
-		for k := x + 1; k < dialog.x0; k++ {
+		for k := end + 1; k < len(row); k++ {
+			if bgKey(row[k]) != page {
+				return true
+			}
 			if strings.TrimSpace(row[k].Ch) != "" {
 				return false
 			}
 		}
-		return true
+		return false
 	}
+	// unsure reports an ellipsis on an overlay frame where neither the dialog's edges nor
+	// its fill can be found, with blanks and then more of the row after it: a cut beside
+	// a dialog and a column budgeted short read the same there
+	unsure := func(y, end int) bool {
+		if !overlay || dialog != nil || fill {
+			return false
+		}
+		row := f.Rows[y]
+		for k := end + 1; k < len(row); k++ {
+			if strings.TrimSpace(row[k].Ch) != "" {
+				return k > end+1
+			}
+		}
+		return false
+	}
+	unsureRows := map[int]bool{}
 	rowsAt := map[int][]int{} // end column -> rows
 	for y, row := range f.Rows {
 		for _, e := range ellipses {
@@ -1022,8 +1151,11 @@ func LintTrunc(name string, f Frame, ellipses []string) []Finding {
 				if end+1 < len(row) && !cutsNothing(row[end+1].Ch) {
 					continue
 				}
-				if beside(y, start) {
+				if beside(y, start, end) {
 					continue
+				}
+				if unsure(y, end) {
+					unsureRows[y] = true
 				}
 				if !slices.Contains(rowsAt[end], y) {
 					rowsAt[end] = append(rowsAt[end], y)
@@ -1044,6 +1176,10 @@ func LintTrunc(name string, f Frame, ellipses []string) []Finding {
 	slices.Sort(ys)
 	if unboundedColumn(f, ys, best) {
 		return nil
+	}
+	if slices.ContainsFunc(ys, func(y int) bool { return unsureRows[y] }) {
+		return []Finding{{"F-TRUNC", "P2", name, "frame",
+			fmt.Sprintf("not run on this frame (no dialog found): %d rows end in an ellipsis at column %d with more of the row after them, which may be a dialog's cut or a column budgeted short; judge it by eye", len(ys), best)}}
 	}
 	return []Finding{{"F-TRUNC", "P2", name, fmt.Sprintf("r%dc%d", ys[0], best),
 		fmt.Sprintf("%d rows end in an ellipsis at column %d: widen the column from the longest fixture (layout.md), or, when its content has no bound (paths, URLs, code), say in TUI.md § Decisions that this column cuts", len(ys), best)}}
