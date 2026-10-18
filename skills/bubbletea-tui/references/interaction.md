@@ -12,6 +12,11 @@
   help, `ctrl+c` quits (or confirms quitting when work would be lost), `q` quits only
   when no text input is focused, `g/G` jumps to the top/bottom, `pgup/pgdn` scrolls, and
   `ctrl+z` suspends (bind it to `tea.Suspend`; v2 and the kit don't on their own).
+- **Every overlay, and every page that draws a focus mark, binds a help key** in its
+  own action table: `?`, or `ctrl+g` where a focused text box types `?` (in that
+  state's table, not Global, where a textarea takes `ctrl+g` as select-all). Help is
+  the way to the keys a footer cuts, and the kept harness tests open it from each such
+  state and fail the one where no key does.
 - **Command palette** (`ctrl+p`, or `:`) for everything else. It lets you keep the
   footer to the 5–7 most useful keys.
 - **Mnemonic single keys** for frequent actions (`d` deploy, `r` roll back), shown in the
