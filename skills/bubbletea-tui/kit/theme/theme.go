@@ -112,6 +112,13 @@ type Glyphs struct {
 	TurnBar       string `json:"turnBar"`       // the user's turn in a chat when blurred: │ ┆ (focusBar when focused; blurBar wins when set)
 	TabUnderline  string `json:"tabUnderline"`  // the active tab's underline under tabs "underline": ▔ ─ ▀ (ASCII draws the rule glyph instead)
 
+	// Marks are the product's own marks by name, for a signature the kit has no slot for:
+	// {"stop": "•", "stopAhead": "◦"} for a progress pair, one dot per tour stop. Each has
+	// an ASCII twin (glyphs.ascii or the kit's map: {"•": "#", "◦": "_"}), which
+	// Theme.ProductMark draws under ASCII, and no two marks that differ share one (CheckGlyphs),
+	// so a screen never keeps a glyph literal or its own twin table for them.
+	Marks map[string]string `json:"marks,omitempty"`
+
 	// ASCII is the theme's own twins, glyph → ASCII, for glyphs the kit's map lacks
 	// or draws differently: {"✎": ">", "◔": "~"}. It wins over the kit's map.
 	ASCII map[string]string `json:"ascii,omitempty"`
@@ -1209,6 +1216,17 @@ func (t *Theme) LadderGlyph(r LadderRung) string {
 		return twin(t.File.Glyphs.ASCII, r.Glyph)
 	}
 	return r.Glyph
+}
+
+// ProductMark is the theme's own mark called name (glyphs.marks), its ASCII twin under ASCII:
+// a product's signature (a motif dot, a progress pair) drawn through the theme like
+// every other glyph. A name the theme doesn't declare draws as "?", loud on every sheet
+// and failed by tuilint frames --ascii.
+func (t *Theme) ProductMark(name string) string {
+	if g, ok := t.G.Marks[name]; ok {
+		return g
+	}
+	return "?"
 }
 
 // BlurBar is the marker a blurred selection keeps (ui.List, ui.Table): glyphs.blurBar,

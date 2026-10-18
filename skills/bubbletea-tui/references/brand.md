@@ -130,7 +130,8 @@ read it too.
     "up": "↑", "down": "↓",      // one arrow key in a footer ("↓ select"); optional, these defaults
     "progressFill": "━", "progressEmpty": "╌", "progressHead": "╸",
     "turnBar": "│", "tabUnderline": "▔",                  // a blurred chat turn; the active tab
-    "ascii": { "◭": "~" }         // twins for glyphs the kit's map lacks (theme.ASCIITwin)
+    "marks": { "stop": "•", "stopAhead": "◦" },  // the product's own marks, t.ProductMark("stop"): a signature with no kit slot
+    "ascii": { "◭": "~" }         // twins for glyphs the kit's map lacks (theme.ASCIITwin), marks' included
   },
   "expressions": {
     "header": "bar",            // rule | bar | minimal | stamp | banner

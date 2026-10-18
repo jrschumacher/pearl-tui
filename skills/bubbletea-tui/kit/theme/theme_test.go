@@ -1,6 +1,7 @@
 package theme
 
 import (
+	"encoding/json"
 	"image/color"
 	"os"
 	"path/filepath"
@@ -772,5 +773,48 @@ func TestRoleStyleIsTheStateStyle(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// A product's own marks (a motif dot, a progress pair) have a slot in the theme,
+// glyphs.marks, with ASCII twins (#64): an app kept them in a table of its own named
+// ascii, or borrowed the spinner's frames, which ASCII draws as another shape. Each mark
+// needs a twin, no two marks that differ share one, and ProductMark draws the twin under
+// ASCII.
+func TestProductMarks(t *testing.T) {
+	for _, c := range []struct{ json, want string }{
+		{`{"marks": {"stop": "•", "stopAhead": "◦"}}`, ""},
+		{`{"marks": {"stop": "•", "stopAhead": "◦"}, "ascii": {"•": "#", "◦": "_"}}`, ""},
+		{`{"marks": {"stop": "✪"}}`, `glyphs.marks.stop "✪" has no ASCII twin`},
+		{`{"marks": {"stop": "•", "stopAhead": "▪"}}`, `glyphs.marks.stop "•" and glyphs.marks.stopAhead "▪" both draw as "*" under ASCII`},
+		{`{"marks": {"stop": ""}}`, `glyphs.marks: "stop" → "": name a mark and give it a glyph`},
+	} {
+		var g Glyphs
+		if err := json.Unmarshal([]byte(c.json), &g); err != nil {
+			t.Fatal(err)
+		}
+		err := CheckGlyphs(g)
+		if c.want == "" && err != nil || c.want != "" && (err == nil || !strings.Contains(err.Error(), c.want)) {
+			t.Errorf("CheckGlyphs(%s) = %v, want %q", c.json, err, c.want)
+		}
+	}
+	f, err := Parse([]byte(`{"glyphs": {"marks": {"stop": "•", "stopAhead": "◦"}, "ascii": {"•": "#", "◦": "_"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CheckKeys([]byte(`{"glyphs": {"marks": {"stop": "•"}}}`)); err != nil {
+		t.Errorf("CheckKeys refuses glyphs.marks: %v", err)
+	}
+	for _, c := range []struct {
+		ascii            bool
+		stop, ahead, bad string
+	}{{false, "•", "◦", "?"}, {true, "#", "_", "?"}} {
+		th := Resolve(f, true, c.ascii)
+		if got := th.ProductMark("stop") + th.ProductMark("stopAhead") + th.ProductMark("nope"); got != c.stop+c.ahead+c.bad {
+			t.Errorf("ascii=%v: ProductMark draws %q, want %q", c.ascii, got, c.stop+c.ahead+c.bad)
+		}
+	}
+	if Resolve(f, true, true); f.Glyphs.Marks["stop"] != "•" {
+		t.Errorf("resolving under ASCII rewrote the theme's own marks map")
 	}
 }

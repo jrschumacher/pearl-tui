@@ -472,6 +472,28 @@ func CheckGlyphs(g Glyphs) error {
 	if err != nil {
 		return err
 	}
+	// the product's own marks: each with a twin, and no two that differ on one twin (a
+	// progress pair • ◦ drawn as one ASCII mark has no progress)
+	names := make([]string, 0, len(g.Marks))
+	for n := range g.Marks {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	twinOf := map[string]string{}
+	for _, n := range names {
+		m := g.Marks[n]
+		if n == "" || m == "" {
+			return fmt.Errorf("glyphs.marks: %q → %q: name a mark and give it a glyph", n, m)
+		}
+		tw := twin(g.ASCII, m)
+		if tw == "?" {
+			return fmt.Errorf("glyphs.marks.%s %q has no ASCII twin: -ascii and TERM=linux would draw it as \"?\"; add \"ascii\": {%q: \"<twin>\"} to glyphs", n, m, m)
+		}
+		if other, dup := twinOf[tw]; dup && g.Marks[other] != m {
+			return fmt.Errorf("glyphs.marks.%s %q and glyphs.marks.%s %q both draw as %q under ASCII, so two marks read as one: give one of them another twin in glyphs.ascii", other, g.Marks[other], n, m, tw)
+		}
+		twinOf[tw] = n
+	}
 	out := ASCII(src)
 	sv, ov, t := reflect.ValueOf(src), reflect.ValueOf(out), reflect.TypeOf(src)
 	jsonKey := func(name string) string {
@@ -572,6 +594,13 @@ func ASCII(g Glyphs) Glyphs {
 		g.Current = "*"
 	}
 	g.Spinner = asciiSpinner(g)
+	if len(g.Marks) > 0 {
+		marks := make(map[string]string, len(g.Marks))
+		for name, m := range g.Marks {
+			marks[name] = twin(g.ASCII, m)
+		}
+		g.Marks = marks
+	}
 	// ┃ thumb and │ track both twin to "|": without colour the scrollbar would have no
 	// position, so the thumb becomes the solid block it stands for
 	if g.Thumb == g.Track && g.Thumb != "" {
