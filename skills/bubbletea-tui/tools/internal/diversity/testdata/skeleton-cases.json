@@ -1,0 +1,7 @@
+[
+ {"name": "converged", "args": ["testdata/apps/dunlin/TUI.md", "testdata/apps/whimbrel/TUI.md", "../../../kit/themes/ink.json", "../../../kit/themes/charm.json"], "exit": 1},
+ {"name": "diverged", "args": ["testdata/apps/dunlin/TUI.md", "testdata/apps/godwit/TUI.md", "../../../kit/themes/ink.json", "../../../kit/themes/charm.json"], "exit": 0},
+ {"name": "notes", "args": ["testdata/apps/odd/TUI.md", "testdata/apps/bare/TUI.md", "--baseline", ""], "exit": 0},
+ {"name": "verbose-app", "args": ["--verbose", "testdata/apps/dunlin/TUI.md", "../../../kit/themes/ink.json", "../../../kit/themes/charm.json"], "exit": 0},
+ {"name": "verbose-kit", "args": ["-v", "../../../kit/themes/cartridge.json", "../../../kit/themes/charm.json", "../../../kit/themes/ferrous.json", "../../../kit/themes/halyard.json", "../../../kit/themes/ink.json", "../../../kit/themes/lumen.json", "../../../kit/themes/moss.json"], "exit": 0}
+]

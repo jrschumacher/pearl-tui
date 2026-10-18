@@ -1,0 +1,44 @@
+axis         dunlin      whimbrel    ink         charm       
+header       bar         banner      rule        rule        
+wordmark     inverse     -           solid       gradient    
+sectionTitle primary     muted-uppe  fg          accent      
+titleCase    upper       sentence    sentence    sentence    
+selection    caret       inverse     bar         bar         
+button       underline   pill        pill        pill        
+tag          bold        filled      filled      filled      
+dialog       double      heavy       rounded     rounded     
+dialogTitle  rule        bar         plain       rule        
+tabs         pill        bracket     underline   underline   
+footer       bar         keys        keys        keys        
+keys         boxed       inline      inline      inline      
+density      compact     airy        airy        airy        
+backdrop     field       none        none        field       
+scrim        dim         none        dim         dim         
+paintBg      True        False       False       True        
+headerRule   -                                   ╱           
+rule         ┅           ╍           ─           ─           
+focusBar     ▐           ┃           ▌           ▌           
+cursor       ❯           »           ›           >           
+done         ✔           ▣           ✓           ✓           
+
+skeleton     kit         dunlin      whimbrel    
+head         bar         bar         folio       
+status       header      header      bottom-row  
+order        main-first  summary-fi  summary-fi  
+foot         keys-statu  keys-statu  keys        
+verdict      bottom      top         top         
+chart        sparkline   trace       trace       
+chartGlyphs  blocks      blocks      blocks      
+turnEnd      rule        -           -           
+
+nearest to dunlin: whimbrel (shares 0/19 axes)
+nearest to whimbrel: dunlin (shares 0/19 axes)
+[P2] skeleton order=summary-first held by every app (dunlin, whimbrel; > 50%), not the kit's main-first: newcomers converging on one departure
+[P2] skeleton verdict=top held by every app (dunlin, whimbrel; > 50%), not the kit's bottom: newcomers converging on one departure
+[P2] skeleton chart=trace held by every app (dunlin, whimbrel; > 50%), not the kit's sparkline: newcomers converging on one departure
+skeleton of dunlin: the kit's on head, status, foot, chartGlyphs (4/7); its brand read's move should be among the others (advice, not a failure)
+skeleton of whimbrel: the kit's on chartGlyphs (1/7); its brand read's move should be among the others (advice, not a failure)
+FAIL dunlin and whimbrel share 4 of 7 skeleton axes (> 3): order, verdict, chart, chartGlyphs: one composition in two paints
+skeleton failures and flags name an axis, not a reason to move it. Declare the frame as built: a line the frame contradicts is the critic's P1.
+Move an axis only where the brand read's move: or signature: gives the reason; a value two brands both have a reason for: the orchestrator seats it, a lone build keeps it. An axis moved only to pass moves back.
+1 problem(s)
