@@ -13,8 +13,10 @@ import (
 // cell, one row, in fgMuted.
 type TraceOpts struct {
 	// Min and Max are the fixed scale: Min is the floor and Max fills the column; samples
-	// outside clamp. Max ≤ Min means 0..100. Fixed, so an idle 3 % stays at the floor
-	// instead of filling the row as a series scaled to itself does (Sparkline).
+	// outside clamp. Fixed, so an idle 3 % stays at the floor instead of filling the row
+	// as a series scaled to itself does (Sparkline). Max ≤ Min, the zero value, is the
+	// percent scale 0..100: set Max for anything else (bytes, a rate), or every sample
+	// over 100 draws full.
 	Min, Max float64
 	// Per is how many samples a cell holds, drawn as their maximum, so a one-sample spike
 	// survives the downsample: 60 samples at Per 4 fill 15 cells. Default 1.
@@ -33,13 +35,13 @@ type TraceOpts struct {
 }
 
 // Trace draws a history on a fixed scale in w cells, newest sample at the right edge, and
-// returns opts.Rows rows (top first). A cell before the first sample is blank (a history
-// that hasn't started is empty, not zero), and so is a NaN. A cell under 1/16 of the
-// scale is idle and draws the floor (Theme.TraceGlyphs: ⣀, or ▁ under a dotted rule;
-// ASCII . or _), never the rule's glyph, so an idle trace never reads as a section rule.
-// Above it the cell rises through ▁▂▃▄▅▆▇█ (ASCII .:;-=%#@, less the rule's twin). The
-// trace takes no colour of its own on a selected row: ui.Table draws its bars in the
-// selection's shade (Styles.SelBars).
+// returns opts.Rows rows (top first); TraceRow is the one-row case. A cell before the
+// first sample is blank (a history that hasn't started is empty, not zero), and so is a
+// NaN. A cell under 1/8 of the scale is idle and draws the floor (Theme.TraceGlyphs: ⣀,
+// or ▁ beside a dotted rule; ASCII . or ,), one texture for the whole idle band, so an
+// idle 4–9 % never flickers between floor and bar and never reads as a section rule.
+// Above it the cell rises through ▁▂▃▄▅▆▇█ (ASCII .:;il%#@). On a selected row ui.Table
+// draws the bars in the selection's shade (Styles.SelBars).
 func Trace(t *theme.Theme, vals []float64, w int, o TraceOpts) []string {
 	per, rows := max(1, o.Per), max(1, o.Rows)
 	lo, hi := o.Min, o.Max
@@ -62,12 +64,18 @@ func Trace(t *theme.Theme, vals []float64, w int, o TraceOpts) []string {
 		}
 		frac := math.Min(1, math.Max(0, (v-lo)/(hi-lo)))
 		levels[i] = 0
-		if frac*16 >= 1 {
+		if frac*8 >= 1 {
 			levels[i] = max(1, int(math.Round(frac*float64(steps))))
 		}
 		inks[i] = ink(v)
 	}
 	return traceRows(t, levels, inks, rows)
+}
+
+// TraceRow is Trace one row tall: the history as one string, for a table cell.
+func TraceRow(t *theme.Theme, vals []float64, w int, o TraceOpts) string {
+	o.Rows = 1
+	return Trace(t, vals, w, o)[0]
 }
 
 // traceInk is Trace's default ink: fgMuted, the warning's at or over warn and the error's

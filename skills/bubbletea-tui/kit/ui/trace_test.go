@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"fmt"
 	"math"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -90,45 +92,80 @@ func TestTraceInksByLevel(t *testing.T) {
 	}
 }
 
-// Both cold monitors' idle traces read as rules: Kestrel's ▁▁▁▁ beside a ─ rule, Thrift's
-// ⣀⣀⣀⣀ beside a · leader. No glyph a trace draws is the rule's (or its twin), and the floor
-// takes the other texture: dots beside a solid rule, solid beside a dotted one.
-func TestTraceNeverDrawsTheRule(t *testing.T) {
+// An idle or near-idle history (a 0 % or 4–9 % trace, a constant or ±5 % sparkline, a
+// quiet StateSparkline row) draws one glyph across the row, never the rule's glyph, and
+// never the rule's texture: beside a line rule (─ ━ ═, and dashes ┄ ┈ ╌, which render
+// near solid) it is dots, beside a dotted rule (· ∙ • …) it is a solid ▁. Both cold
+// monitors' idle traces read as rules (▁▁▁▁ beside ─, ⣀⣀⣀⣀ beside ·), and a 4–9 % band
+// that alternated floor and bar (⣀▁⣀▁) read as a dash-dot rule. Under ASCII no trace glyph
+// is "-", "_", "=" or "~" (a run of any is a rule) or the rule's twin; ASCII has no solid
+// low glyph that isn't a rule, so beside a "." rule the floor differs in glyph only (",").
+func TestIdleHistoryIsOneTextureNotTheRules(t *testing.T) {
 	var files []theme.File
-	for _, path := range testThemes(t) {
+	for _, path := range append(testThemes(t), filepath.Join("..", "theme", "testdata", "quire.json")) {
 		f, err := theme.Load(path)
 		if err != nil {
 			t.Fatal(err)
 		}
 		files = append(files, f)
 	}
-	dotted := theme.Default()
-	dotted.Name, dotted.Glyphs.Rule = "dotted", "·"
-	heavy := theme.Default()
-	heavy.Name, heavy.Glyphs.Rule = "heavy", "━"
-	files = append(files, dotted, heavy)
+	for _, rule := range []string{"─", "━", "═", "┄", "╌", "┈", "·", "∙", "•", "⋯"} {
+		f := theme.Default()
+		f.Name, f.Glyphs.Rule = "rule "+rule, rule
+		files = append(files, f)
+	}
+	line := func(g string) bool {
+		r := []rune(g)[0]
+		return r >= 0x2500 && r <= 0x259F || strings.ContainsRune("-_=~", r)
+	}
+	dot := func(g string) bool {
+		r := []rune(g)[0]
+		return r >= 0x2800 && r <= 0x28FF || strings.ContainsRune("·∙•⋅…‥⋯.,:'", r)
+	}
+	low := []float64{4, 7, 5, 9, 6, 4, 8, 5, 9, 7, 4, 6}
+	noise := []float64{100, 104, 98, 102, 97, 103, 100, 99, 105, 101, 98, 102}
 	for _, f := range files {
 		for _, ascii := range []bool{false, true} {
 			th := theme.Resolve(f, true, ascii)
+			name := fmt.Sprintf("%s ascii=%v (rule %q)", f.Name, ascii, th.G.Rule)
+			rows := map[string]string{
+				"Trace 0 %":              TraceRow(th, make([]float64, 12), 12, TraceOpts{}),
+				"Trace 4-9 %":            TraceRow(th, low, 12, TraceOpts{}),
+				"Trace 4-9 % three rows": Trace(th, low, 12, TraceOpts{Rows: 3})[2],
+				"Sparkline constant":     Sparkline(th, []float64{40, 40, 40, 40, 40, 40}, 6, th.S.Muted),
+				"Sparkline ±5 %":         Sparkline(th, noise, 12, th.S.Muted),
+				"StateSparkline ok ±5 %": string([]rune(ansi.Strip(StateSparkline(th, "ok", noise, 12)))[:10]),
+			}
+			for what, row := range rows {
+				cells := []rune(strings.TrimRight(ansi.Strip(row), " "))
+				if len(cells) == 0 {
+					t.Errorf("%s: %s draws nothing", name, what)
+					continue
+				}
+				g := string(cells[0])
+				if strings.Count(string(cells), g) != len(cells) {
+					t.Errorf("%s: %s draws %q, more than one texture", name, what, string(cells))
+					continue
+				}
+				switch {
+				case g == th.G.Rule || g == th.G.HeaderRule:
+					t.Errorf("%s: %s draws the rule's glyph %q", name, what, g)
+				case ascii && line(g):
+					t.Errorf("%s: %s draws %q, an ASCII rule", name, what, g)
+				case !ascii && line(th.G.Rule) && !dot(g):
+					t.Errorf("%s: %s draws %q beside a line rule: an idle row in dots", name, what, g)
+				case !ascii && dot(th.G.Rule) && dot(g):
+					t.Errorf("%s: %s draws %q beside a dotted rule: an idle row solid", name, what, g)
+				}
+			}
 			floor, ramp := th.TraceGlyphs()
 			if len(ramp) < 6 {
-				t.Errorf("%s ascii=%v: %d heights, want 6 or more", f.Name, ascii, len(ramp))
+				t.Errorf("%s: %d heights, want 6 or more", name, len(ramp))
 			}
 			for _, g := range append([]string{floor}, ramp...) {
-				if g == th.G.Rule || g == th.G.HeaderRule {
-					t.Errorf("%s ascii=%v: a trace draws %q, the rule's glyph", f.Name, ascii, g)
+				if g == th.G.Rule || g == th.G.HeaderRule || ascii && (line(g) || !isASCIIText(g)) {
+					t.Errorf("%s: a trace may draw %q", name, g)
 				}
-				if ascii && !isASCIIText(g) {
-					t.Errorf("%s ascii=%v: a trace draws %q, not ASCII", f.Name, ascii, g)
-				}
-			}
-			solid := floor == theme.TraceFloorSolid || floor == theme.TraceFloorSolidASCII
-			if dottedRule := strings.ContainsAny(th.G.Rule, "·┄┈╌┅┉╍⋯…‥.:"); solid != dottedRule {
-				t.Errorf("%s ascii=%v: floor %q beside rule %q: an idle trace takes the rule's texture", f.Name, ascii, floor, th.G.Rule)
-			}
-			// a constant series (an idle service) draws the floor in Sparkline too
-			if got := ansi.Strip(Sparkline(th, []float64{4, 4, 4}, 3, th.S.Muted)); got != strings.Repeat(floor, 3) {
-				t.Errorf("%s ascii=%v: a constant sparkline draws %q, want the floor %q", f.Name, ascii, got, floor)
 			}
 		}
 	}

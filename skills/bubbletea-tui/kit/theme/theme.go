@@ -164,44 +164,61 @@ const (
 const Ellipsis = "…"
 
 // SparkRamp is the eight heights of a trace or sparkline, lowest first, and SparkRampASCII
-// what an ASCII terminal draws in their place: no "*" or "+", the current and done twins,
-// so a peak never reads as a status mark beside the dots, and no "_", whose run is an
-// underline; the low steps are dots, so a quiet series never reads as a "----" rule. TraceFloor is a sample at the floor of its scale (an idle 2 % of 0..100), in
-// dots so an idle history never reads as a section rule; TraceFloorSolid replaces it
-// under a dotted rule (· ┄ ╌). Theme.TraceGlyphs picks between them for the theme.
+// what an ASCII terminal draws in their place. The ASCII ramp holds no "*" or "+" (the
+// current and done twins, so a peak never reads as a status mark beside the dots) and
+// no "-", "_" or "=": a run of any of them is a rule, and a steady series would draw one.
+//
+// TraceFloor is a sample at the bottom of its scale (idle: under 1/8 of it), in braille
+// dots, so an idle history is never a line beside the section rules; TraceFloorSolid
+// (▁) replaces it where the theme's rule is itself dots (· ∙ • …), so the floor is never
+// the rule's texture either. Under ASCII the floor is "." (TraceFloorASCII), or ","
+// where the rule twins to ".". Theme.TraceGlyphs picks them for the theme.
 const (
 	SparkRamp            = "▁▂▃▄▅▆▇█"
-	SparkRampASCII       = ".:;-=%#@"
+	SparkRampASCII       = ".:;il%#@"
 	TraceFloor           = "⣀"
-	TraceFloorASCII      = "."
 	TraceFloorSolid      = "▁"
-	TraceFloorSolidASCII = "_"
+	TraceFloorASCII      = "."
+	TraceFloorASCIIAlt   = ","
+	traceRuleLikeASCII   = "-_=~"
+	traceDotRunesUnicode = "·∙•⋅…‥⋯∶˙'.:"
 )
 
-// dottedRules are rule glyphs (and their twins) drawn as dots or dashes, not a line: a
-// floor of dots beside them would read as one more rule, so the floor goes solid.
-var dottedRules = []string{"·", "┄", "┈", "╌", "┅", "┉", "╍", "⋯", "…", "‥", "⣀", "⠤", "⠒", ".", ":"}
-
-// TraceGlyphs are the glyphs ui.Trace and ui.Sparkline draw a history in: the floor (a
-// sample at the bottom of its scale: idle) and the heights above it, lowest first. The
-// floor is dots, or a solid ▁ (ASCII _) where the theme's rule is dotted, so an idle
-// history is never the rule's texture; no height is the rule's or the header rule's glyph
-// (ASCII - under ─, = under ━), so no level reads as a rule. The heights keep ▁ beside a
-// dotted rule, so a series draws at the same heights in every theme.
-func (t *Theme) TraceGlyphs() (floor string, ramp []string) {
-	floor, all := TraceFloor, SparkRamp
-	if t.ASCII {
-		floor, all = TraceFloorASCII, SparkRampASCII
+// DotRule reports whether a rule glyph draws as dots rather than a line: · ∙ • ⋅ … ‥ ⋯,
+// braille, or ASCII . and :. A dashed rule (┄ ┈ ╌ ┅ ┉ ╍) renders near solid at a
+// terminal's cell size, so it is a line here, as ─ ━ ═ are.
+func DotRule(g string) bool {
+	if g == "" {
+		return false
 	}
-	if slices.Contains(dottedRules, t.G.Rule) {
+	for _, r := range g {
+		if !strings.ContainsRune(traceDotRunesUnicode, r) && (r < 0x2800 || r > 0x28FF) {
+			return false
+		}
+	}
+	return true
+}
+
+// TraceGlyphs are the glyphs ui.Trace and ui.Sparkline draw a history in: the floor (an
+// idle sample) and the heights above it, lowest first. The floor takes the texture the
+// rule doesn't have: dots (⣀) beside a line rule, a solid ▁ beside a dotted one, so an
+// idle row never reads as one more rule. No height is the rule's or the header rule's
+// glyph, and under ASCII no glyph is "-", "_", "=" or the rule's twin.
+func (t *Theme) TraceGlyphs() (floor string, ramp []string) {
+	all := SparkRamp
+	floor = TraceFloor
+	if DotRule(t.Unicode.Rule) {
 		floor = TraceFloorSolid
-		if t.ASCII {
-			floor = TraceFloorSolidASCII
+	}
+	if t.ASCII {
+		all, floor = SparkRampASCII, TraceFloorASCII
+		if t.G.Rule == TraceFloorASCII {
+			floor = TraceFloorASCIIAlt
 		}
 	}
 	for _, r := range all {
 		g := string(r)
-		if g != t.G.Rule && g != t.G.HeaderRule {
+		if g != t.G.Rule && g != t.G.HeaderRule && !(t.ASCII && strings.Contains(traceRuleLikeASCII, g)) {
 			ramp = append(ramp, g)
 		}
 	}

@@ -225,9 +225,9 @@ func warnIsFill(t *theme.Theme) bool {
 // Sparkline draws values as ▁▂▃▄▅▆▇█ over w cells (the last w values, left-aligned),
 // scaled to the series itself: for a reading whose shape matters more than its level
 // (latency, throughput). A reading with a fixed range (a percentage, a load) is a Trace,
-// where an idle 3 % stays at the floor. A series that is flat to within 25 % stays a low
-// line, ▂▃ (±5 % noise drawn full height reads as an incident), and a constant one draws
-// the floor (⣀, Theme.TraceGlyphs), never the rule's glyph.
+// where an idle 3 % stays at the floor. A series flat to within 25 % draws the floor
+// (⣀, or ▁ beside a dotted rule: Theme.TraceGlyphs) in every cell: ±5 % noise drawn
+// full height reads as an incident, and drawn as ▂▃▂▃ beside a rule it reads as one.
 func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) string {
 	if len(vals) > w {
 		vals = vals[len(vals)-w:]
@@ -243,8 +243,6 @@ func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) stri
 	for i, v := range vals {
 		inks[i] = style
 		switch {
-		case flat && hi > lo:
-			levels[i] = 2 + int(math.Round((v-lo)/(hi-lo)))
 		case flat:
 			levels[i] = 0
 		default:
