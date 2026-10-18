@@ -143,7 +143,7 @@ func TestSpecsAreReal(t *testing.T) {
 	s := specs(t)
 	want := map[string][]string{
 		"cellshot":  {"--sheet", "--gif", "--ms", "--cell", "--bg", "--light", "--fg", "--cols", "--rows", "--grid", "--scale", "--label"},
-		"diversity": {"--max-shared", "--max-popular", "--baseline", "--min-distance"},
+		"diversity": {"--max-shared", "--max-popular", "--baseline", "--min-distance", "--max-shared-skeleton", "--verbose", "-v"},
 		"palette":   {"--accent", "--bg", "--light-bg", "--tint", "--name", "--out", "--swatch"},
 		"tuivet":    {"-tuihex", "-tuihex.theme-pkg", "-tuiblocking", "-tuihuhtheme"},
 	}

@@ -1,0 +1,44 @@
+axis         dunlin      godwit      ink         charm       
+header       bar         bar         rule        rule        
+wordmark     inverse     tracked     solid       gradient    
+sectionTitle primary     muted-uppe  fg          accent      
+titleCase    upper       upper       sentence    sentence    
+selection    caret       inverse     bar         bar         
+button       underline   inverse     pill        pill        
+tag          bold        filled      filled      filled      
+dialog       double      heavy       rounded     rounded     
+dialogTitle  rule        bar         plain       rule        
+tabs         pill        pill        underline   underline   
+footer       bar         bar         keys        keys        
+keys         boxed       boxed       inline      inline      
+density      compact     compact     airy        airy        
+backdrop     field       field       none        field       
+scrim        dim         dim         dim         dim         
+paintBg      True        True        False       True        
+headerRule   -           -                       ╱           
+rule         ┅           ━           ─           ─           
+focusBar     ▐           ┃           ▌           ▌           
+cursor       ❯           ▶           ›           >           
+done         ✔           ■           ✓           ✓           
+
+skeleton     kit         dunlin      godwit      
+head         bar         bar         bar         
+status       header      header      header      
+order        main-first  summary-fi  sidebar-le  
+foot         keys-statu  keys-statu  keys        
+verdict      bottom      top         none        
+chart        sparkline   trace       trace       
+chartGlyphs  blocks      blocks      braille     
+turnEnd      rule        -           -           
+
+nearest to dunlin: godwit (shares 9/20 axes)
+nearest to godwit: dunlin (shares 9/20 axes)
+[P2] header=bar held by every app (dunlin, godwit; > 50%), not a baseline's or the default: newcomers converging on one departure
+[P2] tabs=pill held by every app (dunlin, godwit; > 50%), not a baseline's or the default: newcomers converging on one departure
+[P2] footer=bar held by every app (dunlin, godwit; > 50%), not a baseline's or the default: newcomers converging on one departure
+[P2] skeleton chart=trace held by every app (dunlin, godwit; > 50%), not the kit's sparkline: newcomers converging on one departure
+skeleton of dunlin: the kit's on head, status, foot, chartGlyphs (4/7); its brand read's move should be among the others (advice, not a failure)
+skeleton of godwit: the kit's on head, status (2/7); its brand read's move should be among the others (advice, not a failure)
+skeleton failures and flags name an axis, not a reason to move it. Declare the frame as built: a line the frame contradicts is the critic's P1.
+Move an axis only where the brand read's move: or signature: gives the reason; a value two brands both have a reason for: the orchestrator seats it, a lone build keeps it. An axis moved only to pass moves back.
+OK
