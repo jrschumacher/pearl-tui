@@ -131,7 +131,7 @@ read it too.
     "progressFill": "━", "progressEmpty": "╌", "progressHead": "╸",
     "turnBar": "│", "tabUnderline": "▔",                  // a blurred chat turn; the active tab
     "marks": { "stop": "•", "stopAhead": "◦" },  // the product's own marks, t.ProductMark("stop"): a signature with no kit slot
-    "ascii": { "◭": "~" }         // twins for glyphs the kit's map lacks (theme.ASCIITwin), marks' included
+    "ascii": { "◭": "~", "•": "#", "◦": "_" }  // twins the kit's map lacks or draws as a state (• ◦ are * o, current and todo)
   },
   "expressions": {
     "header": "bar",            // rule | bar | minimal | stamp | banner

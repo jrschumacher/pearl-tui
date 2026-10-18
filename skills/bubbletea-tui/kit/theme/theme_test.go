@@ -783,10 +783,14 @@ func TestRoleStyleIsTheStateStyle(t *testing.T) {
 // ASCII.
 func TestProductMarks(t *testing.T) {
 	for _, c := range []struct{ json, want string }{
-		{`{"marks": {"stop": "•", "stopAhead": "◦"}}`, ""},
+		// under ASCII the kit's twins * o are the current and todo marks: a row of reading
+		// dots would read as a step ladder
+		{`{"marks": {"stop": "•", "stopAhead": "◦"}}`, `glyphs.marks.stop "•" draws as "*" under ASCII, glyphs.current "●"'s twin`},
+		{`{"marks": {"stop": "•", "stopAhead": "◦"}, "ascii": {"•": "#"}}`, `glyphs.marks.stopAhead "◦" draws as "o" under ASCII, glyphs.todo "○"'s twin`},
+		{`{"marks": {"here": "●"}}`, ""}, // the current mark itself, by name: one glyph, one twin
 		{`{"marks": {"stop": "•", "stopAhead": "◦"}, "ascii": {"•": "#", "◦": "_"}}`, ""},
 		{`{"marks": {"stop": "✪"}}`, `glyphs.marks.stop "✪" has no ASCII twin`},
-		{`{"marks": {"stop": "•", "stopAhead": "▪"}}`, `glyphs.marks.stop "•" and glyphs.marks.stopAhead "▪" both draw as "*" under ASCII`},
+		{`{"marks": {"stop": "•", "stopAhead": "▪"}, "ascii": {"•": "#", "▪": "#"}}`, `glyphs.marks.stop "•" and glyphs.marks.stopAhead "▪" both draw as "#" under ASCII`},
 		{`{"marks": {"stop": ""}}`, `glyphs.marks: "stop" → "": name a mark and give it a glyph`},
 	} {
 		var g Glyphs

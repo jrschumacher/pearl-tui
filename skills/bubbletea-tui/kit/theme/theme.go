@@ -114,9 +114,10 @@ type Glyphs struct {
 
 	// Marks are the product's own marks by name, for a signature the kit has no slot for:
 	// {"stop": "•", "stopAhead": "◦"} for a progress pair, one dot per tour stop. Each has
-	// an ASCII twin (glyphs.ascii or the kit's map: {"•": "#", "◦": "_"}), which
-	// Theme.ProductMark draws under ASCII, and no two marks that differ share one (CheckGlyphs),
-	// so a screen never keeps a glyph literal or its own twin table for them.
+	// an ASCII twin (glyphs.ascii, {"•": "#", "◦": "_"}, or the kit's map), which
+	// Theme.ProductMark draws under ASCII; no two marks that differ share one, and none
+	// twins to a status mark's twin (the kit's • ◦ are * o, current's and todo's), checked
+	// by CheckGlyphs, so a screen never keeps a glyph literal or its own twin table for them.
 	Marks map[string]string `json:"marks,omitempty"`
 
 	// ASCII is the theme's own twins, glyph → ASCII, for glyphs the kit's map lacks

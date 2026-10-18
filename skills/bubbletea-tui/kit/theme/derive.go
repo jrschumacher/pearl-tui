@@ -501,6 +501,16 @@ func CheckGlyphs(g Glyphs) error {
 		k, _, _ := strings.Cut(f.Tag.Get("json"), ",")
 		return k
 	}
+	// a mark is no status mark under ASCII either: reading dots • ◦ twin to * o, the
+	// current and todo marks, so a row of them reads as a step ladder once colour is gone
+	for _, n := range names {
+		for _, s := range glyphMeanings[0] {
+			if m, gs := g.Marks[n], sv.FieldByName(s).String(); m != gs && twin(g.ASCII, m) == ov.FieldByName(s).String() {
+				return fmt.Errorf("glyphs.marks.%s %q draws as %q under ASCII, glyphs.%s %q's twin, so the mark reads as that state: give it another twin in glyphs.ascii",
+					n, m, twin(g.ASCII, m), jsonKey(s), gs)
+			}
+		}
+	}
 	sv0 := reflect.ValueOf(src)
 	for _, fr := range src.Spinner {
 		for _, m := range spinnerMarks {
