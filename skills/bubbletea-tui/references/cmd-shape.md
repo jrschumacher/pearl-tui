@@ -16,11 +16,10 @@ to the user. No Go yet.
 3. **States**: populated, empty, loading, error, partial (a chat screen adds thinking
    with no tool call yet, and prose streaming in), plus every overlay (palette,
    confirm, help). Each becomes a harness state name; `toosmall` is one row for the app.
-   `tuilint frames` finds a bordered, ruled or ASCII dialog by its shape, whatever the
-   state is called. Naming an overlay by what it is (`dialog`, `palette`, `confirm`,
-   `modal`, `overlay`, `popup`, `help` or `keys` in it: `confirm-discard`, not
-   `discard`) is a convenience for readers, and lets the lint note an overlay whose
-   dialog it can't find, as under `dialog: none` with no edge.
+   An overlay's name carries `dialog`, `palette`, `confirm`, `modal`, `overlay`,
+   `popup`, `help` or `keys` (`confirm-discard`, not `discard`): `tuilint frames` finds
+   a dialog by shape only where its scrim dims or hides the page, so name every overlay
+   frame so it is judged as one, and not as a page whose scrim fails [F-CONTRAST].
    A write gets a `confirm-*` state only if it can't be taken back or is risky in that
    state (rungs 3 and 4, `interaction.md` § Confirm By Consequence); a reversible one
    gets a done state with its undo toast instead (`closed-undo`), and a sent message its

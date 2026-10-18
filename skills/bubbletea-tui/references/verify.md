@@ -24,9 +24,10 @@ screenshot.
             (lint every directory you rendered: light, 256, 16, no colour and ASCII break where dark
             truecolour passes, and LOOK at the overlays there: a dialog's edge is the first to go;
             --ascii fails any glyph that leaked into an ASCII frame, and --unicode a "?" where the
-            unicode frame of the state has a glyph or a letter [F-ASCII]; a borderless
-            overlay (dialog: none) failing F-CONTRAST on its scrim has no edge for the lint
-            to find: give it one, and name the state as cmd-shape.md step 3 says)
+            unicode frame of the state has a glyph or a letter [F-ASCII]; an overlay
+            failing F-CONTRAST on its scrim may be misnamed: the lint finds a dialog by
+            shape only where its scrim dims or hides the page, so name every overlay frame
+            as cmd-shape.md step 3 says)
             tuilint code .                                                (tuivet ./... in go vet or an editor: same rules)
             tuilint spec TUI.md --frames frames                           (after any key-table change;
             each state's footer in its golden must be its row's keys [S-GOLDEN])
