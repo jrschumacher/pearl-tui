@@ -102,6 +102,8 @@ type Glyphs struct {
 	Caret         string `json:"caret"`         // input caret after the typed text: ▏ _ (ASCII '; never a bar glyph or its twin |, the focus bar's: CheckGlyphs fails it)
 	More          string `json:"more"`          // marks lines scrolled off ("↑ 12 more"): ↑ ▲ ^
 	UpDown        string `json:"upDown"`        // the arrow-key pair as footers name it: ↑↓ (ascii ^v)
+	Up            string `json:"up"`            // one arrow key as a footer names it, "↑ back": ↑ (ascii ^)
+	Down          string `json:"down"`          // "↓ select" where only down moves yet: ↓ (ascii v)
 	LeftRight     string `json:"leftRight"`     // ←→ (ascii <>)
 	Back          string `json:"back"`          // a form's back link: ← ‹ <
 	ProgressFill  string `json:"progressFill"`  // the filled part of a progress bar: ━ █ ■

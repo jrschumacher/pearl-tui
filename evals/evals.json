@@ -74,7 +74,8 @@
         "the too-small screen is drawn by ui.TooSmall, or by ui.TooSmallText when the spec words it (its sentence, sizes included, wrapped and centred), never a hand-written tooSmall; a spec that asks for the sentence and nothing else gets no key row (no enabled binding in the toosmall row) and the copied TestTooSmallKeysAreTheTable still passes",
         "under titleCase lower a dialog or section title keeps a word in capitals as written (\"send SIGTERM to 13912?\", \"CPU\", \"3 PRs\") and a span marked theme.Verbatim keeps its case; the agent never moves an acronym out of a title to dodge the case",
         "section lines are ui.Section, with a styled span in the info where a figure needs its own ink (a red band, an fg figure), never a hand-written copy of Section to escape its subtle info",
-        "a dense table (8 columns or more at 80 cells) is ui.Table with its gap argument (1) rather than hand-written rows for tighter gaps"
+        "a dense table (8 columns or more at 80 cells) is ui.Table with its gap argument (1) rather than hand-written rows for tighter gaps",
+        "a footer key that names one arrow (\"↓ select\") takes it from the theme (t.G.Down, t.G.Up: ↓ ↑, ASCII v ^), not a literal, and passes tuilint code's C-GLYPH"
       ]
     },
     {

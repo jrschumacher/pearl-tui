@@ -41,3 +41,24 @@ func TestCaseKeepsAcronymsAndVerbatim(t *testing.T) {
 		t.Errorf("upper: Label of a Verbatim span = %q", got)
 	}
 }
+
+// A footer that names one arrow ("↓ select" while only down moves) had no glyph for it:
+// a "↓" literal fails tuilint code's C-GLYPH, and ↑↓ said a key that did nothing. up and
+// down are glyphs with twins, optional in the theme.
+func TestSingleArrowsAreGlyphs(t *testing.T) {
+	g := Resolve(Default(), true, false).G
+	a := Resolve(Default(), true, true).G
+	if g.Up != "↑" || g.Down != "↓" || a.Up != "^" || a.Down != "v" {
+		t.Errorf("up/down draw %q %q, ASCII %q %q; want ↑ ↓ and ^ v", g.Up, g.Down, a.Up, a.Down)
+	}
+	f, err := Parse([]byte(`{"glyphs": {"up": "▲", "down": "▼", "ascii": {"▼": "v"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CheckKeys([]byte(`{"glyphs": {"up": "▲", "down": "▼"}}`)); err != nil {
+		t.Errorf("CheckKeys refuses up/down: %v", err)
+	}
+	if g := Resolve(f, true, true).G; g.Up != "^" || g.Down != "v" {
+		t.Errorf("a theme's own arrows twin as %q %q", g.Up, g.Down)
+	}
+}
