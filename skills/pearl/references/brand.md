@@ -1,0 +1,316 @@
+# Brand: consistent across every screen, unmistakably this product's
+
+Two failures look opposite and have the same cause. **Inconsistent:** every screen
+invents its own colours and glyphs, so the app looks like five apps. **Generic:** every
+screen is consistent, with the same pink-purple defaults as every other Bubble Tea app.
+Both come from making visual decisions in screens instead of in one place, from the
+brand.
+
+The fix has three parts: a **brand read** (decisions, with reasons), a **theme file**
+(the decisions as data), and a **lint** (proof the decisions differ from the default).
+
+*Bubble Tea: the kit's Go names in § Move A Region, § 4 (`ui.Mark`, `theme.Load`,
+`theme.CheckLadder`) and § 7 are the Bubble Tea kit's; the theme file and its keys are
+framework-neutral.*
+
+## 1. The Brand Read (Write It First)
+
+Gather what exists: logo files, the site's CSS, the style guide, the typeface, the
+product's own words, screenshots of its other surfaces. Measure; don't guess. Then write
+`TUI.md` § Brand read (the only copy; the theme's `read` field holds it condensed):
+
+```
+palette   <the hues, measured, and which one does the pointing>
+tone      <how the product talks; what it never does>
+geometry  <round or square, light or heavy, soft or hard>
+density   <airy or compact, and why the users need that>
+type      <case, tracking, weight; what the wordmark looks like>
+motif     <the one shape the brand repeats: a slash, a diamond, a sail, a dot>
+move      <one region placed where the kit doesn't put it, and the word it follows from>
+signature <one element the kit doesn't draw, on the main screen's default frame>
+skeleton  <the main screen as planned at brand, corrected after craft renders it: § 5>
+
+<one line per expression below, tying the choice to a product trait>
+```
+
+A choice with no reason is a default in disguise. "Pill buttons because pills are nice"
+is not a reason. "Pill buttons: the rounded button, because the brief says 'rounded
+everything'" is.
+
+### Move A Region, Then Draw What The Kit Doesn't
+
+Paint tells brands apart and composition is what a user remembers: two brands on one
+spec, whose reads named only hue, glyphs and words, came out one skeleton to the cell. So
+the read names two things the kit won't choose for you, both for the main screen's
+default frame (§6, question 2):
+
+- **move**: one region in another place in the screen's order than the kit puts it
+  (above or below a different region, left or right of one), or gone, or added,
+  following from one of the three words; it and the signature are two different regions.
+  A one-row shift from a gap, `density` or `footer: rule` is not a move, and a rule row a
+  theme expression adds is not an added region. The kit's default is a one-row header
+  (name left, context right), the list or transcript leading, status in the header and
+  the footer, a rule over the input and keys on the last row (`components.md`).
+- **signature**: one element the kit doesn't draw by default: a one-row cell-art mark
+  beside the name (`art`, `cell-art.md`; a taller one sits above the header at h ≥ 30,
+  since at 80×24 every row it takes comes out of the body), a depth gauge in the
+  header's details, a column of stamps on the list.
+
+**DO** name the word each follows from, and take the move from your words, not from these:
+"move: no tab row; services, deploys and incidents stack as three short sections on one
+page, because at-a-glance" (a monitor); "move: no header row, the step count sits in the
+footer, because unobtrusive" (a setup form); "move: the session's files and cost are a
+22-cell column right of the transcript even at 80 columns, because attentive" (a chat).
+**DON'T** count a glyph, a rule style or a hue as either, and judge a theme expression by
+its effect: one that restyles a region (`"header": "stamp"`, `bar`, `titleCase`) or only
+adds a rule or gap row (`footer: rule`, `density`) is paint; one that removes a region
+or puts it elsewhere in the screen's order is a move. Both brands in that pair chose `╌`
+as their motif, which has its own line. A recoloured `ui.Header` is the kit's element,
+not a signature.
+
+### The Read Reaches Past The Main Screen
+
+The move and the signature tell two brands apart at a glance; a user also tells them
+apart after one keypress, on the detail, the picker and the confirm. Those come from the
+kit's components and the spec's words, so two brands built from one spec matched there
+word for word, after main screens with nothing in common. So the read carries on: each
+secondary screen and overlay block in `TUI.md` § Screens names a `brand:` line, what the
+three words change there (copy voice, dialog form, footer phrasing; `cmd-shape.md`
+§ Behind The Main Screen). Where the spec gives the words, its product facts stay (what
+is acted on, the number, the consequence) and the voice is the brand's: a terse brand
+asks `delete nightly-0412? 41.2 GB, no undo`, a thorough one says in two sentences what
+goes and what stays. Terse means fewer words, never fewer facts.
+
+The words can reach the flow too, within the depth the domain sets, but never add a
+step to a flow the domain keeps light, nor change a restyled app's flow unless the user
+asks (`cmd-shape.md` § Depth Follows The Domain, Then The Brand).
+
+## 2. Translate Traits Into Terminal Moves
+
+| The brand is… | Terminal moves that say it |
+|---|---|
+| soft, calm, caring | `╌` dashed rules, `›` caret selection, `•` dots for steps, underline or pill buttons, a bold-word tag, minimal header, airy, sentence case, `scrim: dim`, dots spinner |
+| industrial, blunt, exact | `━`/`═` heavy rules, a stamp header, `fill` selection, inverse block buttons, `[BRACKET]` tags, heavy dialog, UPPERCASE labels, compact, quadrant spinner, no gradients |
+| precise, technical, nautical | a bar header, `┄` chart rules, slash tabs, `[ bracket ]` buttons, boxed keys, `▲ △` motifs, compact |
+| playful, loud, retro | a half-block banner, `inverse` selection, double dialog, pill tabs, owned background, a gradient motif rule, field backdrop |
+| editorial, bookish, quiet | lowercase titles and labels (`titleCase`, `labelCase: lower`), `·` dotted leaders, a thin `│` bar, filled-panel dialogs (no border, or `dialog: rules`: a rule above and below), underline buttons, measure 72; when the one hue is a state, `focus: fg` and `wordmark: plain` |
+| a developer tool with personality (Crush) | a `╱` motif in the header and every dialog title, a gradient wordmark, `▌` bars, pill buttons, filled tags, playful copy (`Yep!`) |
+
+These are starting points. Two brands with the same trait still differ on palette, motif,
+wordmark and copy.
+
+## 3. Brand Assets, Converted Honestly
+
+- **Colours**: `palette derive <primary> [secondary] --bg <brand bg>` produces
+  both role sets, tinted neutrals and contrast checks (`color.md`).
+- **Typeface**: `scripts/wordmark.py "name" --font brand.ttf --style shade|half|ascii`
+  rasterises the real typeface into cells. Tracked caps (`--style tracked`) when the mark
+  is the hero.
+- **Logo**: `scripts/logo2cells.py logo.png --cols 40` as a starting grid, then the
+  rules in `cell-art.md`. The likeness needs ~40 columns. Smaller marks are drawn by hand.
+- **Motif**: take it from the logo's geometry. Crush's logo is slanted, so its motif is
+  `╱`. A diamond logo gives `◆ ◇`, a sail gives `▲ △`, a wave gives `∿` (with an ASCII
+  fallback). One glyph, repeated in the header rule, dialog titles and the backdrop
+  field.
+
+## 4. The Theme File (The Contract)
+
+One JSON per brand. Every screen reads it and none holds a literal. A non-Go renderer can
+read it too.
+
+```jsonc
+{
+  "name": "halyard", "brand": "halyard",           // brand = the CLI's own name
+  "read": "one paragraph: the brand read, condensed",
+  "roles": { "dark": { "primary": "#FF5A1F", … }, "light": { … } },   // color.md
+  "glyphs": {
+    "headerRule": "", "rule": "┄", "focusBar": "▎", "blurBar": "", "cursor": "▸", "prompt": "▸",
+    "done": "◆", "current": "▲", "todo": "△", "fail": "✕", "pending": "●",
+    "partial": "◭",              // in progress, between current and done (default ◐, ascii ~)
+    "warn": "!",                 // degraded: must differ in shape from current and fail
+    "bullet": "▸",               // ui.Empty's mark, and before an Alert's message when the tag has no bar
+    "sep": "/", "arrow": "→", "ellipsis": "…",
+    "radioOn": "◉", "radioOff": "○", "checkOn": "■", "checkOff": "□",
+    "treeMid": "├─", "treeEnd": "╰─", "treeRail": "│",   // the rail under a multi-line ui.Tree item
+    "thumb": "┃", "track": "│",
+    "spinner": ["◢","◣","◤","◥"], "fieldA": "▲", "fieldB": "△",
+    "caret": "▏", "more": "↑",   // the input caret; the "↑ 12 more" marker
+    "upDown": "↑↓", "leftRight": "←→", "back": "←",       // key labels in footers and forms
+    "up": "↑", "down": "↓",      // one arrow key in a footer ("↓ select"); optional, these defaults
+    "progressFill": "━", "progressEmpty": "╌", "progressHead": "╸",
+    "turnBar": "│", "tabUnderline": "▔",                  // a blurred chat turn; the active tab
+    "marks": { "stop": "•", "stopAhead": "◦" },  // the product's own marks, t.ProductMark("stop"): a signature with no kit slot
+    "ascii": { "◭": "~", "•": "#", "◦": "_" }  // twins the kit's map lacks or draws as a state (• ◦ are * o, current and todo)
+  },
+  "expressions": {
+    "header": "bar",            // rule | bar | minimal | stamp | banner
+    "wordmark": "tracked",      // gradient | solid | inverse | tracked | bracket | upper | plain (fg, bold)
+    "sectionTitle": "primary",  // accent | primary | muted-upper | fg
+    "titleCase": "sentence",    // sentence | upper | lower (lower keeps words in capitals:
+                                //   "send SIGTERM?")
+    "labelCase": "lower",       // upper | lower | as-is: table headers, tags, toast and summary
+                                //   labels, and the kit's fixed labels (tab names; its
+                                //   sentences, "Canceled.", take titleCase; unset: headers upper,
+                                //   fixed copy in titleCase)
+    "selection": "fill",        // bar | fill | caret | inverse
+    "button": "bracket",        // pill | bracket | underline | inverse
+    "tag": "filled",            // filled | bracket | bold
+    "dialog": "square",         // rounded | square | double | heavy | none (a filled panel)
+                                //   | rules (a filled panel between two rules, title in the top one)
+    "dialogTitle": "bar",       // rule (motif in a gradient) | plain | bar (unused under rules)
+    "tabs": "slash",            // underline | pill | bracket | slash
+    "footer": "rule",           // keys | bar | rule
+    "keys": "boxed",            // inline | boxed
+    "density": "compact",       // airy | compact
+    "backdrop": "field",        // none | field
+    "working": "spinner",       // spinner | scramble (Crush's hero; without it ui.Anim draws the spinner + label)
+    "spinner": "focus",         // focus | primary | secondary | tertiary | accent | info | fg | muted: the ink of
+                                //   the working marks (spinner frames, a busy row, a running tool); focus = primary,
+                                //   or fg under focus "fg"
+    "scrim": "dim",             // dim | none: no dim, so a centred dialog hides the page's
+                                //   body rows in every profile (header and footer stay)
+    "focus": "primary",         // primary | fg (focus, cursor, prompt, selection in fg + bold)
+    "paintBg": false,           // own the terminal background
+    "gutter": 2, "measure": 100
+  },
+  "wordmark": { "rows": ["…"], "style": "half" },   // optional, from wordmark.py; style is its note, the kit reads rows
+  "ladder": [{ "glyph": "current", "meaning": "new", "role": "primary" }, …],   // optional: the product's own rungs (a status slot or a one-cell literal with a twin; a meaning that is no kit slot; any colour role or focus / working; a rung in warning takes "glyph": "warn"), drawn by ui.Mark(t, "new"), ui.Rungs and the ladder state
+  "ansi16": { "dark": { "warning": 11 }, "light": { "warning": 3 } },  // optional, color.md
+  "ansi256": { "dark": { "primary": 172 } }  // optional, color.md: drawn at 256 colours only
+}
+```
+
+**`focus: fg` is for a brand whose hue means a state** (amber = new, and nothing else).
+One meaning per hue means focus can't be that hue, so the kit's own emphasis (focus bar,
+cursor, prompt, current step, active tab, focused button, the fill selection) moves to
+fg and weight and its marks go neutral; what the theme opts into (a bar or stamp
+header, a gradient wordmark, `sectionTitle: primary`, filled tags) and what the app asks
+for (`t.S.Primary`) keep primary, because the brand chose it.
+`TestFocusFgKeepsPrimaryOffChrome` holds the kit to that split. At 16 colours pin the
+hue with `ansi16` (color.md § The Four Palettes) so it doesn't land on red, error's slot;
+`palette check` fails a focus-fg theme whose primary shares a slot with a state.
+
+**`scrim: none` hides the page behind a dialog; it never leaves it at full ink.** An
+undimmed page beside a confirm reads as live as the confirm, so wherever no scrim is
+drawn a centred `Canvas.Overlay` clears the body rows (`c.Body`) and keeps the header
+and the footer (`components.md` § Dialog). Choose `none` only when nothing behind a
+dialog must stay readable. A brand that wants the list in view while a dialog is up (a
+watchful monitor choosing a signal) keeps `dim`, which keeps it readable at truecolour
+and 256 colours; at 16 colours and NO_COLOR nothing dims, so the body hides under
+either value. One brand chose `none` for calm and found at craft that its confirm hid
+the list it meant to keep.
+
+**A state ladder takes the status slots, by meaning.** `● queued · ◐ running · ○ waiting ·
+✓ done` is `current · partial · todo · done`: the app draws `t.G.Current`,
+`t.G.Partial`, `t.G.Todo`, `t.G.Done`, never literals, so `-ascii` draws `* ~ o +` and
+`palette check` keeps the rungs apart. `partial` is the in-progress rung (default `◐`);
+the kit draws it for a busy `ui.Dot` and a running tool call, which would otherwise be
+another state's glyph in another colour, and one mark under NO_COLOR.
+
+**Keep a state's glyph and hue exclusive.** The kit's own components draw the same slots
+with the same meanings: `ui.Steps` done/current/todo/fail, `ui.ToolCall`
+pending/partial/done/fail, `ui.Dot` done (ok: `●` is "now", never also "healthy"),
+partial (busy), warn, fail and todo (idle), and `ui.Busy` the spinner (one cell, the
+partial glyph when the frames are wider). So a ladder mapped onto the slots by meaning
+stays consistent everywhere. Where a rung means something no kit slot means (`●` for
+"new", `✓` in subtle for "reviewed"), declare it in the theme's `ladder` (above): `ui.Mark(t,
+"new")` draws it, the `ladder` state shows it in its ink, and `palette check` keeps the
+rungs apart under ASCII (`theme.CheckLadder`). The hue stays off the
+kit's chrome with `focus: fg`; a spinner frame may not be a status or focus mark
+(`CheckGlyphs`), and under `-ascii` the kit's spinner leaves out the focus bar's `|`.
+
+Missing roles are derived, and missing glyphs and expressions default, so a theme can
+start small. An expression the kit doesn't know (`"dialog": "rule"` for `rules`, a key
+from a newer kit) also draws the default, so `palette check` fails it and lists the
+values it knows; `theme.Load` loads it, so an app never refuses to start over a word. Write every role as `#RRGGBB` or `#RGB`, `#` included: Lip Gloss reads
+`6B50FF` as an ANSI index or no colour, so `theme.Load` and `palette check` reject it. A theme that keeps a role below the contrast floors on purpose (a brand's
+exact hex, used mostly as a fill) says so in writing, and `palette check` reports it
+as ACCEPT instead of FAIL:
+
+```json
+"contrastAccept": { "dark.primary": "Charple #6B50FF exactly as Crush ships it; used for fills and bars" }
+```
+
+Every glyph needs an ASCII twin, the theme's own in `glyphs.ascii` or the kit's map;
+`palette check` and the kit's theme tests name a glyph with neither and two marks of one
+meaning that share a twin (half-filled circles take `~` by convention). `theme.Load`
+still loads it, so an app always starts; an unmapped glyph then draws as `?`, which
+`tuilint frames --ascii --unicode <the unicode frames>` fails [F-ASCII]. If you add a
+key: add it to the Go structs, default it, document it here, probe-render it at 80×24
+and 120×40, and decide whether `diversity` should count it; `theme.ASCII` and
+`theme.CheckGlyphs` cover every string in `Glyphs` on their own.
+
+**What never changes, whatever the brand:** whitespace and rules instead of boxes, one
+box for the floating thing, three to four text levels, exactly one visible focus that
+doesn't shift layout, buttons in a row, alerts as tag + message, help from real
+bindings, and every frame exactly W×H.
+
+## 5. Prove It's Different
+
+```
+diversity themes/*.json kit/themes/ink.json kit/themes/charm.json --baseline ink,charm --min-distance 8
+```
+
+Pass the baseline files (`kit/` is in the skill directory): a baseline is matched by
+theme name, so without its file the min-distance rule has nothing to measure against,
+and `diversity` exits 2 rather than pass a recoloured default. It fails when a brand theme is within 8 axes of the default or the Crush study (that's
+the default with a new palette), when two brand themes share more than 9 axes, or when
+one value is used by more than half the brands. It is a floor, not a target. A plain
+brand stays plain and spends its differences on the two or three moves it owns; never
+move an axis just to pass.
+
+**Pass `TUI.md` too: the skeleton.** A theme holds paint, and two brands built from one
+spec came out one skeleton in two paints. So § Brand read carries a `skeleton:` line, the
+main screen's composition on eight axes: `skeleton: head <…> · status <…> · order <…> ·
+foot <…> · verdict <…> · chart <…> · chartGlyphs <…> · turnEnd <…>`, the words in
+`diversity -h`, `-` for one the screen doesn't have. Write it at brand as planned and
+correct it once craft renders the default frame. `diversity TUI.md
+kit/themes/ink.json kit/themes/charm.json` reads it with the theme § Theme names, notes a
+missing line as P2, and names the axes still the kit's: the move should be among the
+others. Given two apps (a pair eval) it fails a pair sharing more than 3 skeleton axes
+and flags a departure both took; `-v` prints the seating plan. A family that shares its
+chrome on purpose raises `--max-shared-skeleton`. **DO** declare the frame as built: a
+line the frame contradicts is the critic's P1. **DON'T** move an axis to pass: move one
+only where the read's `move:` or `signature:` gives the reason, and write it there.
+
+**Many brands at once** (a theme gallery, a design-system rollout across products):
+parallel agents converge on the newest options. Six of nine picked the same new header
+when it was added. After the first pass, write a **seating plan**: give each contested
+value to the brand whose product actually has it, fix those columns, and let each brand
+finish in its lane. Agents can't coordinate; the orchestrator must.
+
+## 6. Render The Brand, Then Judge It
+
+```
+go run ./cmd/<app> -theme themes/<brand>.json -out frames/<brand> -sizes 80x24,120x40
+go run ./cmd/<app> -theme themes/<brand>.json -out frames/<brand>-light -light
+cellshot frames/<brand>/*-120x40.ansi --sheet <brand>.png --cell 8x16
+```
+
+Put it beside the baseline (`ink`) and one other brand. Ask:
+
+1. With the colour stripped, can you still tell which brand it is? If not, identity is
+   only in the palette. Move the expressions.
+2. Are the read's move and signature visible in the first second on the main screen's
+   default frame: the state the app opens in, nothing pressed, with its usual data (a
+   chat with one finished turn), not beside a sent turn or in a filled form? At `brand`
+   the kit's showcase can't show them (by definition it draws neither), so check the
+   main screen's sketch in `TUI.md` § Screens; from `craft` on, check the app's render.
+   The brand's marks are judged on the showcase's `ladder` state, which draws every
+   status rung in its role, the spinner, a step row and the tags, in every profile.
+3. Does every choice in the read trace to something on screen?
+4. Does the light set look like the same brand, not a different app?
+
+## 7. Keep It Consistent Over Time
+
+- Record the brand read, the theme path and the decisions in the project's design context
+  file (`TUI.md`, written by `init`). Every later change reads it first.
+- `tuilint code` fails on hex outside the theme package [C-HEX], on emoji [C-EMOJI],
+  on a glyph typed in a screen [C-GLYPH] and on a cut made with the bare `theme.Ellipsis`
+  [C-ELLIPSIS]: cut with `ui.Trunc(t, s, w)`, which fits the brand's glyph
+  `t.G.Ellipsis` and its ASCII twin `...` inside the width. `tuilint frames --theme` fails
+  on any rendered colour that isn't a role or a blend of two roles [F-OFFPAL], and judges
+  the inside of a bordered, `+--+` or `rules` dialog (a `none` dialog has no edge to find,
+  so its frames carry a P2 note to check by eye).
+- New component? It takes `*theme.Theme` and nothing else. If it needs a new colour, the
+  contract gets a new role, with a reason in the read.

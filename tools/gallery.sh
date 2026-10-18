@@ -3,12 +3,12 @@
 # Run after any change that alters what the kit renders.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
-kit="$root/skills/bubbletea-tui/kit"
+kit="$root/skills/pearl/kit"
 out="$root/docs/images"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$out"
-go -C "$root/skills/bubbletea-tui/tools" build -o "$tmp/" ./cmd/cellshot
+go -C "$root/skills/pearl/tools" build -o "$tmp/" ./cmd/cellshot
 cd "$kit"
 render() { go run ./cmd/showcase "$@"; }
 
@@ -26,11 +26,11 @@ render -theme themes/halyard.json -state setup-auth -w 120 -h 24 > "$tmp/halyard
 render -theme themes/lumen.json -light -state setup-review -w 120 -h 24 > "$tmp/lumen (light) · setup, review.ansi"
 render -theme themes/ferrous.json -state setup-signin -w 120 -h 24 > "$tmp/ferrous · setup, waiting.ansi"
 # reduced colour: a borderless dialog keeps an edge where its fill is gone, and the focus
-# "fg" test theme (theme/testdata/quire.json) keeps its one hue for a state
+# "fg" test theme (theme/bubbletea/testdata/quire.json) keeps its one hue for a state
 render -theme themes/moss.json -profile ansi -state confirm -w 120 -h 40 > "$tmp/moss · 16 colours.ansi"
 NO_COLOR=1 render -theme themes/moss.json -state palette -w 120 -h 40 > "$tmp/moss · NO_COLOR.ansi"
-render -theme theme/testdata/quire.json -state deploys -w 120 -h 40 > "$tmp/quire (test) · focus fg, amber = new.ansi"
-render -theme theme/testdata/quire.json -light -state confirm -w 120 -h 40 > "$tmp/quire (test, light) · dialog rules.ansi"
+render -theme theme/bubbletea/testdata/quire.json -state deploys -w 120 -h 40 > "$tmp/quire (test) · focus fg, amber = new.ansi"
+render -theme theme/bubbletea/testdata/quire.json -light -state confirm -w 120 -h 40 > "$tmp/quire (test, light) · dialog rules.ansi"
 
 cd "$tmp"
 sheet() { local name=$1; shift; "$tmp/cellshot" "$@" --sheet "$out/$name" --cell 8x16 | tail -1; }

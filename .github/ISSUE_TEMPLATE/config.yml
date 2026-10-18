@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Working on the skill itself
-    url: https://github.com/jrschumacher/skill-bubbletea-tui/blob/main/AGENTS.md
+    url: https://github.com/jrschumacher/pearl-tui/blob/main/AGENTS.md
     about: The improvement loop, the commands and the rules for changes to the skill, kit and tools.
   - name: Filing from an agent
-    url: https://github.com/jrschumacher/skill-bubbletea-tui/blob/main/skills/bubbletea-tui/references/cmd-feedback.md
+    url: https://github.com/jrschumacher/pearl-tui/blob/main/skills/pearl/references/cmd-feedback.md
     about: How an agent drafts, dedupes and files these with the `feedback` tool, with your consent.

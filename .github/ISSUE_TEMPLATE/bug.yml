@@ -12,7 +12,7 @@ body:
     id: asked
     attributes:
       label: What was asked
-      description: The prompt or command (`/bubbletea-tui craft`), and what was being built, in general terms.
+      description: The prompt or command (`/pearl craft`), and what was being built, in general terms.
     validations:
       required: true
   - type: input
@@ -26,7 +26,7 @@ body:
     id: area
     attributes:
       label: Where
-      description: "The file, component, tool or rule: `references/color.md`, `kit/ui/dialog.go`, `tuilint frames` F-CONTRAST, `palette check`."
+      description: "The file, component, tool or rule: `references/color.md`, `kit/ui/bubbletea/dialog.go`, `tuilint frames` F-CONTRAST, `palette check`."
     validations:
       required: true
   - type: input

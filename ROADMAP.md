@@ -3,11 +3,11 @@
 Where the skill is, what comes next, and the open problems that are bigger than this
 repository. Items move from here into issues when someone picks them up.
 
-## Where it is (v0.1)
+## Where it is (1.0.0-rc.1)
 
-- The skill: a stance, laws, domain references, 11 commands (`init` interviews the user and
+- The skill: a stance, laws, domain references, 12 commands (`init` interviews the user and
   writes design and architecture into `TUI.md`), and about 40 named anti-patterns.
-- A compiling Bubble Tea v2 kit with seven themes and a reference app with two faces: an
+- A compiling Bubble Tea v2 kit with eight themes and a reference app with two faces: an
   ops dashboard and a first-run setup wizard built on Huh, themed from the brand. Its tests
   cover footprint, contrast, unstyled text, ASCII, honest help, behaviour, button order and
   no library-default colours. CI renders and lints every theme in the variants
@@ -33,7 +33,7 @@ repository. Items move from here into issues when someone picks them up.
 Build real apps with it and turn every miss into a fix.
 
 1. **Build one app you actually need** in a fresh session with only the skill installed.
-   Start with `/bubbletea-tui init`, then `brand`, `shape` and `craft` (or `restyle` for
+   Start with `/pearl init`, then `brand`, `shape` and `craft` (or `restyle` for
    an existing app). A good first target is a CLI with a brand you already own. The first
    run restyled a real CLI's setup wizard; its screenshots are the "before" for the
    re-run. Keep that brand's theme in the app's repo, not in this one.
@@ -48,7 +48,7 @@ Build real apps with it and turn every miss into a fix.
    - Which anti-patterns appeared anyway?
    - Did `TestHelpIsHandled` exist in its app?
 5. **Run the evals** in `evals/evals.json` (at the repo root, outside the shipped skill)
-   with skill-creator pointed at `skills/bubbletea-tui` and told the cases are
+   with skill-creator pointed at `skills/pearl` and told the cases are
    `evals/evals.json` at the repo root, with `files` relative to the repo root (it looks
    for `evals/` inside the skill directory by default): with the skill, without it, and
    with the previous version, three runs per case. Grade by hand first, then check that
@@ -81,15 +81,20 @@ agreeing with your grades line for line.
   prose; they don't ignore a hook. The first dogfood run was the case for it: the skill
   described theming Huh, and the agent skipped it until C-HUHTHEME made it fail. Still to
   measure: whether the next dogfood run fixes findings on the edit that caused them.
-- **One contrast audit**: the contrast rules should live once in `tuikit/theme`
+- **One contrast audit**: the contrast rules should live once in `tuikit/theme/bubbletea`
   (`theme.Audit`) for both the kit tests and `palette check`.
 - **Distribution**: builds for other agents (Cursor, Codex, Gemini CLI) once the formats
   are verified. The Claude Code marketplace manifest shipped with the hook
   (`.claude-plugin/marketplace.json`).
 - **Theme gallery**: a browsable page of every kit theme, with the same states side by
   side, to pick a starting point for `brand`.
-- **Other renderers**: the theme JSON is language-neutral by design. A ratatui (Rust) or
-  Textual (Python) reader would test that claim and widen the audience.
+- **Further frameworks** (ratatui, Textual, Ink, tview): the theme JSON and the design
+  laws are framework-neutral by design, and Bubble Tea v2 is the only framework with a
+  kit today. Each new one needs a kit under `kit/theme/<framework>` and
+  `kit/ui/<framework>` that reads the same `kit/themes/*.json`, plus a harness that
+  writes every state as `.ansi` frames, so `cellshot`, `tuilint frames`, `palette` and
+  `diversity` apply unchanged. Its code lint and its references
+  (`<framework>-<topic>.md`) come with it.
 - **Design tokens interop**: export roles in the W3C Design Tokens (DTCG) format so a
   brand's web tokens and terminal theme can come from one source.
 
@@ -156,6 +161,4 @@ of that profile.
 
 ## Decisions pending
 
-- **The skill's name** (`bubbletea-tui` today). A memorable name helps on skills.sh.
-  Renaming means changing the folder and the frontmatter `name`, together.
 - **The license holder's name** in `LICENSE`.

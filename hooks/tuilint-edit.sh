@@ -1,5 +1,5 @@
 #!/bin/sh
-# PostToolUse hook of the bubbletea-tui Claude Code plugin (hooks/hooks.json).
+# PostToolUse hook of the pearl Claude Code plugin (hooks/hooks.json).
 #
 # After an Edit, Write or MultiEdit of a .go file, runs `tuilint hook`, which lints the
 # edited file with the `tuilint code` rules when its module is a Bubble Tea or Huh app in
@@ -24,7 +24,7 @@
 # gate: the edited file must sit under a TUI.md (up to the repository root) or in a
 # module whose go.mod requires charm.land/bubbletea/v2 or charm.land/huh/v2, or import
 # one of them itself; otherwise the edit is in some other Go project and nothing is
-# built. The theme-package opt-in (a copy of the kit's theme/) is left to tuilint hook,
+# built. The theme-package opt-in (a copy of the kit's theme package) is left to tuilint hook,
 # which makes the exact decision once the tools exist. The cache holds, beside the
 # binaries:
 #   .built          the plugin root the tools were built from; its mtime is the build's
@@ -66,7 +66,7 @@ case $file in
 esac
 
 root=${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}
-skill=$root/skills/bubbletea-tui
+skill=$root/skills/pearl
 cache=${TUITOOLS_CACHE:-${CLAUDE_PLUGIN_DATA:-$HOME/.cache}/tuitools}
 bin=$cache/tuilint
 built=$cache/.built
@@ -83,7 +83,7 @@ skip() {
 # systemMessage, once per CAUSE until a good build, then exits 0.
 tell() {
 	if [ ! -e "$cache/.told-$1" ]; then
-		msg=$(printf 'bubbletea-tui plugin: Go edits are not being linted: %s' "$2" |
+		msg=$(printf 'pearl plugin: Go edits are not being linted: %s' "$2" |
 			tr '\n\t\r' '   ' | tr -d '\000-\037' | sed 's/\\/\\\\/g; s/"/\\"/g')
 		printf '{"systemMessage":"%s"}\n' "$msg"
 		: >"$cache/.told-$1" 2>/dev/null
