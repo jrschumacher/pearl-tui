@@ -42,7 +42,8 @@ read) lives at the repo root; skill-creator takes the path.
 `version` in `.claude-plugin/plugin.json` and `marketplace.json` is the release
 (`1.0.0-rc.1` today) and equals SKILL.md's `metadata.version`, which the `feedback` tool
 reports. Claude Code pins plugin installs to it: a commit on `main` reaches plugin users
-only when a release bumps all three, together, with a `CHANGELOG.md` entry. Tags are
+only when a release bumps all three, together, with a `CHANGELOG.md` entry; CI's
+plugin job fails unless the three and the top `## <version>` heading agree. Tags are
 `v<version>`, made after the release PR merges.
 
 ## Commands
