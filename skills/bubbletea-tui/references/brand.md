@@ -81,7 +81,7 @@ goes and what stays. Terse means fewer words, never fewer facts.
 
 | The brand is… | Terminal moves that say it |
 |---|---|
-| soft, calm, caring | `╌` dashed rules, `›` caret selection, `•` dots for steps, underline or pill buttons, a bold-word tag, minimal header, airy, sentence case, no scrim drama, dots spinner |
+| soft, calm, caring | `╌` dashed rules, `›` caret selection, `•` dots for steps, underline or pill buttons, a bold-word tag, minimal header, airy, sentence case, `scrim: dim`, dots spinner |
 | industrial, blunt, exact | `━`/`═` heavy rules, a stamp header, `fill` selection, inverse block buttons, `[BRACKET]` tags, heavy dialog, UPPERCASE labels, compact, quadrant spinner, no gradients |
 | precise, technical, nautical | a bar header, `┄` chart rules, slash tabs, `[ bracket ]` buttons, boxed keys, `▲ △` motifs, compact |
 | playful, loud, retro | a half-block banner, `inverse` selection, double dialog, pill tabs, owned background, a gradient motif rule, field backdrop |
@@ -159,7 +159,8 @@ read it too.
     "spinner": "focus",         // focus | primary | secondary | tertiary | accent | info | fg | muted: the ink of
                                 //   the working marks (spinner frames, a busy row, a running tool); focus = primary,
                                 //   or fg under focus "fg"
-    "scrim": "dim",             // dim | none
+    "scrim": "dim",             // dim | none: no dim, so a centred dialog hides the page's
+                                //   body rows in every profile (header and footer stay)
     "focus": "primary",         // primary | fg (focus, cursor, prompt, selection in fg + bold)
     "paintBg": false,           // own the terminal background
     "gutter": 2, "measure": 100
@@ -179,6 +180,16 @@ for (`t.S.Primary`) keep primary, because the brand chose it.
 `TestFocusFgKeepsPrimaryOffChrome` holds the kit to that split. At 16 colours pin the
 hue with `ansi16` (color.md § The Four Palettes) so it doesn't land on red, error's slot;
 `palette check` fails a focus-fg theme whose primary shares a slot with a state.
+
+**`scrim: none` hides the page behind a dialog; it never leaves it at full ink.** An
+undimmed page beside a confirm reads as live as the confirm, so wherever no scrim is
+drawn a centred `Canvas.Overlay` clears the body rows (`c.Body`) and keeps the header
+and the footer (`components.md` § Dialog). Choose `none` only when nothing behind a
+dialog must stay readable. A brand that wants the list in view while a dialog is up (a
+watchful monitor choosing a signal) keeps `dim`, which keeps it readable at truecolour
+and 256 colours; at 16 colours and NO_COLOR nothing dims, so the body hides under
+either value. One brand chose `none` for calm and found at craft that its confirm hid
+the list it meant to keep.
 
 **A state ladder takes the status slots, by meaning.** `● queued · ◐ running · ○ waiting ·
 ✓ done` is `current · partial · todo · done`: the app draws `t.G.Current`,

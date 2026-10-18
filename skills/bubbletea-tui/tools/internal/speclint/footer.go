@@ -85,6 +85,7 @@ func hints(part string) []string {
 	}
 	var out []string
 	for _, it := range splitItems(part) {
+		it, _ = cutCond(it)
 		if f := strings.Fields(it); len(f) > 0 {
 			out = append(out, strings.Join(f, " "))
 		}
@@ -115,6 +116,31 @@ func opensHelp(item string) bool {
 		}
 	}
 	return helpAction.MatchString(b.action)
+}
+
+// helpState is the help overlay itself, full help (`help`, `keys`, `shortcuts`, or help
+// over another state, `help-over-confirm`), and toosmall, drawn by ui.TooSmallText with
+// no footer row: neither needs a key that opens help.
+var helpState = regexp.MustCompile(`(?i)^(?:(?:help|keys|shortcuts)(?:-over-[\w-]+)?|too-?small)$`)
+
+// drawnHint is an item as the footer draws it. A help item that lists aliases for the
+// dispatcher (`?/h/f1 help`, `ctrl+g/f1 help`) is drawn as its first key, `? help`,
+// the hint ui.Help pins last; any other item is drawn as written.
+func drawnHint(item string) string {
+	tok, desc, ok := strings.Cut(item, " ")
+	alts := splitAlts(tok)
+	if !ok || len(alts) < 2 || (alts[0] != "?" && alts[0] != "ctrl+g") {
+		return item
+	}
+	return alts[0] + " " + desc
+}
+
+func drawnHints(items []string) []string {
+	out := make([]string, len(items))
+	for i, it := range items {
+		out[i] = drawnHint(it)
+	}
+	return out
 }
 
 // packFooter lays items out as ui.Help does in w columns and returns the ones it
@@ -217,7 +243,7 @@ func (s *spec) footerFit(add func(string, int, string, ...any)) {
 			budget -= ansi.StringWidth(r.badge) + 1
 			beside = fmt.Sprintf(", %d beside its `%s` badge", budget, r.badge)
 		}
-		_, dropped := packFooter(r.footer, budget)
+		_, dropped := packFooter(drawnHints(r.footer), budget)
 		if len(dropped) > 0 {
 			what, fix := "its footer keys are", "Bold the keys the footer shows (or put ‖ after them)"
 			switch r.marker {
@@ -232,11 +258,11 @@ func (s *spec) footerFit(add func(string, int, string, ...any)) {
 				eg = boldCell(front, append(back, r.helpOnly...))
 			}
 			add("S-FOOTER", r.line, "%s: %s %d columns, and an %d-column footer has %d inside the kit's default %d-cell gutters (a theme with a 1-cell gutter has 2 more)%s, so ui.Help drops `%s` behind …. %s, the state's main actions and its way out first; the other keys are help-only (show: false in the action table; ? help lists them), e.g. `%s`",
-				r.state, what, hintsWidth(r.footer), footerWidth, footerBudget, kitGutter, beside,
+				r.state, what, hintsWidth(drawnHints(r.footer)), footerWidth, footerBudget, kitGutter, beside,
 				strings.Join(dropped, " · "), fix, eg)
 			continue
 		}
-		if r.marker == "" || len(r.helpOnly) == 0 || globalHelp {
+		if r.marker == "" || len(r.helpOnly) == 0 || globalHelp || helpState.MatchString(r.state) {
 			continue
 		}
 		help := false
@@ -327,7 +353,7 @@ func suggestCut(items []string, budget int) (front, back []string) {
 				f = append(f, it)
 			}
 		}
-		_, d := packFooter(append(f, help), budget)
+		_, d := packFooter(drawnHints(append(f, help)), budget)
 		return len(d) == 0
 	}
 	// drop unkept items from the end first, then kept ones if that is still too wide

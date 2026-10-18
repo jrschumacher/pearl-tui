@@ -833,6 +833,295 @@ func TestTruncatedColumn(t *testing.T) {
 	if got := truncs(sidebar("files-80x7.ansi", fmt.Sprintf("  %-46s%s", "chat", "Files (5)"))); len(got) != 0 {
 		t.Errorf("a column headed \"Files (5)\": %+v, want none", got)
 	}
+	// columns one blank apart (a process list: program padded, trace, command): the
+	// column starts where the header row's word does, not after the last 2-cell gap
+	procs := func(name, last string, top ...string) string {
+		var b strings.Builder
+		for _, l := range top {
+			b.WriteString(fmt.Sprintf("%-51s\n", l))
+		}
+		b.WriteString(fmt.Sprintf("%-51s\n", fmt.Sprintf("    pid program  user cpu 20s    %s", last)))
+		for i, cmd := range []string{"/usr/lib/go/pkg/t…", "/root/.local/shar…", "/opt/claude-code/…", "/process_api --fi…", "timeout 60 sh -c …"} {
+			b.WriteString(fmt.Sprintf("%-51s\n", fmt.Sprintf("  %5d %-8s root ▂▂▂▂▂▂▂▂▂▂ %s", 9700+i, []string{"compile", "posting", "claude", "api", "timeout"}[i], cmd)))
+		}
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	if got := truncs(procs("gaps-51x6.ansi", "command")); len(got) != 0 {
+		t.Errorf("a last column headed command, one blank from the trace: %+v, want none", got)
+	}
+	if got := truncs(procs("gaps-title-51x6.ansi", "title")); len(got) != 1 {
+		t.Errorf("a last column headed title, one blank from the trace: %+v, want one", got)
+	}
+	// a header word earlier on the row heads its own column, not the cut one
+	paths := filepath.Join(dir, "paths-first-40x6.ansi")
+	var pb strings.Builder
+	pb.WriteString(fmt.Sprintf("%-40s\n", "  path   size name"))
+	for i := range 5 {
+		pb.WriteString(fmt.Sprintf("%-40s\n", fmt.Sprintf("  /a/%d    12K  a name too long to f…", i)))
+	}
+	if err := os.WriteFile(paths, []byte(pb.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := truncs(paths); len(got) != 1 {
+		t.Errorf("a cut name column after a path column: %+v, want one", got)
+	}
+	// the same with the path column one blank from the cut one on the rows: the header
+	// row's `path` heads its own column, not the cut `name`
+	pathOne := filepath.Join(dir, "files-40x6.ansi")
+	var p1 strings.Builder
+	p1.WriteString(fmt.Sprintf("%-40s\n", "  path          name"))
+	for i := range 5 {
+		p1.WriteString(fmt.Sprintf("%-40s\n", fmt.Sprintf("  /srv/a/b/c/%d a name too long to fi…", i)))
+	}
+	if err := os.WriteFile(pathOne, []byte(p1.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := truncs(pathOne); len(got) != 1 {
+		t.Errorf("a cut name column one blank after a path column: %+v, want one", got)
+	}
+	// a column starts where most cut rows' text does: one row's word that happens to start
+	// under a `path` header elsewhere on the row doesn't make the column path's
+	stray := filepath.Join(dir, "names-40x6.ansi")
+	var p2 strings.Builder
+	p2.WriteString(fmt.Sprintf("%-40s\n", "  name              path"))
+	for i := range 5 {
+		row := "  " + strings.Repeat(string(rune('c'+i)), 29) + "…"
+		if i == 2 {
+			row = "  " + strings.Repeat("a", 17) + " " + strings.Repeat("b", 11) + "…"
+		}
+		p2.WriteString(fmt.Sprintf("%-40s\n", row))
+	}
+	if err := os.WriteFile(stray, []byte(p2.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := truncs(stray); len(got) != 1 {
+		t.Errorf("a cut name column, one row's word under a path header: %+v, want one", got)
+	}
+	// on an overlay frame the dialog's band can hide the header: the page's own frame
+	// shows it and is judged there
+	under := filepath.Join(dir, "confirm-51x12.ansi")
+	var ub strings.Builder
+	for _, l := range []string{"", "", "             ╭──────────────────╮", "             │ send it?         │", "             ╰──────────────────╯", ""} {
+		ub.WriteString(fmt.Sprintf("%-51s\n", l))
+	}
+	b, err := os.ReadFile(procs("page-51x6.ansi", "title"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ub.WriteString(strings.SplitN(string(b), "\n", 2)[1])
+	if err := os.WriteFile(under, []byte(ub.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := truncs(under); len(got) != 0 {
+		t.Errorf("a cut column whose header the dialog's band hides: %+v, want none", got)
+	}
+	// a column that cuts by decision: TUI.md § Decisions names it on a `cuts:` line, by
+	// its header or by a region of the screen's budget, and --spec TUI.md reads it
+	spec := func(name, body string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	titles := procs("procs-titles-51x6.ansi", "title")
+	if got := truncs(titles); len(got) != 1 || !strings.Contains(got[0].Msg, "`cuts: title`") || !strings.Contains(got[0].Msg, "--spec TUI.md") {
+		t.Errorf("a cut title column, no spec: %+v, want one that says to record `cuts: title` and pass --spec TUI.md", got)
+	}
+	byHeader := spec("header.md", "# x TUI\n\n## Decisions\n- 2026-10-18 cuts: title, url — a title has no bound; the detail shows it whole\n")
+	if got := truncs(titles, "--spec", byHeader); len(got) != 0 {
+		t.Errorf("`cuts: title` in § Decisions: %+v, want none", got)
+	}
+	byRegion := spec("region.md", "# x TUI\n\n### Screens\n#### procs — what runs\n51×6: list 0,0 51×6\n\n## Decisions\n- cuts: list (no longest command)\n")
+	if got := truncs(titles, "--spec", byRegion); len(got) != 0 {
+		t.Errorf("`cuts: list`, the budget's region holding the cut: %+v, want none", got)
+	}
+	elsewhere := spec("elsewhere.md", "# x TUI\n\n### Screens\n#### procs — what runs\n51×6: list 0,0 51×1 · trace 0,1 30×5\n\n## Decisions\n- cuts: list, program\n\n## Assumed\n- cuts: title\n")
+	if got := truncs(titles, "--spec", elsewhere); len(got) != 1 || !strings.Contains(got[0].Msg, "`cuts: title`") {
+		t.Errorf("cuts naming another region and column, and a cuts line outside § Decisions: %+v, want one", got)
+	}
+	// a cuts: line holds for the frame's own screen: a region of another screen's budget
+	// doesn't, and a header cut scoped to a screen (`cuts: detail: title`) holds only there
+	t6 := filepath.Join(dir, "detail-80x24.ansi")
+	var b6 strings.Builder
+	for y := range 24 {
+		row := ""
+		switch {
+		case y == 0:
+			row = "  app  detail"
+		case y == 10:
+			row = "  name                  owner     size"
+		case y > 10 && y < 17:
+			row = fmt.Sprintf("  quarterly-report-%d…  alice     12K", y-11)
+		case y == 23:
+			row = "  q quit"
+		}
+		b6.WriteString(fmt.Sprintf("%-80s\n", row))
+	}
+	if err := os.WriteFile(t6, []byte(b6.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	budgets := "# x TUI\n\n### Screens\n#### overview — every job\n80×24:  header 0,0 80×1 · list 1,10 78×13\n#### detail — one file\n80×24:  header 0,0 80×1 · files 1,10 78×13\n\n## Decisions\n"
+	for _, c := range []struct {
+		cuts string
+		want int
+	}{
+		{"- 2026-10-18 cuts: list because a command line has no longest\n", 1},
+		{"- cuts: files because a file name has no longest\n", 0},
+		{"- cuts: overview: name\n", 1},
+		{"- cuts: detail: name\n", 0},
+		{"- cuts: name\n", 0},
+	} {
+		if got := truncs(t6, "--spec", spec("t6.md", budgets+c.cuts)); len(got) != c.want {
+			t.Errorf("a detail frame's name column cut, with %q: %+v, want %d", c.cuts, got, c.want)
+		}
+	}
+	var stdout, stderr bytes.Buffer
+	if code := Main([]string{titles, "--spec", filepath.Join(dir, "missing.md")}, &stdout, &stderr); code != 2 {
+		t.Errorf("--spec on a missing file: exit %d, want 2", code)
+	}
+}
+
+// A sectioned page is not a dialog: a titled section rule over a later rule of the same
+// span has a rules dialog's shape, and on a frame not named as an overlay the lint takes
+// it for one only with a scrim around it (every other text row dimmed, or the page hidden
+// but a header). testdata/pages holds a cold monitor's 256-colour overview (as rendered,
+// and with two process rows redrawn in 235) and a list page under a titled section, in
+// NO_COLOR, 256 colours and truecolour; each must report what it would with no section.
+func TestSectionedPagesAreNotDialogs(t *testing.T) {
+	count := func(path, rule, sev string) int {
+		fs, _, _ := run(t, path)
+		n := 0
+		for _, f := range fs {
+			if f.Rule == rule && f.Sev == sev {
+				n++
+			}
+		}
+		return n
+	}
+	for _, c := range []struct {
+		file, rule, sev string
+		want            int
+	}{
+		{"sections-256-80x24.ansi", "F-CONTRAST", "P1", 0},
+		{"sections-256-dim-80x24.ansi", "F-CONTRAST", "P1", 1},
+		{"sections-256-list-80x24.ansi", "F-CONTRAST", "P1", 1},
+		{"sections-list-80x24.ansi", "F-CONTRAST", "P1", 1},
+		{"sections-nocolor-list-80x24.ansi", "F-TRUNC", "P2", 1},
+		// one text row outside the section, a faint header: the page isn't hidden, it is
+		// sparse, so the rows the gate lets through are still judged
+		{"sections-sparse-256-80x24.ansi", "F-CONTRAST", "P1", 1},
+	} {
+		if n := count("testdata/pages/"+c.file, c.rule, c.sev); n != c.want {
+			t.Errorf("%s: %d %s %s, want %d", c.file, n, c.sev, c.rule, c.want)
+		}
+	}
+}
+
+// The scrim gate's two marks each hold: a ruled panel with no blank row around it over
+// an all-faint page is a section, and so is one over a page whose rows are only partly
+// faint (a muted column on bright rows); both pages' faint text is judged.
+func TestScrimGateMarks(t *testing.T) {
+	faint, bright, off := "\x1b[38;2;48;48;52m", "\x1b[38;2;230;230;230m", "\x1b[0m"
+	frame := func(name string, row func(y int) string) string {
+		var b strings.Builder
+		for y := range 11 {
+			b.WriteString(row(y) + off + "\n")
+		}
+		b.WriteString(bright + fmt.Sprintf("  %-46s  ", "enter open  q quit") + off + "\n") // the footer, judged either way
+		p := filepath.Join(t.TempDir(), name)
+		if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	section := func(y int) (string, bool) {
+		switch y {
+		case 3:
+			return bright + "  ── Recent " + strings.Repeat("─", 36) + "  ", true
+		case 6:
+			return bright + "  " + strings.Repeat("─", 46) + "  ", true
+		case 4, 5:
+			return bright + fmt.Sprintf("  %-46s  ", "a recent item"), true
+		}
+		return "", false
+	}
+	unmargined := frame("list-50x12.ansi", func(y int) string {
+		if s, ok := section(y); ok {
+			return s
+		}
+		return faint + fmt.Sprintf("  %-46s  ", "a faint row of the page, every cell")
+	})
+	margined := frame("feed-50x12.ansi", func(y int) string {
+		if s, ok := section(y); ok {
+			return s
+		}
+		if y == 2 || y == 7 {
+			return strings.Repeat(" ", 50)
+		}
+		return bright + "  a bright row of the page   " + faint + fmt.Sprintf("%-19s", "2h ago · muted") + " "
+	})
+	for _, p := range []string{unmargined, margined} {
+		n := 0
+		for _, h := range contrastHits(t, p) {
+			if h.Sev == "P1" {
+				n++
+			}
+		}
+		if n != 1 {
+			t.Errorf("%s: %d P1 F-CONTRAST, want 1 (a section, not a dialog)", filepath.Base(p), n)
+		}
+	}
+}
+
+// A ruled dialog over a dimmed page on a frame named for the dialog's state, not as an
+// overlay (a confirm's sending state): the page rows the dialog cut beside it are its
+// cut, as on a frame named confirm, and its scrim isn't judged.
+func TestScrimmedDialogByShape(t *testing.T) {
+	dim, bright, panel, off := "\x1b[38;2;48;48;52m", "\x1b[38;2;230;230;230m", "\x1b[48;2;40;40;48m", "\x1b[0m"
+	var b strings.Builder
+	for y := range 10 {
+		page := fmt.Sprintf("  %-24s", "a long page row that runs on")[:26] + "…"
+		if y == 0 {
+			// the page's header and two more rows above the dialog, dimmed with the rest
+			for _, h := range []string{"  app · header", "  a page row above it", ""} {
+				b.WriteString(dim + fmt.Sprintf("%-60s", h) + off + "\n")
+			}
+		}
+		var dialog string
+		switch y {
+		case 1, 8:
+			dialog = strings.Repeat(" ", 26)
+		case 2:
+			dialog = bright + "── send it? " + strings.Repeat("─", 14) + off
+		case 7:
+			dialog = bright + strings.Repeat("─", 26) + off
+		default:
+			dialog = panel + bright + fmt.Sprintf(" %-24s ", "body text") + off
+		}
+		switch y {
+		case 0:
+			b.WriteString(dim + fmt.Sprintf("%-60s", "  app · header") + off + "\n")
+		case 9:
+			b.WriteString(bright + fmt.Sprintf("%-60s", "  enter send  esc back") + off + "\n")
+		default:
+			b.WriteString(dim + page + off + "   " + dialog + "    \n")
+		}
+	}
+	p := filepath.Join(t.TempDir(), "sending-60x13.ansi")
+	if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	fs, _, _ := run(t, p)
+	for _, f := range fs {
+		if f.Rule == "F-TRUNC" || f.Rule == "F-CONTRAST" || f.Rule == "F-WIDTH" {
+			t.Errorf("a ruled dialog over a dimmed page, named sending: %+v, want no %s", f, f.Rule)
+		}
+	}
 }
 
 // F-LEVELS isn't judged on a frame with no colour (NO_COLOR): it has one text level by
@@ -917,6 +1206,29 @@ func TestOverlayDialogsAreFound(t *testing.T) {
 			t.Errorf("%s: %+v, want no F-CONTRAST", c.file, hits)
 		}
 	}
+	// a dialog is found by its shape, not its harness name: the same frames named for a
+	// state of the dialog that says no overlay word (a confirm's sending and send-error
+	// states) are judged the same
+	for _, c := range []struct {
+		file, as string
+		ascii    bool
+	}{{"rules-confirm-80x24.ansi", "sending-80x24.ansi", false}, {"rules-ascii-help-80x24.ansi", "send-error-80x24.ansi", true}, {"box-ascii-confirm-80x24.ansi", "refused-80x24.ansi", true}} {
+		data, err := os.ReadFile("testdata/overlays/" + c.file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := filepath.Join(dir, c.as)
+		if err := os.WriteFile(p, data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		args := []string{p, "--theme", "testdata/themes/quire.json"}
+		if c.ascii {
+			args = append(args, "--ascii")
+		}
+		if hits := contrastHits(t, args...); len(hits) != 0 {
+			t.Errorf("%s as %s: %+v, want no F-CONTRAST", c.file, c.as, hits)
+		}
+	}
 	if hits := contrastHits(t, "testdata/overlays/none-palette-80x24.ansi"); len(hits) != 1 || hits[0].Sev != "P2" || !strings.Contains(hits[0].Msg, "checked only by eye") {
 		t.Errorf("a dialog: none palette: %+v, want the P2 note", hits)
 	}
@@ -964,7 +1276,7 @@ func TestOverlayDialogsAreFound(t *testing.T) {
 		t.Errorf("quire 256-colour confirm over sectioned rows: %+v, want no F-CONTRAST", hits)
 	}
 	sections := mutate("testdata/overlays/rules-sections-256-confirm-80x24.ansi", "confirm-sections-80x24.ansi",
-		"\x1b[48;5;234m \x1b[38;5;244masks it", "\x1b[48;5;234m \x1b[38;5;235masks it")
+		"\x1b[48;5;234m \x1b[38;5;244mone row", "\x1b[48;5;234m \x1b[38;5;235mone row")
 	if hits := contrastHits(t, sections, "--theme", "testdata/themes/quire.json"); len(hits) != 1 || hits[0].Sev != "P1" || !strings.HasPrefix(hits[0].Where, "r10") {
 		t.Errorf("low contrast inside the 256-colour confirm: %+v, want one P1 on row 10", hits)
 	}
