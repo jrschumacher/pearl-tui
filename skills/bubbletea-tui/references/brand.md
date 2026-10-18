@@ -39,10 +39,13 @@ spec, whose reads named only hue, glyphs and words, came out one skeleton to the
 the read names two things the kit won't choose for you, both for the main screen's
 default frame (§6, question 2):
 
-- **move**: one region in other rows than the kit puts it, or absent, or added, following
-  from one of the three words; it and the signature are two different regions. The kit's default is a one-row header (name left, context
-  right), the list or transcript leading, status in the header and the footer, a rule
-  over the input and keys on the last row (`components.md`).
+- **move**: one region in another place in the screen's order than the kit puts it
+  (above or below a different region, left or right of one), or gone, or added,
+  following from one of the three words; it and the signature are two different regions.
+  A one-row shift from a gap, `density` or `footer: rule` is not a move, and a rule row a
+  theme expression adds is not an added region. The kit's default is a one-row header
+  (name left, context right), the list or transcript leading, status in the header and
+  the footer, a rule over the input and keys on the last row (`components.md`).
 - **signature**: one element the kit doesn't draw by default: a one-row cell-art mark
   beside the name (`art`, `cell-art.md`; a taller one sits above the header at h ≥ 30,
   since at 80×24 every row it takes comes out of the body), a depth gauge in the
@@ -54,10 +57,11 @@ page, because at-a-glance" (a monitor); "move: no header row, the step count sit
 footer, because unobtrusive" (a setup form); "move: the session's files and cost are a
 22-cell column right of the transcript even at 80 columns, because attentive" (a chat).
 **DON'T** count a glyph, a rule style or a hue as either, and judge a theme expression by
-its effect: one that restyles a region (`"header": "stamp"`, `bar`, `titleCase`) is
-paint, one that removes a region or puts it in other rows is a move. Both brands in that
-pair chose `╌` as their motif, which has its own line. A recoloured `ui.Header` is the
-kit's element, not a signature.
+its effect: one that restyles a region (`"header": "stamp"`, `bar`, `titleCase`) or only
+adds a rule or gap row (`footer: rule`, `density`) is paint; one that removes a region
+or puts it elsewhere in the screen's order is a move. Both brands in that pair chose `╌`
+as their motif, which has its own line. A recoloured `ui.Header` is the kit's element,
+not a signature.
 
 ## 2. Translate Traits Into Terminal Moves
 

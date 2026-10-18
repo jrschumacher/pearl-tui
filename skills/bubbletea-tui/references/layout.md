@@ -31,7 +31,7 @@ Decide what changes and at which width, and write it down:
 | Width | Change |
 |---|---|
 | < 60 or < 18 rows | `ui.TooSmall`: "Terminal too small", "52×16, needs 60×18", the `toosmall` row's key (q quit), centred, nothing else |
-| 60–109 | single column. The detail pane becomes one summary line under the list. The sidebar becomes a header row. Long help becomes short help. |
+| 60–109 | single column. The detail pane becomes one summary line under the list. The sidebar becomes a header row (the kit's default; a brand read's move may replace it, and a side column it keeps folds into a header row or under the transcript at the 60-column floor). Long help becomes short help. |
 | ≥ 110 | detail pane / sidebar on the right (30–40 cols) |
 | ≥ 140 | diffs default to side by side. A toggle (`t unified`) may offer it narrower; below ~100 columns each half gets < 45 cells, so cut long lines with `…` |
 | h ≥ 30 | a banner header is allowed; below that it collapses to one row |

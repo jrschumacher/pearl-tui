@@ -112,7 +112,7 @@ dialogs and overlays: where the background step is gone (16 colours, NO_COLOR, a
 
 ### Brand read
 palette / tone / geometry / density / type / motif   (references/brand.md §1)
-move: <one region in other rows than the kit puts it, or absent, or added, and the word it follows from>, e.g. the open alert fills the top half and the list folds under it (a monitor, urgent) · the answers so far as a column left of the field (a wizard, reassuring) · the composer right under the header and the transcript below it (a chat, eager); take yours from your words, not these
+move: <one region elsewhere in the screen's order than the kit puts it (above or below a different region, left or right of one), or gone, or added, and the word it follows from; not a one-row shift from a gap or a rule row>, e.g. the open alert fills the top half and the list folds under it (a monitor, urgent) · the answers so far as a column left of the field (a wizard, reassuring) · the composer right under the header and the transcript below it (a chat, eager); take yours from your words, not these
 signature: <one element the kit doesn't draw, on the main screen's default frame, not the move's region>, e.g. a 12-cell trace of today's load beside the name, a running-tally column on the list; not a glyph, a rule style, a hue or a restyling theme expression
 accents: <hue> = <its one meaning>, one line per hue; focus = <gutter, weight>, never a state hue ("focus": "fg" in the theme when the brand's hue is a state)
 glyphs: <glyph> <meaning> (ascii <twin>), one line each; twins the kit lacks go in the theme's glyphs.ascii; width-safe: <narrow glyph | 2-cell column>

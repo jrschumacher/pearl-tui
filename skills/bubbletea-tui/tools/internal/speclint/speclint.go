@@ -814,6 +814,6 @@ func (s *spec) brandSlots(add func(string, int, string, ...any)) {
 		}
 	}
 	if remember > 0 && !slots {
-		add("S-SLOTS", remember, "`remember:` with no `move:` or `signature:`: the brand read now names a move (one region in other rows than the kit puts it, or absent, or added) and a signature (one element the kit doesn't draw), both on the main screen's default frame, and brand, craft and the critic look for those. Write both from this line and the brand's three words (references/brand.md § Move A Region)")
+		add("S-SLOTS", remember, "`remember:` with no `move:` or `signature:`: the brand read now names a move (one region elsewhere in the screen's order than the kit puts it, or gone, or added) and a signature (one element the kit doesn't draw), both on the main screen's default frame, and brand, craft and the critic look for those. Write both from this line and the brand's three words (references/brand.md § Move A Region)")
 	}
 }
