@@ -88,7 +88,7 @@ func readForm(t *testing.T, path string) form {
 func TestKindsMatchTheIssueForms(t *testing.T) {
 	dir := filepath.Join("..", "..", "..", "..", "..", ".github", "ISSUE_TEMPLATE")
 	if _, err := os.Stat(dir); err != nil {
-		t.Skip("no .github/ISSUE_TEMPLATE: not the skill's repository")
+		t.Fatalf("no issue forms at %s: a moved path would leave Kinds unchecked (%v)", dir, err)
 	}
 	seen := map[string]bool{}
 	for _, k := range Kinds {
