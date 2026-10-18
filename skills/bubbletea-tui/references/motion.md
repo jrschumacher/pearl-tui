@@ -100,9 +100,9 @@ lint, and intros that play once and hand off to an identical idle frame.
 | hero anim | 50 ms | ≤ 30 cells |
 | row spinner | 100 ms | 1 cell |
 | field drift | 160 ms | full screen (static otherwise) |
-| toast TTL | 4 s | footer |
-| undo toast TTL | 8 s | footer |
-| grace window (held send) | 5 s, default | footer |
+| toast TTL (`ui.ToastTTL`) | 4 s | footer |
+| undo toast TTL (`ui.UndoTTL`) | 8 s | footer |
+| grace window, held send (`ui.GraceTTL`) | 5 s, default; the row counts down by the second | footer |
 | cursor blink | terminal's own (`tea.Cursor{Blink: true}`) | 1 cell |
 
 ## DO / DON'T

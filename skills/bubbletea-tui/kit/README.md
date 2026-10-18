@@ -7,6 +7,8 @@ theme/          theme.go (the JSON contract), derive.go (fills missing roles, AS
                 styles.go (every style from the palette, Grad, Case, Label, Gap)
 ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, PaintBackground, ASCIIfy, Fit, OnBg
                 chrome.go   Wordmark, Header, Details, Section, Rule, Help, Footer, Toast, Tabs, TooSmall
+                toast.go    ToastTTL, UndoTTL, GraceTTL, Frames, SecondsLeft, ToastKey (a toast that
+                            offers one key: u undo)
                 controls.go Button(s), Tag, Alert, Dot, KV, Progress, Sparkline, Scrollbar, Count, Empty
                 list.go     List (selection styles, fuzzy underline, scrollbar), Table (borderless),
                             Follow (scroll-into-view), Fuzzy (subsequence match with indices)
@@ -46,7 +48,9 @@ the kit can't draw (`theme.CheckLadder`).
 ## The showcase is the pattern
 
 - `app.go`: one root model; a per-state **action table** (`actions()`) that both
-  dispatches keys and renders the footer; text inputs take printable keys first; one
+  dispatches keys and renders the footer; toasts with their own length, whose one key
+  (`u undo`) joins the table while they show, and a grace window that holds a send
+  (`say`, `sayUndo`, `hold`); text inputs take printable keys first; one
   clock with a generation number; async work finishes by message; selection by identity.
 - `screens.go`: `render(w, h)` draws every region into rectangles; header and footer
   first; overlays last; the ASCII pass at the end.
@@ -71,7 +75,8 @@ the kit can't draw (`theme.CheckLadder`).
 - The showcase's own tests: `screens_test.go` (actions target the selection, inputs
   take letters, one frame clock, the refresh clock survives a rate change or pause,
   deploys finish, rollbacks don't repeat, layout holds under focus, breakpoints, tab
-  stops in a tool body) and `setup_test.go` (the wizard's review defaults to Continue,
+  stops in a tool body, every key a toast names works, undo inside a grace window means
+  the send never goes) and `setup_test.go` (the wizard's review defaults to Continue,
   button order, the step count past review, esc keeps input, no Huh default colour in
   any frame, the accessible transcript).
 

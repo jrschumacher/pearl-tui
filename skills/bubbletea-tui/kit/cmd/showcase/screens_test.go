@@ -23,6 +23,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
+	"tuikit/ui"
 )
 
 // The 16-colour tests (ansi16_test.go) also judge every status mark (ladder) and a
@@ -677,6 +678,167 @@ func TestFaintWarningSparklineStaysQuiet(t *testing.T) {
 					t.Errorf("%s dark=%v %dx%d: no degraded sparkline with its mark: the test reached nothing", filepath.Base(path), dark, size[0], size[1])
 				}
 			}
+		}
+	}
+}
+
+// advance runs the frame clock n frames, as its ticks would arrive.
+func advance(m *app, n int) {
+	for range n {
+		m.Update(tickMsg{gen: m.tick.gen})
+	}
+}
+
+// toastRow is the footer row as drawn at w×h, where a toast stands while it shows.
+func toastRow(m *app, w, h int) string {
+	return rowText(m.render(w, h), h-1)
+}
+
+// pressToastKeys checks the toast m shows (if it offers a key): the footer row names
+// the key and what it does, the state's action table binds it, and every one of its
+// keys, pressed on a fresh copy of the state, reaches the toast's handler. fresh
+// rebuilds the state the toast was raised in.
+func pressToastKeys(t *testing.T, name string, m *app, fresh func() *app) {
+	t.Helper()
+	a := m.toastAction()
+	if a == nil {
+		return
+	}
+	h := a.b.Help()
+	for _, sz := range [][2]int{{minW, minH}, {80, 24}, {120, 40}} {
+		if row := toastRow(m, sz[0], sz[1]); !strings.Contains(row, h.Key+" "+h.Desc) {
+			t.Errorf("%s %dx%d: the toast offers %s %s but its row reads %q", name, sz[0], sz[1], h.Key, h.Desc, row)
+		}
+	}
+	if !slices.ContainsFunc(m.actions(), func(b action) bool { return b.b.Help() == h }) {
+		t.Errorf("%s: the toast names %s %s, which the state's action table doesn't hold", name, h.Key, h.Desc)
+	}
+	for _, k := range a.b.Keys() {
+		f := fresh()
+		f.key(press(k))
+		if f.last != h.Desc {
+			t.Errorf("%s: %q, which the toast names (%s), reached %q", name, k, h.Desc, f.last)
+		}
+	}
+}
+
+// Law 6 for the one key a toast names: every key a toast offers (u undo, u unsilence)
+// is in the state's action table while the toast shows, its row names it at every size
+// down to the floor, and pressing it does what the row says. Every toast the app
+// raises is reached: each key of each state's table, and each palette command.
+func TestToastKeysAreHandled(t *testing.T) {
+	offered := 0
+	for _, s := range states {
+		m := fixture(t, s)
+		if m.toastAction() != nil {
+			offered++
+			pressToastKeys(t, s, m, func() *app { return fixture(t, s) })
+		}
+		for _, a := range m.actions() {
+			k := a.b.Keys()[0]
+			raise := func() *app { f := fixture(t, s); f.key(press(k)); return f }
+			if r := raise(); r.toastAction() != nil {
+				offered++
+				pressToastKeys(t, s+" then "+k, r, raise)
+			}
+		}
+	}
+	for _, c := range commands {
+		raise := func() *app { f := fixture(t, "services"); f.command(c.Title); return f }
+		if r := raise(); r.toastAction() != nil {
+			offered++
+			pressToastKeys(t, "services then "+c.Title, r, raise)
+		}
+	}
+	if offered == 0 {
+		t.Fatal("no toast offers a key: the undo toast and the grace window are gone")
+	}
+}
+
+// Silence is rung 1 of the confirm ladder: it happens on the command, the screen shows
+// it, and an undo toast names the key that takes it back, for UndoTTL. The key leaves
+// the action table when the toast goes; the palette then names the way back.
+func TestSilenceUndoes(t *testing.T) {
+	m := fixture(t, "services")
+	name := m.svcs[m.sel].Name
+	m.command("Silence alerts")
+	if !m.silenced[name] {
+		t.Fatal("Silence alerts didn't silence the selected service")
+	}
+	if m.toast == nil || m.toast.until-m.frame != ui.Frames(ui.UndoTTL) {
+		t.Fatalf("the silence toast %+v should stand for UndoTTL (%d frames)", m.toast, ui.Frames(ui.UndoTTL))
+	}
+	if row := toastRow(m, 80, 24); !strings.Contains(row, "Silenced "+name+" alerts for 1h") || !strings.Contains(row, "u unsilence") {
+		t.Errorf("the silence toast reads %q", row)
+	}
+	m.key(press("u"))
+	if m.silenced[name] {
+		t.Fatal("u unsilence left the alerts silenced")
+	}
+	if m.toastAction() != nil {
+		t.Error("the toast after an undo offers a key again")
+	}
+	// the undo key lives as long as its toast
+	m.command("Silence alerts")
+	advance(m, ui.Frames(ui.UndoTTL))
+	if m.toast != nil || m.toastAction() != nil {
+		t.Fatalf("the undo toast outlived UndoTTL: %+v", m.toast)
+	}
+	m.last = ""
+	m.key(press("u"))
+	if !m.silenced[name] || m.last == "unsilence" {
+		t.Error("u still unsilenced after its toast had gone")
+	}
+	if !slices.ContainsFunc(m.filtered(), func(h hit) bool { return h.c.Title == "Unsilence alerts" }) {
+		t.Error("with the toast gone the palette offers no way back: want \"Unsilence alerts\"")
+	}
+}
+
+// A page is rung 2: `n declare incident` is the judgement, so no confirm, but the page
+// waits out a grace window under an undo toast that counts down. Undo inside the window
+// means it never goes; letting the window run sends it, and a plain toast says it went.
+func TestGraceWindow(t *testing.T) {
+	m := fixture(t, "incidents")
+	m.Update(press("n"))
+	if m.declared {
+		t.Fatal("the incident was declared at once: the page should wait out its grace window")
+	}
+	if row := toastRow(m, 80, 24); !strings.Contains(row, "Paging payments on-call in 5 s") || !strings.Contains(row, "u undo") {
+		t.Errorf("the grace toast reads %q", row)
+	}
+	advance(m, ui.Frames(time.Second))
+	if row := toastRow(m, 80, 24); !strings.Contains(row, "in 4 s") {
+		t.Errorf("a second in, the grace toast reads %q: it should count down", row)
+	}
+	m.Update(press("u"))
+	advance(m, ui.Frames(ui.GraceTTL)+ui.Frames(ui.ToastTTL))
+	if m.declared {
+		t.Fatal("u undo inside the grace window, and the page went anyway")
+	}
+
+	m = fixture(t, "incidents")
+	m.Update(press("n"))
+	advance(m, ui.Frames(ui.GraceTTL))
+	if !m.declared {
+		t.Fatal("the grace window ended and nothing was sent")
+	}
+	if row := toastRow(m, 80, 24); !strings.Contains(row, "Declared INC-2041") || !strings.Contains(row, "paged payments on-call") {
+		t.Errorf("after the window the toast reads %q, want it to say the page went", row)
+	}
+	if m.toastAction() != nil {
+		t.Error("the toast that says the page went still offers undo")
+	}
+	if slices.ContainsFunc(m.actions(), func(a action) bool { return a.b.Help().Desc == "declare incident" }) {
+		t.Error("n declare incident is still offered with INC-2041 declared")
+	}
+
+	// moving on doesn't drop what is held: another toast, or quitting, sends it now
+	for _, k := range []string{"h", "q"} {
+		m = fixture(t, "incidents")
+		m.Update(press("n"))
+		m.key(press(k))
+		if !m.declared {
+			t.Errorf("%s during the grace window dropped the page: it was neither undone nor sent", k)
 		}
 	}
 }

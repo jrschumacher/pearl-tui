@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 
+	"charm.land/bubbles/v2/key"
 	"charm.land/lipgloss/v2"
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/ultraviolet/layout"
@@ -103,8 +104,13 @@ func (m *app) draw(w, h int) *ui.Canvas {
 	}
 	// the toast takes the footer's row; under a dialog that row holds the dialog's keys
 	// (a help opened in the toast's 4 s lost its "scroll" key to it)
+	// it names the key it offers only where that key works (toastAction)
 	if m.toast != nil && m.ov == ovNone {
-		c.Draw(ui.Toast(t, m.toast.kind, m.toast.label, m.toast.msg, w), ui.Rect(0, h-1, w, 1))
+		var k key.Binding
+		if a := m.toastAction(); a != nil {
+			k = a.b
+		}
+		c.Draw(ui.ToastKey(t, m.toast.kind, m.toast.label, m.toastMsg(), k, w), ui.Rect(0, h-1, w, 1))
 	}
 	return c
 }
@@ -193,6 +199,9 @@ func (m *app) services(c *ui.Canvas, r uv.Rectangle) {
 	} else if y := main.Min.Y + len(tbl) + 1; y < main.Max.Y {
 		line := t.S.Muted.Render(s.Name) + t.S.Subtle.Render("  owner ") + t.S.Soft.Render(s.Owner) +
 			t.S.Subtle.Render("  deployed ") + t.S.Soft.Render(s.Deployed)
+		if m.silenced[s.Name] {
+			line += t.S.Subtle.Render("  alerts ") + t.S.Muted.Render("silenced for 1h")
+		}
 		c.Draw(line, uv.Rect(main.Min.X+2, y, main.Dx()-2, 1))
 		if s.State == "error" && y+2 < main.Max.Y {
 			c.Draw(ui.Alert(t, "error", "502s", "4.8% of checkout requests failing since 14:02 "+t.G.Sep+" r roll back", main.Dx()-2), uv.Rect(main.Min.X+2, y+2, main.Dx()-2, 1))
@@ -217,6 +226,9 @@ func (m *app) serviceDetail(c *ui.Canvas, r uv.Rectangle) {
 		{"owner", t.S.Base.Render(s.Owner)},
 		{"deployed", t.S.Base.Render(s.Deployed)},
 	}, 9)...)
+	if m.silenced[s.Name] { // rung 1: the screen shows the action at once
+		rows = append(rows, ui.KV(t, [][2]string{{"alerts", t.S.Muted.Render("silenced for 1h")}}, 9)...)
+	}
 	rows = append(rows, "", ui.Section(t, "p99 latency", w, "12 min"), "")
 	rows = append(rows, ui.Sparkline(t, stretch(s.P99, w), w, t.S.Muted))
 	last := s.P99[len(s.P99)-1]
@@ -286,7 +298,10 @@ func (m *app) incidents(c *ui.Canvas, r uv.Rectangle) {
 	t := m.t
 	act := t.S.Key.Render("n") + " " + t.S.KeyDesc.Render("declare incident") + "   " + t.S.Key.Render("h") + " " + t.S.KeyDesc.Render("history")
 	title, why := "No incidents declared", "checkout-api has been failing for 12 min. Declare one to page payments on-call."
-	if m.declared {
+	switch {
+	case m.paging: // the grace window: the toast counts down and offers undo
+		title, why, act = "Declaring INC-2041", "Payments on-call is paged when the countdown ends.", ""
+	case m.declared:
 		title, why, act = "INC-2041 declared", "Paging payments on-call. Updates will appear here as responders join.", ""
 	}
 	rows := ui.Empty(t, r.Dx(), "", title, why, act)
@@ -552,6 +567,9 @@ func (m *app) filtered() []hit {
 	var out []hit
 	q := strings.ToLower(m.query)
 	for _, c := range commands {
+		if c.Title == "Silence alerts" && m.silenced[m.svcs[m.sel].Name] {
+			c.Title, c.Desc = "Unsilence alerts", "turn "+m.svcs[m.sel].Name+"'s alerts back on"
+		}
 		if idx, ok := ui.Fuzzy(strings.ToLower(c.Title), q); ok {
 			out = append(out, hit{c, idx})
 		}

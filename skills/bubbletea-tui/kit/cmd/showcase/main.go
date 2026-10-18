@@ -35,8 +35,8 @@ import (
 
 // states are every screen the app can show. A state you can't render here is
 // a state nobody reviewed.
-var states = []string{"services", "services-toast", "deploys", "palette", "confirm", "help", "deploy", "deploy-review",
-	"incidents", "ladder", "assistant", "assistant-busy", "splash", "toosmall",
+var states = []string{"services", "services-toast", "services-undo", "deploys", "palette", "confirm", "help", "deploy", "deploy-review",
+	"incidents", "incidents-grace", "ladder", "assistant", "assistant-busy", "splash", "toosmall",
 	"setup-target", "setup-namespace", "setup-invalid", "setup-auth", "setup-alerts", "setup-review", "setup-signin", "setup-failed", "setup-done"}
 
 // overlays are the states that open a dialog over a page, as setState names them. The
@@ -56,7 +56,7 @@ var scrolls = []string{"help"}
 // that draws a selection, a focused field or a caret. (Not the setup wizard: a Huh
 // form has no way to draw its focused field blurred short of Field.Blur, which
 // validates it.)
-var overlayPages = []string{"services", "deploys", "assistant", "deploy", "deploy-review", "services-toast"}
+var overlayPages = []string{"services", "deploys", "assistant", "deploy", "deploy-review", "services-toast", "services-undo"}
 
 // unjudgedPages are the states that draw a focus mark that an overlay can't blur, kept
 // out of overlayPages, each with its reason (repeat it in TUI.md § Decisions). Only a
@@ -102,6 +102,8 @@ func (m *app) setState(s string) {
 	switch s {
 	case "services-toast":
 		m.rollback()
+	case "services-undo": // rung 1: done at once, an undo toast offers the way back
+		m.command("Silence alerts")
 	case "deploys":
 		m.screen = scrDeploys
 		m.sel = m.svcIndex(m.events[m.depSel].Svc)
@@ -115,6 +117,9 @@ func (m *app) setState(s string) {
 		m.armDeploy()
 	case "incidents":
 		m.screen = scrIncidents
+	case "incidents-grace": // rung 2: the page waits out its grace window, counting down
+		m.screen = scrIncidents
+		m.key(tea.KeyPressMsg{Code: 'n', Text: "n"}) // as the key would
 	case "ladder":
 		m.screen = scrLadder
 	case "assistant":

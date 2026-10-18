@@ -91,8 +91,11 @@ type app struct {
 	busySince int // frame the work started
 	expand    bool
 	scroll    int
-	// incidents
+	// incidents: declaring pages on-call through a grace window (paging while it runs)
 	declared bool
+	paging   bool
+	// alerts silenced per service (the palette's Silence alerts, undone by its toast)
+	silenced map[string]bool
 	// services: the list refreshes itself unless paused (the product clock)
 	paused  bool
 	refresh refreshState
@@ -105,9 +108,17 @@ type app struct {
 	firstRun bool
 }
 
+// toast is the one notice over the footer row. Each has its own length (ui.ToastTTL,
+// ui.UndoTTL, ui.GraceTTL), held on the frame clock, and may offer one action (u undo):
+// it joins the current state's action table while the toast shows and leaves with it,
+// so the key the row names is a key that works (TestToastKeysAreHandled). A grace
+// window also holds a send: held runs when the toast ends, unless the action drops it
+// first, and the row counts down to it.
 type toast struct {
 	kind, label, msg string
-	until            int // frame
+	until            int                  // the frame it ends on
+	act              *action              // the key it offers, or nil
+	held             func(m *app) tea.Cmd // a grace window's send, run when it ends
 }
 
 // tickState is the one frame clock. gen kills stale tick chains: a key press can't
@@ -151,6 +162,7 @@ func newApp(f theme.File, dark, ascii bool) *app {
 	m.feed = slices.Clone(activity)
 	m.version, m.checks = "v2.4.1", [2]bool{true, false}
 	m.btn = 1
+	m.silenced = map[string]bool{}
 	m.refresh.rate = 2 // every 5 s
 	m.setup = newSetup()
 	return m
@@ -273,15 +285,16 @@ func (m *app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil // a stale chain dies here
 		}
 		m.frame++
+		var sent tea.Cmd
 		if m.toast != nil && m.frame >= m.toast.until {
-			m.toast = nil
+			sent = m.endToast() // a grace window's send goes now
 		}
 		if !m.animating() {
 			m.tick.running = false
-			return m, nil
+			return m, sent
 		}
 		gen := m.tick.gen
-		return m, tea.Tick(ui.FrameInterval, func(time.Time) tea.Msg { return tickMsg{gen} })
+		return m, tea.Batch(sent, tea.Tick(ui.FrameInterval, func(time.Time) tea.Msg { return tickMsg{gen} }))
 	case refreshMsg:
 		if msg.gen != m.refresh.gen {
 			return m, nil // retired by a setting change, which armed the new tick
@@ -322,7 +335,7 @@ func bind(keys []string, k, desc string) key.Binding {
 
 func (m *app) key(msg tea.KeyPressMsg) tea.Cmd {
 	if msg.String() == "ctrl+c" {
-		return tea.Quit // always, from everywhere
+		return tea.Sequence(m.endToast(), tea.Quit) // always, from everywhere; a held send goes first
 	}
 	// a focused input takes every printable key first: no letter, colon or
 	// question mark can fire a command while the user is typing
@@ -371,13 +384,80 @@ func backspace(m *app, _ tea.KeyPressMsg) tea.Cmd {
 	return nil
 }
 
+// say raises a plain toast: what happened, for ui.ToastTTL.
 func (m *app) say(kind, label, msg string) {
-	m.toast = &toast{kind, label, msg, m.frame + 80} // ~4 s at 20 fps
+	m.raise(&toast{kind: kind, label: label, msg: msg, until: m.frame + ui.Frames(ui.ToastTTL)})
+}
+
+// sayUndo raises an undo toast, rung 1 of the confirm ladder: what happened and the key
+// that takes it back (b, bound while the toast shows), for ui.UndoTTL, long enough to
+// reach the key.
+func (m *app) sayUndo(kind, label, msg string, b key.Binding, undo func(m *app)) {
+	m.raise(&toast{kind: kind, label: label, msg: msg, until: m.frame + ui.Frames(ui.UndoTTL),
+		act: &action{b, true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.toast = nil; undo(m); return nil }}})
+}
+
+// hold raises a grace window, rung 2's default for a send that can't be recalled: msg
+// says what will happen ("Paging payments on-call"), the row counts down to it ("in 5 s")
+// and offers undo for ui.GraceTTL; send runs when the window ends, undo instead of it.
+func (m *app) hold(kind, label, msg string, send func(m *app) tea.Cmd, undo func(m *app)) {
+	m.raise(&toast{kind: kind, label: label, msg: msg, until: m.frame + ui.Frames(ui.GraceTTL), held: send,
+		act: &action{bind([]string{"u"}, "u", "undo"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.toast = nil; undo(m); return nil }}})
+}
+
+// raise shows t. A grace window it replaces isn't dropped: moving on is not undo, so
+// its send goes now (as it does on quit), and t stands over the footer after it.
+func (m *app) raise(t *toast) {
+	if m.toast != nil && m.toast.held != nil {
+		m.endToast()
+	}
+	m.toast = t
+}
+
+// endToast takes the toast down and runs what it held, if anything. (The showcase's
+// sends are in place and return nil; a real one returns the cmd that sends.)
+func (m *app) endToast() tea.Cmd {
+	t := m.toast
+	m.toast = nil
+	if t == nil || t.held == nil {
+		return nil
+	}
+	return t.held(m)
+}
+
+// toastMsg is the toast's message as drawn now: a grace window's counts down.
+func (m *app) toastMsg() string {
+	if m.toast.held != nil {
+		return m.toast.msg + " in " + itoa(ui.SecondsLeft(m.toast.until-m.frame)) + " s"
+	}
+	return m.toast.msg
+}
+
+// toastAction is the key the toast offers in the current state, or nil: none under a
+// dialog (the dialog's keys hold the footer row, and the toast isn't drawn), and none
+// while an input takes printable keys, where u is a letter typed (the row drops it).
+func (m *app) toastAction() *action {
+	if m.toast == nil || m.toast.act == nil || m.ov != ovNone || m.w < minW || m.h < minH {
+		return nil
+	}
+	if m.textTarget() != nil || (m.screen == scrSetup && m.setup.typing()) {
+		return nil
+	}
+	return m.toast.act
 }
 
 // actions returns the current state's bindings, most important first.
+// The toast's key, while it shows, comes first: the row names it, and it wins a clash.
 func (m *app) actions() []action {
-	quit := action{bind([]string{"q"}, "q", "quit"), true, func(*app, tea.KeyPressMsg) tea.Cmd { return tea.Quit }}
+	if a := m.toastAction(); a != nil {
+		return append([]action{*a}, m.stateActions()...)
+	}
+	return m.stateActions()
+}
+
+// stateActions are the current state's own bindings, the toast's aside.
+func (m *app) stateActions() []action {
+	quit := action{bind([]string{"q"}, "q", "quit"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return tea.Sequence(m.endToast(), tea.Quit) }}
 	// with a text input focused, help and the palette move off printable keys
 	typing := m.textTarget() != nil || (m.screen == scrSetup && m.setup.typing())
 	helpKeys, paletteKeys := []string{"?"}, []string{"ctrl+p", ":"}
@@ -552,18 +632,30 @@ func (m *app) actions() []action {
 			tabs, tabsBack, palette, help, bs,
 		)
 	case scrIncidents:
-		return []action{
-			{bind([]string{"n"}, "n", "declare incident"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
-				m.declared = true
-				m.say("warning", "DECLARED", "INC-2041 checkout-api 502s "+m.t.G.Sep+" paging payments on-call")
+		acts := []action{}
+		if !m.declared && !m.paging {
+			// a page is a send to people one labelled key starts: the label is the judgement
+			// (rung 2), so no confirm, but it waits out a grace window under an undo toast
+			acts = append(acts, action{bind([]string{"n"}, "n", "declare incident"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
+				m.paging = true
+				m.hold("warning", "HELD", "Paging payments on-call", func(m *app) tea.Cmd {
+					m.paging, m.declared = false, true
+					m.say("ok", "SENT", "Declared INC-2041 "+m.t.G.Sep+" paged payments on-call")
+					return nil
+				}, func(m *app) {
+					m.paging = false
+					m.say("info", "CANCELED", "Nobody was paged "+m.t.G.Sep+" INC-2041 not declared")
+				})
 				return nil
-			}},
-			{bind([]string{"h"}, "h", "history"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
+			}})
+		}
+		return append(acts,
+			action{bind([]string{"h"}, "h", "history"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
 				m.say("info", "HISTORY", "No incidents in the last 30 days")
 				return nil
 			}},
 			tabs, tabsBack, palette, quit, help,
-		}
+		)
 	}
 	// services and deploys: a list
 	move := action{bind([]string{"up", "k", "down", "j"}, m.t.G.UpDown, "select"), true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
@@ -721,7 +813,13 @@ func (m *app) command(title string) tea.Cmd {
 	case "Open dashboard":
 		m.say("info", "OPENED", "grafana.internal/d/"+s.Name)
 	case "Silence alerts":
-		m.say("warning", "SILENCED", s.Name+" alerts for 1h")
+		// rung 1: reversible in one gesture, so no confirm; the toast offers the undo
+		name := s.Name
+		m.silenced[name] = true
+		m.sayUndo("ok", "DONE", "Silenced "+name+" alerts for 1h", bind([]string{"u"}, "u", "unsilence"),
+			func(m *app) { m.unsilence(name) })
+	case "Unsilence alerts":
+		m.unsilence(s.Name)
 	case "Switch environment":
 		m.say("info", "ENV", "staging is read-only in this demo")
 	case "Copy service URL":
@@ -737,6 +835,12 @@ func (m *app) command(title string) tea.Cmd {
 		m.screen = scrLadder
 	}
 	return nil
+}
+
+// unsilence turns a service's alerts back on.
+func (m *app) unsilence(name string) {
+	delete(m.silenced, name)
+	m.say("ok", "DONE", "Alerts back on for "+name)
 }
 
 // resolve rebuilds the theme for a mode, keeping the ASCII choice and the profile.

@@ -320,18 +320,12 @@ func Footer(t *theme.Theme, w int, left string, bindings []key.Binding, right st
 }
 
 // Toast paints over the footer row: a tag then the message on a tinted bar.
-// It replaces the help line for a few seconds instead of taking a new row.
+// It replaces the help line for a few seconds (ToastTTL; an undo toast UndoTTL, a
+// grace window GraceTTL) instead of taking a new row. A toast that offers a key
+// (u undo) is ToastKey.
 func Toast(t *theme.Theme, kind, label, msg string, w int) string {
 	g := t.X.Gutter
-	tag, bar := t.S.TagOK, t.S.BarOK
-	switch kind {
-	case "error":
-		tag, bar = t.S.TagErr, t.S.BarErr
-	case "warning":
-		tag, bar = t.S.TagWarn, t.S.BarWarn
-	case "info":
-		tag, bar = t.S.TagInfo, t.S.BarInfo
-	}
+	tag, bar := toastStyles(t, kind)
 	tg := tag.Render(t.Label(label, "as-is"))
 	rest := w - 2*g - lipgloss.Width(tg)
 	return strings.Repeat(" ", g) + tg + bar.Width(max(0, rest)).Render(Trunc(t, msg, max(0, rest-2))) + strings.Repeat(" ", g)
