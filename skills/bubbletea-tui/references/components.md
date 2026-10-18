@@ -297,8 +297,10 @@ says the state in words.
 - Idle is dots, never a line. A sample under 1/8 of the scale draws the floor `⣀` (`⠤`
   beside a rule drawn in braille), so a 4–9 % band is one even row, not `⣀▁⣀▁`, and a
   quiet row is never a hairline: `▁▁▁▁` reads as one more rule beside any rule, and over
-  the next row's bars it closes a box. A series of zeros draws the floor in fgSubtle, a
-  step under a low reading's fgMuted; a missing sample is blank. ASCII draws heights
+  the next row's bars it closes a box. No data is not low data: a history with nothing
+  above `Min` (a series of zeros) draws blank, as a missing sample does, since a floor a
+  step of ink quieter than 0.01 % is the same row under NO_COLOR and in ASCII; a zero
+  beside activity draws the floor in fgSubtle, a step under a low reading's fgMuted. ASCII draws heights
   `.,:;%&#@` (punctuation thickening upward) and the floor `.` (`,` beside a `.` rule),
   never `-`, `_` or `=`, whose runs are rules.
 - Sparkline: `▁▂▃▅▇` over a fixed column, scaled to the series (latency, throughput),

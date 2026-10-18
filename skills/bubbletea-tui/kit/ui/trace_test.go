@@ -129,7 +129,7 @@ func TestIdleHistoryIsDotsNeverALine(t *testing.T) {
 			th := theme.Resolve(f, true, ascii)
 			name := fmt.Sprintf("%s ascii=%v (rule %q)", f.Name, ascii, th.G.Rule)
 			rows := map[string]string{
-				"Trace 0 %":              TraceRow(th, make([]float64, 12), 12, TraceOpts{}),
+				"Trace 0 % between busy": string([]rune(ansi.Strip(TraceRow(th, append(make([]float64, 12), 50), 13, TraceOpts{})))[:12]),
 				"Trace 4-9 %":            TraceRow(th, low, 12, TraceOpts{}),
 				"Trace 4-9 % three rows": Trace(th, low, 12, TraceOpts{Rows: 3})[2],
 				"Sparkline constant":     Sparkline(th, []float64{40, 40, 40, 40, 40, 40}, 6, th.S.Muted),
@@ -177,25 +177,38 @@ func isASCIIText(s string) bool {
 	return true
 }
 
-// No activity at all (a series of zeros) and a little (4–9 %) both draw the floor, so
-// they share one texture; the zero row draws it a step quieter (fgSubtle against
-// fgMuted), so an idle core reads apart from a ticking one.
-func TestZeroIsQuieterThanLow(t *testing.T) {
+// No data is not low data. A history with no activity at all (every sample at Min, a
+// series of zeros) drew the same dotted floor as one at 0.01 %, a step of ink apart, so
+// under NO_COLOR and in ASCII (..........) the two were one row. It draws blank, as a
+// history that hasn't started does: there is nothing to plot. A zero inside an active
+// window still draws the floor (the time axis runs on), a step quieter than a low
+// reading (fgSubtle against fgMuted).
+func TestNoDataIsNotLowData(t *testing.T) {
 	for _, ascii := range []bool{false, true} {
 		th := testTheme(t, ascii)
-		zero := TraceRow(th, make([]float64, 6), 6, TraceOpts{})
 		low := TraceRow(th, []float64{4, 7, 5, 9, 6, 4}, 6, TraceOpts{})
-		if ansi.Strip(zero) != ansi.Strip(low) {
-			t.Errorf("ascii=%v: zero %q and low %q, want one texture", ascii, ansi.Strip(zero), ansi.Strip(low))
+		for what, none := range map[string]string{
+			"Trace":             TraceRow(th, make([]float64, 6), 6, TraceOpts{}),
+			"Trace on 10..90":   TraceRow(th, []float64{10, 3, 10}, 6, TraceOpts{Min: 10, Max: 90}),
+			"Sparkline":         Sparkline(th, make([]float64, 6), 6, th.S.Muted),
+			"StateSparkline ok": StateSparkline(th, "ok", make([]float64, 6), 6),
+		} {
+			if got := ansi.Strip(none); strings.TrimSpace(got) != "" || lipgloss.Width(none) != 6 {
+				t.Errorf("ascii=%v: %s of no data draws %q, want 6 blank cells", ascii, what, got)
+			}
 		}
-		if c := cellAt(zero, string([]rune(ansi.Strip(zero))[0])); c == nil || !same8(c.Style.Fg, th.P.FgSubtle) {
-			t.Errorf("ascii=%v: an all-zero trace is not in fgSubtle: %v", ascii, c)
+		if strings.TrimSpace(ansi.Strip(low)) == "" {
+			t.Errorf("ascii=%v: a low trace draws nothing", ascii)
 		}
 		if c := cellAt(low, string([]rune(ansi.Strip(low))[0])); c == nil || !same8(c.Style.Fg, th.P.FgMuted) {
 			t.Errorf("ascii=%v: a low trace is not in fgMuted: %v", ascii, c)
 		}
-		if c := cellAt(Sparkline(th, make([]float64, 6), 6, th.S.Muted), ansi.Strip(zero)[:1]); c == nil || !same8(c.Style.Fg, th.P.FgSubtle) {
-			t.Errorf("ascii=%v: an all-zero sparkline is not in fgSubtle: %v", ascii, c)
+		mixed := TraceRow(th, []float64{0, 0, 50}, 3, TraceOpts{})
+		floor, _ := th.TraceGlyphs()
+		if got := []rune(ansi.Strip(mixed)); string(got[0]) != floor {
+			t.Errorf("ascii=%v: a zero beside activity draws %q, want the floor", ascii, string(got[0]))
+		} else if c := cellAt(mixed, floor); c == nil || !same8(c.Style.Fg, th.P.FgSubtle) {
+			t.Errorf("ascii=%v: a zero beside activity is not in fgSubtle: %v", ascii, c)
 		}
 	}
 }

@@ -31,18 +31,21 @@ type TraceOpts struct {
 	// value carries it (ui.Mark).
 	Warn, Fail float64
 	// Ink, when set, is the ink of a cell by its value, in place of fgMuted and the levels.
+	// It is not asked for a cell at or below Min: that one draws the floor in fgSubtle
+	// whatever Ink says (and a history with nothing above Min draws blank).
 	Ink func(v float64) lipgloss.Style
 }
 
 // Trace draws a history on a fixed scale in w cells, newest sample at the right edge, and
 // returns opts.Rows rows (top first); TraceRow is the one-row case. A cell before the
 // first sample is blank (a history that hasn't started is empty, not zero), and so is a
-// NaN. A cell under 1/8 of the scale is idle and draws the floor (Theme.TraceGlyphs: ⣀;
-// ASCII . or ,), one texture for the whole idle band, so an idle 4–9 % never flickers
-// between floor and bar and never reads as a section rule; a cell at Min itself (no
-// activity at all) draws it in fgSubtle, a step under a low reading's fgMuted. Above it
-// the cell rises through ▁▂▃▄▅▆▇█ (ASCII .,:;%&#@). On a selected row ui.Table draws the
-// bars in the selection's shade (Styles.SelBars).
+// NaN, and so is every cell of a history with nothing above Min (no data, which must not
+// read as low data under NO_COLOR or ASCII). A cell under 1/8 of the scale is idle and
+// draws the floor (Theme.TraceGlyphs: ⣀; ASCII . or ,), one texture for the whole idle
+// band, so an idle 4–9 % never flickers between floor and bar and never reads as a
+// section rule; a cell at Min itself beside activity draws it in fgSubtle, a step under
+// a low reading's fgMuted. Above it the cell rises through ▁▂▃▄▅▆▇█ (ASCII .,:;%&#@).
+// On a selected row ui.Table draws the bars in the selection's shade (Styles.SelBars).
 func Trace(t *theme.Theme, vals []float64, w int, o TraceOpts) []string {
 	per, rows := max(1, o.Per), max(1, o.Rows)
 	lo, hi := o.Min, o.Max
@@ -58,8 +61,12 @@ func Trace(t *theme.Theme, vals []float64, w int, o TraceOpts) []string {
 	cells := traceCells(vals, w, per)
 	levels := make([]int, len(cells))
 	inks := make([]lipgloss.Style, len(cells))
+	data := false // anything above Min: else no data, drawn blank
+	for _, v := range cells {
+		data = data || v > lo
+	}
 	for i, v := range cells {
-		if math.IsNaN(v) {
+		if math.IsNaN(v) || !data {
 			levels[i] = -1
 			continue
 		}

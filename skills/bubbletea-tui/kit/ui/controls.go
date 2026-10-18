@@ -229,7 +229,8 @@ func warnIsFill(t *theme.Theme) bool {
 // (hi−lo)/hi: under 10 % it is noise and draws the floor (⣀, Theme.TraceGlyphs) in every
 // cell, since ±5 % drawn full height reads as an incident; from 10 % to a third it rises
 // to ▂▃▄ at most, so a +20 % step still shows as a step; past a third it uses the full
-// height. A series of zeros draws the floor in fgSubtle, a step under a quiet one.
+// height. A series of zeros is no data and draws blank, never the floor a quiet series
+// draws.
 func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) string {
 	if len(vals) > w {
 		vals = vals[len(vals)-w:]
@@ -253,7 +254,7 @@ func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) stri
 		inks[i] = style
 		switch {
 		case hi <= 0:
-			levels[i], inks[i] = 0, t.S.Subtle
+			levels[i] = -1 // no data: blank
 		case spread < 0.10:
 			levels[i] = 0
 		default:
