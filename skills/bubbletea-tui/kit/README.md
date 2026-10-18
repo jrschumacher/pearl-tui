@@ -7,8 +7,13 @@ theme/          theme.go (the JSON contract), derive.go (fills missing roles, AS
                 styles.go (every style from the palette, Grad, Case, Label, Gap)
 ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, PaintBackground, ASCIIfy, Fit, OnBg
                 chrome.go   Wordmark, Header, Details, Section, Rule, Help, Footer, Toast, Tabs, TooSmall
-                controls.go Button(s), Tag, Alert, Dot, KV, Progress, Sparkline, Scrollbar, Count, Empty
-                list.go     List (selection styles, fuzzy underline, scrollbar), Table (borderless),
+                filter.go   Filter: a list's filter line (query, caret while typed, "3 of 8")
+                toast.go    ToastTTL, UndoTTL, GraceTTL, Frames, SecondsLeft, ToastKey (a toast that
+                            offers one key: u undo), Toasts and Note (the toast row: one key, a
+                            grace window that holds a send, a note waiting behind it)
+                controls.go Button(s), Tag, Alert, Dot, KV, Progress, Sparkline, Scrollbar, Count, Empty (NoMark: no mark)
+                list.go     List (selection styles, fuzzy underline, scrollbar), Table (borderless;
+                            TableWith{NoRule} without the rule under its header),
                             Follow (scroll-into-view), Fuzzy (subsequence match with indices)
                 ladder.go   Mark (a status rung in its role), Rungs (the theme's ladder, or the kit's),
                             Ladder (the legend the ladder state draws)
@@ -46,7 +51,11 @@ the kit can't draw (`theme.CheckLadder`).
 ## The showcase is the pattern
 
 - `app.go`: one root model; a per-state **action table** (`actions()`) that both
-  dispatches keys and renders the footer; text inputs take printable keys first; one
+  dispatches keys and renders the footer; a filter on the services list (`/`, and
+  `esc clear filter` only while one is in force); toasts on `ui.Toasts` with their own
+  length, whose one key (`u undo`) joins the table while they show (`toastAction`, never
+  a key the state binds), and a grace window that holds a send, returned as a command
+  (`say`, `sayUndo`, `hold`, each returning its command); text inputs take printable keys first; one
   clock with a generation number; async work finishes by message; selection by identity.
 - `screens.go`: `render(w, h)` draws every region into rectangles; header and footer
   first; overlays last; the ASCII pass at the end.
@@ -66,12 +75,16 @@ the kit can't draw (`theme.CheckLadder`).
   NO_COLOR and ASCII, dialogs above the footer, one focus column, ASCII keeps text),
   `overlay_test.go` (the tables match the states; every overlay over every page: the
   page keeps its rows, one focus, help names the overlay's keys and a page's), `behaviour_test.go` (every advertised key is handled,
+  every key a toast names is in the table and works and a dialog takes it away, a grace
+  window holds its send until undo, quit or its end and no other key cuts it short,
   the too-small screen's keys, ASCII is ASCII with distinct status glyphs) and
   `ansi16_test.go` (warning glyphs and inks at 16 colours).
 - The showcase's own tests: `screens_test.go` (actions target the selection, inputs
   take letters, one frame clock, the refresh clock survives a rate change or pause,
   deploys finish, rollbacks don't repeat, layout holds under focus, breakpoints, tab
-  stops in a tool body) and `setup_test.go` (the wizard's review defaults to Continue,
+  stops in a tool body, Silence's undo toast, the page's grace window (its send a
+  command that runs once, never once undone, its clock stopped under help), the state's
+  key winning a clash with a toast's, the filter narrows the list and esc clears it) and `setup_test.go` (the wizard's review defaults to Continue,
   button order, the step count past review, esc keeps input, no Huh default colour in
   any frame, the accessible transcript).
 
@@ -125,7 +138,8 @@ Once your screens are in, delete what is the showcase's alone:
 
 - `data.go`, its fixtures (yours are `fixtures.go`), and `screens_test.go`, its tests.
   Rewrite on your states the ones whose law you share (one clock, typing never
-  commands, actions target the selection).
+  commands, actions target the selection; a grace window's send observed as a command
+  that runs once, as `TestGraceWindow` does with `advance` and `runCmd`).
 - `setup.go` and `setup_test.go`, the first-run wizard, with its wiring: each `scrSetup`,
   `m.setup` and `firstRun` branch in `app.go` and `screens.go`, and in `main.go` the
   `setup-*` states, `setupState`, `-first-run` and the `runAccessibleSetup` call.
@@ -150,6 +164,8 @@ whole. They read your tables and these from your app:
 - `newApp`, `render`, `key`, `helpBody`, `helpRows`, `minW`/`minH` (your floor), and
   `actions()`, whose entries carry the binding as `b` and whether the footer shows it
   as `show`;
+- `toastAction()`, the key the showing toast offers in this state or nil, and the
+  field `toasts` (`ui.Toasts`): an app that raises no toast keeps both and returns nil;
 - the fields `t`, `profile`, `ov`, `last`, `ovRect`, `body` and `footY`, and the
   overlay values `ovNone` and `ovHelp`;
 - the canvas's `Body`, set in `render` to the body's rect (`c.Body = body`, the same

@@ -222,14 +222,16 @@ func warnIsFill(t *theme.Theme) bool {
 	return bg != nil && !none
 }
 
-// Sparkline draws values as ▁▂▃▄▅▆▇█ over w cells (the last w values, left-aligned),
+// Sparkline draws values as ▁▂▃▄▅▆▇ over w cells (the last w values, left-aligned),
 // scaled to the series itself: for a reading whose shape matters more than its level
 // (latency, throughput). A reading with a fixed range (a percentage, a load) is a Trace,
 // where an idle 3 % stays at the floor. How far a series rises is set by its spread
 // (hi−lo)/hi: under 10 % it is noise and draws the floor (⣀, Theme.TraceGlyphs) in every
-// cell, since ±5 % drawn full height reads as an incident; from 10 % to a third it rises
-// to ▂▃▄ at most, so a +20 % step still shows as a step; past a third it uses the full
-// height. A series of zeros draws the floor in fgSubtle, a step under a quiet one.
+// cell, since ±5 % drawn full height reads as an incident; past it the peak rises one
+// level per ~8 % of spread, ▂ at 10 %, ▄ at a third, ▇ from about a half, so a +20 %
+// step shows as a step and a 34 % one is not twice a 32 % one. It stops at ▇ (7/8), as
+// Trace's top row does. A series of zeros is no data and draws blank, never the floor
+// a quiet series draws.
 func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) string {
 	if len(vals) > w {
 		vals = vals[len(vals)-w:]
@@ -239,21 +241,19 @@ func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) stri
 		lo, hi = math.Min(lo, v), math.Max(hi, v)
 	}
 	_, ramp := t.TraceGlyphs()
-	top := len(ramp) - 1 // the highest level above the lowest bar
+	top := len(ramp) - 2 // the highest level above the lowest bar: 7/8, never the full block
 	spread := 0.0
 	if hi > 0 {
 		spread = (hi - lo) / hi
 	}
-	if spread < 1.0/3 {
-		top = min(top, 1+int((spread-0.10)/(1.0/3-0.10)*3)) // 10 % → ▂, a third → ▄
-	}
+	top = min(top, 1+int((spread-0.10)/(1.0/3-0.10)*3)) // 10 % → ▂, a third → ▄, on up
 	levels := make([]int, len(vals))
 	inks := make([]lipgloss.Style, len(vals))
 	for i, v := range vals {
 		inks[i] = style
 		switch {
 		case hi <= 0:
-			levels[i], inks[i] = 0, t.S.Subtle
+			levels[i] = -1 // no data: blank
 		case spread < 0.10:
 			levels[i] = 0
 		default:
@@ -300,13 +300,22 @@ func Count(n int) string {
 	return fmt.Sprint(n)
 }
 
+// NoMark, as Empty's glyph, draws no mark: the title is the first row. For a state whose
+// mark or motion lives elsewhere (a loading state whose spinner is in the footer, a
+// filter's no-match under its filter line).
+const NoMark = "\x00"
+
 // Empty is an empty state: what is missing, why, and the one thing to do.
-// Never a bare "No items". glyph is the mark above the title; "" draws the theme's bullet.
+// Never a bare "No items". glyph is the mark above the title (and a blank row under
+// it); "" draws the theme's bullet, NoMark none.
 func Empty(t *theme.Theme, w int, glyph, title, why, action string) []string {
 	if glyph == "" {
 		glyph = t.G.Bullet
 	}
 	rows := []string{t.S.Subtle.Render(glyph), "", t.S.Bold.Render(title)}
+	if glyph == NoMark {
+		rows = rows[2:]
+	}
 	for _, l := range strings.Split(lipgloss.NewStyle().Width(min(w, 56)).Align(lipgloss.Center).Render(why), "\n") {
 		rows = append(rows, t.S.Muted.Render(strings.TrimSpace(l)))
 	}

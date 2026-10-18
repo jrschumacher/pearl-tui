@@ -47,10 +47,13 @@ rest stays subtle. Don't rebuild Section for it. This is how regions separate.
 - The scrollbar column appears only when the list overflows.
 - Empty list: an empty state, never a blank area.
 
-## Table — `ui.Table`
+## Table — `ui.Table`, `ui.TableWith`
 
-Borderless. The header row in subtle UPPERCASE (or the theme's case), one rule under it,
-2-cell column gaps (a last argument of 1 for a dense table: 10 columns at 80 cells),
+Borderless. The header row in subtle UPPERCASE (or the theme's case), one rule under it
+(`ui.TableWith(…, ui.TableOpts{NoRule: true})` leaves it out where the app draws its own
+divider there; don't slice the output),
+2-cell column gaps (a last argument of 1 for a dense table: 10 columns at 80 cells;
+`TableOpts.Gap`, where 0 is the default 2 and -1 is none),
 numbers right-aligned, the first column taking the rest. The selected row is marked like
 a list row. On a filled selection every block or braille cell (a trace, a sparkline, or a
 history the app draws itself) takes a shade of the fill (`Styles.SelBars`): in the row's
@@ -59,6 +62,29 @@ ink they are blocks of the page punched through the bar. The theme's own marks a
 reversed with the rest of the row, so the fill is unbroken and the selected history
 still reads, as marks in the page's ink. Color a cell only when its value is abnormal (a
 red error rate), never a whole column.
+
+## Filter — `ui.Filter`
+
+A list's filter (`/`) stands on the list's own first row, directly above its header,
+while it is typed or in force, with a row of air under it; the rows move down to make
+room. Never in the footer: a toast or the keys cover it there, and the two cold builds
+that put it there each drew it differently. The line is the prompt, the query and, at
+the right edge, how many rows it leaves of how many (`3 of 8`), so a narrowed list
+never passes for the whole one. Typed, the prompt takes the prompt's ink and a caret
+follows the query; in force, the prompt is quiet and the caret's cell blank, so the
+query doesn't move. Typing narrows the list live, letters are the query (the list moves
+on the arrows), `enter keep filter` gives the keys back with the filter in force, and
+`esc clear filter` drops it: offer `esc clear filter` only while a filter is typed or in
+force, early in the table so the footer keeps it. The selection stays on a row the
+filter leaves, after every key, a tab back from another view among them (clamp it in
+one place, as the showcase's `key` does); when it leaves none, say so under the header
+(`ui.Empty` with `ui.NoMark`), select nothing (the header and a detail pane name no
+row), and bind nothing that acts on a hidden row: not `d` or `r`, and not the palette,
+whose commands act on the selection. In a caret theme the prompt
+(`»`, ASCII `>>`) stands in the cursor's (`›`) column in the same ink while both take
+keys; keep a row between them (the filter's air, the palette's blank row under its
+input), never adjacent, so they read as two marks, not a nested selection. The
+showcase's services list is the pattern (`services-filter`, `services-filtered`).
 
 ## Detail Pane
 
@@ -200,28 +226,45 @@ review step, not Edit).
 across the width: the banner for "something is wrong with what you're looking at". One
 alert per screen. If there are many, it's a list.
 
-## Toast — `ui.Toast`
+## Toast — `ui.Toast`, `ui.ToastKey`, `ui.Toasts`
 
 Paints over the footer row for ~4 s, an undo toast ~8 s and a grace window ~5 s
-(`motion.md` § Budget), as a tag and a message on a tinted bar, then the help returns.
-Never a new row, never a modal.
+(`ui.ToastTTL`, `ui.UndoTTL`, `ui.GraceTTL`; `motion.md` § Budget), as a tag and a
+message on a tinted bar, then the help returns. Never a new row, never a modal. Keep the
+row in a `ui.Toasts` and raise `ui.Note`s on it: it runs on the frame clock (`Tick` each
+frame and return what it returns), so one tick both animates and ends a toast, and a
+test drives both.
 
 An undo toast is what a reversible action gets instead of a confirm: it names what
 happened and the key that takes it back (`Closed #812 · x reopen`, `Marked 12 done · u
 undo`), stays the longer ~8 s so the hand can reach the key, and that key is bound in
 the state's action table while it shows. Never for something that can't be undone:
-that one had a confirm, and an undo that can't is a lie.
+that one had a confirm, and an undo that can't is a lie. Copy the showcase's
+`toastAction` (`kit/cmd/showcase/app.go`): the note's `Key` joins `actions()` while it
+shows and leaves with it, so `TestHelpIsHandled` presses it, and `ui.ToastKey` draws the
+row from that binding, cutting the message, never the key. Under a dialog, or while an
+input takes letters, the toast offers no key and its row names none; pick a key the
+state doesn't bind, since where it does the state's key wins and the toast offers none.
 
 A grace window is the default undo toast for a send that can't be recalled once it
-goes (a page, an email), skipped only where seconds matter: the action is pending
-until the toast ends, the undo key cancels it, and the toast says what will happen
-and when (`Paging payments on-call in 5 s · u undo`, counting down). When it ends the
-send goes, and a plain toast says it went.
+goes (a page, an email), skipped only where seconds matter: the note's `Send` is
+pending until it ends, its key cancels it, and the row says what will happen and when
+(`Paging payments on-call in 5s · u undo`, counting down). When it ends the send goes,
+and a plain toast says it went (`Declared INC-2041 · paged payments on-call`). The send
+is a command: return it from `Tick` and `Flush`, and every call that raises a note
+returns one too, since a send whose command is dropped never went while the row says
+it did. Nothing cuts the window short: a toast raised meanwhile waits and shows after
+the confirmation (the latest only), so an unrelated key never sends early; quitting
+sends it first (`tea.Sequence(toasts.Flush(), tea.Quit)`); and while help or the
+palette covers the row its clock stops, so it never goes unseen with its key out of
+reach. One window at a time: offer the key that starts one only while `Holding` is
+false.
 
 ## Footer / Help — `ui.Footer`, `ui.Help`
 
 An optional left badge (mode, `PROD`, `PLAN`), the help packed from `key.Binding`s by
-importance, and right status text (`synced 4s ago`). Per `expressions.footer`: bare,
+importance, and right status text (`syncs every 5s`: from the product clock, never a fixed
+`synced 4s ago`). Per `expressions.footer`: bare,
 on a filled strip, or under a rule. Full help (`?`) expands into columns, grouped. The
 badge's width and a space come out of the keys' 76 columns at 80: name it first in the
 state's keys cell (`[plan] · **enter send** · …`) so `tuilint spec` [S-FOOTER] counts it.
@@ -279,20 +322,28 @@ says the state in words.
   idle 3 % full height. The zero `Min, Max` is 0..100; set `Max` for bytes or a rate.
   Newest sample at the right; a cell holds `Per` samples drawn as their max (60 s at Per
   4 is 15 cells, and a 1 s spike survives); cells before the first sample are blank, not
-  zero; a cell at or over `Warn` takes the warning's ink and over `Fail` the error's;
-  `Rows: 3` is 24 heights, the floor on the bottom row.
+  zero; a cell at or over `Warn` takes the warning's ink and over `Fail` the error's,
+  or `Ink` decides every cell above `Min` (a cell at `Min` is the floor in fgSubtle
+  whatever `Ink` says, so mark a down state beside the trace, not in it);
+  `Rows: 3` draws 21 bar heights above the floor on the bottom row. A bar's top row stops at `▇`
+  (7/8), in a Sparkline too: a `█` sits flush on the row above, and under NO_COLOR the
+  two rows fuse into one shape.
 - Idle is dots, never a line. A sample under 1/8 of the scale draws the floor `⣀` (`⠤`
   beside a rule drawn in braille), so a 4–9 % band is one even row, not `⣀▁⣀▁`, and a
   quiet row is never a hairline: `▁▁▁▁` reads as one more rule beside any rule, and over
-  the next row's bars it closes a box. A series of zeros draws the floor in fgSubtle, a
-  step under a low reading's fgMuted; a missing sample is blank. ASCII draws heights
+  the next row's bars it closes a box. A Trace's zeros are a reading (an idle queue, a
+  healthy error rate) and draw the floor in fgSubtle, a step under a low reading's
+  fgMuted; its no data is NaN or no samples, which draw blank, never 0. ASCII draws heights
   `.,:;%&#@` (punctuation thickening upward) and the floor `.` (`,` beside a `.` rule),
   never `-`, `_` or `=`, whose runs are rules.
 - Sparkline: `▁▂▃▅▇` over a fixed column, scaled to the series (latency, throughput),
-  coloured by state. A series within 10 % of its peak is noise and draws the floor; from
-  10 % to a third it rises to `▂▃▄` at most, so a +20 % p99 step shows as a step and
-  never as a wall; past a third it takes the full height. Always print the current value
-  beside it. A warning's ends in the warn mark (`ui.StateSparkline`: `▁▃▅▇█▲`): at 16
+  coloured by state. A series within 10 % of its peak is noise and draws the floor; past
+  it the peak rises a level per ~8 % of spread (`▂` at 10 %, `▄` at a third, `▇` from
+  about a half), so a +20 % p99 step shows as a step, never as a wall, and 34 % is not
+  twice 32 %. A series of zeros (a p99 with no requests) is no data and draws blank:
+  the floor a quiet series draws would be the same row as 0.01 % under NO_COLOR and in
+  ASCII. Always print the current value
+  beside it. A warning's ends in the warn mark (`ui.StateSparkline`: `▁▃▅▆▇▲`): at 16
   colours a warm brand's yellow and the warning's are one hue, so bars in yellow alone
   read as the selection. A sparkline taller than one row grows upward from the label's
   row: label, value and the bar's base share the bottom row, the rows above hold the
@@ -304,7 +355,9 @@ says the state in words.
 Every list and pane designs all three:
 
 - **Empty**: a quiet glyph, what is missing, why (in context: "checkout-api has been
-  failing for 12 min"), and the one action that fixes it, as a key.
+  failing for 12 min"), and the one action that fixes it, as a key. Where the state's
+  mark or motion is elsewhere (a spinner in the footer), pass `ui.NoMark`: the title
+  is the first row. Don't cut `Empty`'s rows.
 - **Loading**: a skeleton of the real layout with dim placeholders, or one spinner with
   a subject. Never a blank screen.
 - **Error**: what failed, against what, the likely cause, and the key to retry. Keep the

@@ -122,7 +122,7 @@ func TestSetupCounterAdvancesPastReview(t *testing.T) {
 		t.Fatalf("values lost on the way: %+v", *m.setup)
 	}
 	drive(m, "enter")
-	if m.screen != scrServices || m.toast == nil || !strings.Contains(m.toast.msg, "default cluster") {
+	if n, ok := m.toasts.Current(); m.screen != scrServices || !ok || !strings.Contains(n.Msg, "default cluster") {
 		t.Fatalf("finishing did not land on services with a toast (screen %d)", m.screen)
 	}
 }
@@ -135,7 +135,7 @@ func TestSetupEscKeepsInput(t *testing.T) {
 	if m.screen != scrSetup || m.setup.namespace != "payments" {
 		t.Fatal("one esc with typed input left setup")
 	}
-	if m.toast == nil || !strings.Contains(m.toast.label+m.toast.msg, "ESC AGAIN") {
+	if n, ok := m.toasts.Current(); !ok || !strings.Contains(n.Label+n.Msg, "ESC AGAIN") {
 		t.Fatal("esc with typed input must say esc again")
 	}
 	drive(m, "esc")

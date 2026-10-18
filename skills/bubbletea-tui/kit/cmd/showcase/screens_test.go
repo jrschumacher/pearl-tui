@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"image/color"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -23,6 +24,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
+	"tuikit/ui"
 )
 
 // The 16-colour tests (ansi16_test.go) also judge every status mark (ladder) and a
@@ -273,8 +275,8 @@ func TestRefreshRateToastNamesTheRate(t *testing.T) {
 	for range refreshRates {
 		m.command("Refresh rate")
 		r := refreshRates[m.refresh.rate]
-		if m.toast == nil || m.toast.msg != "every "+r.label {
-			t.Fatalf("the toast for %s reads %+v, want \"every %s\"", r.every, m.toast, r.label)
+		if n, ok := m.toasts.Current(); !ok || n.Msg != "every "+r.label {
+			t.Fatalf("the toast for %s reads %+v, want \"every %s\"", r.every, n, r.label)
 		}
 		if strings.HasSuffix(r.label, "0s") && r.every >= time.Minute {
 			t.Errorf("the %s label %q prints the zero seconds", r.every, r.label)
@@ -372,7 +374,7 @@ func TestDeployLifecycle(t *testing.T) {
 		t.Fatal("deploy never finished")
 	}
 	m.Update(deployDoneMsg{"search-indexer"})
-	m.toast = nil
+	m.toasts = ui.Toasts{}
 	if m.animating() {
 		t.Fatal("nothing is deploying and no toast: the clock must stop")
 	}
@@ -677,6 +679,420 @@ func TestFaintWarningSparklineStaysQuiet(t *testing.T) {
 					t.Errorf("%s dark=%v %dx%d: no degraded sparkline with its mark: the test reached nothing", filepath.Base(path), dark, size[0], size[1])
 				}
 			}
+		}
+	}
+}
+
+// advance runs the frame clock n frames (step, what each tick does before it re-arms)
+// and runs every command they return, a grace window's send among them.
+func advance(m *app, n int) {
+	for range n {
+		runCmd(m, m.step())
+	}
+}
+
+// runCmd runs cmd as Bubble Tea would, batches and sequences included, and feeds each
+// message back to the model, except quit. It is how a test sees a command that was
+// returned rather than dropped. (Only for commands that answer at once: a timer's would
+// wait out its time.)
+func runCmd(m *app, cmd tea.Cmd) {
+	if cmd == nil {
+		return
+	}
+	got := cmd()
+	switch msg := got.(type) {
+	case nil, tea.QuitMsg:
+	case tea.BatchMsg:
+		for _, c := range msg {
+			runCmd(m, c)
+		}
+	default:
+		if v := reflect.ValueOf(msg); v.Kind() == reflect.Slice && v.Type().Elem() == reflect.TypeOf(tea.Cmd(nil)) {
+			for i := range v.Len() { // tea.Sequence's message: its commands, in order
+				runCmd(m, v.Index(i).Interface().(tea.Cmd))
+			}
+			return
+		}
+		if _, isKey := msg.(tea.KeyPressMsg); !isKey {
+			m.Update(msg) // its own command (a clock re-arm) is the clock's: advance drives it
+		}
+	}
+}
+
+// Every toast the showcase raises that offers a key is reached and its key works: the
+// kept TestToastKeysAreHandled walks each state's keys, and this adds each palette
+// command (Silence alerts raises the undo toast), and holds that some toast offers one.
+func TestShowcaseToastKeysAreHandled(t *testing.T) {
+	offered := toastKeysOffered(t)
+	for _, c := range commands {
+		raise := func() *app { f := fixture(t, "services"); f.command(c.Title); return f }
+		if r := raise(); r.toastAction() != nil {
+			offered++
+			pressToastKeys(t, "services", "services then "+c.Title, r, raise)
+		}
+	}
+	if offered == 0 {
+		t.Fatal("no toast offers a key: the undo toast and the grace window are gone")
+	}
+}
+
+// Silence is rung 1 of the confirm ladder: it happens on the command, the screen shows
+// it, and an undo toast names the key that takes it back, for UndoTTL. The key leaves
+// the action table when the toast goes; the palette then names the way back.
+func TestSilenceUndoes(t *testing.T) {
+	m := fixture(t, "services")
+	name := m.svcs[m.sel].Name
+	m.command("Silence alerts")
+	if !m.silenced[name] {
+		t.Fatal("Silence alerts didn't silence the selected service")
+	}
+	if n, ok := m.toasts.Current(); !ok || n.For != ui.UndoTTL {
+		t.Fatalf("the silence toast %+v should stand for UndoTTL", n)
+	}
+	if row := toastRow(m, 80, 24); !strings.Contains(row, "Silenced "+name+" alerts for 1h") || !strings.Contains(row, "u unsilence") {
+		t.Errorf("the silence toast reads %q", row)
+	}
+	m.key(press("u"))
+	if m.silenced[name] {
+		t.Fatal("u unsilence left the alerts silenced")
+	}
+	if m.toastAction() != nil {
+		t.Error("the toast after an undo offers a key again")
+	}
+	// the undo key lives as long as its toast
+	m.command("Silence alerts")
+	advance(m, ui.Frames(ui.UndoTTL))
+	if _, ok := m.toasts.Current(); ok || m.toastAction() != nil {
+		t.Fatal("the undo toast outlived UndoTTL")
+	}
+	m.last = ""
+	m.key(press("u"))
+	if !m.silenced[name] || m.last == "unsilence" {
+		t.Error("u still unsilenced after its toast had gone")
+	}
+	if !slices.ContainsFunc(m.filtered(), func(h hit) bool { return h.c.Title == "Unsilence alerts" }) {
+		t.Error("with the toast gone the palette offers no way back: want \"Unsilence alerts\"")
+	}
+}
+
+// A page is rung 2: `n declare incident` is the judgement, so no confirm, but the page
+// waits out a grace window under an undo toast that counts down. The send is a command
+// (page), observed by its message arriving: it runs once when the window ends, once on
+// quit (q or ctrl+c), and never once undone. No other key cuts the window short (h's
+// toast waits and shows after the confirmation), and help over it stops the clock.
+func TestGraceWindow(t *testing.T) {
+	press1 := func(m *app, k string) { runCmd(m, m.key(press(k))) }
+	m := fixture(t, "incidents")
+	press1(m, "n")
+	if m.declared || m.pages != 0 {
+		t.Fatal("the incident was declared at once: the page should wait out its grace window")
+	}
+	if row := toastRow(m, 80, 24); !strings.Contains(row, "Paging payments on-call in 5s") || !strings.Contains(row, "u undo") {
+		t.Errorf("the grace toast reads %q", row)
+	}
+	advance(m, ui.Frames(time.Second))
+	if row := toastRow(m, 80, 24); !strings.Contains(row, "in 4s") {
+		t.Errorf("a second in, the grace toast reads %q: it should count down", row)
+	}
+	press1(m, "u")
+	advance(m, 2*ui.Frames(ui.GraceTTL))
+	press1(m, "ctrl+c")
+	if m.declared || m.pages != 0 {
+		t.Fatalf("u undo inside the grace window, and the page went anyway (%d pages)", m.pages)
+	}
+
+	// the window runs out: the page goes once, and the row says it went
+	m = fixture(t, "incidents")
+	press1(m, "n")
+	advance(m, ui.Frames(ui.GraceTTL))
+	if !m.declared || m.pages != 1 {
+		t.Fatalf("the grace window ended: declared %v, %d pages, want one", m.declared, m.pages)
+	}
+	if row := toastRow(m, 80, 24); !strings.Contains(row, "Declared INC-2041") || !strings.Contains(row, "paged payments on-call") {
+		t.Errorf("after the window the toast reads %q, want it to say the page went", row)
+	}
+	if m.toastAction() != nil {
+		t.Error("the toast that says the page went still offers undo")
+	}
+	if slices.ContainsFunc(m.actions(), func(a action) bool { return a.b.Help().Desc == "declare incident" }) {
+		t.Error("n declare incident is still offered with INC-2041 declared")
+	}
+	advance(m, 3*ui.Frames(ui.GraceTTL))
+	press1(m, "q")
+	if m.pages != 1 {
+		t.Errorf("the page went %d times", m.pages)
+	}
+
+	// quitting inside the window sends it, once
+	for _, k := range []string{"q", "ctrl+c"} {
+		m = fixture(t, "incidents")
+		press1(m, "n")
+		press1(m, k)
+		if !m.declared || m.pages != 1 {
+			t.Errorf("%s during the grace window: declared %v, %d pages, want the page sent once", k, m.declared, m.pages)
+		}
+	}
+
+	// another key doesn't cut it short: h's toast waits behind it and the confirmation
+	m = fixture(t, "incidents")
+	press1(m, "n")
+	advance(m, ui.Frames(time.Second))
+	press1(m, "h")
+	if m.declared || m.pages != 0 || !strings.Contains(toastRow(m, 80, 24), "in 4s") {
+		t.Fatalf("h a second into the window: declared %v, %d pages, row %q", m.declared, m.pages, toastRow(m, 80, 24))
+	}
+	advance(m, ui.Frames(ui.GraceTTL)-ui.Frames(time.Second))
+	if m.pages != 1 || !strings.Contains(toastRow(m, 80, 24), "Declared INC-2041") {
+		t.Fatalf("at the window's end: %d pages, row %q, want the page and its confirmation", m.pages, toastRow(m, 80, 24))
+	}
+	advance(m, ui.Frames(ui.ToastTTL))
+	if !strings.Contains(toastRow(m, 80, 24), "No incidents in the last 30 days") {
+		t.Errorf("after the confirmation the row reads %q, want h's toast, which waited", toastRow(m, 80, 24))
+	}
+
+	// help over the window stops its clock: it never sends unseen, without its key
+	m = fixture(t, "incidents")
+	press1(m, "n")
+	press1(m, "?")
+	if m.ov != ovHelp || m.toastAction() != nil {
+		t.Fatalf("help over the window: ov %v, toast key %v, want help and no toast key", m.ov, m.toastAction())
+	}
+	advance(m, 3*ui.Frames(ui.GraceTTL))
+	if m.declared || m.pages != 0 {
+		t.Fatal("the window ran out under help, where its undo key can't be reached")
+	}
+	press1(m, "esc")
+	if row := toastRow(m, 80, 24); !strings.Contains(row, "in 5s") || !strings.Contains(row, "u undo") {
+		t.Errorf("back from help the row reads %q, want the window where it was", row)
+	}
+}
+
+// The state's own key wins a clash with a toast's key, and the toast then offers none:
+// a toast whose key the state binds (an undo on h where incidents binds h history)
+// names no key, and h does what the state's table says. With the toast's key first in
+// actions() the row named "h undo" and h undid, while the footer said history.
+func TestStateKeyWinsAClashWithAToast(t *testing.T) {
+	m := fixture(t, "incidents")
+	undone := false
+	m.sayUndo("ok", "DONE", "Archived the postmortem", bind([]string{"h"}, "h", "unarchive"), func(*app) tea.Cmd { undone = true; return nil })
+	if a := m.toastAction(); a != nil {
+		t.Errorf("the toast offers %q, which the state binds", a.b.Keys())
+	}
+	if row := toastRow(m, 80, 24); strings.Contains(row, "unarchive") {
+		t.Errorf("the toast row names a key the state binds: %q", row)
+	}
+	m.key(press("h"))
+	if undone || m.last != "history" {
+		t.Errorf("h undid the toast (%v) or reached %q, want the state's history", undone, m.last)
+	}
+}
+
+// The services footer says how fresh the list is from the product clock: it read
+// "synced 4s ago" whatever the rate, at 1s and at 1m. It names the rate the list syncs
+// at, after every change, and "paused" while paused.
+func TestFooterNamesTheRefreshRate(t *testing.T) {
+	m := fixture(t, "services")
+	for range refreshRates {
+		m.command("Refresh rate")
+		r := refreshRates[m.refresh.rate]
+		got := ansi.Strip(m.footerRight())
+		if !strings.Contains(got, "every "+r.label) || strings.Contains(got, "ago") {
+			t.Errorf("at %s the footer's status reads %q, want the rate (every %s)", r.every, got, r.label)
+		}
+	}
+	m.key(press("p"))
+	if got := ansi.Strip(m.footerRight()); got != "paused" {
+		t.Errorf("paused, the footer's status reads %q", got)
+	}
+}
+
+// visibleNames are the service names the services table draws at w×h.
+func visibleNames(m *app, w, h int) []string {
+	txt := ansi.Strip(m.render(w, h).String())
+	var out []string
+	for _, s := range m.svcs {
+		if strings.Contains(txt, " "+s.Name+" ") {
+			out = append(out, s.Name)
+		}
+	}
+	return out
+}
+
+// The filter pattern (#70: both cold monitors invented their own): / types a filter on
+// the line above the list, the list narrows as it is typed and says how many it shows
+// of how many, enter keeps it and gives the keys back, and esc clears it. esc clear
+// filter is offered exactly while a filter is typed or in force. The selection stays
+// on a row the filter shows, and the actions target it.
+func TestFilterNarrowsTheList(t *testing.T) {
+	has := func(m *app, desc string) bool {
+		return slices.ContainsFunc(m.actions(), func(a action) bool { return a.b.Help().Desc == desc })
+	}
+	m := fixture(t, "services")
+	if has(m, "clear filter") {
+		t.Fatal("esc clear filter is offered with no filter")
+	}
+	m.key(press("/"))
+	for _, k := range "er" {
+		m.key(press(string(k)))
+	}
+	var want []string
+	for _, s := range m.svcs {
+		if strings.Contains(s.Name, "er") {
+			want = append(want, s.Name)
+		}
+	}
+	if got := visibleNames(m, 80, 30); !slices.Equal(got, want) {
+		t.Errorf("filtering \"er\" shows %v, want %v", got, want)
+	}
+	if !strings.Contains(ansi.Strip(m.render(80, 30).String()), itoa(len(want))+" of "+itoa(len(m.svcs))) {
+		t.Error("the filter line doesn't say how many rows it shows of how many")
+	}
+	if !strings.Contains(m.svcs[m.sel].Name, "er") {
+		t.Errorf("the selection %q is a row the filter hides", m.svcs[m.sel].Name)
+	}
+	m.key(press("q")) // typed: a letter is text while the filter has the focus
+	if m.filter != "erq" {
+		t.Fatalf("q while typing the filter left it %q", m.filter)
+	}
+	m.key(press("backspace"))
+	if !has(m, "clear filter") {
+		t.Error("esc clear filter is not offered while the filter is typed")
+	}
+	m.key(press("enter"))
+	if m.filtering || m.filter != "er" {
+		t.Fatalf("enter should keep the filter and leave the input: filtering %v, filter %q", m.filtering, m.filter)
+	}
+	if !has(m, "clear filter") {
+		t.Error("esc clear filter is not offered while the filter is in force")
+	}
+	m.key(press("j"))
+	if !strings.Contains(m.svcs[m.sel].Name, "er") {
+		t.Errorf("j moved the selection to %q, a row the filter hides", m.svcs[m.sel].Name)
+	}
+	m.key(press("esc"))
+	if m.filter != "" || has(m, "clear filter") {
+		t.Errorf("esc left the filter %q (clear filter offered: %v)", m.filter, has(m, "clear filter"))
+	}
+	if got := visibleNames(m, 80, 30); len(got) != len(m.svcs) {
+		t.Errorf("with the filter cleared the list shows %d of %d", len(got), len(m.svcs))
+	}
+	// nothing left: the list says so, and the way out
+	m.key(press("/"))
+	for _, k := range "zz" {
+		m.key(press(string(k)))
+	}
+	if txt := ansi.Strip(m.render(80, 24).String()); !strings.Contains(txt, "0 of "+itoa(len(m.svcs))) || !strings.Contains(txt, "No service") {
+		t.Errorf("a filter that leaves nothing draws:\n%s", txt)
+	}
+}
+
+// In a caret theme the input's prompt (») and the list's cursor (›) stand in one column,
+// both in the focus ink, >> over > under ASCII (#56). Judged clear, on three conditions
+// this holds: the two glyphs differ in both modes (theme.Validate refuses a prompt that
+// is the cursor), they are never on adjacent rows (the palette keeps a blank row under
+// its input, the filter line a row of air and the header), and a filter in force draws
+// its prompt quiet (ui.TestFilterLine), so the focus ink marks two places only while
+// both take keys: letters go to the query, ↑↓ to the selection.
+func TestPromptNeverSitsOnTheCursor(t *testing.T) {
+	sawColumn, caret := false, false
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		caret = caret || tf.Expressions.Selection == "caret"
+		for _, ascii := range []bool{false, true} {
+			for _, s := range []string{"palette", "services-filter", "services-filtered"} {
+				for _, sz := range [][2]int{{80, 24}, {120, 40}} {
+					m := newApp(tf, true, ascii)
+					m.setState(s)
+					c := m.render(sz[0], sz[1])
+					name := fmt.Sprintf("%s ascii=%v %s %dx%d", filepath.Base(f), ascii, s, sz[0], sz[1])
+					p, cur := m.t.G.Prompt, m.t.G.Cursor
+					if p == cur && tf.Expressions.Selection == "caret" {
+						t.Fatalf("%s: the prompt and the cursor are both %q", name, p)
+					}
+					for y := range sz[1] {
+						x := slices.Index(strings.Split(rowText(c, y), ""), string([]rune(p)[0]))
+						if x < 0 || !strings.HasPrefix(string([]rune(rowText(c, y))[x:]), p+" ") {
+							continue
+						}
+						for _, dy := range []int{-1, 1} {
+							if ny := y + dy; ny >= 0 && ny < sz[1] && cellText(c, x, ny) == cur {
+								t.Errorf("%s: the prompt %q on row %d sits on the cursor %q on row %d:\n%s\n%s", name, p, y, cur, ny, rowText(c, min(y, ny)), rowText(c, max(y, ny)))
+							}
+						}
+						for ny := y + 2; ny < min(sz[1], y+5); ny++ {
+							sawColumn = sawColumn || (tf.Expressions.Selection == "caret" && cellText(c, x, ny) == cur)
+						}
+					}
+				}
+			}
+		}
+	}
+	if caret && !sawColumn {
+		t.Error("no caret theme drew its cursor in the prompt's column: this test no longer sees the case it guards")
+	}
+}
+
+// No key acts on a row the filter hides, however the selection got there (review of
+// #76). Tabbing away to Deploys moves the selection to a deploy's service, which the
+// filter may hide: back on Services the selection is on a shown row again, so the
+// header, r roll back and the palette name a row on screen. A filter that leaves no
+// row selects none: the header and the side pane name no service, and no key (the
+// palette's commands among them) reaches the hidden one, typed or in force.
+func TestFilterNeverActsOnAHiddenRow(t *testing.T) {
+	shownSel := func(m *app) bool { return slices.Contains(m.shown(), m.sel) }
+	m := fixture(t, "services")
+	m.key(press("/"))
+	for _, k := range "ledg" {
+		m.key(press(string(k)))
+	}
+	m.key(press("enter"))
+	m.key(press("tab"))
+	m.key(press("j"))
+	m.key(press("j"))
+	m.key(press("shift+tab"))
+	if m.screen != scrServices || !shownSel(m) {
+		t.Fatalf("back on Services after the deploys moved it, the selection is %q, which the filter %q hides", m.svcs[m.sel].Name, m.filter)
+	}
+	if head := ansi.Strip(m.render(80, 24).String()); !strings.Contains(strings.Split(head, "\n")[0], "ledger") {
+		t.Errorf("the header names %q, not the one shown row", strings.Split(head, "\n")[0])
+	}
+
+	for _, typing := range []bool{true, false} {
+		m := fixture(t, "services")
+		m.key(press("/"))
+		for _, k := range "zz" {
+			m.key(press(string(k)))
+		}
+		if !typing {
+			m.key(press("enter"))
+		}
+		if len(m.shown()) != 0 {
+			t.Fatalf("\"zz\" leaves %d rows", len(m.shown()))
+		}
+		for _, a := range m.actions() {
+			if d := a.b.Help().Desc; d == "commands" || d == "deploy" || d == "roll back" {
+				t.Errorf("typing=%v: with no row shown, %s is bound, which acts on the hidden %q", typing, d, m.svcs[m.sel].Name)
+			}
+		}
+		for _, sz := range [][2]int{{80, 24}, {120, 40}} {
+			txt := ansi.Strip(m.render(sz[0], sz[1]).String())
+			head := strings.Split(txt, "\n")[0]
+			for _, s := range m.svcs {
+				if strings.Contains(head, s.Name) {
+					t.Errorf("typing=%v %dx%d: with no row shown the header names %q: %q", typing, sz[0], sz[1], s.Name, head)
+				}
+			}
+			// the detail line (80) and the side pane (120) both draw owner and p99
+			if strings.Contains(txt, "owner") || strings.Contains(txt, "p99 latency") {
+				t.Errorf("typing=%v %dx%d: with no row shown the screen still draws a service's detail:\n%s", typing, sz[0], sz[1], txt)
+			}
+		}
+		m.key(press("ctrl+p"))
+		if m.ov == ovPalette {
+			t.Errorf("typing=%v: ctrl+p opened the palette, whose commands act on the hidden %q", typing, m.svcs[m.sel].Name)
 		}
 	}
 }

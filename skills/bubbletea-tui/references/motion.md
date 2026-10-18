@@ -84,7 +84,8 @@ Terminals don't tween layout, and you shouldn't try. What works:
 - **Toasts**: appear over the footer and vanish after ~4 s. An undo toast stays ~8 s,
   long enough to read it and reach its key. A grace window holds its send ~5 s, a
   reasonable default: long enough to catch the mistake, short enough that a page still
-  goes out fast. No slide.
+  goes out fast. A toast that offers a key stops its clock while a dialog covers it,
+  so a window never sends, and an undo never lapses, out of reach. No slide.
 - **Progress**: the fill advances by real progress, never on a timer.
 
 ## Brand Motion (Splash, Intros, Idle)
@@ -100,9 +101,9 @@ lint, and intros that play once and hand off to an identical idle frame.
 | hero anim | 50 ms | ≤ 30 cells |
 | row spinner | 100 ms | 1 cell |
 | field drift | 160 ms | full screen (static otherwise) |
-| toast TTL | 4 s | footer |
-| undo toast TTL | 8 s | footer |
-| grace window (held send) | 5 s, default | footer |
+| toast TTL (`ui.ToastTTL`) | 4 s | footer |
+| undo toast TTL (`ui.UndoTTL`) | 8 s | footer |
+| grace window, held send (`ui.GraceTTL`) | 5 s, default; the row counts down by the second | footer |
 | cursor blink | terminal's own (`tea.Cursor{Blink: true}`) | 1 cell |
 
 ## DO / DON'T

@@ -2,10 +2,12 @@ package main
 
 import (
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
 
+	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
@@ -62,7 +64,8 @@ func fixture(t *testing.T, state string) *app {
 
 // The footer may only show keys that do something in that state. Every key
 // of every action (footer or not) is pressed on a fresh model and must reach
-// its handler. This is the test that keeps help honest.
+// its handler. This is the test that keeps help honest. A toast that offers a key
+// (u undo) after any of them has that key in actions() too: the row names it.
 func TestHelpIsHandled(t *testing.T) {
 	for _, s := range states {
 		for _, a := range fixture(t, s).actions() {
@@ -71,6 +74,147 @@ func TestHelpIsHandled(t *testing.T) {
 				m.key(press(k))
 				if m.last != a.b.Help().Desc {
 					t.Errorf("%s: %q (%s) not handled: last action %q", s, k, a.b.Help().Desc, m.last)
+				}
+				if ta := m.toastAction(); ta != nil && !inActions(m, ta.b.Help()) {
+					t.Errorf("%s then %q: the toast offers %s %s, which actions() doesn't hold", s, k, ta.b.Help().Key, ta.b.Help().Desc)
+				}
+			}
+		}
+	}
+}
+
+// inActions reports whether the state's action table holds a binding with help h.
+func inActions(m *app, h key.Help) bool {
+	return slices.ContainsFunc(m.actions(), func(a action) bool { return a.b.Help() == h })
+}
+
+// toastRow is the footer row as drawn at w×h, where a toast stands while it shows.
+func toastRow(m *app, w, h int) string {
+	return rowText(m.render(w, h), h-1)
+}
+
+// pressToastKeys checks the toast m shows (if it offers a key): the footer row names
+// the key and what it does, the state's action table binds it, every one of its keys,
+// pressed on a fresh copy of the state, reaches the toast's handler, and a dialog over
+// it (help) takes the key away: under a dialog u would act behind it, unseen. fresh
+// rebuilds the state the toast was raised in, from s.
+func pressToastKeys(t *testing.T, s, name string, m *app, fresh func() *app) {
+	t.Helper()
+	a := m.toastAction()
+	if a == nil {
+		return
+	}
+	h := a.b.Help()
+	for _, sz := range [][2]int{{minW, minH}, {80, 24}, {120, 40}} {
+		if row := toastRow(m, sz[0], sz[1]); !strings.Contains(row, h.Key+" "+h.Desc) {
+			t.Errorf("%s %dx%d: the toast offers %s %s but its row reads %q", name, sz[0], sz[1], h.Key, h.Desc, row)
+		}
+	}
+	if !inActions(m, h) {
+		t.Errorf("%s: the toast names %s %s, which the state's action table doesn't hold", name, h.Key, h.Desc)
+	}
+	for _, k := range a.b.Keys() {
+		f := fresh()
+		f.key(press(k))
+		if f.last != h.Desc {
+			t.Errorf("%s: %q, which the toast names (%s), reached %q", name, k, h.Desc, f.last)
+		}
+	}
+	f := fresh()
+	f.key(press(helpKey(t, s)))
+	if f.ov == ovNone {
+		return // the help key was the toast's: nothing covers it
+	}
+	if f.toastAction() != nil || inActions(f, h) {
+		t.Errorf("%s: under a dialog the toast still offers %s %s, which would act behind it", name, h.Key, h.Desc)
+	}
+}
+
+// toastKeysOffered presses every key of every state and checks each toast that then
+// offers a key (pressToastKeys). It returns how many it reached.
+func toastKeysOffered(t *testing.T) int {
+	offered := 0
+	for _, s := range states {
+		if s == "toosmall" {
+			continue
+		}
+		m := fixture(t, s)
+		if m.toastAction() != nil {
+			offered++
+			pressToastKeys(t, s, s, m, func() *app { return fixture(t, s) })
+		}
+		for _, a := range m.actions() {
+			k := a.b.Keys()[0]
+			raise := func() *app { f := fixture(t, s); f.key(press(k)); return f }
+			if r := raise(); r.toastAction() != nil && r.ov == ovNone {
+				offered++
+				pressToastKeys(t, s, s+" then "+k, r, raise)
+			}
+		}
+	}
+	return offered
+}
+
+// Law 6 for the one key a toast names: every key a toast offers (u undo, u unsilence)
+// is in the state's action table while the toast shows, its row names it at every size
+// down to the floor, pressing it does what the row says, and a dialog over the toast
+// takes it away. An app whose toasts offer no key passes.
+func TestToastKeysAreHandled(t *testing.T) { toastKeysOffered(t) }
+
+// A grace window (a toast holding a send: a page, an email) holds it until undo or its
+// end, wherever the app raises one (every key of every state is tried). Its key undoes
+// it, and nothing is sent then, not on quit either; quitting inside the window sends it
+// once; and no other key of the state sends it early or drops it. (ui's toast tests
+// hold the clock: the window's end, its countdown, and a dialog stopping it.)
+func TestGraceWindowsHold(t *testing.T) {
+	for _, s := range states {
+		if s == "toosmall" {
+			continue
+		}
+		// a state that opens on a window (a harness state), else each key that raises one
+		keys := []string{""}
+		if !fixture(t, s).toasts.Holding() {
+			keys = nil
+			for _, a := range fixture(t, s).actions() {
+				keys = append(keys, a.b.Keys()[0])
+			}
+		}
+		for _, k := range keys {
+			raise := func() *app {
+				m := fixture(t, s)
+				if k != "" {
+					m.key(press(k))
+				}
+				return m
+			}
+			if !raise().toasts.Holding() {
+				continue
+			}
+			name := strings.TrimSuffix(s+" then "+k, " then ")
+			m := raise()
+			undo := m.toastAction()
+			if undo == nil {
+				t.Errorf("%s: a grace window offers no key to undo it", name)
+				continue
+			}
+			m.key(press(undo.b.Keys()[0]))
+			m.key(press("ctrl+c"))
+			if m.toasts.Sends() != 0 || m.toasts.Holding() {
+				t.Errorf("%s: undone with %s, and the send ran %d times", name, undo.b.Keys()[0], m.toasts.Sends())
+			}
+			m = raise()
+			if cmd := m.key(press("ctrl+c")); cmd == nil || m.toasts.Sends() != 1 {
+				t.Errorf("%s: ctrl+c inside the window ran the send %d times, want once, ahead of quitting", name, m.toasts.Sends())
+			}
+			for _, b := range raise().actions() {
+				o := b.b.Keys()[0]
+				if b.b.Help().Desc == "quit" || slices.Contains(undo.b.Keys(), o) {
+					continue
+				}
+				f := raise()
+				f.key(press(o))
+				if f.toasts.Sends() != 0 || !f.toasts.Holding() {
+					t.Errorf("%s then %q: the window was cut short (sent %d times, holding %v)", name, o, f.toasts.Sends(), f.toasts.Holding())
 				}
 			}
 		}

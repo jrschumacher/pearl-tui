@@ -1,8 +1,10 @@
 package main
 
 import (
+	"slices"
 	"strings"
 
+	"charm.land/bubbles/v2/key"
 	"charm.land/lipgloss/v2"
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/ultraviolet/layout"
@@ -40,8 +42,10 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		return c
 	}
 	g := t.X.Gutter
-	s := m.svcs[m.sel]
-	details := ui.Details(t, "prod", "us-east-1", s.Name)
+	details := ui.Details(t, "prod", "us-east-1", m.svcs[m.sel].Name)
+	if m.noRow() {
+		details = ui.Details(t, "prod", "us-east-1") // no row shown, no selection to name
+	}
 	if m.screen == scrSetup {
 		details = ui.Details(t, "setup", m.setup.steps(t).Count())
 	}
@@ -103,8 +107,13 @@ func (m *app) draw(w, h int) *ui.Canvas {
 	}
 	// the toast takes the footer's row; under a dialog that row holds the dialog's keys
 	// (a help opened in the toast's 4 s lost its "scroll" key to it)
-	if m.toast != nil && m.ov == ovNone {
-		c.Draw(ui.Toast(t, m.toast.kind, m.toast.label, m.toast.msg, w), ui.Rect(0, h-1, w, 1))
+	// it names the key it offers only where that key works (toastAction)
+	if n, ok := m.toasts.Current(); ok && m.ov == ovNone {
+		var k key.Binding
+		if a := m.toastAction(); a != nil {
+			k = a.b
+		}
+		c.Draw(ui.ToastKey(t, n.Kind, n.Label, m.toasts.Text(), k, w), ui.Rect(0, h-1, w, 1))
 	}
 	return c
 }
@@ -124,7 +133,9 @@ func (m *app) footerRight() string {
 		if m.paused {
 			return m.t.S.Subtle.Render("paused")
 		}
-		return m.t.S.Subtle.Render("synced 4s ago")
+		// the product clock's rate, which is true at every rate; an elapsed "synced 4s
+		// ago" is true only if a tick redraws it every second
+		return m.t.S.Subtle.Render("syncs every " + refreshRates[m.refresh.rate].label)
 	}
 	if m.screen == scrSetup && m.ov == ovNone && !m.setup.saved {
 		return m.t.S.Subtle.Render("not saved yet")
@@ -156,8 +167,17 @@ func (m *app) services(c *ui.Canvas, r uv.Rectangle) {
 		fixed += x + 2
 	}
 	widths[0] = max(12, main.Dx()-fixed)
+	// the filter's line stands on the list's first row while it is typed or in force,
+	// with a row of air under it; the table moves down to make room
+	shown := m.shown()
+	filtered := m.filtering || m.filter != ""
+	if filtered {
+		c.Draw(ui.Filter(t, m.filter, m.filtering && m.ov == ovNone, len(shown), len(m.svcs), main.Dx()), uv.Rect(main.Min.X, main.Min.Y, main.Dx(), 1))
+		main.Min.Y = min(main.Max.Y, main.Min.Y+2)
+	}
 	var rows [][]string
-	for i, s := range m.svcs {
+	for _, i := range shown {
+		s := m.svcs[i]
 		name := ui.Dot(t, s.State) + " " + t.S.Base.Render(s.Name)
 		if s.State == "deploying" {
 			name = ui.Busy(t, m.frame/2) + " " + t.S.Base.Render(s.Name)
@@ -176,11 +196,21 @@ func (m *app) services(c *ui.Canvas, r uv.Rectangle) {
 		}
 		rows = append(rows, row)
 	}
-	tbl := ui.Table(t, header, rows, widths, align, m.sel, main.Dx(), m.ov == ovNone)
+	tbl := ui.Table(t, header, rows, widths, align, slices.Index(shown, m.sel), main.Dx(), m.ov == ovNone)
+	if filtered && len(shown) == 0 {
+		// nothing left: say so under the header, and the way out (no mark: the filter's
+		// line above is the context)
+		tbl = append(tbl, "")
+		tbl = append(tbl, ui.Empty(t, main.Dx(), ui.NoMark, "No service matches \""+m.filter+"\"",
+			"None of the "+itoa(len(m.svcs))+" service names contains it.",
+			t.S.Key.Render("esc")+" "+t.S.KeyDesc.Render("clear filter"))...)
+	}
 	c.Draw(strings.Join(tbl, "\n"), main)
 	s := m.svcs[m.sel]
 	if side.Dx() > 0 {
-		m.serviceDetail(c, side)
+		if !m.noRow() {
+			m.serviceDetail(c, side)
+		}
 		// tall terminals: use the room for the activity feed, not blank rows
 		if top := main.Min.Y + len(tbl) + 2; main.Max.Y-top >= 6 {
 			act := []string{ui.Section(t, "Activity", main.Dx(), "last hour"), ""}
@@ -190,9 +220,12 @@ func (m *app) services(c *ui.Canvas, r uv.Rectangle) {
 			n := min(len(act), main.Max.Y-top)
 			c.Draw(strings.Join(act[:n], "\n"), uv.Rect(main.Min.X, top, main.Dx(), n))
 		}
-	} else if y := main.Min.Y + len(tbl) + 1; y < main.Max.Y {
+	} else if y := main.Min.Y + len(tbl) + 1; y < main.Max.Y && slices.Contains(shown, m.sel) {
 		line := t.S.Muted.Render(s.Name) + t.S.Subtle.Render("  owner ") + t.S.Soft.Render(s.Owner) +
 			t.S.Subtle.Render("  deployed ") + t.S.Soft.Render(s.Deployed)
+		if m.silenced[s.Name] {
+			line += t.S.Subtle.Render("  alerts ") + t.S.Muted.Render("silenced for 1h")
+		}
 		c.Draw(line, uv.Rect(main.Min.X+2, y, main.Dx()-2, 1))
 		if s.State == "error" && y+2 < main.Max.Y {
 			c.Draw(ui.Alert(t, "error", "502s", "4.8% of checkout requests failing since 14:02 "+t.G.Sep+" r roll back", main.Dx()-2), uv.Rect(main.Min.X+2, y+2, main.Dx()-2, 1))
@@ -217,6 +250,9 @@ func (m *app) serviceDetail(c *ui.Canvas, r uv.Rectangle) {
 		{"owner", t.S.Base.Render(s.Owner)},
 		{"deployed", t.S.Base.Render(s.Deployed)},
 	}, 9)...)
+	if m.silenced[s.Name] { // rung 1: the screen shows the action at once
+		rows = append(rows, ui.KV(t, [][2]string{{"alerts", t.S.Muted.Render("silenced for 1h")}}, 9)...)
+	}
 	rows = append(rows, "", ui.Section(t, "p99 latency", w, "12 min"), "")
 	rows = append(rows, ui.Sparkline(t, stretch(s.P99, w), w, t.S.Muted))
 	last := s.P99[len(s.P99)-1]
@@ -286,7 +322,10 @@ func (m *app) incidents(c *ui.Canvas, r uv.Rectangle) {
 	t := m.t
 	act := t.S.Key.Render("n") + " " + t.S.KeyDesc.Render("declare incident") + "   " + t.S.Key.Render("h") + " " + t.S.KeyDesc.Render("history")
 	title, why := "No incidents declared", "checkout-api has been failing for 12 min. Declare one to page payments on-call."
-	if m.declared {
+	switch {
+	case m.paging: // the grace window: the toast counts down and offers undo
+		title, why, act = "Declaring INC-2041", "Payments on-call is paged when the countdown ends.", ""
+	case m.declared:
 		title, why, act = "INC-2041 declared", "Paging payments on-call. Updates will appear here as responders join.", ""
 	}
 	rows := ui.Empty(t, r.Dx(), "", title, why, act)
@@ -552,6 +591,9 @@ func (m *app) filtered() []hit {
 	var out []hit
 	q := strings.ToLower(m.query)
 	for _, c := range commands {
+		if c.Title == "Silence alerts" && m.silenced[m.svcs[m.sel].Name] {
+			c.Title, c.Desc = "Unsilence alerts", "turn "+m.svcs[m.sel].Name+"'s alerts back on"
+		}
 		if idx, ok := ui.Fuzzy(strings.ToLower(c.Title), q); ok {
 			out = append(out, hit{c, idx})
 		}

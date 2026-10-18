@@ -3,6 +3,7 @@ package ui
 import (
 	"image/color"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -148,5 +149,35 @@ func TestBusyAgreesAcrossProfiles(t *testing.T) {
 		if th := theme.Resolve(f, true, ascii); BusyAnimates(th) || moves(th) {
 			t.Errorf("ascii=%v: a one-frame spinner animates Busy", ascii)
 		}
+	}
+}
+
+// A theme whose ASCII spinner falls back to the one-cell pulse . : ' : draws its blurred
+// selection's twin, :, as one of Busy's frames, and a blurred busy row read ": : name",
+// the gutter mark twice. Busy leaves the blurred-selection mark out of the one-cell
+// frames it turns through; the theme's spinner, which a multi-cell
+// Anim and the labelled Spinner draw away from the gutter, keeps it.
+func TestBusyIsNeverTheBlurMark(t *testing.T) {
+	f := theme.Default()
+	f.Glyphs.FocusBar, f.Glyphs.Todo, f.Glyphs.Done, f.Glyphs.Caret = "|", "/", "-", "_"
+	th := theme.Resolve(f, true, true)
+	if !slices.Contains(th.G.Spinner, th.BlurBar()) {
+		t.Skipf("the fallback pulse %q no longer draws the blur twin %q", th.G.Spinner, th.BlurBar())
+	}
+	seen := map[string]bool{}
+	for n := range 2 * len(th.G.Spinner) {
+		g := ansi.Strip(Busy(th, n))
+		seen[g] = true
+		if g == th.BlurBar() {
+			t.Errorf("Busy frame %d is %q, the blurred selection's mark", n, g)
+		}
+	}
+	// without : the pulse may be one frame (' here, the . a mark's): then Busy holds the
+	// partial mark, still, and says so, as for any one-frame spinner
+	if moves := len(seen) > 1; moves != BusyAnimates(th) {
+		t.Errorf("Busy turns through %v, and BusyAnimates says %v", seen, BusyAnimates(th))
+	}
+	if got := ansi.Strip(Spinner(th, 1)); got != th.G.Spinner[1] {
+		t.Errorf("Spinner frame 1 is %q, want the theme's %q: only Busy leaves the mark out", got, th.G.Spinner[1])
 	}
 }

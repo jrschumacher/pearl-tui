@@ -21,7 +21,9 @@ type TraceOpts struct {
 	// Per is how many samples a cell holds, drawn as their maximum, so a one-sample spike
 	// survives the downsample: 60 samples at Per 4 fill 15 cells. Default 1.
 	Per int
-	// Rows is the height, top row first: Rows×8 heights. The bottom row holds the floor;
+	// Rows is the height, top row first: Rows×8 steps, of which the floor takes the idle
+	// band under 1/8 and the top row stops at 7/8 (Rows 3 draws 21 bar heights). The
+	// bottom row holds the floor;
 	// the rows above hold only what rises into them. Default 1.
 	Rows int
 	// Warn and Fail are levels on the scale: a cell at or over Warn draws in the warning's
@@ -30,19 +32,24 @@ type TraceOpts struct {
 	// (yellow 3 on a white page at 16 colours) the bars stay quiet; the mark beside the
 	// value carries it (ui.Mark).
 	Warn, Fail float64
-	// Ink, when set, is the ink of a cell by its value, in place of fgMuted and the levels.
+	// Ink, when set, is the ink of a cell by its value, in place of fgMuted and the levels,
+	// for every cell above Min. It is never called for a cell at or below Min: that cell
+	// draws the floor in fgSubtle whatever Ink would say, so an Ink that inks zeros (a red
+	// "down" at 0) has no effect there; mark that state beside the trace instead.
 	Ink func(v float64) lipgloss.Style
 }
 
 // Trace draws a history on a fixed scale in w cells, newest sample at the right edge, and
 // returns opts.Rows rows (top first); TraceRow is the one-row case. A cell before the
 // first sample is blank (a history that hasn't started is empty, not zero), and so is a
-// NaN. A cell under 1/8 of the scale is idle and draws the floor (Theme.TraceGlyphs: ⣀;
-// ASCII . or ,), one texture for the whole idle band, so an idle 4–9 % never flickers
-// between floor and bar and never reads as a section rule; a cell at Min itself (no
-// activity at all) draws it in fgSubtle, a step under a low reading's fgMuted. Above it
-// the cell rises through ▁▂▃▄▅▆▇█ (ASCII .,:;%&#@). On a selected row ui.Table draws the
-// bars in the selection's shade (Styles.SelBars).
+// NaN: pass NaN (or no samples) for no data, never 0. A history of zeros is real (an
+// idle queue, a healthy error rate) and draws its floor. A cell under 1/8 of the scale is
+// idle and draws the floor (Theme.TraceGlyphs: ⣀; ASCII . or ,), one texture for the
+// whole idle band, so an idle 4–9 % never flickers between floor and bar and never reads
+// as a section rule; a cell at Min itself draws it in fgSubtle, a step under a low
+// reading's fgMuted. Above it the cell rises through ▁▂▃▄▅▆▇█ (ASCII .,:;%&#@),
+// and the top row stops at ▇ (7/8): a full block would sit flush on the row above. On a
+// selected row ui.Table draws the bars in the selection's shade (Styles.SelBars).
 func Trace(t *theme.Theme, vals []float64, w int, o TraceOpts) []string {
 	per, rows := max(1, o.Per), max(1, o.Rows)
 	lo, hi := o.Min, o.Max
@@ -66,11 +73,12 @@ func Trace(t *theme.Theme, vals []float64, w int, o TraceOpts) []string {
 		frac := math.Min(1, math.Max(0, (v-lo)/(hi-lo)))
 		levels[i] = 0
 		if frac*8 >= 1 {
-			levels[i] = max(1, int(math.Round(frac*float64(steps))))
+			levels[i] = min(steps-1, max(1, int(math.Round(frac*float64(steps))))) // the top row stops at 7/8
 		}
-		inks[i] = ink(v)
 		if v <= lo {
 			inks[i] = t.S.Subtle // nothing at all: the floor a step quieter than a low reading
+		} else {
+			inks[i] = ink(v) // never asked about a cell at or below Min (TraceOpts.Ink)
 		}
 	}
 	return traceRows(t, levels, inks, rows)
