@@ -861,3 +861,83 @@ func TestFooterNamesTheRefreshRate(t *testing.T) {
 		t.Errorf("paused, the footer's status reads %q", got)
 	}
 }
+
+// visibleNames are the service names the services table draws at w×h.
+func visibleNames(m *app, w, h int) []string {
+	txt := ansi.Strip(m.render(w, h).String())
+	var out []string
+	for _, s := range m.svcs {
+		if strings.Contains(txt, " "+s.Name+" ") {
+			out = append(out, s.Name)
+		}
+	}
+	return out
+}
+
+// The filter pattern (#70: both cold monitors invented their own): / types a filter on
+// the line above the list, the list narrows as it is typed and says how many it shows
+// of how many, enter keeps it and gives the keys back, and esc clears it. esc clear
+// filter is offered exactly while a filter is typed or in force. The selection stays
+// on a row the filter shows, and the actions target it.
+func TestFilterNarrowsTheList(t *testing.T) {
+	has := func(m *app, desc string) bool {
+		return slices.ContainsFunc(m.actions(), func(a action) bool { return a.b.Help().Desc == desc })
+	}
+	m := fixture(t, "services")
+	if has(m, "clear filter") {
+		t.Fatal("esc clear filter is offered with no filter")
+	}
+	m.key(press("/"))
+	for _, k := range "er" {
+		m.key(press(string(k)))
+	}
+	var want []string
+	for _, s := range m.svcs {
+		if strings.Contains(s.Name, "er") {
+			want = append(want, s.Name)
+		}
+	}
+	if got := visibleNames(m, 80, 30); !slices.Equal(got, want) {
+		t.Errorf("filtering \"er\" shows %v, want %v", got, want)
+	}
+	if !strings.Contains(ansi.Strip(m.render(80, 30).String()), itoa(len(want))+" of "+itoa(len(m.svcs))) {
+		t.Error("the filter line doesn't say how many rows it shows of how many")
+	}
+	if !strings.Contains(m.svcs[m.sel].Name, "er") {
+		t.Errorf("the selection %q is a row the filter hides", m.svcs[m.sel].Name)
+	}
+	m.key(press("q")) // typed: a letter is text while the filter has the focus
+	if m.filter != "erq" {
+		t.Fatalf("q while typing the filter left it %q", m.filter)
+	}
+	m.key(press("backspace"))
+	if !has(m, "clear filter") {
+		t.Error("esc clear filter is not offered while the filter is typed")
+	}
+	m.key(press("enter"))
+	if m.filtering || m.filter != "er" {
+		t.Fatalf("enter should keep the filter and leave the input: filtering %v, filter %q", m.filtering, m.filter)
+	}
+	if !has(m, "clear filter") {
+		t.Error("esc clear filter is not offered while the filter is in force")
+	}
+	m.key(press("j"))
+	if !strings.Contains(m.svcs[m.sel].Name, "er") {
+		t.Errorf("j moved the selection to %q, a row the filter hides", m.svcs[m.sel].Name)
+	}
+	m.key(press("esc"))
+	if m.filter != "" || has(m, "clear filter") {
+		t.Errorf("esc left the filter %q (clear filter offered: %v)", m.filter, has(m, "clear filter"))
+	}
+	if got := visibleNames(m, 80, 30); len(got) != len(m.svcs) {
+		t.Errorf("with the filter cleared the list shows %d of %d", len(got), len(m.svcs))
+	}
+	// nothing left: the list says so, and the way out
+	m.key(press("/"))
+	for _, k := range "zz" {
+		m.key(press(string(k)))
+	}
+	if txt := ansi.Strip(m.render(80, 24).String()); !strings.Contains(txt, "0 of "+itoa(len(m.svcs))) || !strings.Contains(txt, "No service") {
+		t.Errorf("a filter that leaves nothing draws:\n%s", txt)
+	}
+}

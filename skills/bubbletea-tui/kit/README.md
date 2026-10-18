@@ -8,6 +8,7 @@ theme/          theme.go (the JSON contract), derive.go (fills missing roles, AS
 ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, PaintBackground, ASCIIfy, Fit, OnBg;
                             Body and Keep (what a dialog hides where the page can't dim)
                 chrome.go   Wordmark, Header, Details, Section, Rule, Help, Footer, Toast, Tabs, TooSmall
+                filter.go   Filter: a list's filter line (query, caret while typed, "3 of 8")
                 toast.go    ToastTTL, UndoTTL, GraceTTL, Frames, SecondsLeft, ToastKey (a toast that
                             offers one key: u undo)
                 controls.go Button(s), Tag, Alert, Dot, KV, Progress, Sparkline, Scrollbar, Count, Empty (NoMark: no mark)
@@ -50,9 +51,10 @@ the kit can't draw (`theme.CheckLadder`).
 ## The showcase is the pattern
 
 - `app.go`: one root model; a per-state **action table** (`actions()`) that both
-  dispatches keys and renders the footer; toasts with their own length, whose one key
-  (`u undo`) joins the table while they show, and a grace window that holds a send
-  (`say`, `sayUndo`, `hold`); text inputs take printable keys first; one
+  dispatches keys and renders the footer; a filter on the services list (`/`, and
+  `esc clear filter` only while one is in force); toasts with their own length, whose
+  one key (`u undo`) joins the table while they show, and a grace window that holds a
+  send (`say`, `sayUndo`, `hold`); text inputs take printable keys first; one
   clock with a generation number; async work finishes by message; selection by identity.
 - `screens.go`: `render(w, h)` draws every region into rectangles; header and footer
   first; overlays last; the ASCII pass at the end.
@@ -78,7 +80,7 @@ the kit can't draw (`theme.CheckLadder`).
   take letters, one frame clock, the refresh clock survives a rate change or pause,
   deploys finish, rollbacks don't repeat, layout holds under focus, breakpoints, tab
   stops in a tool body, every key a toast names works, undo inside a grace window means
-  the send never goes) and `setup_test.go` (the wizard's review defaults to Continue,
+  the send never goes, the filter narrows the list and esc clears it) and `setup_test.go` (the wizard's review defaults to Continue,
   button order, the step count past review, esc keeps input, no Huh default colour in
   any frame, the accessible transcript).
 

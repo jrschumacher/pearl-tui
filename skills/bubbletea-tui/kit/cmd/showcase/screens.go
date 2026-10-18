@@ -1,6 +1,7 @@
 package main
 
 import (
+	"slices"
 	"strings"
 
 	"charm.land/bubbles/v2/key"
@@ -164,8 +165,17 @@ func (m *app) services(c *ui.Canvas, r uv.Rectangle) {
 		fixed += x + 2
 	}
 	widths[0] = max(12, main.Dx()-fixed)
+	// the filter's line stands on the list's first row while it is typed or in force,
+	// with a row of air under it; the table moves down to make room
+	shown := m.shown()
+	filtered := m.filtering || m.filter != ""
+	if filtered {
+		c.Draw(ui.Filter(t, m.filter, m.filtering && m.ov == ovNone, len(shown), len(m.svcs), main.Dx()), uv.Rect(main.Min.X, main.Min.Y, main.Dx(), 1))
+		main.Min.Y = min(main.Max.Y, main.Min.Y+2)
+	}
 	var rows [][]string
-	for i, s := range m.svcs {
+	for _, i := range shown {
+		s := m.svcs[i]
 		name := ui.Dot(t, s.State) + " " + t.S.Base.Render(s.Name)
 		if s.State == "deploying" {
 			name = ui.Busy(t, m.frame/2) + " " + t.S.Base.Render(s.Name)
@@ -184,7 +194,15 @@ func (m *app) services(c *ui.Canvas, r uv.Rectangle) {
 		}
 		rows = append(rows, row)
 	}
-	tbl := ui.Table(t, header, rows, widths, align, m.sel, main.Dx(), m.ov == ovNone)
+	tbl := ui.Table(t, header, rows, widths, align, slices.Index(shown, m.sel), main.Dx(), m.ov == ovNone)
+	if filtered && len(shown) == 0 {
+		// nothing left: say so under the header, and the way out (no mark: the filter's
+		// line above is the context)
+		tbl = append(tbl, "")
+		tbl = append(tbl, ui.Empty(t, main.Dx(), ui.NoMark, "No service matches \""+m.filter+"\"",
+			"None of the "+itoa(len(m.svcs))+" service names contains it.",
+			t.S.Key.Render("esc")+" "+t.S.KeyDesc.Render("clear filter"))...)
+	}
 	c.Draw(strings.Join(tbl, "\n"), main)
 	s := m.svcs[m.sel]
 	if side.Dx() > 0 {
@@ -198,7 +216,7 @@ func (m *app) services(c *ui.Canvas, r uv.Rectangle) {
 			n := min(len(act), main.Max.Y-top)
 			c.Draw(strings.Join(act[:n], "\n"), uv.Rect(main.Min.X, top, main.Dx(), n))
 		}
-	} else if y := main.Min.Y + len(tbl) + 1; y < main.Max.Y {
+	} else if y := main.Min.Y + len(tbl) + 1; y < main.Max.Y && slices.Contains(shown, m.sel) {
 		line := t.S.Muted.Render(s.Name) + t.S.Subtle.Render("  owner ") + t.S.Soft.Render(s.Owner) +
 			t.S.Subtle.Render("  deployed ") + t.S.Soft.Render(s.Deployed)
 		if m.silenced[s.Name] {

@@ -96,6 +96,9 @@ type app struct {
 	paging   bool
 	// alerts silenced per service (the palette's Silence alerts, undone by its toast)
 	silenced map[string]bool
+	// services: a filter narrows the list (typed while filtering, in force while set)
+	filter    string
+	filtering bool
 	// services: the list refreshes itself unless paused (the product clock)
 	paused  bool
 	refresh refreshState
@@ -349,6 +352,7 @@ func (m *app) key(msg tea.KeyPressMsg) tea.Cmd {
 		if m.ov == ovPalette {
 			m.palSel = 0
 		}
+		m.keepSelShown()
 		return nil
 	}
 	for _, a := range m.actions() {
@@ -371,8 +375,31 @@ func (m *app) textTarget() *string {
 		return &m.input
 	case m.screen == scrDeploy && m.focus == 1:
 		return &m.version
+	case m.screen == scrServices && m.filtering:
+		return &m.filter
 	}
 	return nil
+}
+
+// shown are the indexes of the services the filter leaves, in order: all of them with
+// no filter. The selection stays an index into m.svcs (identity), never into this.
+func (m *app) shown() []int {
+	var out []int
+	q := strings.ToLower(m.filter)
+	for i, s := range m.svcs {
+		if strings.Contains(strings.ToLower(s.Name), q) {
+			out = append(out, i)
+		}
+	}
+	return out
+}
+
+// keepSelShown moves the selection to the first row the filter leaves when the filter
+// hides it, so the row the actions target is always one on screen.
+func (m *app) keepSelShown() {
+	if v := m.shown(); len(v) > 0 && !slices.Contains(v, m.sel) {
+		m.sel = v[0]
+	}
 }
 
 func backspace(m *app, _ tea.KeyPressMsg) tea.Cmd {
@@ -381,6 +408,7 @@ func backspace(m *app, _ tea.KeyPressMsg) tea.Cmd {
 			*p = string(r[:len(r)-1])
 		}
 	}
+	m.keepSelShown()
 	return nil
 }
 
@@ -669,27 +697,62 @@ func (m *app) stateActions() []action {
 			m.sel = m.svcIndex(m.events[m.depSel].Svc) // a row selects its service
 			return nil
 		}
-		if up {
-			m.sel = max(0, m.sel-1)
-		} else {
-			m.sel = min(len(m.svcs)-1, m.sel+1)
+		// services: through the rows the filter leaves
+		v := m.shown()
+		if len(v) == 0 {
+			return nil
 		}
+		i := max(0, slices.Index(v, m.sel))
+		if up {
+			i = max(0, i-1)
+		} else {
+			i = min(len(v)-1, i+1)
+		}
+		m.sel = v[i]
 		return nil
 	}}
 	if m.screen == scrDeploys {
 		return []action{move, palette, tabs, tabsBack, quit, help}
+	}
+	// the filter: / types it, esc clears it, offered only while one is typed or in force
+	clearFilter := esc("clear filter", func(m *app) { m.filter, m.filtering = "", false })
+	if m.filtering {
+		// typing: letters are the query, so the list moves on the arrows alone
+		move.b = bind([]string{"up", "down"}, m.t.G.UpDown, "select")
+		return []action{
+			{bind([]string{"enter"}, "enter", "keep filter"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
+				m.filtering = false
+				return nil
+			}},
+			clearFilter, move, palette, help, bs,
+		}
+	}
+	filterDesc := "filter"
+	if m.filter != "" {
+		filterDesc = "edit filter"
+	}
+	typeFilter := action{bind([]string{"/"}, "/", filterDesc), m.filter == "", func(m *app, _ tea.KeyPressMsg) tea.Cmd {
+		m.filtering = true
+		return nil
+	}}
+	if m.filter != "" && len(m.shown()) == 0 {
+		// nothing left to act on: no key may reach the service the filter hides
+		return []action{clearFilter, typeFilter, palette, tabs, tabsBack, quit, help}
 	}
 	// a toggle's help names what the key does now (TestToggleHelpIsTruthful): "pause"
 	// while the list is live, "resume" while it is paused. Pause changes the product
 	// clock, so it returns the new arm cmd ("Refresh rate" in command() does too)
 	pause := action{bind([]string{"p"}, "p", map[bool]string{false: "pause", true: "resume"}[m.paused]), true,
 		func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.paused = !m.paused; return m.armRefresh() }}
-	acts := []action{
-		move,
-		{bind([]string{"d"}, "d", "deploy"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.openDeploy(); return nil }},
-		{bind([]string{"r"}, "r", "roll back"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.askRollback(); return nil }},
-		palette, tabs, tabsBack, pause, quit, help,
+	acts := []action{move}
+	if m.filter != "" {
+		acts = append(acts, clearFilter)
 	}
+	acts = append(acts,
+		action{bind([]string{"d"}, "d", "deploy"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.openDeploy(); return nil }},
+		action{bind([]string{"r"}, "r", "roll back"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.askRollback(); return nil }},
+		palette, typeFilter, tabs, tabsBack, pause, quit, help,
+	)
 	// the palette's shortcuts work here too, so the hints it shows are true
 	for _, c := range commands {
 		if c.Key == "" || c.Key == "d" || c.Key == "r" {

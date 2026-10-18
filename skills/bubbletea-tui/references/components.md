@@ -62,6 +62,23 @@ reversed with the rest of the row, so the fill is unbroken and the selected hist
 still reads, as marks in the page's ink. Color a cell only when its value is abnormal (a
 red error rate), never a whole column.
 
+## Filter — `ui.Filter`
+
+A list's filter (`/`) stands on the list's own first row, directly above its header,
+while it is typed or in force, with a row of air under it; the rows move down to make
+room. Never in the footer: a toast or the keys cover it there, and the two cold builds
+that put it there each drew it differently. The line is the prompt, the query and, at
+the right edge, how many rows it leaves of how many (`3 of 8`), so a narrowed list
+never passes for the whole one. Typed, the prompt takes the prompt's ink and a caret
+follows the query; in force, the prompt is quiet and the caret's cell blank, so the
+query doesn't move. Typing narrows the list live, letters are the query (the list moves
+on the arrows), `enter keep filter` gives the keys back with the filter in force, and
+`esc clear filter` drops it: offer `esc clear filter` only while a filter is typed or in
+force, early in the table so the footer keeps it. The selection stays on a row the
+filter leaves; when it leaves none, say so under the header (`ui.Empty` with
+`ui.NoMark`) and bind nothing that acts on a hidden row. The showcase's services list
+is the pattern (`services-filter`, `services-filtered`).
+
 ## Detail Pane
 
 A `Section` with the item name and its environment as info, a KV block (`ui.KV`, keys
