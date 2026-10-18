@@ -45,9 +45,11 @@ its first and only framework today is Bubble Tea v2.
 - The kit's packages move under their framework: `kit/theme` is `kit/theme/bubbletea`
   and `kit/ui` is `kit/ui/bubbletea`, imported as `tuikit/theme/bubbletea` and
   `tuikit/ui/bubbletea`. The package names stay `theme` and `ui`. `kit/themes/*.json`,
-  the theme contract, stays where it is. A copied project still holds them flat as
-  `internal/theme` and `internal/ui`: rerun `kit/README.md`'s copy block, whose import
-  rewrite now drops `/bubbletea`.
+  the theme contract, stays where it is. Projects that already copied the kit need no
+  change: their imports stay `internal/theme` and `internal/ui`. A new copy uses the
+  updated block in `kit/README.md`, which copies the packages flat to those same paths
+  and drops `/bubbletea` from the imports. Don't rerun it over an existing copy: `cp -r`
+  into existing directories nests them, and the donor line overwrites the brand theme.
 - `references/architecture.md` is `references/bubbletea-architecture.md`.
 - The plugin manifests carry a `version`, so plugin installs update on a release, not on
   every commit to `main`.
