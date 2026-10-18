@@ -115,7 +115,7 @@ palette / tone / geometry / density / type / motif   (references/brand.md §1)
 move: <one region elsewhere in the screen's order than the kit puts it (above or below a different region, left or right of one), or gone, or added, and the word it follows from; not a one-row shift from a gap or a rule row>, e.g. the open alert fills the top half and the list folds under it (a monitor, urgent) · the answers so far as a column left of the field (a wizard, reassuring) · the composer right under the header and the transcript below it (a chat, eager); take yours from your words, not these
 signature: <one element the kit doesn't draw, on the main screen's default frame, not the move's region>, e.g. a 12-cell trace of today's load beside the name, a running-tally column on the list; not a glyph, a rule style, a hue or a restyling theme expression
 skeleton: head <…> · status <…> · order <…> · foot <…> · verdict <…> · chart <…> · chartGlyphs <…> · turnEnd <…>   (the main screen's composition, the words in `diversity -h`, - for an axis it doesn't have; planned here, corrected once craft renders the default frame; `diversity TUI.md` reads it)
-accents: <hue> = <its one meaning>, one line per hue; focus = <gutter, weight>, never a state hue ("focus": "fg" in the theme when the brand's hue is a state)
+accents: <role> (<hue>) = <its one meaning>, one line per hue, e.g. primary (amber) = new; focus = <gutter, weight>, never a state hue ("focus": "fg" in the theme when the brand's hue is a state)
 glyphs: <glyph> <meaning> (ascii <twin>), one line each; twins the kit lacks go in the theme's glyphs.ascii; width-safe: <narrow glyph | 2-cell column>
 
 ### Theme
@@ -175,6 +175,7 @@ Bubbles: <textarea, viewport, …>. Kit ui: <List, Table, Dialog, Footer, …>.
 One action table per state; footer and dispatcher both read it. Every screen that
 loads data has its empty, loading, error and partial (some sources failed) rows.
 Footer keys are **bold** (in a long cell, ‖ after the last of them does the same): main actions first, then the way out and ? help (ctrl+g help where a text box types ?). The rest are help-only.
+A footer key shown only under a condition ends with it: `**esc clear filter (if a filter is applied)**`, `(when …)`, `(while the body overflows)`; one whose screen comes later in the slice ends with `(later)` or `(later: <screen>)`. The mark takes no footer width, and the golden needn't show that key.
 A `confirm-*` row exists only for an action that can't be taken back or that a failing signal makes risky; its § Screens block names the rung and why (`rung 3: ships to prod`, `rung 4: opens on red checks`). A ship started from a form has no `confirm-*` row: its block says the review step is the confirmation.
 
 | state (harness name) | screen / overlay | keys |
@@ -210,6 +211,7 @@ Then: <the rest of v1, in order>
 
 ## Decisions
 - <date> <decision> because <reason>
+- <date> cuts: <column header or budget region>, … — <why it has no longest>   (e.g. `- 2026-10-18 cuts: command, title — no longest; the detail shows it whole`; `tuilint frames --spec TUI.md` reads it [F-TRUNC])
 
 ## Assumed
 - <default the user didn't confirm>   (confirm it, then move it to Decisions)

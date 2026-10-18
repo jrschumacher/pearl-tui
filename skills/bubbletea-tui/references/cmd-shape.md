@@ -16,19 +16,25 @@ to the user. No Go yet.
 3. **States**: populated, empty, loading, error, partial (a chat screen adds thinking
    with no tool call yet, and prose streaming in), plus every overlay (palette,
    confirm, help). Each becomes a harness state name; `toosmall` is one row for the app.
-   An overlay's name carries `dialog`, `palette`, `confirm`, `modal`, `overlay`, `popup`,
-   `help` or `keys` (`confirm-discard`, not `discard`): `tuilint frames` finds a ruled,
-   ASCII or borderless dialog only by that name, and otherwise lints its scrim [F-CONTRAST].
+   `tuilint frames` finds a bordered, ruled or ASCII dialog by its shape, whatever the
+   state is called. Naming an overlay by what it is (`dialog`, `palette`, `confirm`,
+   `modal`, `overlay`, `popup`, `help` or `keys` in it: `confirm-discard`, not
+   `discard`) is a convenience for readers, and lets the lint note an overlay whose
+   dialog it can't find, as under `dialog: none` with no edge.
    A write gets a `confirm-*` state only if it can't be taken back or is risky in that
    state (rungs 3 and 4, `interaction.md` § Confirm By Consequence); a reversible one
    gets a done state with its undo toast instead (`closed-undo`), and a sent message its
    `sent`. A ship started from a form has no `confirm-*` state: its review step is it.
 4. **Keys**: the bindings, the help order, what `esc` does, and where focus starts and
-   moves.
+   moves. A footer key shown only sometimes ends with its condition (`(if a filter is
+   applied)`, `(while the body overflows)`) or `(later)`, as in `cmd-init.md`'s template.
 5. **Content**: realistic fixture data, including the longest name, the failing row and
    the empty list. No lorem ipsum. Each column's budget fits its longest fixture: more
    than 3 rows cut to `…` in one column is a budget too narrow [F-TRUNC]. A column of
-   paths, URLs or code has no longest: cut it and say so in § Decisions.
+   paths, URLs or code has no longest: cut it and say so in § Decisions, on a `cuts:`
+   line naming its header or budget region (`- 2026-10-18 cuts: command, title — no
+   longest; the detail shows it whole`), which `tuilint frames` honours when it is
+   given the TUI.md.
 6. **Components**: which kit component draws each region (`components.md`), and any new
    component you'll need. A new component is a reason to stop and think: is it a real
    need, or a box you're reaching for?
