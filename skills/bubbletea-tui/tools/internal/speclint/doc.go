@@ -122,6 +122,11 @@
 //	                  ``` or ~~~ fence (the sketch) or in backticks doesn't. Two
 //	                  brands on one spec otherwise share every screen behind the main one word
 //	                  for word (references/cmd-shape.md § Behind The Main Screen).
+//	             [P2] in the same blocks, the main screen's included, a `flow:` line whose value is
+//	                  empty or one of those placeholders (the template's `<…>` most of all). The
+//	                  line is optional, so a block without one is not a finding; one that is there
+//	                  names the domain fact or brand word behind the screen's depth
+//	                  (references/cmd-shape.md § Depth Follows The Domain, Then The Brand).
 //	S-GOLDEN     [P2] (with --frames) a state's footer in <state>-80x24.ansi and its row disagree:
 //	                  the footer shows a hint whose keys neither the row nor Global binds (row
 //	                  keys over an empty table), or lacks a key the row puts in the footer while

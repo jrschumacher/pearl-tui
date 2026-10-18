@@ -847,6 +847,7 @@ var (
 	// right after § Screens, so "Dialogs" under Architecture is not a screen list
 	screensSibling = regexp.MustCompile(`(?i)^(?:\d+[.)]?\s+)?(?:(?:main|secondary|other|more)\s+)?(?:screens?|overlays?|dialogs?)(?:\s+and\s+(?:screens|overlays|dialogs|states))?\s*(?:\([^)]*\))?\s*:?$`)
 	brandLine      = regexp.MustCompile(`(?i)^(?:[-*+]\s+)?brand\s*:\s*(.*)$`)
+	flowLine       = regexp.MustCompile(`(?i)^(?:[-*+]\s+)?flow\s*:\s*(.*)$`)
 	// a value that skips the question: "nothing", "none", "n/a", "-" with no reason after
 	// it, or a placeholder: "TBD", "todo", "?", "nothing yet", the template's "<…>"
 	brandSkip = regexp.MustCompile(`(?i)^(?:nothing|none|n/?a|-+|—|–|tbd|todo|\?+|nothing\s+yet|<[^>]*>)[.!]?$`)
@@ -882,7 +883,9 @@ func fenceToggle(fence *string, t string) bool {
 // block. Presence only, but a value that skips the question
 // ("nothing", "none", "n/a", "-" with no reason) doesn't count, nor does an empty
 // value, a fenced line (the sketch) or a slot word in backticks; the critic judges
-// what the line says.
+// what the line says. A `flow:` line is optional in any block, the main screen's too,
+// but one that is there and holds only such a value is flagged where it stands: the
+// template ships one in every block it copies.
 func (s *spec) screenBrand(add func(string, int, string, ...any)) {
 	type heading struct {
 		line, level int
@@ -958,7 +961,14 @@ func (s *spec) screenBrand(add func(string, int, string, ...any)) {
 		if start < 0 {
 			continue
 		}
-		m := brandLine.FindStringSubmatch(strings.NewReplacer("**", "", "__", "").Replace(t))
+		bare := strings.NewReplacer("**", "", "__", "").Replace(t)
+		if f := flowLine.FindStringSubmatch(bare); f != nil {
+			if v := strings.TrimSpace(f[1]); v == "" || brandSkip.MatchString(v) {
+				add("S-SLOTS", i+1, "%s: `%s` is a placeholder. Name the domain fact behind this screen's depth (who acts, on how many objects, whether the act can be taken back) and any brand word that moves it, or, on a block after the main screen's, delete the line where its flow is the spec's (references/cmd-shape.md § Depth Follows The Domain, Then The Brand)", name, strings.TrimSpace(s.lines[i]))
+			}
+			continue
+		}
+		m := brandLine.FindStringSubmatch(bare)
 		if m == nil {
 			continue
 		}
