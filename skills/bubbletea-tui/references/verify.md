@@ -19,8 +19,8 @@ screenshot.
 3. LINT     tuilint frames frames frames/256 frames/16 frames/nocolor --theme themes/<brand>.json --bg <bg> --spec TUI.md
             tuilint frames frames/ascii --ascii --unicode frames --theme themes/<brand>.json --bg <bg> --spec TUI.md
             tuilint frames frames/light --theme themes/<brand>.json --bg <light bg> --spec TUI.md
-            (--spec reads § Decisions' `cuts: <column header or region>` lines: a column
-            cut on purpose, paths, URLs, code, is not a budget too narrow [F-TRUNC])
+            (--spec reads § Decisions' `cuts: [<screen>:] <column header or region>` lines:
+            a column cut on purpose, paths, URLs, code, is not a budget too narrow [F-TRUNC])
             (lint every directory you rendered: light, 256, 16, no colour and ASCII break where dark
             truecolour passes, and LOOK at the overlays there: a dialog's edge is the first to go;
             --ascii fails any glyph that leaked into an ASCII frame, and --unicode a "?" where the

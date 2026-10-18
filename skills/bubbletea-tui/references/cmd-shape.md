@@ -33,10 +33,10 @@ to the user. No Go yet.
    the empty list. No lorem ipsum. Each column's budget fits its longest fixture: more
    than 3 rows cut to `…` in one column is a budget too narrow [F-TRUNC]. A column of
    paths, URLs or code has no longest: cut it and say so in § Decisions, on a `cuts:`
-   line naming its header or budget region, after its screen to hold it there
-   (`- 2026-10-18 cuts: detail: command — no longest; the pager shows it whole`; with
-   no screen it holds on every screen), which `tuilint frames` honours when it is given
-   the TUI.md.
+   line naming its header or budget region, after a § Screens block's name and a colon
+   to hold it to that screen (`- 2026-10-18 cuts: detail: command — no longest; the
+   pager shows it whole`; any other word before a colon starts the reason, and a line
+   with no screen holds on every screen), which `tuilint frames --spec TUI.md` honours.
 6. **Components**: which kit component draws each region (`components.md`), and any new
    component you'll need. A new component is a reason to stop and think: is it a real
    need, or a box you're reaching for?
