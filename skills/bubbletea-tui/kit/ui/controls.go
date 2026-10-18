@@ -222,15 +222,16 @@ func warnIsFill(t *theme.Theme) bool {
 	return bg != nil && !none
 }
 
-// Sparkline draws values as ▁▂▃▄▅▆▇█ over w cells (the last w values, left-aligned),
+// Sparkline draws values as ▁▂▃▄▅▆▇ over w cells (the last w values, left-aligned),
 // scaled to the series itself: for a reading whose shape matters more than its level
 // (latency, throughput). A reading with a fixed range (a percentage, a load) is a Trace,
 // where an idle 3 % stays at the floor. How far a series rises is set by its spread
 // (hi−lo)/hi: under 10 % it is noise and draws the floor (⣀, Theme.TraceGlyphs) in every
-// cell, since ±5 % drawn full height reads as an incident; from 10 % to a third it rises
-// to ▂▃▄ at most, so a +20 % step still shows as a step; past a third it uses the full
-// height. A series of zeros is no data and draws blank, never the floor a quiet series
-// draws.
+// cell, since ±5 % drawn full height reads as an incident; past it the peak rises one
+// level per ~8 % of spread, ▂ at 10 %, ▄ at a third, ▇ from about a half, so a +20 %
+// step shows as a step and a 34 % one is not twice a 32 % one. It stops at ▇ (7/8), as
+// Trace's top row does. A series of zeros is no data and draws blank, never the floor
+// a quiet series draws.
 func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) string {
 	if len(vals) > w {
 		vals = vals[len(vals)-w:]
@@ -240,14 +241,12 @@ func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) stri
 		lo, hi = math.Min(lo, v), math.Max(hi, v)
 	}
 	_, ramp := t.TraceGlyphs()
-	top := len(ramp) - 1 // the highest level above the lowest bar
+	top := len(ramp) - 2 // the highest level above the lowest bar: 7/8, never the full block
 	spread := 0.0
 	if hi > 0 {
 		spread = (hi - lo) / hi
 	}
-	if spread < 1.0/3 {
-		top = min(top, 1+int((spread-0.10)/(1.0/3-0.10)*3)) // 10 % → ▂, a third → ▄
-	}
+	top = min(top, 1+int((spread-0.10)/(1.0/3-0.10)*3)) // 10 % → ▂, a third → ▄, on up
 	levels := make([]int, len(vals))
 	inks := make([]lipgloss.Style, len(vals))
 	for i, v := range vals {

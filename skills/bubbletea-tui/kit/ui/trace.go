@@ -44,8 +44,9 @@ type TraceOpts struct {
 // draws the floor (Theme.TraceGlyphs: ⣀; ASCII . or ,), one texture for the whole idle
 // band, so an idle 4–9 % never flickers between floor and bar and never reads as a
 // section rule; a cell at Min itself beside activity draws it in fgSubtle, a step under
-// a low reading's fgMuted. Above it the cell rises through ▁▂▃▄▅▆▇█ (ASCII .,:;%&#@).
-// On a selected row ui.Table draws the bars in the selection's shade (Styles.SelBars).
+// a low reading's fgMuted. Above it the cell rises through ▁▂▃▄▅▆▇█ (ASCII .,:;%&#@),
+// and the top row stops at ▇ (7/8): a full block would sit flush on the row above. On a
+// selected row ui.Table draws the bars in the selection's shade (Styles.SelBars).
 func Trace(t *theme.Theme, vals []float64, w int, o TraceOpts) []string {
 	per, rows := max(1, o.Per), max(1, o.Rows)
 	lo, hi := o.Min, o.Max
@@ -73,7 +74,7 @@ func Trace(t *theme.Theme, vals []float64, w int, o TraceOpts) []string {
 		frac := math.Min(1, math.Max(0, (v-lo)/(hi-lo)))
 		levels[i] = 0
 		if frac*8 >= 1 {
-			levels[i] = max(1, int(math.Round(frac*float64(steps))))
+			levels[i] = min(steps-1, max(1, int(math.Round(frac*float64(steps))))) // the top row stops at 7/8
 		}
 		inks[i] = ink(v)
 		if v <= lo {

@@ -293,7 +293,9 @@ says the state in words.
   Newest sample at the right; a cell holds `Per` samples drawn as their max (60 s at Per
   4 is 15 cells, and a 1 s spike survives); cells before the first sample are blank, not
   zero; a cell at or over `Warn` takes the warning's ink and over `Fail` the error's;
-  `Rows: 3` is 24 heights, the floor on the bottom row.
+  `Rows: 3` is 24 heights, the floor on the bottom row. A bar's top row stops at `▇`
+  (7/8), in a Sparkline too: a `█` sits flush on the row above, and under NO_COLOR the
+  two rows fuse into one shape.
 - Idle is dots, never a line. A sample under 1/8 of the scale draws the floor `⣀` (`⠤`
   beside a rule drawn in braille), so a 4–9 % band is one even row, not `⣀▁⣀▁`, and a
   quiet row is never a hairline: `▁▁▁▁` reads as one more rule beside any rule, and over
@@ -304,10 +306,11 @@ says the state in words.
   `.,:;%&#@` (punctuation thickening upward) and the floor `.` (`,` beside a `.` rule),
   never `-`, `_` or `=`, whose runs are rules.
 - Sparkline: `▁▂▃▅▇` over a fixed column, scaled to the series (latency, throughput),
-  coloured by state. A series within 10 % of its peak is noise and draws the floor; from
-  10 % to a third it rises to `▂▃▄` at most, so a +20 % p99 step shows as a step and
-  never as a wall; past a third it takes the full height. Always print the current value
-  beside it. A warning's ends in the warn mark (`ui.StateSparkline`: `▁▃▅▇█▲`): at 16
+  coloured by state. A series within 10 % of its peak is noise and draws the floor; past
+  it the peak rises a level per ~8 % of spread (`▂` at 10 %, `▄` at a third, `▇` from
+  about a half), so a +20 % p99 step shows as a step, never as a wall, and 34 % is not
+  twice 32 %. Always print the current value
+  beside it. A warning's ends in the warn mark (`ui.StateSparkline`: `▁▃▅▆▇▲`): at 16
   colours a warm brand's yellow and the warning's are one hue, so bars in yellow alone
   read as the selection. A sparkline taller than one row grows upward from the label's
   row: label, value and the bar's base share the bottom row, the rows above hold the

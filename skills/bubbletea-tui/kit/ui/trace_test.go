@@ -22,7 +22,7 @@ func TestTraceHoldsItsScale(t *testing.T) {
 	for _, ascii := range []bool{false, true} {
 		th := testTheme(t, ascii)
 		floor, ramp := th.TraceGlyphs()
-		top := ramp[len(ramp)-1]
+		full, top := ramp[len(ramp)-1], ramp[len(ramp)-2] // a bar's top row stops at 7/8
 		cells := func(s string) []string {
 			var out []string
 			for _, r := range ansi.Strip(s) {
@@ -66,7 +66,7 @@ func TestTraceHoldsItsScale(t *testing.T) {
 			t.Fatalf("ascii=%v: Rows 2 returned %d rows", ascii, len(rows))
 		}
 		up, down := cells(rows[0]), cells(rows[1])
-		if up[0] != top || down[0] != top || up[1] != " " || down[1] != top || up[2] != " " || down[2] != floor {
+		if up[0] != top || down[0] != full || up[1] != " " || down[1] != full || up[2] != " " || down[2] != floor {
 			t.Errorf("ascii=%v: two rows of 100, 50, 1 draw\n%q\n%q", ascii, strings.Join(up, ""), strings.Join(down, ""))
 		}
 		for _, r := range rows {
@@ -209,6 +209,67 @@ func TestNoDataIsNotLowData(t *testing.T) {
 			t.Errorf("ascii=%v: a zero beside activity draws %q, want the floor", ascii, string(got[0]))
 		} else if c := cellAt(mixed, floor); c == nil || !same8(c.Style.Fg, th.P.FgSubtle) {
 			t.Errorf("ascii=%v: a zero beside activity is not in fgSubtle: %v", ascii, c)
+		}
+	}
+}
+
+// A full-height bar filled its cell to the top, so the next row's floor or bar sat
+// flush on it, and under NO_COLOR the two rows fused into one shape. A bar's top row
+// stops at 7/8 (▇): a one-row Trace and a Sparkline never draw the ramp's top glyph,
+// and a taller Trace draws it only below its top row, where the bar runs on.
+func TestBarsStopShortOfTheRowAbove(t *testing.T) {
+	for _, ascii := range []bool{false, true} {
+		th := testTheme(t, ascii)
+		_, ramp := th.TraceGlyphs()
+		full := ramp[len(ramp)-1]
+		for what, row := range map[string]string{
+			"TraceRow 100":     TraceRow(th, []float64{100, 50, 100}, 3, TraceOpts{}),
+			"Trace 2 rows top": Trace(th, []float64{100, 50, 100}, 3, TraceOpts{Rows: 2})[0],
+			"Sparkline":        Sparkline(th, []float64{1, 5, 10, 2}, 4, th.S.Muted),
+			"StateSparkline":   StateSparkline(th, "warning", []float64{1, 5, 10, 2}, 6),
+		} {
+			if strings.Contains(ansi.Strip(row), full) {
+				t.Errorf("ascii=%v: %s draws %q: a top row stops at 7/8", ascii, what, ansi.Strip(row))
+			}
+		}
+		if got := ansi.Strip(Trace(th, []float64{100}, 1, TraceOpts{Rows: 2})[1]); got != full {
+			t.Errorf("ascii=%v: below its top row a full bar draws %q, want %q", ascii, got, full)
+		}
+	}
+}
+
+// Sparkline's height grows with the series' spread one level at a time: it capped a
+// spread under a third at ▄, then jumped to full height at exactly a third, so a 33 %
+// change drew twice as tall as a 32 % one.
+func TestSparklineRisesWithoutACliff(t *testing.T) {
+	for _, ascii := range []bool{false, true} {
+		th := testTheme(t, ascii)
+		_, ramp := th.TraceGlyphs()
+		level := func(s string) int {
+			hi := -1
+			for _, r := range ansi.Strip(s) {
+				for i, g := range ramp {
+					if string(r) == g && i > hi {
+						hi = i
+					}
+				}
+			}
+			return hi
+		}
+		prev := -1
+		for pct := 10; pct <= 100; pct++ {
+			lo := 100 - float64(pct) // spread (hi-lo)/hi = pct %
+			got := level(Sparkline(th, []float64{lo, lo, 100, 100}, 4, th.S.Muted))
+			if prev >= 0 && got > prev+1 {
+				t.Errorf("ascii=%v: a spread of %d %% draws level %d, %d %% drew %d: a cliff", ascii, pct, got, pct-1, prev)
+			}
+			if got < prev {
+				t.Errorf("ascii=%v: a spread of %d %% draws lower (%d) than %d %% (%d)", ascii, pct, got, pct-1, prev)
+			}
+			prev = got
+		}
+		if prev != len(ramp)-2 {
+			t.Errorf("ascii=%v: a 100 %% spread reaches level %d, want %d (7/8)", ascii, prev, len(ramp)-2)
 		}
 	}
 }
