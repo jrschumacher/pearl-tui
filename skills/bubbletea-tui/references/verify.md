@@ -88,8 +88,10 @@ Files:
   - the app's render code: <paths>
 Rubric (score each 0–4, cite rows/cells, not impressions; 0 = a default or a break,
 2 = works but surprises, 4 = designed):
-  1. Identity: with colour stripped, is it recognisably this brand? Is the read's
-     "remember" line visible? Any default (pink-purple, emoji, figlet, Loading...)?
+  1. Identity: with colour stripped, is it recognisably this brand? Does the main
+     screen's default frame show the read's move (a region placed where the kit
+     doesn't) and its signature (an element the kit doesn't draw)? Any default
+     (pink-purple, emoji, figlet, Loading...)?
   2. Hierarchy: 3–4 text levels used correctly; what the eye lands on first is what
      matters most; one alert at most.
   3. Focus and flow: exactly one visible focus; where am I, what can I do, how do I go

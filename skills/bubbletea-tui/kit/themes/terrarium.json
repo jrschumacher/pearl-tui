@@ -1,7 +1,7 @@
 {
  "name": "terrarium",
  "brand": "terrarium",
- "read": "A home-lab fleet tool for hobbyists (fictional): glass, moss and brass. Teal is the only working hue, brass the second voice, and the neutrals lean green so the greys read as glass. Everything is a pane: a rule header with a dotted ┈ motif, [bracketed] wordmark and tabs, ruled dialogs (a filled panel between two ┈ rules, title in the top one: the edge that survives 16 colours and NO_COLOR), bracket buttons and tags, boxed keys on a rule footer, a › caret, muted small-caps section titles, sentence case, airy, no scrim. Remember: the dotted rule that frames every pane.",
+ "read": "A home-lab fleet tool for hobbyists (fictional): glass, moss and brass. Teal is the only working hue, brass the second voice, and the neutrals lean green so the greys read as glass. Everything is a pane: a rule header with a dotted ┈ motif, [bracketed] wordmark and tabs, ruled dialogs (a filled panel between two ┈ rules, title in the top one: the edge that survives 16 colours and NO_COLOR), bracket buttons and tags, boxed keys on a rule footer, a › caret, muted small-caps section titles, sentence case, airy, no scrim. Its mark: the dotted rule that frames every pane.",
  "ansi16": {
   "dark": {
    "warning": 11

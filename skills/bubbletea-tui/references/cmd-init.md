@@ -112,7 +112,8 @@ dialogs and overlays: where the background step is gone (16 colours, NO_COLOR, a
 
 ### Brand read
 palette / tone / geometry / density / type / motif   (references/brand.md §1)
-remember: <a move every screen draws: a title motif, a header rule, a layout move>, not a quality of the content
+move: <one region elsewhere in the screen's order than the kit puts it (above or below a different region, left or right of one), or gone, or added, and the word it follows from; not a one-row shift from a gap or a rule row>, e.g. the open alert fills the top half and the list folds under it (a monitor, urgent) · the answers so far as a column left of the field (a wizard, reassuring) · the composer right under the header and the transcript below it (a chat, eager); take yours from your words, not these
+signature: <one element the kit doesn't draw, on the main screen's default frame, not the move's region>, e.g. a 12-cell trace of today's load beside the name, a running-tally column on the list; not a glyph, a rule style, a hue or a restyling theme expression
 accents: <hue> = <its one meaning>, one line per hue; focus = <gutter, weight>, never a state hue ("focus": "fg" in the theme when the brand's hue is a state)
 glyphs: <glyph> <meaning> (ascii <twin>), one line each; twins the kit lacks go in the theme's glyphs.ascii; width-safe: <narrow glyph | 2-cell column>
 
@@ -214,10 +215,10 @@ Then: <the rest of v1, in order>
 A brief written before this skill (a spec, a PRD, an earlier TUI.md) gets these sections
 wrong. Write them this way:
 
-- **A `remember` line the TUI draws.** Name a move visible on every screen: a `╱` in
-  every title, a two-tone header rule, an accent `▌` gutter. Law 10 makes the brand two
-  or three such moves; "feels trustworthy and well made" describes a quality of the
-  product, and no later command can draw it, so the screens go generic.
+- **A move and a signature the TUI draws,** not a quality ("feels trustworthy") and not
+  a motif alone (`brand.md` § Move A Region). An earlier TUI.md's `remember:` line
+  becomes these two (`tuilint spec` warns until it does [S-SLOTS]): ask the user, or
+  write them `assumed:`.
 - **One meaning per accent hue.** One hue for "new" *and* for focus makes the cursor
   row and a new row look the same. Focus is the gutter and the weight (`interaction.md`
   § Focus); a hue is a state. The kit draws focus in primary unless the theme says
@@ -229,7 +230,7 @@ wrong. Write them this way:
   shares another state's twin), and set it in a
   2-cell column, which the other ambiguous glyphs in that column need anyway. Swap it
   only for a narrow glyph with the same meaning (`✓ ❯ ▸`), never for a word: a set of
-  marks read at a glance is part of the signature, and dropping one for width merges
+  marks read at a glance is part of the brand's look, and dropping one for width merges
   two meanings into one mark.
 - **A dialog edge that survives without colour.** A filled panel one background step
   up, with no border, sits on the page in the same colour under 16 colours and

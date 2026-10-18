@@ -134,9 +134,9 @@ one hero animation (`ui.Anim`) with a subject.
 **DON'T** tick while idle, fake progress, or shimmer the screen.
 
 ### Brand → *Consult `references/brand.md`*
-**DO** write the brand read first, translate traits into expressions, convert real
-assets (`wordmark.py`, `logo2cells.py`), and prove distance from the default
-(`diversity`).
+**DO** write the brand read first, with one region moved from the kit's layout and one
+element the kit doesn't draw, translate traits into expressions, convert real assets
+(`wordmark.py`, `logo2cells.py`), and prove distance from the default (`diversity`).
 **DON'T** treat a new palette on the default layout as a brand, or move an axis just to
 pass the lint.
 
@@ -166,7 +166,8 @@ Would someone who lives in a terminal look at this and say "a model made this"? 
 5. 80×24 and 200×60: the same design, nothing torn, room used.
 6. Read every word aloud in the brand's voice.
 7. Any pink-purple, emoji or "Loading..."? Remove it.
-8. Name the one thing a user will remember. If you can't, it has no identity yet.
+8. Point at the read's move and signature on the main screen. If you can't, it has no
+   identity yet.
 
 ## Commands
 

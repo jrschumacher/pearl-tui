@@ -1,7 +1,7 @@
 {
  "name": "halyard",
  "brand": "halyard",
- "read": "Freight and vessel tracking for port operators (fictional). Precise, nautical, signal-flag clear. Deep navy with international orange as the signal; ocean blue second. A filled orange flag-strip header with the name TRACKED like a hull marking, ▲ △ sails as the backdrop field, ┄ chart-line rules, a thin ▎ bar, full-width orange selection, [ bracket ] buttons, slash tabs, compact density, boxed keys under a rule. The one thing to remember: the orange flag at the top.",
+ "read": "Freight and vessel tracking for port operators (fictional). Precise, nautical, signal-flag clear. Deep navy with international orange as the signal; ocean blue second. A filled orange flag-strip header with the name TRACKED like a hull marking, ▲ △ sails as the backdrop field, ┄ chart-line rules, a thin ▎ bar, full-width orange selection, [ bracket ] buttons, slash tabs, compact density, boxed keys under a rule. Its loudest mark: the orange flag at the top.",
  "ansi16": {
   "dark": {
    "primary": 13,

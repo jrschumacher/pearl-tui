@@ -28,8 +28,8 @@ No Go yet.
 6. **Components**: which kit component draws each region (`components.md`), and any new
    component you'll need. A new component is a reason to stop and think: is it a real
    need, or a box you're reaching for?
-7. **Identity**: where the brand's signature shows on this screen (header, motif,
-   selection style, copy).
+7. **Identity**: where the brand shows on this screen (header, motif, selection style,
+   copy). On the main screen, the sketch draws the read's move and signature.
 
 ## Sketch In Cells
 

@@ -22,7 +22,8 @@ geometry  <round or square, light or heavy, soft or hard>
 density   <airy or compact, and why the users need that>
 type      <case, tracking, weight; what the wordmark looks like>
 motif     <the one shape the brand repeats: a slash, a diamond, a sail, a dot>
-remember  <the one move a user will remember, drawn on every screen: a glyph, a rule, a layout move>
+move      <one region placed where the kit doesn't put it, and the word it follows from>
+signature <one element the kit doesn't draw, on the main screen's default frame>
 
 <one line per expression below, tying the choice to a product trait>
 ```
@@ -30,6 +31,37 @@ remember  <the one move a user will remember, drawn on every screen: a glyph, a 
 A choice with no reason is a default in disguise. "Pill buttons because pills are nice"
 is not a reason. "Pill buttons: the rounded button, because the brief says 'rounded
 everything'" is.
+
+### Move A Region, Then Draw What The Kit Doesn't
+
+Paint tells brands apart and composition is what a user remembers: two brands on one
+spec, whose reads named only hue, glyphs and words, came out one skeleton to the cell. So
+the read names two things the kit won't choose for you, both for the main screen's
+default frame (§6, question 2):
+
+- **move**: one region in another place in the screen's order than the kit puts it
+  (above or below a different region, left or right of one), or gone, or added,
+  following from one of the three words; it and the signature are two different regions.
+  A one-row shift from a gap, `density` or `footer: rule` is not a move, and a rule row a
+  theme expression adds is not an added region. The kit's default is a one-row header
+  (name left, context right), the list or transcript leading, status in the header and
+  the footer, a rule over the input and keys on the last row (`components.md`).
+- **signature**: one element the kit doesn't draw by default: a one-row cell-art mark
+  beside the name (`art`, `cell-art.md`; a taller one sits above the header at h ≥ 30,
+  since at 80×24 every row it takes comes out of the body), a depth gauge in the
+  header's details, a column of stamps on the list.
+
+**DO** name the word each follows from, and take the move from your words, not from these:
+"move: no tab row; services, deploys and incidents stack as three short sections on one
+page, because at-a-glance" (a monitor); "move: no header row, the step count sits in the
+footer, because unobtrusive" (a setup form); "move: the session's files and cost are a
+22-cell column right of the transcript even at 80 columns, because attentive" (a chat).
+**DON'T** count a glyph, a rule style or a hue as either, and judge a theme expression by
+its effect: one that restyles a region (`"header": "stamp"`, `bar`, `titleCase`) or only
+adds a rule or gap row (`footer: rule`, `density`) is paint; one that removes a region
+or puts it elsewhere in the screen's order is a move. Both brands in that pair chose `╌`
+as their motif, which has its own line. A recoloured `ui.Header` is the kit's element,
+not a signature.
 
 ## 2. Translate Traits Into Terminal Moves
 
@@ -208,11 +240,13 @@ Put it beside the baseline (`ink`) and one other brand. Ask:
 
 1. With the colour stripped, can you still tell which brand it is? If not, identity is
    only in the palette. Move the expressions.
-2. Is the "remember" line from the read visible in the first second, on the main
-   screen's default frame (the state the app opens in, nothing pressed), not only on the
-   sketch, beside a sent turn or in a filled form? The showcase's `ladder` state draws
-   every status rung in its role, the spinner, a step row and the tags on one frame:
-   judge a signature that lives in the marks there, in every profile.
+2. Are the read's move and signature visible in the first second on the main screen's
+   default frame: the state the app opens in, nothing pressed, with its usual data (a
+   chat with one finished turn), not beside a sent turn or in a filled form? At `brand`
+   the kit's showcase can't show them (by definition it draws neither), so check the
+   main screen's sketch in `TUI.md` § Screens; from `craft` on, check the app's render.
+   The brand's marks are judged on the showcase's `ladder` state, which draws every
+   status rung in its role, the spinner, a step row and the tags, in every profile.
 3. Does every choice in the read trace to something on screen?
 4. Does the light set look like the same brand, not a different app?
 

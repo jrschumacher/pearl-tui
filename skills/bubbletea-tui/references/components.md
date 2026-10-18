@@ -10,7 +10,8 @@ filling the gap, and details on the right (`env · region · selection`, the fir
 in fg and the rest muted). It is drawn per `expressions.header`: `rule`, `bar` (a filled
 strip), `minimal` (`brand · details`, and `right` at the edge: a count, a status),
 `stamp` (the name as an inverse stamp at the right), or `banner`. Details truncate
-before the brand does.
+before the brand does. The one-row header is the kit's default; a brand read's move may
+replace it (`brand.md` § Move A Region).
 
 ## Tabs — `ui.Tabs`
 
@@ -196,13 +197,15 @@ state's keys cell (`[plan] · **enter send** · …`) so `tuilint spec` [S-FOOTE
   marker row carries that block's head with the count right-aligned
   (`✓ Edit config/timeouts.go        ↑ 25 more  pgup`), so no output shows with its head
   off-screen (`ui.Transcript`).
-- A turn ends with a section-rule footer (model, provider, duration).
+- A turn ends with a section-rule footer (model, provider, duration): the kit's
+  default; a brand read's move may replace it.
 
 ## Editor / Prompt
 
-A rule above, a prompt glyph in the focus ink (`t.S.Prompt`: primary, or bold fg under
-`focus: fg`; tertiary where primary is under 3:1 on `bgOverlay`; subtle when not
-focused), since where you type is the focus,
+A rule above (the kit's default; a brand read's move may replace it), a prompt glyph
+in the focus ink (`t.S.Prompt`: primary, or bold fg under `focus: fg`; tertiary where
+primary is under 3:1 on `bgOverlay`; subtle when not focused), since where you type is
+the focus,
 continuation lines with a subtle `:`, and the real cursor via `View.Cursor`. Grow from 1
 to ~8 rows with content, then scroll. The placeholder says what to type, in the brand's
 voice.
