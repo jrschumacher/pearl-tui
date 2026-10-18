@@ -49,10 +49,12 @@ func (c *Canvas) Draw(s string, r uv.Rectangle) {
 }
 
 // ExpandTabs replaces each tab with the spaces to the next 8-column stop of its line,
-// counted in cells (styling is skipped). lipgloss measures a tab as 0 cells and a
-// terminal advances it to the next stop, so a line with a raw tab (go test's
-// "ok  \tpkg\t0.412s") is fitted short and tears the edge it was padded to. Fit, Trunc
-// and Canvas.Draw call it; call it on text you measure any other way.
+// counted in cells (styling is skipped). A terminal advances a tab to the next stop,
+// but lipgloss.Width measures it as 0 cells and Style.Render turns it into 4 spaces
+// wherever it sits, so a line with a raw tab (go test's "ok  \tpkg\t0.412s") is fitted
+// short, or styled to other columns than the terminal's, and tears the edge it was
+// padded to. Fit, Trunc and Canvas.Draw call it. Call it yourself first on text you
+// style or measure any other way: ExpandTabs, then Render, then lipgloss.Width.
 func ExpandTabs(s string) string {
 	if !strings.Contains(s, "\t") {
 		return s

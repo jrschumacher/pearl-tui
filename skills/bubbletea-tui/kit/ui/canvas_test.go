@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
@@ -128,5 +129,21 @@ func TestTabsExpandToStops(t *testing.T) {
 	cv.Draw("ok  \tpkg\t0.4s", Rect(0, 0, 30, 1))
 	if got := strings.TrimRight(ansi.Strip(cv.String()), " "); got != "ok      pkg     0.4s" {
 		t.Errorf("Canvas.Draw of a tab draws %q, want the tab to its 8-column stop", got)
+	}
+}
+
+// ExpandTabs' doc tells apps why to expand before styling or measuring: lipgloss's
+// Style.Render turns a tab into 4 spaces wherever it sits, not the 8-column stop a
+// terminal advances to, and lipgloss.Width counts a raw tab as 0. This pins both claims
+// to the pinned lipgloss, so the doc goes stale only with a failing test.
+func TestLipglossTabIsNotAStop(t *testing.T) {
+	if got := ansi.Strip(lipgloss.NewStyle().Bold(true).Render("ab\tc")); got != "ab    c" {
+		t.Errorf("lipgloss renders \"ab\\tc\" as %q; ExpandTabs' doc says 4 spaces (\"ab    c\")", got)
+	}
+	if w := lipgloss.Width("ab\tc"); w != 3 {
+		t.Errorf("lipgloss.Width(\"ab\\tc\") = %d; ExpandTabs' doc says a tab measures 0", w)
+	}
+	if got := lipgloss.NewStyle().Bold(true).Render(ExpandTabs("ab\tc")); ansi.Strip(got) != "ab      c" {
+		t.Errorf("expanded first, the tab is %q, want its 8-column stop", ansi.Strip(got))
 	}
 }
