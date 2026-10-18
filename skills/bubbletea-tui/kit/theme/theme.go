@@ -442,7 +442,8 @@ var KitSlots = []string{"done", "current", "todo", "pending", "partial", "busy",
 // kit's slots keep their inks), a glyph that is neither a status slot nor a one-cell
 // literal with an ASCII twin, two rungs with one meaning, two rungs that draw as
 // one mark under ASCII, or a rung in warning that isn't the warn glyph (every mark in
-// the warning's ink carries it: at 16 colours a warm brand is the warning's yellow).
+// the warning's ink carries it, so a warning reads without colour and beside whatever
+// else shares its slot).
 // palette check fails on it (through CheckKeys); Load doesn't, so an app still starts,
 // drawing the rung in fg.
 func CheckLadder(f File) error {
@@ -475,7 +476,7 @@ func CheckLadder(f File) error {
 			return fmt.Errorf("%s.glyph %q and ladder[%d].glyph %q both draw as %q under ASCII, so two states read as one", where, r.Glyph, j, f.Ladder[j].Glyph, tw)
 		}
 		if r.Role == "warning" && r.Glyph != "warn" && r.Glyph != g0.Warn {
-			return fmt.Errorf("%s draws in warning with glyph %q, not the warn slot's %q: at 16 colours a warm brand shares the warning's yellow and only the warn glyph tells them apart (the kit's TestWarningInkCarriesItsGlyph); use \"glyph\": \"warn\", or another role", where, r.Glyph, g0.Warn)
+			return fmt.Errorf("%s draws in warning with glyph %q, not the warn slot's %q: every mark in the warning's ink carries the warn glyph, so a warning reads under NO_COLOR and beside anything that shares its colour (the kit's TestWarningInkCarriesItsGlyph); use \"glyph\": \"warn\", or another role", where, r.Glyph, g0.Warn)
 		}
 		twins[tw] = i
 	}
