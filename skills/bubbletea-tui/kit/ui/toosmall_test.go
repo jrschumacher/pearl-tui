@@ -46,4 +46,8 @@ func TestTooSmallTextSaysTheSpec(t *testing.T) {
 	if last != "q quit" {
 		t.Errorf("with a key: the last row reads %q, want the key row %q", last, "q quit")
 	}
+
+	if tiny := TooSmallText(th, 12, 3, say, []key.Binding{quit}); lipgloss.Height(tiny) != 3 {
+		t.Errorf("at 12x3 TooSmallText is %d rows, want 3: it never draws past the screen", lipgloss.Height(tiny))
+	}
 }

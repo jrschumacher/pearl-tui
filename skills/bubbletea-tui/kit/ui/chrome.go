@@ -436,5 +436,10 @@ func tooSmall(t *theme.Theme, w, h int, msg []string, bindings []key.Binding) st
 	if len(keys) > 0 {
 		msg = append(msg, "", Trunc(t, strings.Join(keys, "  "), w))
 	}
-	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, lipgloss.JoinVertical(lipgloss.Center, msg...))
+	out := lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, lipgloss.JoinVertical(lipgloss.Center, msg...))
+	// Place never clips: on a terminal shorter than the message, keep the first h rows
+	if rows := strings.Split(out, "\n"); len(rows) > h {
+		out = strings.Join(rows[:max(0, h)], "\n")
+	}
+	return out
 }
