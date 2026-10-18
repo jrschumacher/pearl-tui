@@ -17,10 +17,11 @@ Run the copy block in `kit/README.md` § Copying it into a project, as written: 
 `themes/<brand>.json` with `themes/embed.go` (the binary carries the theme: no `-theme`
 flag, no path that breaks when it moves), rewrites the import paths and pins the
 versions, and CI proves it passes in a fresh module. Follow its notes on skipping the
-`<closest>.json` line when `brand` ran first and on what to delete once your screens are in. Then read
-`cmd/<app>/{app.go,screens.go,main.go}`: the model, `render(w,h)`, the harness. A cold rebuild from these references loses half the idiom at once
-(the focus gutter, the filled-row backgrounds, the help truncation, the scrim order).
-The code already has them.
+`<closest>.json` line when `brand` ran first and on what to delete once your screens
+are in. Then read `cmd/<app>/{app.go,screens.go,main.go}`: the model, `render(w,h)`,
+the harness. A cold rebuild from these references loses half the idiom at once (the
+focus gutter, the filled-row backgrounds, the help truncation, the scrim order). The
+code already has them.
 
 ## 2. Skeleton First, With The Harness
 
@@ -34,11 +35,10 @@ Before any real screen:
   `main.go` the tables the kept harness tests read: `overlays` (the states that open a
   dialog, `help` among them), `scrolls` (the overlays whose body may scroll at the
   floor, drawing its position: help, a write's verbatim body), `overlayPages` (the pages
-  they open over),
-  `unjudgedPages` (Huh-form pages whose focus can't blur, each with why, never the
-  main screen) and `openOverlay`. The
-  tests then judge every overlay over every page with no edit, and hold the tables to
-  the states; a test rewritten to skip an overlay hides the bug it was written for
+  they open over), `unjudgedPages` (Huh-form pages whose focus can't blur, each with
+  why, never the main screen) and `openOverlay`. The tests then judge every overlay
+  over every page with no edit, and hold the tables to the states; a test rewritten to
+  skip an overlay hides the bug it was written for
 - flags: `-golden -w -h`, `-state`, `-out -sizes`, `-theme`, `-light`, `-ascii`,
   `-profile`, `-frame`
 - `_test.go` asserting the footprint at the floor `TUI.md` § Size floor names (60×18 in
@@ -55,9 +55,9 @@ fixed chrome, then the body into rectangles from its § Screens block at both si
 and the help. Name in its § Screens block the frame its identity shows on; the main
 screen's default frame (nothing pressed) draws the read's move and signature (`brand.md`
 §6, question 2), and every other screen words its question, buttons and footer labels
-(the action table's help text) as its `brand:` line says. After each screen, run the loop below on that screen before
-starting the next. The slice is the order because it is the main loop the design gets
-judged on; the integrations wait behind it.
+(the action table's help text) as its `brand:` line says. After each screen, run the
+loop below on that screen before starting the next. The slice is the order because it
+is the main loop the design gets judged on; the integrations wait behind it.
 
 ## 4. The Loop (`verify.md`)
 
