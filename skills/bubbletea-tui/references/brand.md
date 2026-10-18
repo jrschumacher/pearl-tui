@@ -237,6 +237,21 @@ one value is used by more than half the brands. It is a floor, not a target. A p
 brand stays plain and spends its differences on the two or three moves it owns; never
 move an axis just to pass.
 
+**Pass `TUI.md` too: the skeleton.** A theme holds paint, and two brands built from one
+spec came out one skeleton in two paints: a verdict sentence on top, a resource band
+before the list, the kit's chart as it ships. So § Brand read carries one more line, the
+main screen's default frame as built: `skeleton: head folio · status bottom-row · order
+summary-first · foot keys · verdict top · chart trace · chartGlyphs blocks · turnEnd -`
+(each axis's words are in `diversity -h`; `-` for one the screen doesn't have).
+`diversity TUI.md kit/themes/ink.json kit/themes/charm.json` reads the theme § Theme names
+and that line, notes a missing line as P2, and names the axes still the kit's: the move
+should be among the others. With two apps or more (a pair eval, a product family) it fails
+a pair sharing more than 3 skeleton axes and flags a departure every app took; `-v` prints
+every axis and every pair, the seating plan. **DO** move an axis only where the read's
+`move:` or `signature:` gives the reason, and write the reason there. **DON'T** move one
+to pass: the failure names an axis, never a value, and an axis moved for the count moves
+back.
+
 **Many brands at once** (a theme gallery, a design-system rollout across products):
 parallel agents converge on the newest options. Six of nine picked the same new header
 when it was added. After the first pass, write a **seating plan**: give each contested
