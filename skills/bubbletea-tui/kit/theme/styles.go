@@ -244,52 +244,23 @@ func RuleEdge(rule string) lipgloss.Border {
 
 // Case applies the theme's title case. Under lower a word in capitals keeps them
 // (SIGTERM, CPU, PRs, HTTP/2: two capitals or more and no small letter but a plural or
-// possessive s), so "Send SIGTERM?" is "send SIGTERM?", not "send sigterm?"; a span the
-// caller marks with Verbatim keeps its case under lower and upper ("Open in " +
-// theme.Verbatim("iTerm2")).
+// possessive s), so "Send SIGTERM?" is "send SIGTERM?", not "send sigterm?".
 func (t *Theme) Case(s string) string {
 	switch t.X.TitleCase {
 	case "upper":
-		return caseSpans(s, func(w string) string { return strings.ToUpper(w) })
+		return strings.ToUpper(s)
 	case "lower":
-		return caseSpans(s, func(w string) string {
+		return caseWords(s, func(w string) string {
 			if acronym(w) {
 				return w
 			}
 			return strings.ToLower(w)
 		})
 	}
-	return caseSpans(s, func(w string) string { return w })
+	return s
 }
 
-// verbatimOn and verbatimOff mark a span the case expressions leave alone: Unicode
-// noncharacters, which no text carries, so the marks never clash with the caller's.
-const verbatimOn, verbatimOff = "\uFDD0", "\uFDD1"
-
-// Verbatim marks s to keep its case under titleCase and labelCase (a product name,
-// iTerm2, kubectl): Case and Label draw it as written and drop the marks. Pass it only
-// in text a kit component cases (a Section or dialog title, a tab, a tag, a header):
-// anywhere else the marks reach the terminal.
-func Verbatim(s string) string { return verbatimOn + s + verbatimOff }
-
-// caseSpans applies fn to each word of s outside the Verbatim spans, drops the marks,
-// and keeps the spaces as they are.
-func caseSpans(s string, fn func(string) string) string {
-	var b strings.Builder
-	for s != "" {
-		before, rest, marked := strings.Cut(s, verbatimOn)
-		b.WriteString(caseWords(before, fn))
-		if !marked {
-			break
-		}
-		span, after, _ := strings.Cut(rest, verbatimOff)
-		b.WriteString(span)
-		s = after
-	}
-	return b.String()
-}
-
-// caseWords applies fn to each run of non-space runes in s.
+// caseWords applies fn to each run of non-space runes in s and keeps the spaces.
 func caseWords(s string, fn func(string) string) string {
 	var b strings.Builder
 	for s != "" {
@@ -350,7 +321,7 @@ func (t *Theme) Sentence(s string) string { return t.Case(s) }
 // toast or summary label; own is the component's case when the theme leaves it unset
 // ("upper" for table headers, "lower" for summary-strip labels, "as-is" for tags). A
 // label is a word of the brand's UI, so labelCase lower lowers capitals too ("CPU" →
-// "cpu"); a Verbatim span keeps its case.
+// "cpu").
 func (t *Theme) Label(s, own string) string {
 	c := t.X.LabelCase
 	if c == "" {
@@ -358,11 +329,11 @@ func (t *Theme) Label(s, own string) string {
 	}
 	switch c {
 	case "upper":
-		return caseSpans(s, strings.ToUpper)
+		return strings.ToUpper(s)
 	case "lower":
-		return caseSpans(s, strings.ToLower)
+		return strings.ToLower(s)
 	}
-	return caseSpans(s, func(w string) string { return w })
+	return s
 }
 
 // Grad renders text with a per-grapheme foreground gradient from a to b.

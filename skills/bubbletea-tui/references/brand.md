@@ -123,8 +123,8 @@ read it too.
     "header": "bar",            // rule | bar | minimal | stamp | banner
     "wordmark": "tracked",      // gradient | solid | inverse | tracked | bracket | upper | plain (fg, bold)
     "sectionTitle": "primary",  // accent | primary | muted-upper | fg
-    "titleCase": "sentence",    // sentence | upper | lower (lower keeps words in capitals,
-                                //   "send SIGTERM?"; theme.Verbatim("iTerm2") keeps any span)
+    "titleCase": "sentence",    // sentence | upper | lower (lower keeps words in capitals:
+                                //   "send SIGTERM?")
     "labelCase": "lower",       // upper | lower | as-is: table headers, tags, toast and summary
                                 //   labels, and the kit's fixed labels (tab names; its
                                 //   sentences, "Canceled.", take titleCase; unset: headers upper,
