@@ -18,7 +18,7 @@ shell=$(command -v "${HOOK_SHELL:-sh}") || {
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 # the fixtures live under testdata, which the hook skips: lint copies of them
-cp -R "$root/skills/bubbletea-tui/tools/internal/hook/testdata/." "$tmp/"
+cp -R "$root/skills/pearl/tools/internal/hook/testdata/." "$tmp/"
 export TUITOOLS_CACHE="$tmp/cache" CLAUDE_PLUGIN_ROOT="$root"
 realgo=$(command -v go) || {
 	echo "no go on PATH"
@@ -119,13 +119,13 @@ unset HOOK_PATH HOOK_CACHE
 
 # The hook's own failures never block the edit. They tell the user once, on stdout.
 HOOK_PATH=$nogo HOOK_CACHE=$tmp/empty
-check "no Go toolchain: tells the user, exit 0" tui/form/form.go 0 "go is not on PATH" '"systemMessage":"bubbletea-tui plugin: Go edits are not being linted: go is not on PATH' || fail=1
+check "no Go toolchain: tells the user, exit 0" tui/form/form.go 0 "go is not on PATH" '"systemMessage":"pearl plugin: Go edits are not being linted: go is not on PATH' || fail=1
 check "no Go toolchain again: told once" tui/form/form.go 0 "go is not on PATH" || fail=1
 
 # A build that fails says why (not "go: downloading"), and isn't retried until a source
 # changes.
 HOOK_PATH=$oldgo:$nogo HOOK_CACHE=$tmp/cache-old
-check "Go too old: tells the user the real error" tui/form/form.go 0 "requires go >= 1.26.7" '"systemMessage":"bubbletea-tui plugin: Go edits are not being linted: Go is too old to build the plugin'"'"'s tools (go: go.mod requires go >= 1.26.7' || fail=1
+check "Go too old: tells the user the real error" tui/form/form.go 0 "requires go >= 1.26.7" '"systemMessage":"pearl plugin: Go edits are not being linted: Go is too old to build the plugin'"'"'s tools (go: go.mod requires go >= 1.26.7' || fail=1
 expect "  ...not the toolchain download line" sh -c '! grep -q downloading "$1"' - "$tmp/stdout" || fail=1
 n=$(builds)
 check "failed build again: silent" tui/form/form.go 0 || fail=1
@@ -133,10 +133,10 @@ expect "  ...and not rebuilt" [ "$(builds)" = "$n" ] || fail=1
 
 # A broken source in a copy of the plugin: a failed build, then the fix rebuilds.
 plugin=$tmp/plugin
-mkdir -p "$plugin/skills/bubbletea-tui"
+mkdir -p "$plugin/skills/pearl"
 cp -R "$root/hooks" "$plugin/"
-cp -R "$root/skills/bubbletea-tui/tools" "$root/skills/bubbletea-tui/kit" "$plugin/skills/bubbletea-tui/"
-printf 'package main\n\nvar broken int = "s"\n' >"$plugin/skills/bubbletea-tui/tools/cmd/tuilint/broken.go"
+cp -R "$root/skills/pearl/tools" "$root/skills/pearl/kit" "$plugin/skills/pearl/"
+printf 'package main\n\nvar broken int = "s"\n' >"$plugin/skills/pearl/tools/cmd/tuilint/broken.go"
 HOOK_PATH=$logged:$PATH HOOK_CACHE=$tmp/cache-copy
 CLAUDE_PLUGIN_ROOT=$plugin
 check "compile error: tells the user the file and line" tui/form/form.go 0 "broken.go:3" 'building the plugin'"'"'s tools failed: cmd/tuilint/broken.go:3' || fail=1
@@ -144,7 +144,7 @@ n=$(builds)
 check "compile error again: silent" tui/form/form.go 0 || fail=1
 expect "  ...and not rebuilt" [ "$(builds)" = "$n" ] || fail=1
 sleep 1 # mtimes in whole seconds on some filesystems
-printf 'package main\n' >"$plugin/skills/bubbletea-tui/tools/cmd/tuilint/broken.go"
+printf 'package main\n' >"$plugin/skills/pearl/tools/cmd/tuilint/broken.go"
 check "source fixed: rebuilds and lints" tui/form/form.go 2 "C-HUHTHEME tui/form/form.go:9" || fail=1
 expect "  ...and rebuilt once" [ "$(builds)" = "$((n + 1))" ] || fail=1
 # The same cache, another plugin root (an update): the old tools are stale.
@@ -192,7 +192,7 @@ printf '#!/bin/sh\necho "panic: boom" >&2\nexit 2\n' >"$tmp/cache-crash/tuilint"
 chmod +x "$tmp/cache-crash/tuilint"
 echo "$root" >"$tmp/cache-crash/.built"
 HOOK_PATH=$PATH HOOK_CACHE=$tmp/cache-crash
-check "tuilint crash: tells the user, exit 0" tui/form/form.go 0 "tuilint exited 2: panic: boom" '"systemMessage":"bubbletea-tui plugin: Go edits are not being linted: tuilint exited 2: panic: boom' || fail=1
+check "tuilint crash: tells the user, exit 0" tui/form/form.go 0 "tuilint exited 2: panic: boom" '"systemMessage":"pearl plugin: Go edits are not being linted: tuilint exited 2: panic: boom' || fail=1
 unset HOOK_PATH HOOK_CACHE
 
 [ "$fail" = 0 ] && echo "hook: all cases pass"

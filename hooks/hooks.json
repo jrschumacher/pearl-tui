@@ -1,5 +1,5 @@
 {
-  "description": "Lint the Go file an edit touched with tuilint code, in projects built with the bubbletea-tui skill, and hand its P0/P1 findings back to Claude",
+  "description": "Lint the Go file an edit touched with tuilint code, in projects built with the pearl skill, and hand its P0/P1 findings back to Claude",
   "hooks": {
     "PostToolUse": [
       {

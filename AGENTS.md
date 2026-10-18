@@ -2,16 +2,16 @@
 
 Guidance for coding agents working **on** this repository: improving the skill, its
 kit and its tools. If you are an agent *using* the skill to build a TUI, read
-`skills/bubbletea-tui/SKILL.md` instead.
+`skills/pearl/SKILL.md` instead.
 
 ## What this repo is
 
-One agent skill, `skills/bubbletea-tui/`, published through skills.sh
-(`npx skills add jrschumacher/skill-bubbletea-tui`). It teaches models to build Bubble
+One agent skill, `skills/pearl/`, published through skills.sh
+(`npx skills add jrschumacher/pearl-tui`). It teaches models to build Bubble
 Tea v2 TUIs at Crush quality with a per-brand identity.
 
 ```
-skills/bubbletea-tui/
+skills/pearl/
   SKILL.md        router: stance, laws, domain DO/DON'T, slop test, command table (keep < 500 lines)
   references/     domain references + cmd-<command>.md, one level deep, loaded on demand
   tools/          Go module `tuitools`: cellshot, tuilint, tuivet, palette, diversity (the build loop),
@@ -19,7 +19,7 @@ skills/bubbletea-tui/
   scripts/        wordmark, logo2cells (Python 3 + Pillow/numpy; brand-asset conversion only)
   kit/            Go module `tuikit`: theme/, ui/, themes/*.json, cmd/showcase (reference app + harness)
 .claude-plugin/   plugin.json + marketplace.json: the repo root is a Claude Code plugin that
-                  bundles skills/bubbletea-tui (default skills/ scan) and hooks/
+                  bundles skills/pearl (default skills/ scan) and hooks/
 hooks/            hooks.json (PostToolUse on Edit|Write|MultiEdit) → tuilint-edit.sh, which
                   builds the tools once and runs `tuilint hook`; test.sh tests it end to end
 evals/            evals.json (skill-creator format) + fixtures (each Go fixture its own module)
@@ -27,7 +27,7 @@ tools/gallery.sh  regenerates docs/images from the kit
 ROADMAP.md        what's next, and the open problems
 ```
 
-Everything under `skills/bubbletea-tui/` ships: `npx skills add` copies that directory
+Everything under `skills/pearl/` ships: `npx skills add` copies that directory
 whole, with no ignore mechanism, and the plugin bundles it. That is why `evals/` (the
 prompts and graded assertions, which a cold agent under evaluation must not be able to
 read) lives at the repo root; skill-creator takes the path.
@@ -40,19 +40,19 @@ version pins them to the cached copy until someone bumps it, and nothing here do
 ## Commands
 
 ```sh
-cd skills/bubbletea-tui/kit && go vet ./... && go test ./...      # footprint, contrast, behaviour
-cd skills/bubbletea-tui/kit && go run ./cmd/showcase               # the reference app, live
-cd skills/bubbletea-tui/tools && go vet ./... && go test ./...    # the tools, held to Python-era goldens
-go -C skills/bubbletea-tui/tools build -o "$PWD/.tuitools/" ./cmd/... && export PATH="$PWD/.tuitools:$PATH"   # per checkout, gitignored; all six tools, feedback included
-tuilint code skills/bubbletea-tui/kit
-tuilint spec skills/bubbletea-tui/tools/internal/speclint/testdata/template-example.md   # init's template, filled in (CI: covered by the tools tests on the template)
-diversity skills/bubbletea-tui/kit/themes/*.json
-for t in skills/bubbletea-tui/kit/themes/*.json; do palette check "$t"; done
-skills-ref validate skills/bubbletea-tui                           # pip install "git+https://github.com/agentskills/agentskills#subdirectory=skills-ref"
+cd skills/pearl/kit && go vet ./... && go test ./...      # footprint, contrast, behaviour
+cd skills/pearl/kit && go run ./cmd/showcase               # the reference app, live
+cd skills/pearl/tools && go vet ./... && go test ./...    # the tools, held to Python-era goldens
+go -C skills/pearl/tools build -o "$PWD/.tuitools/" ./cmd/... && export PATH="$PWD/.tuitools:$PATH"   # per checkout, gitignored; all six tools, feedback included
+tuilint code skills/pearl/kit
+tuilint spec skills/pearl/tools/internal/speclint/testdata/template-example.md   # init's template, filled in (CI: covered by the tools tests on the template)
+diversity skills/pearl/kit/themes/*.json
+for t in skills/pearl/kit/themes/*.json; do palette check "$t"; done
+skills-ref validate skills/pearl                           # pip install "git+https://github.com/agentskills/agentskills#subdirectory=skills-ref"
 tools/gallery.sh                                                   # after any change to what the kit renders
 hooks/test.sh                                                      # the plugin's lint hook, end to end
 claude plugin validate .                                           # plugin, marketplace and hooks manifests
-jq -e '.skill_name=="bubbletea-tui"' evals/evals.json && jq -r '.evals[].files[]' evals/evals.json | xargs -n1 test -f   # the evals parse and their fixtures exist
+jq -e '.skill_name=="pearl"' evals/evals.json && jq -r '.evals[].files[]' evals/evals.json | xargs -n1 test -f   # the evals parse and their fixtures exist
 ```
 
 CI (`.github/workflows/ci.yml`) runs all of these plus a render-and-lint pass over every

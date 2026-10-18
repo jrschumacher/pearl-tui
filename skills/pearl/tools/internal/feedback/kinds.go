@@ -11,7 +11,7 @@ import (
 )
 
 // DefaultRepo is where feedback goes unless --repo or FEEDBACK_REPO names a fork.
-const DefaultRepo = "jrschumacher/skill-bubbletea-tui"
+const DefaultRepo = "jrschumacher/pearl-tui"
 
 // Field is one field of an issue form, keyed by its id (the URL query parameter that
 // prefills it, and the --field key).

@@ -1,4 +1,4 @@
-# bubbletea-tui
+# pearl
 
 **An agent skill for designing and building terminal UIs that look as considered as Charm's
 Crush, and unmistakably like *your* product.**
@@ -28,16 +28,16 @@ tool. Every theme is derived with the skill's own tools.*
 ## Install
 
 ```sh
-npx skills add jrschumacher/skill-bubbletea-tui
+npx skills add jrschumacher/pearl-tui
 ```
 
-or copy `skills/bubbletea-tui` into `~/.claude/skills/` (or your agent's skills
+or copy `skills/pearl` into `~/.claude/skills/` (or your agent's skills
 directory).
 
 **Fresh clones.** A cloud container clones your project without the skill. Commit what
-`npx skills add` wrote under `.claude/skills/bubbletea-tui` (a copy, or a link into
+`npx skills add` wrote under `.claude/skills/pearl` (a copy, or a link into
 `.agents/skills/`), or commit `skills-lock.json` plus a
-`.claude/skills/bubbletea-tui -> ../../.agents/skills/bubbletea-tui` link and run
+`.claude/skills/pearl -> ../../.agents/skills/pearl` link and run
 `npx skills experimental_install` after cloning (it restores `.agents/skills/` only);
 SKILL.md § Setup says which to pick and what each pins.
 
@@ -46,12 +46,12 @@ SKILL.md § Setup says which to pick and what each pins.
 In Claude Code:
 
 ```
-/plugin marketplace add jrschumacher/skill-bubbletea-tui
-/plugin install bubbletea-tui@jrschumacher
+/plugin marketplace add jrschumacher/pearl-tui
+/plugin install pearl@jrschumacher
 ```
 
 On Claude Code 2.1.275 or later, one step does both:
-`/plugin install bubbletea-tui --marketplace jrschumacher/skill-bubbletea-tui`.
+`/plugin install pearl --marketplace jrschumacher/pearl-tui`.
 
 The plugin carries the same skill, plus a hook. After every Edit or Write of a `.go` file
 in a Bubble Tea or Huh module, it runs `tuilint code` and hands the edited file's
@@ -68,7 +68,7 @@ build), it lets the edit through and shows you a one-line warning saying why, on
 cause; a failed build isn't retried until the plugin's sources change.
 
 Install one or the other, not both, or the skill loads twice. Plugin skills are
-namespaced, so the commands become `/bubbletea-tui:bubbletea-tui init` and so on.
+namespaced, so the commands become `/pearl:pearl init` and so on.
 
 Requirements: Go ≥ 1.26.7 (Bubble Tea v2.1, Lip Gloss v2.0.6, Bubbles v2.2, Huh v2.0).
 The skill's tools are Go and build in one step on first use. Only the wordmark and logo
@@ -82,22 +82,22 @@ Just ask for a TUI ("build a Bubble Tea dashboard for our job queues, brand colo
 
 | Command | What it does |
 |---|---|
-| `/bubbletea-tui init` | interview you, then write the design (product, users, brand) and the architecture (model, regions, forms, states and keys) into `TUI.md`, so every later change stays consistent. `teach` is an alias |
-| `/bubbletea-tui brand` | turn brand colours, typeface and logo into a theme that's provably not the default |
-| `/bubbletea-tui shape` | plan screens: column budgets at 80×24 and 120×40, states, keys, cell sketches |
-| `/bubbletea-tui craft` | build from the kit with the render → lint → critique loop |
-| `/bubbletea-tui critique` | a scored design review with two independent critics, defects cited by cell |
-| `/bubbletea-tui audit` | technical pass: footprint, colour profiles, keys, clock, exit, perf |
-| `/bubbletea-tui polish` | the last 10% |
-| `/bubbletea-tui harden` | tiny terminals, huge data, light backgrounds, NO_COLOR, tmux, SSH, failures |
-| `/bubbletea-tui animate` | motion that means something, on one clock |
-| `/bubbletea-tui art` | terminal logos, wordmarks, backdrop fields, splash screens |
-| `/bubbletea-tui restyle` | raise an existing app (v1 or v2, Huh forms included) to the idiom and your theme, not just recolour it |
+| `/pearl init` | interview you, then write the design (product, users, brand) and the architecture (model, regions, forms, states and keys) into `TUI.md`, so every later change stays consistent. `teach` is an alias |
+| `/pearl brand` | turn brand colours, typeface and logo into a theme that's provably not the default |
+| `/pearl shape` | plan screens: column budgets at 80×24 and 120×40, states, keys, cell sketches |
+| `/pearl craft` | build from the kit with the render → lint → critique loop |
+| `/pearl critique` | a scored design review with two independent critics, defects cited by cell |
+| `/pearl audit` | technical pass: footprint, colour profiles, keys, clock, exit, perf |
+| `/pearl polish` | the last 10% |
+| `/pearl harden` | tiny terminals, huge data, light backgrounds, NO_COLOR, tmux, SSH, failures |
+| `/pearl animate` | motion that means something, on one clock |
+| `/pearl art` | terminal logos, wordmarks, backdrop fields, splash screens |
+| `/pearl restyle` | raise an existing app (v1 or v2, Huh forms included) to the idiom and your theme, not just recolour it |
 
 ## What's inside
 
 ```
-skills/bubbletea-tui/
+skills/pearl/
 ├── SKILL.md              the stance, the laws, per-domain DO/DON'T, the TUI slop test, the command router
 ├── references/           medium · idiom · color · layout · components · interaction · motion · brand
 │                         cell-art · architecture · verify · anti-patterns, plus one file per command
@@ -125,7 +125,7 @@ hooks/                    the plugin's PostToolUse hook: tuilint code after ever
 evals/                    cases for skill-creator, with fixtures (outside the skill: installs don't ship them)
 ```
 
-`cd skills/bubbletea-tui/kit && go test ./...` renders every theme × dark/light/ASCII ×
+`cd skills/pearl/kit && go test ./...` renders every theme × dark/light/ASCII ×
 every state × five terminal sizes and asserts each frame is exactly W×H cells, plus
 contrast floors on every palette, every advertised key handled in every state, and no
 Huh default colour in the wizard's frames. CI also renders and lints every theme in the
@@ -175,7 +175,7 @@ link to the issue form with every field filled in, and asks before opening your 
 Forks set `FEEDBACK_REPO=owner/name`.
 
 Filing by hand works the same way: pick a form on the
-[new issue](https://github.com/jrschumacher/skill-bubbletea-tui/issues/new/choose) page.
+[new issue](https://github.com/jrschumacher/pearl-tui/issues/new/choose) page.
 
 | Form | For | Label |
 |---|---|---|

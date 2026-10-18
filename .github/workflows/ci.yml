@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: skills/bubbletea-tui/kit
+        working-directory: skills/pearl/kit
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version-file: skills/bubbletea-tui/kit/go.mod
-          cache-dependency-path: skills/bubbletea-tui/kit/go.sum
+          go-version-file: skills/pearl/kit/go.mod
+          cache-dependency-path: skills/pearl/kit/go.sum
       - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./...
       - run: go test ./...
@@ -30,13 +30,13 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: skills/bubbletea-tui/tools
+        working-directory: skills/pearl/tools
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version-file: skills/bubbletea-tui/tools/go.mod
-          cache-dependency-path: skills/bubbletea-tui/tools/go.sum
+          go-version-file: skills/pearl/tools/go.mod
+          cache-dependency-path: skills/pearl/tools/go.sum
       - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./...
       - run: go test ./...
@@ -61,14 +61,14 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version-file: skills/bubbletea-tui/kit/go.mod
-          cache-dependency-path: skills/bubbletea-tui/kit/go.sum
+          go-version-file: skills/pearl/kit/go.mod
+          cache-dependency-path: skills/pearl/kit/go.sum
       # The copy path breaks silently when a kit test hard-codes a kit path; run the
       # block a user runs, as written. The project then holds one theme under its own
       # name, and its binary draws that theme with no flag.
       - name: run kit/README.md's copy block in a fresh module
         run: |
-          skill="$GITHUB_WORKSPACE/skills/bubbletea-tui"
+          skill="$GITHUB_WORKSPACE/skills/pearl"
           app="$RUNNER_TEMP/brandapp"
           mkdir -p "$app" && cd "$app"
           go mod init example.com/brandapp
@@ -106,22 +106,22 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version-file: skills/bubbletea-tui/kit/go.mod
+          go-version-file: skills/pearl/kit/go.mod
           cache-dependency-path: |
-            skills/bubbletea-tui/kit/go.sum
-            skills/bubbletea-tui/tools/go.sum
+            skills/pearl/kit/go.sum
+            skills/pearl/tools/go.sum
       # Setup step 4's command: a per-checkout .tuitools/ (gitignored)
       - name: build the tools
         run: |
-          go -C skills/bubbletea-tui/tools build -o "$GITHUB_WORKSPACE/.tuitools/" ./cmd/...
+          go -C skills/pearl/tools build -o "$GITHUB_WORKSPACE/.tuitools/" ./cmd/...
           echo "$GITHUB_WORKSPACE/.tuitools" >> "$GITHUB_PATH"
       - name: code lint
-        run: tuilint code skills/bubbletea-tui/kit
+        run: tuilint code skills/pearl/kit
       - name: palettes and diversity
         run: |
           # theme/testdata holds the kit's test themes (quire); palette check also gates glyph twins
-          for t in skills/bubbletea-tui/kit/themes/*.json skills/bubbletea-tui/kit/theme/testdata/*.json; do palette check "$t"; done
-          diversity skills/bubbletea-tui/kit/themes/*.json
+          for t in skills/pearl/kit/themes/*.json skills/pearl/kit/theme/testdata/*.json; do palette check "$t"; done
+          diversity skills/pearl/kit/themes/*.json
       # dark truecolour is what a theme is designed in; light, ASCII, 256 and 16 colours (dark
       # and light: a light page downsamples its roles differently) and NO_COLOR are what
       # many users get, and where the footer bar, rules, background steps
@@ -133,7 +133,7 @@ jobs:
       - name: render every state of every theme in every variant, lint the frames, build a sheet
         run: |
           baseline="$GITHUB_WORKSPACE/.github/tuilint-baseline.json"
-          cd skills/bubbletea-tui/kit
+          cd skills/pearl/kit
           go build -o "$RUNNER_TEMP/showcase" ./cmd/showcase
           fail=0
           for t in themes/*.json theme/testdata/*.json; do
@@ -175,7 +175,7 @@ jobs:
       - run: pip install pillow numpy
       - name: scripts compile and print help
         run: |
-          for s in skills/bubbletea-tui/scripts/*.py; do
+          for s in skills/pearl/scripts/*.py; do
             python3 -m py_compile "$s"
             python3 "$s" --help > /dev/null
           done
@@ -184,11 +184,11 @@ jobs:
       - name: one real run of each script on the quarry fixture
         run: |
           cd "$RUNNER_TEMP"
-          python3 "$GITHUB_WORKSPACE/skills/bubbletea-tui/scripts/logo2cells.py" \
+          python3 "$GITHUB_WORKSPACE/skills/pearl/scripts/logo2cells.py" \
             "$GITHUB_WORKSPACE/evals/fixtures/quarry/logo.png" --cols 40 --mode half --out quarry | tee logo.out
           test -s quarry.txt && test -s quarry.ansi
           test "$(awk 'length($0) > 0' quarry.txt | wc -l)" -ge 8
-          python3 "$GITHUB_WORKSPACE/skills/bubbletea-tui/scripts/wordmark.py" quarry --style half --rows 4 | tee wordmark.out
+          python3 "$GITHUB_WORKSPACE/skills/pearl/scripts/wordmark.py" quarry --style half --rows 4 | tee wordmark.out
           test "$(grep -c '[^[:space:]]' wordmark.out)" -ge 4
 
   plugin:
@@ -198,16 +198,16 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version-file: skills/bubbletea-tui/tools/go.mod
-          cache-dependency-path: skills/bubbletea-tui/tools/go.sum
+          go-version-file: skills/pearl/tools/go.mod
+          cache-dependency-path: skills/pearl/tools/go.sum
       - name: manifests parse
         run: |
           for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json hooks/hooks.json; do
             jq empty "$f" || { echo "::error file=$f::not valid JSON"; exit 1; }
           done
       # the plugin bundles whatever is under skills/: it must be this one skill and nothing else
-      - name: skills/ holds exactly bubbletea-tui
-        run: test "$(ls skills)" = bubbletea-tui
+      - name: skills/ holds exactly pearl
+        run: test "$(ls skills)" = pearl
       # the official validator: marketplace, the plugin it lists, and hooks/hooks.json. Not
       # --strict: it warns that the repo's CLAUDE.md (for contributors) isn't plugin context
       - name: claude plugin validate
@@ -227,13 +227,13 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install "git+https://github.com/agentskills/agentskills#subdirectory=skills-ref"
-      - run: skills-ref validate skills/bubbletea-tui
+      - run: skills-ref validate skills/pearl
       - name: SKILL.md stays under 500 lines
-        run: test "$(wc -l < skills/bubbletea-tui/SKILL.md)" -lt 500
+        run: test "$(wc -l < skills/pearl/SKILL.md)" -lt 500
       # AGENTS.md: a new command needs a row in SKILL.md's command table
       - name: every references/cmd-*.md has a row in SKILL.md's command table
         run: |
-          cd skills/bubbletea-tui
+          cd skills/pearl
           fail=0
           for f in references/cmd-*.md; do
             grep -q "| \`$f\` |" SKILL.md || { echo "::error file=$f::no row in SKILL.md's command table"; fail=1; }
@@ -243,7 +243,7 @@ jobs:
       # its fixtures present, and the skill name tied to the frontmatter
       - name: evals.json parses, names this skill, and every fixture exists
         run: |
-          jq -e '.skill_name=="bubbletea-tui"' evals/evals.json
+          jq -e '.skill_name=="pearl"' evals/evals.json
           jq -e '[.evals[].id] | length == (unique | length)' evals/evals.json
           jq -e 'all(.evals[]; has("assertions") and (.assertions | length > 0))' evals/evals.json
           jq -r '.evals[].files[]' evals/evals.json | sort -u | while read -r f; do
@@ -251,7 +251,7 @@ jobs:
           done
       - uses: actions/setup-go@v7
         with:
-          go-version-file: skills/bubbletea-tui/kit/go.mod
+          go-version-file: skills/pearl/kit/go.mod
       - name: every Go fixture is its own module and vets
         run: |
           for m in evals/fixtures/*/go.mod; do

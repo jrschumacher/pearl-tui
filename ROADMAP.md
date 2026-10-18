@@ -33,7 +33,7 @@ repository. Items move from here into issues when someone picks them up.
 Build real apps with it and turn every miss into a fix.
 
 1. **Build one app you actually need** in a fresh session with only the skill installed.
-   Start with `/bubbletea-tui init`, then `brand`, `shape` and `craft` (or `restyle` for
+   Start with `/pearl init`, then `brand`, `shape` and `craft` (or `restyle` for
    an existing app). A good first target is a CLI with a brand you already own. The first
    run restyled a real CLI's setup wizard; its screenshots are the "before" for the
    re-run. Keep that brand's theme in the app's repo, not in this one.
@@ -48,7 +48,7 @@ Build real apps with it and turn every miss into a fix.
    - Which anti-patterns appeared anyway?
    - Did `TestHelpIsHandled` exist in its app?
 5. **Run the evals** in `evals/evals.json` (at the repo root, outside the shipped skill)
-   with skill-creator pointed at `skills/bubbletea-tui` and told the cases are
+   with skill-creator pointed at `skills/pearl` and told the cases are
    `evals/evals.json` at the repo root, with `files` relative to the repo root (it looks
    for `evals/` inside the skill directory by default): with the skill, without it, and
    with the previous version, three runs per case. Grade by hand first, then check that
@@ -156,6 +156,4 @@ of that profile.
 
 ## Decisions pending
 
-- **The skill's name** (`bubbletea-tui` today). A memorable name helps on skills.sh.
-  Renaming means changing the folder and the frontmatter `name`, together.
 - **The license holder's name** in `LICENSE`.

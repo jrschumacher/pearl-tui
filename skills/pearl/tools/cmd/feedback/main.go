@@ -38,7 +38,7 @@
 //	--comment N       post the fields that have values as a comment on issue N (more
 //	                  evidence for an open issue) instead of opening one
 //	--repo owner/name file on a fork; FEEDBACK_REPO does the same (default
-//	                  jrschumacher/skill-bubbletea-tui)
+//	                  jrschumacher/pearl-tui)
 //	--skill DIR       the skill directory, for its version (default: the project's
 //	                  .claude/skills or .agents/skills copy, then ~/.claude/skills)
 //	--redact WORD     also replace WORD (the app's name, a customer's) with <redacted>,

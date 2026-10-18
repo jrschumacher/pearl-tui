@@ -4,7 +4,7 @@
 // It reads the hook input (JSON on stdin) and acts only on a .go file (not a test, not
 // under testdata or vendor) in a module that requires charm.land/bubbletea/v2 or
 // charm.land/huh/v2, or in a file that imports one of them, and only in a project that
-// opted in to the bubbletea-tui skill. The plugin installs at user scope, so without the
+// opted in to the pearl skill. The plugin installs at user scope, so without the
 // opt-in it would hold every Bubble Tea app on the machine to this kit's rules. A
 // project opts in with either marker:
 //
@@ -89,7 +89,7 @@ func Main(stdin io.Reader, stdout, stderr io.Writer) (code int) {
 	defer func() {
 		if r := recover(); r != nil {
 			why, _, _ := strings.Cut(fmt.Sprint(r), "\n")
-			msg := fmt.Sprintf("tuilint hook: crashed (%s); this edit was not linted. Please report it at https://github.com/jrschumacher/skill-bubbletea-tui/issues", why)
+			msg := fmt.Sprintf("tuilint hook: crashed (%s); this edit was not linted. Please report it at https://github.com/jrschumacher/pearl-tui/issues", why)
 			json.NewEncoder(stdout).Encode(map[string]string{"systemMessage": msg})
 			fmt.Fprintln(stderr, msg)
 			code = 0

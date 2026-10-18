@@ -167,7 +167,7 @@ func TestChoose(t *testing.T) {
 func perfIssue() Issue {
 	k, _ := KindNamed("perf")
 	return Issue{Repo: DefaultRepo, Kind: k, Title: "cellshot --sheet takes 9 s on 40 frames", Values: map[string]string{
-		"asked":   "/bubbletea-tui craft",
+		"asked":   "/pearl craft",
 		"area":    "cellshot --sheet",
 		"command": "cellshot frames/*.ansi --sheet sheet.png",
 		"timing":  "9.1 s, 3 runs",
@@ -268,7 +268,7 @@ func TestTerms(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Terms = %v, want %v", got, want)
 	}
-	if s := SearchURL(DefaultRepo, []string{"dialog", "scrim"}); s != "https://github.com/jrschumacher/skill-bubbletea-tui/issues?q=is%3Aissue+dialog+scrim" {
+	if s := SearchURL(DefaultRepo, []string{"dialog", "scrim"}); s != "https://github.com/jrschumacher/pearl-tui/issues?q=is%3Aissue+dialog+scrim" {
 		t.Errorf("SearchURL = %s", s)
 	}
 }
@@ -321,15 +321,15 @@ func TestRedactorAnyScript(t *testing.T) {
 // A longer word still matches inside a word, and says so.
 func TestRedactorShortWords(t *testing.T) {
 	t.Setenv("PATH", "")
-	const text = "F-CONTRAST in kit/ui/dialog.go: tuilint frames, the build screen, uiModel and UIList; bubbletea-tui guidance"
+	const text = "F-CONTRAST in kit/ui/dialog.go: tuilint frames, the build screen, uiModel and UIList; pearl-tui guidance"
 	for _, c := range []struct {
 		word, want string
 		inside     []string
 	}{
-		{"ui", "F-CONTRAST in kit/<redacted>/dialog.go: tuilint frames, the build screen, <redacted>Model and <redacted>List; bubbletea-tui guidance", nil},
-		{"tui", "F-CONTRAST in kit/ui/dialog.go: tuilint frames, the build screen, uiModel and UIList; bubbletea-<redacted> guidance", nil},
+		{"ui", "F-CONTRAST in kit/<redacted>/dialog.go: tuilint frames, the build screen, <redacted>Model and <redacted>List; pearl-tui guidance", nil},
+		{"tui", "F-CONTRAST in kit/ui/dialog.go: tuilint frames, the build screen, uiModel and UIList; pearl-<redacted> guidance", nil},
 		{"a", text, nil},
-		{"Lint", "F-CONTRAST in kit/ui/dialog.go: tui<redacted> frames, the build screen, uiModel and UIList; bubbletea-tui guidance", []string{`"Lint" matched inside "tuilint"`}},
+		{"Lint", "F-CONTRAST in kit/ui/dialog.go: tui<redacted> frames, the build screen, uiModel and UIList; pearl-tui guidance", []string{`"Lint" matched inside "tuilint"`}},
 	} {
 		r := NewRedactor(Env{Cwd: t.TempDir()}, []string{c.word})
 		if got := r.Apply(text); got != c.want {
@@ -537,8 +537,8 @@ func newRig(t *testing.T, gh bool) *rig {
 	t.Setenv("STUB_LOG", r.log)
 	t.Setenv("STUB_BODY", r.body)
 	t.Setenv("STUB_AUTH", "1")
-	os.WriteFile(filepath.Join(r.cwd, "skills-lock.json"), []byte(`{"version":1,"skills":{"bubbletea-tui":{"source":"jrschumacher/skill-bubbletea-tui","computedHash":"44f983084426b97acc609344dccbbb0339ab712329ce3b96e571ab6e1ca4df14"}}}`), 0o644)
-	os.WriteFile(filepath.Join(r.skill, "SKILL.md"), []byte("---\nname: bubbletea-tui\nmetadata:\n  version: \"0.1.0\"\n---\n"), 0o644)
+	os.WriteFile(filepath.Join(r.cwd, "skills-lock.json"), []byte(`{"version":1,"skills":{"pearl":{"source":"jrschumacher/pearl-tui","computedHash":"44f983084426b97acc609344dccbbb0339ab712329ce3b96e571ab6e1ca4df14"}}}`), 0o644)
+	os.WriteFile(filepath.Join(r.skill, "SKILL.md"), []byte("---\nname: pearl\nmetadata:\n  version: \"0.1.0\"\n---\n"), 0o644)
 	r.env = Env{
 		Cwd: r.cwd, Home: "/home/ana", User: "ana", Getenv: func(k string) string { return "" },
 		BuildInfo: func() (*debug.BuildInfo, bool) {
@@ -574,7 +574,7 @@ func (r *rig) calls() string {
 func (r *rig) bugArgs(mode string, extra ...string) []string {
 	return append([]string{mode, "--kind", "bug", "--skill", r.skill,
 		"--title", "tuilint F-CONTRAST fires on a ruled dialog's scrim at -profile ansi",
-		"--field", "asked=/bubbletea-tui craft: a queue dashboard, its retry dialog",
+		"--field", "asked=/pearl craft: a queue dashboard, its retry dialog",
 		"--field", "area=tuilint frames F-CONTRAST",
 		"--field", "variant=dark, -profile ansi, 80x24",
 		"--field", "happened=F-CONTRAST on " + filepath.Join(r.cwd, "frames/16/confirm-80x24.ansi") + " row 9: the scrim's fgSubtle on bgSubtle, 2.1:1",
@@ -691,7 +691,7 @@ func TestSubmitWithGh(t *testing.T) {
 	}
 	calls := r.calls()
 	if !strings.Contains(calls, "[github.com] auth status --hostname github.com\n") ||
-		!strings.Contains(calls, "[github.com] issue create --repo github.com/jrschumacher/skill-bubbletea-tui --title=tuilint F-CONTRAST") ||
+		!strings.Contains(calls, "[github.com] issue create --repo github.com/jrschumacher/pearl-tui --title=tuilint F-CONTRAST") ||
 		!strings.Contains(calls, "--label feedback --label bug") || strings.Contains(calls, "ghe.example.com") {
 		t.Errorf("gh calls, each pinned to github.com:\n%s", calls)
 	}
@@ -723,7 +723,7 @@ func TestSubmitForkWithoutLabels(t *testing.T) {
 func TestSubmitComment(t *testing.T) {
 	r := newRig(t, true)
 	code := r.submit("submit", "--kind", "bug", "--comment", "12", "--field", "evidence=@@media queries don't apply; also at 120x40")
-	if code != ExitOK || !strings.Contains(r.calls(), "issue comment 12 --repo github.com/jrschumacher/skill-bubbletea-tui --body-file") {
+	if code != ExitOK || !strings.Contains(r.calls(), "issue comment 12 --repo github.com/jrschumacher/pearl-tui --body-file") {
 		t.Errorf("exit %d, calls:\n%s", code, r.calls())
 	}
 	r.run("draft", "--kind", "bug", "--comment", "12", "--field", "evidence=@@media queries don't apply")
@@ -753,7 +753,7 @@ func TestSubmitWithoutGh(t *testing.T) {
 				t.Fatalf("exit %d, stderr %q; want 3 and %q", code, r.stderr.String(), c.why)
 			}
 			link := strings.TrimSpace(r.stdout.String())
-			if !strings.HasPrefix(link, "https://github.com/jrschumacher/skill-bubbletea-tui/issues/new?template=bug.yml&title=") {
+			if !strings.HasPrefix(link, "https://github.com/jrschumacher/pearl-tui/issues/new?template=bug.yml&title=") {
 				t.Errorf("stdout = %q, want the prefilled link", link)
 			}
 			if !strings.Contains(r.stderr.String(), "pick in the form (GitHub can't prefill a dropdown): Kind of miss: (c) prose can't express it") {
@@ -804,7 +804,7 @@ func TestSimilar(t *testing.T) {
 	if !strings.Contains(r.stdout.String(), "#40   open   F-CONTRAST on scrims at 16 colours\n      https://github.com/o/r/issues/40") {
 		t.Errorf("stdout:\n%s", r.stdout.String())
 	}
-	if !strings.Contains(r.calls(), "search issues --repo jrschumacher/skill-bubbletea-tui --json number,title,state,url --limit 10 -- f-contrast fires scrim") {
+	if !strings.Contains(r.calls(), "search issues --repo jrschumacher/pearl-tui --json number,title,state,url --limit 10 -- f-contrast fires scrim") {
 		t.Errorf("calls:\n%s", r.calls())
 	}
 

@@ -3,12 +3,12 @@
 # Run after any change that alters what the kit renders.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
-kit="$root/skills/bubbletea-tui/kit"
+kit="$root/skills/pearl/kit"
 out="$root/docs/images"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$out"
-go -C "$root/skills/bubbletea-tui/tools" build -o "$tmp/" ./cmd/cellshot
+go -C "$root/skills/pearl/tools" build -o "$tmp/" ./cmd/cellshot
 cd "$kit"
 render() { go run ./cmd/showcase "$@"; }
 

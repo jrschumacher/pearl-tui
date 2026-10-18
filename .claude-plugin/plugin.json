@@ -1,12 +1,12 @@
 {
-  "name": "bubbletea-tui",
-  "description": "Design and build Bubble Tea v2 TUIs at Crush quality with a per-brand identity: the bubbletea-tui skill, plus a hook that runs tuilint code after every Go edit and hands blocking findings back to Claude.",
+  "name": "pearl",
+  "description": "Design and build terminal UIs at Crush quality with a per-brand identity, Bubble Tea v2 first: the pearl skill, plus a hook that runs tuilint code after every Go edit and hands blocking findings back to Claude.",
   "author": {
     "name": "J.R. Schumacher",
     "url": "https://github.com/jrschumacher"
   },
-  "homepage": "https://github.com/jrschumacher/skill-bubbletea-tui",
-  "repository": "https://github.com/jrschumacher/skill-bubbletea-tui",
+  "homepage": "https://github.com/jrschumacher/pearl-tui",
+  "repository": "https://github.com/jrschumacher/pearl-tui",
   "license": "MIT",
   "keywords": ["bubbletea", "lipgloss", "huh", "tui", "terminal", "charm", "go", "design"]
 }

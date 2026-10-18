@@ -12,7 +12,7 @@ body:
     id: asked
     attributes:
       label: What was asked
-      description: The prompt or command (`/bubbletea-tui craft`), and what was being built, in general terms.
+      description: The prompt or command (`/pearl craft`), and what was being built, in general terms.
     validations:
       required: true
   - type: input

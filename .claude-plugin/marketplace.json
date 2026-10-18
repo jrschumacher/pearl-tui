@@ -7,9 +7,9 @@
   },
   "plugins": [
     {
-      "name": "bubbletea-tui",
+      "name": "pearl",
       "source": "./",
-      "description": "The bubbletea-tui skill for Bubble Tea v2 TUIs, with a hook that runs tuilint code after every Go edit"
+      "description": "The pearl skill for terminal UIs, Bubble Tea v2 first, with a hook that runs tuilint code after every Go edit"
     }
   ]
 }

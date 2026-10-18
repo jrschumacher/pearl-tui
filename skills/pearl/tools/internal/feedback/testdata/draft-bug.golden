@@ -1,12 +1,12 @@
-repo:     jrschumacher/skill-bubbletea-tui
+repo:     jrschumacher/pearl-tui
 template: bug.yml
 labels:   feedback, bug
 title:    tuilint F-CONTRAST fires on a ruled dialog's scrim at -profile ansi
-confirm:  2b2abadf
+confirm:  cd22b575
 
 ### What was asked
 
-/bubbletea-tui craft: a queue dashboard, its retry dialog
+/pearl craft: a queue dashboard, its retry dialog
 
 ### Skill version
 

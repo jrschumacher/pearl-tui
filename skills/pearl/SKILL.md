@@ -1,13 +1,13 @@
 ---
-name: bubbletea-tui
-description: Design and build terminal UIs with Bubble Tea v2, Lip Gloss and Bubbles that look as considered as Charm's Crush and unmistakably like the product's own brand, not like every other Bubble Tea app. Use when the user wants to build, design, redesign, restyle, theme, brand, critique, audit, polish, harden or animate a TUI, CLI dashboard, interactive CLI, terminal wizard, chat/agent interface, splash screen, terminal logo or wordmark, or port a v1 Bubble Tea app to v2. Covers layout and column budgets, colour roles and contrast, glyph vocabulary, focus and keys, empty/loading/error states, motion, cell art, a theme contract per brand, and a render-lint-critique loop that lets you see the terminal before the user does. Ships a compile-verified Go kit (theme engine, components, reference app), an honest ANSI-to-PNG renderer, a palette deriver and a slop linter. Not for web UIs or non-Go TUI frameworks.
+name: pearl
+description: Design and build terminal UIs that look as considered as Charm's Crush and unmistakably like the product's own brand. The design laws, brand, colour, layout and verify loop are framework-neutral; the first and only framework with a kit and code lint today is Bubble Tea v2 (Go, with Lip Gloss, Bubbles and Huh). Use when the user wants to build, design, redesign, restyle, theme, brand, critique, audit, polish, harden or animate a TUI, CLI dashboard, interactive CLI, terminal wizard, chat/agent interface, splash screen, terminal logo or wordmark; for any Bubble Tea, Lip Gloss, Bubbles, Huh or Charm work; or to port a v1 Bubble Tea app to v2. Covers column budgets, colour roles and contrast, glyphs, focus and keys, empty/loading/error states, motion, cell art, a theme contract per brand, and a render-lint-critique loop that lets you see the terminal before the user does. Ships a compile-verified Bubble Tea kit, an ANSI-to-PNG renderer, a palette deriver and a slop linter. Not for web UIs.
 license: MIT
 compatibility: Go ≥ 1.26.7 (Bubble Tea v2.1, Lip Gloss v2.0.6, Bubbles v2.2). Python 3 with Pillow and numpy only for the wordmark and logo converters.
 metadata:
   version: "0.1.0"
 ---
 
-# Bubble Tea TUI
+# Pearl
 
 You are about to design for a medium you cannot see, with libraries whose examples
 taught every model the same pink-and-purple boxes. Left to your defaults you will
@@ -48,10 +48,10 @@ to all three. A half-applied idiom reads as noise.
    `cellshot`. Never ask them for a screenshot.
 
 Once per project, **keep the skill in fresh clones**: a cloud container clones without
-it. Either commit whatever `npx skills add` created under `.claude/skills/bubbletea-tui`
+it. Either commit whatever `npx skills add` created under `.claude/skills/pearl`
 (a copy when the CLI detected an agent and ran non-interactively, or a link into
 `.agents/skills/`, which you then commit too), or commit `skills-lock.json` plus a
-`.claude/skills/bubbletea-tui -> ../../.agents/skills/bubbletea-tui` link and run
+`.claude/skills/pearl -> ../../.agents/skills/pearl` link and run
 `npx skills experimental_install` after cloning (it restores `.agents/skills/` only).
 In that layout, reinstall with `npx skills experimental_install` too, never
 `npx skills add`, which replaces the link with a copy and leaves `.agents/skills/` at
@@ -172,7 +172,7 @@ Would someone who lives in a terminal look at this and say "a model made this"? 
 
 ## Commands
 
-The user may name a command (`/bubbletea-tui critique`, or your agent's equivalent), or
+The user may name a command (`/pearl critique`, or your agent's equivalent), or
 you route from intent. Load the reference, follow it, and hand off to the next command
 when it says so. Never auto-run a command the user didn't ask for; suggest it. The one
 exception: when `TUI.md` is missing and the job is one screen, run `init`'s short form

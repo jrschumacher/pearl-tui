@@ -1,6 +1,6 @@
 {
-  "skill_name": "bubbletea-tui",
-  "notes": "Run with the skill-creator skill pointed at skills/bubbletea-tui. This file lives outside the skill on purpose: npx skills add copies the skill directory whole, and the prompts and graded assertions here must not reach the agent under evaluation. `files` are relative to the repository root. Each assertion is a failure seen when models build TUIs without the skill (or with an earlier version). Deterministic ones are checked by tuilint and the harness; the rest by a grader reading renders and the transcript. The init cases run unattended: an answers.md fixture stands in for the user. Add a case whenever the skill misses something in real use: write the miss as an assertion first, make the kit pass it, then edit the skill. An assertion that starts '(pair)' is graded only on a paired run: two cold builds of the case as the assertion describes them, judged side by side; a single run skips it.",
+  "skill_name": "pearl",
+  "notes": "Run with the skill-creator skill pointed at skills/pearl. This file lives outside the skill on purpose: npx skills add copies the skill directory whole, and the prompts and graded assertions here must not reach the agent under evaluation. `files` are relative to the repository root. Each assertion is a failure seen when models build TUIs without the skill (or with an earlier version). Deterministic ones are checked by tuilint and the harness; the rest by a grader reading renders and the transcript. The init cases run unattended: an answers.md fixture stands in for the user. Add a case whenever the skill misses something in real use: write the miss as an assertion first, make the kit pass it, then edit the skill. An assertion that starts '(pair)' is graded only on a paired run: two cold builds of the case as the assertion describes them, judged side by side; a single run skips it.",
   "evals": [
     {
       "id": 0,
@@ -160,7 +160,7 @@
     {
       "id": 4,
       "name": "critique-only",
-      "prompt": "/bubbletea-tui critique — review the TUI in this repo, don't change anything.",
+      "prompt": "/pearl critique — review the TUI in this repo, don't change anything.",
       "files": [
         "evals/fixtures/v1-todo/main.go",
         "evals/fixtures/v1-todo/go.mod",
@@ -178,7 +178,7 @@
     {
       "id": 5,
       "name": "restyle-a-huh-wizard",
-      "prompt": "/bubbletea-tui restyle — this is our CLI's first-run setup wizard (main.go, built with Huh). It works, but it looks like every Huh demo. Our brand is calm and precise; primary #4F7BD9.",
+      "prompt": "/pearl restyle — this is our CLI's first-run setup wizard (main.go, built with Huh). It works, but it looks like every Huh demo. Our brand is calm and precise; primary #4F7BD9.",
       "files": [
         "evals/fixtures/huh-setup/main.go"
       ],
@@ -199,7 +199,7 @@
     {
       "id": 6,
       "name": "init-interview",
-      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /bubbletea-tui init — we're about to build a TUI for our CLI (this repo).",
+      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /pearl init — we're about to build a TUI for our CLI (this repo).",
       "files": [
         "evals/fixtures/cli-stub/README.md",
         "evals/fixtures/cli-stub/main.go",
@@ -225,7 +225,7 @@
     {
       "id": 7,
       "name": "init-keys-and-glyphs",
-      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /bubbletea-tui init — SPEC.md describes the TUI we're building. Interview me and write TUI.md.",
+      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /pearl init — SPEC.md describes the TUI we're building. Interview me and write TUI.md.",
       "files": [
         "evals/fixtures/review-inbox-spec/SPEC.md",
         "evals/fixtures/review-inbox-spec/answers.md"
@@ -252,7 +252,7 @@
     {
       "id": 8,
       "name": "init-scope-and-slice",
-      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /bubbletea-tui init — SPEC.md describes the TUI we're building. Interview me and write TUI.md.",
+      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /pearl init — SPEC.md describes the TUI we're building. Interview me and write TUI.md.",
       "files": [
         "evals/fixtures/review-inbox-spec/SPEC.md",
         "evals/fixtures/review-inbox-spec/answers.md"

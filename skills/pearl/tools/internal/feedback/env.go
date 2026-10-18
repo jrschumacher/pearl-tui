@@ -71,12 +71,12 @@ func (e Env) SkillDir(dir string) string {
 	cands := []string{dir}
 	if dir == "" {
 		cands = []string{
-			filepath.Join(e.Cwd, ".claude", "skills", "bubbletea-tui"),
-			filepath.Join(e.Cwd, ".agents", "skills", "bubbletea-tui"),
-			filepath.Join(e.Cwd, "skills", "bubbletea-tui"),
+			filepath.Join(e.Cwd, ".claude", "skills", "pearl"),
+			filepath.Join(e.Cwd, ".agents", "skills", "pearl"),
+			filepath.Join(e.Cwd, "skills", "pearl"),
 		}
 		if e.Home != "" {
-			cands = append(cands, filepath.Join(e.Home, ".claude", "skills", "bubbletea-tui"))
+			cands = append(cands, filepath.Join(e.Home, ".claude", "skills", "pearl"))
 		}
 	}
 	for _, c := range cands {
@@ -106,7 +106,7 @@ func (e Env) SkillVersion(skillDir string) string {
 			}
 		}
 		if top := run("git", "-C", skillDir, "rev-parse", "--show-toplevel"); top != "" {
-			if t, err := filepath.EvalSymlinks(top); err == nil && filepath.Join(t, "skills", "bubbletea-tui") == skillDir {
+			if t, err := filepath.EvalSymlinks(top); err == nil && filepath.Join(t, "skills", "pearl") == skillDir {
 				if sha := run("git", "-C", skillDir, "rev-parse", "--short", "HEAD"); sha != "" {
 					parts = append(parts, "git "+sha)
 				}
@@ -120,7 +120,7 @@ func (e Env) SkillVersion(skillDir string) string {
 			} `json:"skills"`
 		}
 		if json.Unmarshal(b, &lock) == nil {
-			if h := lock.Skills["bubbletea-tui"].ComputedHash; h != "" {
+			if h := lock.Skills["pearl"].ComputedHash; h != "" {
 				if len(h) > 12 {
 					h = h[:12]
 				}
