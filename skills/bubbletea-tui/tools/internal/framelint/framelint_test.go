@@ -869,6 +869,38 @@ func TestTruncatedColumn(t *testing.T) {
 	if got := truncs(paths); len(got) != 1 {
 		t.Errorf("a cut name column after a path column: %+v, want one", got)
 	}
+	// the same with the path column one blank from the cut one on the rows: the header
+	// row's `path` heads its own column, not the cut `name`
+	pathOne := filepath.Join(dir, "files-40x6.ansi")
+	var p1 strings.Builder
+	p1.WriteString(fmt.Sprintf("%-40s\n", "  path          name"))
+	for i := range 5 {
+		p1.WriteString(fmt.Sprintf("%-40s\n", fmt.Sprintf("  /srv/a/b/c/%d a name too long to fi…", i)))
+	}
+	if err := os.WriteFile(pathOne, []byte(p1.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := truncs(pathOne); len(got) != 1 {
+		t.Errorf("a cut name column one blank after a path column: %+v, want one", got)
+	}
+	// a column starts where most cut rows' text does: one row's word that happens to start
+	// under a `path` header elsewhere on the row doesn't make the column path's
+	stray := filepath.Join(dir, "names-40x6.ansi")
+	var p2 strings.Builder
+	p2.WriteString(fmt.Sprintf("%-40s\n", "  name              path"))
+	for i := range 5 {
+		row := "  " + strings.Repeat(string(rune('c'+i)), 29) + "…"
+		if i == 2 {
+			row = "  " + strings.Repeat("a", 17) + " " + strings.Repeat("b", 11) + "…"
+		}
+		p2.WriteString(fmt.Sprintf("%-40s\n", row))
+	}
+	if err := os.WriteFile(stray, []byte(p2.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := truncs(stray); len(got) != 1 {
+		t.Errorf("a cut name column, one row's word under a path header: %+v, want one", got)
+	}
 	// on an overlay frame the dialog's band can hide the header: the page's own frame
 	// shows it and is judged there
 	under := filepath.Join(dir, "confirm-51x12.ansi")
