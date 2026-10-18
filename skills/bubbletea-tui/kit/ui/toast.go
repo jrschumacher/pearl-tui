@@ -61,6 +61,10 @@ func toastStyles(t *theme.Theme, kind string) (tag, bar lipgloss.Style) {
 //	DONE  Silenced checkout-api alerts for 1h · u unsilence
 //	HELD  Paging payments on-call in 5s · u undo
 //
+// Where the separator is sentence punctuation (the ASCII twin of ·, "."), a two-cell gap
+// stands in for it, as between the footer's keys: "in 5s . u undo" read as a sentence
+// ending on the unit.
+//
 // Pass the binding the state's action table holds while the toast is up, so the row
 // names exactly the key that works (an undo key the table doesn't bind is a lie). A
 // narrow row cuts the message, never the key. With an unset binding it is Toast.
@@ -76,6 +80,9 @@ func ToastKey(t *theme.Theme, kind, label, msg string, k key.Binding, w int) str
 	in := bar.UnsetPadding()
 	pl, pr := bar.GetPaddingLeft(), bar.GetPaddingRight()
 	sep := " " + t.G.Sep + " "
+	if t.G.Sep == "." || t.G.Sep == "," {
+		sep = "  "
+	}
 	hint := sep + h.Key + " " + h.Desc
 	room := max(0, rest-pl-pr-lipgloss.Width(hint))
 	m := Trunc(t, msg, room)
