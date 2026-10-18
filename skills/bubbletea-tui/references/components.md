@@ -109,7 +109,7 @@ the keys; hue stays for state (color.md).
   own rows, so the line it completes stays.
 - Max ~64–70 cols wide; fullscreen below the minimum size.
 
-## Confirm — destructive actions
+## Confirm — what can't be taken back, or is risky now
 
 ```
 Roll back checkout-api? ───────────────
@@ -124,8 +124,15 @@ impact  3 pods restart, one at a time (~90s)
 
 The title is the question, naming the object. The body says what changes, with before
 and after. The danger button is coloured even when unfocused. **Cancel is focused by
-default.** `y`/`n` shortcuts for experts. Prefer undo to a confirm when the action is
-reversible.
+default.** `y`/`n` shortcuts for experts. It asks for a judgement, so it guards rungs 3
+and 4 of `interaction.md` § Confirm By Consequence only: what can't be taken back, or
+what a failing signal makes risky ("2 checks failing: lint, e2e. Merge anyway?"). This
+roll back is rung 3: it ships to production, and the fix would be another ship, so it
+confirms even when the target is healthy. A ship started from a form gets no dialog:
+the form's review step is its confirmation (the showcase's `deploy-review`: what ships
+where, a danger button named `Deploy v2.4.1 to prod`, focus arriving on Cancel).
+Anything a revert or the same key takes back gets no confirm: one on every write
+teaches `y` before the one that matters.
 
 ## Form Field
 
@@ -166,7 +173,9 @@ Sign-in ──────────────────── staging-eu-
 - **Every step counts.** Connecting and finishing are steps, so the counter never repeats
   the review's number on three screens.
 - **Review defaults to the forward action** (`ui.NewActions(0, "Continue", "Edit",
-  "Cancel")`); `ui.Confirm(t, title, action, negative, def, &v)` for yes/no, action first.
+  "Cancel")`), unless the review ships what can't be taken back: then it is the
+  confirmation, and focus arrives on Cancel (`interaction.md` § Confirm By Consequence,
+  rung 3). `ui.Confirm(t, title, action, negative, def, &v)` for yes/no, action first.
 - **Waits say what to do if nothing happens**: the URL to open by hand, the code, elapsed
   time, `esc cancel`; a timeout becomes a failure state with Retry.
 - **Esc goes back** from step 2 on; on step 1 it asks before dropping typed input.
@@ -193,8 +202,21 @@ alert per screen. If there are many, it's a list.
 
 ## Toast — `ui.Toast`
 
-Paints over the footer row for ~4 s (a tag and a message on a tinted bar), then the help
-returns. Never a new row, never a modal.
+Paints over the footer row for ~4 s, an undo toast ~8 s and a grace window ~5 s
+(`motion.md` § Budget), as a tag and a message on a tinted bar, then the help returns.
+Never a new row, never a modal.
+
+An undo toast is what a reversible action gets instead of a confirm: it names what
+happened and the key that takes it back (`Closed #812 · x reopen`, `Marked 12 done · u
+undo`), stays the longer ~8 s so the hand can reach the key, and that key is bound in
+the state's action table while it shows. Never for something that can't be undone:
+that one had a confirm, and an undo that can't is a lie.
+
+A grace window is the default undo toast for a send that can't be recalled once it
+goes (a page, an email), skipped only where seconds matter: the action is pending
+until the toast ends, the undo key cancels it, and the toast says what will happen
+and when (`Paging payments on-call in 5 s · u undo`, counting down). When it ends the
+send goes, and a plain toast says it went.
 
 ## Footer / Help — `ui.Footer`, `ui.Help`
 

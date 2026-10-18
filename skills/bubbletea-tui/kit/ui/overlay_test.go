@@ -160,7 +160,7 @@ func TestOverlayHidesTheBodyWhereItCantDim(t *testing.T) {
 		f := theme.Default()
 		f.Expressions.Scrim = mode.scrim
 		th := theme.ResolveProfile(f, true, mode.ascii, mode.p)
-		d := Dialog(th, 44, 0, "Send this reply?", []string{"when the caller gave up first", "errors.Is."}, "", "")
+		d := Dialog(th, 44, 0, "Discard this reply?", []string{"when the caller gave up first", "errors.Is."}, "", "")
 		// Body is rows: an inset rectangle hides the same rows across as a full-width one
 		for _, body := range []uv.Rectangle{{}, uv.Rect(0, 3, W, H-5), uv.Rect(2, 3, W-4, H-5)} {
 			c := NewCanvas(th, W, H)

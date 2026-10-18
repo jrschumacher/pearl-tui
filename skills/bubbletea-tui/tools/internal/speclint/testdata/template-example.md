@@ -30,10 +30,10 @@ themes/halyard.json   (palette derive from #12355B #FF7A1A, measured from the lo
 #### services — health of every service, pick one to act on; the eye lands on the failing service
 the move and the signature: § Brand read
 
-#### deploy — ship a version to an environment
-brand: terse: the fields are nouns (`service`, `version`, `to`) with no helper sentences, and the last step's button says `ship v2.4.1`, not `submit`
+#### deploy — ship a version to an environment; its review step is the confirmation (rung 3 via the form: it says what ships where, the button is the act as danger, focus arrives on cancel), so no dialog follows
+brand: terse: the fields are nouns (`service`, `version`, `to`) with no helper sentences, and the last step's button says `ship v2.4.1 to prod`, not `submit`
 
-#### confirm — the one dialog: roll back, with the version named
+#### confirm-rollback — the one dialog: roll back, with the version named; rung 3: it ships to prod, so it confirms even when the target is healthy
 brand: calm under pressure: the question names both versions and what changes (`roll checkout-api back to v2.3.9? v2.4.0 stops taking traffic`); the buttons are `roll back` and `keep v2.4.0`, the safe one focused
 
 ### Never
@@ -73,7 +73,7 @@ One action table per state; footer and dispatcher both read it.
 | services-error       | services         | r retry · ? help · q quit |
 | deploy               | deploy           | enter next field · esc back · ctrl+g help ‖ tab/shift+tab field |
 | palette              | overlay (text input) | enter run · ↑↓ choose · esc close |
-| confirm              | overlay          | ←→ choose · enter confirm · esc cancel |
+| confirm-rollback     | overlay          | ←→ choose · enter confirm · esc cancel |
 
 Global: ctrl+c quit
 

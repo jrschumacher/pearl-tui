@@ -62,12 +62,76 @@ every action must also have a key.
 - Results that arrive for a region the user has left are stored, not drawn over the
   current screen.
 
-## Destructive Actions
+## Confirm By Consequence, Not By Write
 
-Prefer undo ("Deleted 3 files · u undo" as a toast for 8 s). When the action can't be
-undone: a confirm dialog that names the object, says what changes, focuses **Cancel**,
-colours the destructive button as danger, and accepts `y` for experts. For irreversible
-actions on production, make the user type the object's name.
+A confirm is a request for a human's judgement, so ask only when there is a judgement
+left for the human to make. A confirm costs a keypress and a read, and each one that
+asks for nothing trains the user to press `y` without reading; the one in front of a
+delete then gets the same reflex. Sending a write to a server is not a reason to ask.
+Nor is "consequential" alone: when automation has already judged an action a revert
+can take back (green checks, a passing gate), or the gesture was the judgement (an
+explicit send), a confirm adds nothing. Put every action on the first rung that fits:
+
+1. **Reversible in one gesture: the action is the confirmation.** It happens on the
+   key, the screen shows it at once (the reaction appears, the thread folds as
+   resolved, the row's mark flips), and the same key undoes it: a reaction,
+   resolve/unresolve, close/reopen, star, mute, any mark (pin, label). The footer
+   names what the key does now (`x close` becomes `x reopen`). At most a toast that
+   names what happened and the undo ("Closed #812 · x reopen"). A bulk one stays here:
+   "Marked 12 done · u undo" undoes the batch.
+2. **Composed, then sent: the send is the confirmation.** A comment, reply, message or
+   page the user wrote and sent with an explicit send key (`enter`, `ctrl+s`) goes
+   without a dialog. They read it while writing it; "Post this comment?" only asks them
+   to read it again. The same holds for a send to people that one labelled key starts
+   (`n declare incident` pages on-call): the label is the judgement. This rung is for
+   sends to people only; a one-key delete or ship stays on rung 3. It holds when the
+   send can't be recalled (a page, an email, a post): sending was the judgement.
+   Such a send gets a grace window by default, since the TUI can almost always hold
+   it: it waits ~5 s under an undo toast ("Paging payments on-call in 5 s · u undo",
+   as mail apps offer undo send), then goes. Skip the window only when holding defeats
+   the point (an emergency page where seconds matter): then it goes at once, still with
+   no confirm. Where the service allows, offer edit or delete on the sent item. A
+   failing signal still moves a send to rung 4: paging a rotation that's off duty, or
+   an incident already open for the same thing.
+3. **Can't be taken back, so nothing vouches for it: confirm.** Deleting, purging,
+   force-pushing, and shipping to production (a release, a deploy, a rollback: a
+   rollback is a deploy) even with green checks: traffic meets it the moment it lands,
+   and the fix is another ship, not an undo. Hard to undo isn't can't be undone: a
+   merge reverts, an issue reopens. Only the user knows whether this is the object to
+   lose, so the dialog names it and what can't be taken back ("Delete nightly-0412?
+   41.2 GB, no undo"), focuses **Cancel**, colours the destructive button as danger,
+   and accepts `y` for experts. For what destroys production data (dropping a
+   database, deleting a prod bucket), make the user type its name; a ship doesn't
+   need it, since its fix is another ship. A ship started from a form is confirmed by
+   the form's last step when that step says exactly what ships where (version, target,
+   what changes), its button is named for the act (`Deploy v2.4.1 to prod`, not
+   `Submit` or `OK`) and drawn as danger, and focus arrives on Cancel so enter alone
+   doesn't ship. No dialog after it: it would repeat what the user just read. The
+   dialog is for a ship one key starts (`r roll back` from a list).
+4. **Normally safe, but a signal says no: confirm only in that state.** The signal is
+   one the user should weigh: red checks, a blocking review, an unsaved draft, a stale
+   view of what they're acting on. On a code host, merging with green checks takes no
+   confirm: the checks already judged it, and a revert undoes it. That holds where
+   main deploys on merge: the pipeline's gate judges that ship. Merging with red
+   checks asks, and the question names the signal ("2 checks failing: lint, e2e. Merge
+   anyway?"), so the user judges the failure, not "are you sure?". A failing signal
+   escalates; a passing one stands in for the confirm only on an action a revert takes
+   back. On rung 3 the confirm stays, and a failing signal goes in its question.
+
+**DO** prefer undo to a confirm wherever the action can be held or reversed: a delete
+that goes to a trash, a send held for its grace window. Undo lets people act at speed
+and recover, so they learn the UI is safe to use; a confirm teaches them it is
+dangerous, and to press `y` without reading.
+**DO** choose the rung per action when you list the states: a `confirm-*` state exists
+only for rungs 3 and 4, and a rung-4 confirm says which signal opens it.
+**DO** write the question about the one thing to judge: the object and what can't be
+taken back (rung 3), or the failing signal (rung 4).
+**DO** bind the toast's undo key in the state's action table while the toast shows, so
+the key it advertises works (Law 6).
+**DON'T** ask a question that fits any action ("Are you sure?", "Continue?"): it asks for
+no judgement, so it gets none.
+**DON'T** offer undo for what can't be undone: an undo toast after a purge is a lie,
+and that action needed the confirm.
 
 ## States Every Screen Designs
 
@@ -127,8 +191,11 @@ Terminal copy is read at speed by people mid-task. Every word earns its cells.
   incidents declared. checkout-api has been failing for 12 min. n declare incident".
 - **Spinners**: present participle + object + progress. "Deploying checkout-api 2/3
   pods". Never "Loading...", "Please wait", or "Processing".
-- **Confirmations**: the question names the object ("Roll back checkout-api?") and the
-  buttons are verbs ("Roll back" / "Cancel"), never "OK" / "Yes".
+- **Confirmations**: only when a judgement is left to the user (§ Confirm By
+  Consequence). The question names what they are judging: the object and what changes
+  ("Roll back checkout-api?", rung 3: it ships to production), or the signal that made
+  it risky ("2 checks failing: lint, e2e. Merge anyway?"). The buttons are verbs
+  ("Roll back" / "Cancel"), never "OK" / "Yes".
 - **Success**: past tense + object + the fact that matters. "Rolled back checkout-api
   to v2.3.9 · 3/3 pods healthy". No "Successfully".
 - **Voice** comes from the brand read: Crush's `Yep!` / `Nope` and rotating

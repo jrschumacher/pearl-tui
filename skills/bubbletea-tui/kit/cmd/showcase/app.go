@@ -486,6 +486,7 @@ func (m *app) actions() []action {
 				switch {
 				case m.focus < 4:
 					m.focus++
+					m.armDeploy()
 				case m.formBtn == 1:
 					m.screen = scrServices
 				default:
@@ -494,8 +495,8 @@ func (m *app) actions() []action {
 				return nil
 			}},
 			// in a field, enter already says "next field": tab joins the footer only on the buttons
-			{bind([]string{"tab", "down"}, "tab", "next field"), m.focus == 4, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.focus = (m.focus + 1) % 5; return nil }},
-			{bind([]string{"shift+tab", "up"}, "shift+tab", "previous"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.focus = (m.focus + 4) % 5; return nil }},
+			{bind([]string{"tab", "down"}, "tab", "next field"), m.focus == 4, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.focus = (m.focus + 1) % 5; m.armDeploy(); return nil }},
+			{bind([]string{"shift+tab", "up"}, "shift+tab", "previous"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.focus = (m.focus + 4) % 5; m.armDeploy(); return nil }},
 			{bind([]string{"left", "right"}, m.t.G.LeftRight, "choose"), m.focus != 1, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
 				d := 1
 				if msg.String() == "left" {
@@ -610,6 +611,19 @@ func (m *app) actions() []action {
 
 func (m *app) openDeploy() {
 	m.screen, m.focus, m.formBtn = scrDeploy, 1, 0
+}
+
+// armDeploy runs as focus moves: arriving on the buttons, a prod deploy starts on Cancel,
+// so the review step is the confirmation and enter alone never ships to prod; the
+// other environments start on the act, the forward choice.
+func (m *app) armDeploy() {
+	if m.focus != 4 {
+		return
+	}
+	m.formBtn = 0
+	if m.env == 0 {
+		m.formBtn = 1
+	}
 }
 
 func (m *app) svcIndex(name string) int {

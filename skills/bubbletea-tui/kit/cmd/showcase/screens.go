@@ -489,6 +489,7 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 		}
 		return strings.Join(out, "   ")
 	}
+	env := []string{"prod", "staging", "dev"}[m.env]
 	field(0, "Environment", "", choice([]string{"prod", "staging", "dev"}, m.env, focus == 0))
 	promptSt := t.S.Subtle // a blurred input's prompt is quiet: the focus ink means focus
 	if focus == 1 {
@@ -514,7 +515,8 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 	}
 	field(3, "Checks", "", check(0, "run smoke tests")+"   "+check(1, "skip approval"))
 	btns := ui.Buttons(t, w-2, lipgloss.Left,
-		ui.Button(t, "Deploy", focus == 4 && m.formBtn == 0, false, -1),
+		// the button names the act and where it lands; prod's is danger, as a confirm's is
+		ui.Button(t, "Deploy "+m.version+" to "+env, focus == 4 && m.formBtn == 0, m.env == 0, -1),
 		ui.Button(t, "Cancel", focus == 4 && m.formBtn == 1, false, -1))
 	rows = append(rows, ui.Gutter(t, focus == 4, t.S.FocusBar)+btns)
 	c.Draw(strings.Join(rows, "\n"), main)
@@ -529,7 +531,7 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 		steps = append(steps, t.S.Soft.Render([]string{"roll 3 pods", "canary 1 pod", "start 3 new pods"}[m.strategy])+"\n"+t.S.Subtle.Render(strategies[m.strategy][1]),
 			t.S.Soft.Render("watch error rate")+"\n"+t.S.Subtle.Render("5 min, auto-rollback >1%"))
 		pr := []string{ui.Section(t, "What happens", sw, ""), ""}
-		pr = append(pr, t.S.Base.Render(s.Name+" ")+t.S.Muted.Render(s.Version+" "+t.G.Arrow+" ")+t.S.Primary.Bold(true).Render(m.version))
+		pr = append(pr, t.S.Base.Render(s.Name+" ")+t.S.Muted.Render(s.Version+" "+t.G.Arrow+" ")+t.S.Primary.Bold(true).Render(m.version)+t.S.Muted.Render(" to ")+t.S.Base.Render(env))
 		pr = append(pr, "")
 		pr = append(pr, ui.Tree(t, steps)...)
 		if m.env == 0 {
