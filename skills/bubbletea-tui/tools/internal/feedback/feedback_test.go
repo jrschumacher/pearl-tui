@@ -638,7 +638,7 @@ func TestSubmitNeedsTheDraftsHash(t *testing.T) {
 		t.Errorf("no --confirm: exit %d, stderr %q", code, r.stderr.String())
 	}
 	changed := r.bugArgs("submit", "--field", "expected=something the user never read", "--confirm", hash)
-	if code := r.run(changed...); code != ExitUsage || !strings.Contains(r.stderr.String(), "changed since the draft") {
+	if code := r.run(changed...); code != ExitUsage || !strings.Contains(r.stderr.String(), "the draft changed since `draft` ran (any field, or the environment lines)") {
 		t.Errorf("changed body: exit %d, stderr %q", code, r.stderr.String())
 	}
 	refused := r.stderr.String()

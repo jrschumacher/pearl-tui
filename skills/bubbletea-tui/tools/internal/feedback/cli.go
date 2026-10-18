@@ -132,7 +132,7 @@ func Main(args []string, usage string, env Env, stdout, stderr io.Writer) int {
 		return bad("submit needs --confirm <hash>, from the draft the user said yes to (feedback draft prints it); nothing was sent")
 	case !strings.EqualFold(strings.TrimSpace(o.confirm), is.Hash()):
 		// the right hash is not printed here: it comes from a draft the user saw
-		return bad("--confirm %s is not this issue: it changed since the draft the user saw; draft it again and show them; nothing was sent", o.confirm)
+		return bad("--confirm %s is not this issue: the draft changed since `draft` ran (any field, or the environment lines); draft it again and show the user; nothing was sent", o.confirm)
 	}
 	return submit(is, o, red, stdout, stderr)
 }
