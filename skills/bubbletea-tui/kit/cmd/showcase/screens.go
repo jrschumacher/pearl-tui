@@ -69,6 +69,7 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		y += len(tabs) + 1 // tabs always get air below, even in compact brands
 	}
 	body := uv.Rect(g, y, w-2*g, max(0, fy-y-t.Gap()))
+	m.body, m.footY = body, fy
 	switch m.screen {
 	case scrServices:
 		m.services(c, body)
@@ -352,66 +353,64 @@ func (m *app) assistant(c *ui.Canvas, r uv.Rectangle) {
 	if m.expand {
 		shown = len(logLines)
 	}
-	var s []string
-	s = append(s, ui.UserMessage(t, chatUser, w, false)...)
-	s = append(s, "")
-	s = append(s, ui.Thinking(t, thinkingLines, 2, "6.1s", w)...)
-	s = append(s, "")
-	s = append(s, ui.ToolCall(t, ui.Tool{Name: "Logs", Param: "checkout-api", Opts: [][2]string{{"since", "14:00"}, {"tail", "200"}},
-		State: ui.ToolDone, Body: logLines, Shown: shown, Expand: m.expand}, w, false)...)
-	s = append(s, "")
-	s = append(s, ui.ToolCall(t, ui.Tool{Name: "Grep", Param: "PAYMENTS_TIMEOUT", Opts: [][2]string{{"path", "deploy/"}},
-		State: ui.ToolError, Err: "deploy/: no such directory (did you mean config/?)"}, w, false)...)
-	s = append(s, "")
-	s = append(s, ui.ToolCall(t, ui.Tool{Name: "Edit", Param: "config/timeouts.go", State: ui.ToolDone, Body: diff, Expand: true}, w, false)...)
-	s = append(s, "")
-	s = append(s, ui.ToolCall(t, ui.Tool{Name: "Bash", Param: "go test ./internal/...", State: ui.ToolDone, Body: testLines}, w, false)...)
-	s = append(s, "")
-	s = append(s, ui.AssistantMessage(t, chatAnswer, w, false)...)
-	s = append(s, "")
-	s = append(s, ui.TurnFooter(t, "opus", "anthropic", "41s", w))
+	// the stream is blocks (a turn, a tool call, a thinking panel), so the tail cut can
+	// keep every block's head on screen (ui.Transcript)
+	blocks := [][]string{
+		ui.UserMessage(t, chatUser, w, false),
+		ui.Thinking(t, thinkingLines, 2, "6.1s", w),
+		ui.ToolCall(t, ui.Tool{Name: "Logs", Param: "checkout-api", Opts: [][2]string{{"since", "14:00"}, {"tail", "200"}},
+			Meta: "1.2s", State: ui.ToolDone, Body: logLines, Shown: shown, Expand: m.expand}, w, false),
+		ui.ToolCall(t, ui.Tool{Name: "Grep", Param: "PAYMENTS_TIMEOUT", Opts: [][2]string{{"path", "deploy/"}, {"ignore case", ""}},
+			State: ui.ToolError, Err: "deploy/: no such directory (did you mean config/?)"}, w, false),
+		ui.ToolCall(t, ui.Tool{Name: "Edit", Param: "config/timeouts.go", Desc: "Accept a unit suffix on PAYMENTS_TIMEOUT",
+			Meta: "allowed for session " + t.G.Sep + " 0.3s", State: ui.ToolDone, Body: diff, Expand: true}, w, false),
+		ui.ToolCall(t, ui.Tool{Name: "Bash", Param: "go test ./internal/...", State: ui.ToolDone, Body: testLines}, w, false),
+		ui.AssistantMessage(t, chatAnswer, w, false),
+		{ui.TurnFooter(t, "opus", "anthropic", "41s", w)},
+	}
 	for _, msg := range m.sent {
 		switch msg {
 		case "\x00done":
-			s = append(s, "")
-			s = append(s, ui.ToolCall(t, ui.Tool{Name: "Deploy", Param: "checkout-api v2.4.1", Opts: [][2]string{{"strategy", "rolling"}},
-				State: ui.ToolDone, Body: []string{"3/3 pods healthy " + t.G.Sep + " error rate 0.02% " + t.G.Sep + " p99 124ms"}}, w, false)...)
+			blocks = append(blocks, ui.ToolCall(t, ui.Tool{Name: "Deploy", Param: "checkout-api v2.4.1", Opts: [][2]string{{"strategy", "rolling"}},
+				State: ui.ToolDone, Body: []string{"3/3 pods healthy " + t.G.Sep + " error rate 0.02% " + t.G.Sep + " p99 124ms"}}, w, false))
 		case "\x00canceled":
-			s = append(s, "", "  "+t.S.Subtle.Render(t.Sentence("Canceled.")))
+			blocks = append(blocks, []string{"  " + t.S.Subtle.Render(t.Sentence("Canceled."))})
 		default:
-			s = append(s, "")
-			s = append(s, ui.UserMessage(t, msg, w, false)...)
+			blocks = append(blocks, ui.UserMessage(t, msg, w, false))
 		}
 	}
 	editorH := 3
 	streamH := main.Dy() - editorH - 1
 	if m.busy {
-		s = append(s, "", "  "+ui.NewAnim(t, 10, "Deploying checkout-api v2.4.1", "deploy").Frame(m.frame, elapsed(m.frame-m.busySince)))
+		blocks = append(blocks, []string{"  " + ui.NewAnim(t, 10, "Deploying checkout-api v2.4.1", "deploy").Frame(m.frame, elapsed(m.frame-m.busySince))})
 	}
 	// follow mode: the tail of the stream, minus how far the user scrolled up
-	end := max(0, len(s)-m.scroll)
-	if end > streamH {
-		hidden := end - streamH + 1
-		s = append([]string{"  " + t.S.Subtle.Render(t.G.More+" "+itoa(hidden)+" more lines  ") + t.S.Key.Render("pgup")}, s[hidden:end]...)
-	} else {
-		s = s[:end]
-	}
+	s := ui.Transcript(t, blocks, w, streamH, m.scroll, t.S.Key.Render("pgup"))
 	c.Draw(strings.Join(s, "\n"), uv.Rect(main.Min.X, main.Min.Y, w, streamH))
 	ey := main.Max.Y - editorH
 	prompt := t.S.Prompt.Bold(true).Render(t.G.Prompt) + " "
 	text := m.input
+	if m.ov != ovNone { // under a dialog the composer is unfocused: a quiet prompt
+		prompt = t.S.Subtle.Render(t.G.Prompt) + " "
+	}
 	if m.busy {
 		prompt = t.S.Subtle.Render(t.G.Prompt) + " "
 		text = ""
+	}
+	// under a dialog the composer has no caret (the dialog has the focus); a blank
+	// keeps the placeholder where it was
+	caret := t.S.Prompt.Render(t.G.Caret)
+	if m.ov != ovNone {
+		caret = strings.Repeat(" ", lipgloss.Width(t.G.Caret))
 	}
 	line := prompt + t.S.Base.Render(text)
 	switch {
 	case m.busy:
 		line += t.S.Subtle.Render("working" + t.G.Ellipsis + " esc to stop")
 	case text == "":
-		line += t.S.Prompt.Render(t.G.Caret) + t.S.Subtle.Render("ask, or tell it what to do")
+		line += caret + t.S.Subtle.Render("ask, or tell it what to do")
 	default:
-		line += t.S.Prompt.Render(t.G.Caret)
+		line += caret
 	}
 	c.Draw(strings.Join([]string{ui.Rule(t, w), line}, "\n"), uv.Rect(main.Min.X, ey, w, editorH))
 }
@@ -456,9 +455,14 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 	}
 	w := main.Dx()
 	rows := []string{ui.Section(t, "Deploy "+s.Name, w, s.Env), ""}
+	// under a dialog no field is focused: the dialog has the focus
+	focus := m.focus
+	if m.ov != ovNone {
+		focus = -1
+	}
 	// a field is a group: one blank row between fields even in compact brands
 	field := func(i int, label, hint string, body ...string) {
-		focused := m.focus == i
+		focused := focus == i
 		bar := ui.Gutter(t, focused, t.S.FocusBar)
 		lab := t.S.Muted.Render(t.Case(label))
 		if focused {
@@ -487,30 +491,34 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 		}
 		return strings.Join(out, "   ")
 	}
-	field(0, "Environment", "", choice([]string{"prod", "staging", "dev"}, m.env, m.focus == 0))
-	input := t.S.Prompt.Render(t.G.Prompt) + " " + t.S.Base.Render(m.version)
-	if m.focus == 1 {
+	field(0, "Environment", "", choice([]string{"prod", "staging", "dev"}, m.env, focus == 0))
+	promptSt := t.S.Subtle // a blurred input's prompt is quiet: the focus ink means focus
+	if focus == 1 {
+		promptSt = t.S.Prompt
+	}
+	input := promptSt.Render(t.G.Prompt) + " " + t.S.Base.Render(m.version)
+	if focus == 1 {
 		input += t.S.Prompt.Render(t.G.Caret)
 	}
 	field(1, "Version", "tag or commit; latest is v2.4.1 (2 min ago)", input)
 	strategies := [][2]string{{"Rolling", "one pod at a time"}, {"Canary", "10% for 15 min, then all"}, {"Blue/green", "switch traffic at once"}}
-	field(2, "Strategy", strategies[m.strategy][1], choice([]string{"Rolling", "Canary", "Blue/green"}, m.strategy, m.focus == 2))
+	field(2, "Strategy", strategies[m.strategy][1], choice([]string{"Rolling", "Canary", "Blue/green"}, m.strategy, focus == 2))
 	check := func(i int, label string) string {
 		g, st := t.G.CheckOff, t.S.Subtle
 		if m.checks[i] {
 			g, st = t.G.CheckOn, t.S.Focus
 		}
 		lab := t.S.Muted.Render(label)
-		if m.focus == 3 && m.checkSel == i {
+		if focus == 3 && m.checkSel == i {
 			lab = t.S.Bold.Render(label)
 		}
 		return st.Render(g) + " " + lab
 	}
 	field(3, "Checks", "", check(0, "run smoke tests")+"   "+check(1, "skip approval"))
 	btns := ui.Buttons(t, w-2, lipgloss.Left,
-		ui.Button(t, "Deploy", m.focus == 4 && m.formBtn == 0, false, -1),
-		ui.Button(t, "Cancel", m.focus == 4 && m.formBtn == 1, false, -1))
-	rows = append(rows, ui.Gutter(t, m.focus == 4, t.S.FocusBar)+btns)
+		ui.Button(t, "Deploy", focus == 4 && m.formBtn == 0, false, -1),
+		ui.Button(t, "Cancel", focus == 4 && m.formBtn == 1, false, -1))
+	rows = append(rows, ui.Gutter(t, focus == 4, t.S.FocusBar)+btns)
 	c.Draw(strings.Join(rows, "\n"), main)
 
 	if side.Dx() > 0 {
@@ -635,11 +643,12 @@ func (m *app) confirm(c *ui.Canvas, fy int) {
 	m.ovRect = c.Overlay(d, dialogTop(c, lipgloss.Height(d), fy))
 }
 
-// helpBody is the full help's rows: every binding of the screen underneath, then ctrl+c.
+// helpBody is the full help's rows: every binding of the state underneath (the
+// overlay help was opened from, or the screen), then ctrl+c.
 func (m *app) helpBody() []string {
 	t := m.t
 	ov := m.ov
-	m.ov = ovNone
+	m.ov = m.helpFrom
 	acts := m.actions()
 	m.ov = ov
 	var body []string
@@ -660,6 +669,12 @@ func (m *app) helpTitle() string {
 		name = "Legend"
 	case scrSetup:
 		name = "Setup"
+	}
+	switch m.helpFrom {
+	case ovPalette:
+		name = "Commands"
+	case ovConfirm:
+		name = "Roll back"
 	}
 	return "Keys " + m.t.G.Sep + " " + name
 }

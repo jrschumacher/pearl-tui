@@ -190,7 +190,12 @@ func TestNoUnstyledText(t *testing.T) {
 
 // Every theme's overlay states render under 16 colours and NO_COLOR as the harness
 // writes them (-profile ansi, NO_COLOR=1): exactly W×H, with the theme resolved for
-// that profile (a borderless dialog's edge depends on it, ui TestEveryDialog…).
+// that profile (a borderless dialog's edge depends on it, ui TestEveryDialog…). No scrim
+// is drawn there, so the rows the dialog spans are cleared across: a help dialog sat
+// between live list rows ("● acme/w ── keys · inbox ── mitri · 5h"), read as a collage.
+// A cleared cell takes the page's background, not the one it had: a red 502s strip or
+// a FAILING chip emptied by the clear stayed a solid block beside the dialog, and a
+// selection band left a grey stub at its left.
 func TestOverlaysInReducedProfiles(t *testing.T) {
 	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)
@@ -201,13 +206,15 @@ func TestOverlaysInReducedProfiles(t *testing.T) {
 			name, flag, noColor string
 			explicit            bool
 			p                   colorprofile.Profile
-		}{{"-profile ansi", "ansi", "", true, colorprofile.ANSI}, {"NO_COLOR=1", "truecolor", "1", false, colorprofile.Ascii}} {
+			ascii               bool
+		}{{"-profile ansi", "ansi", "", true, colorprofile.ANSI, false}, {"NO_COLOR=1", "truecolor", "1", false, colorprofile.Ascii, false},
+			{"-ascii", "truecolor", "", false, colorprofile.TrueColor, true}} {
 			prof, err := renderProfile(pr.flag, pr.explicit, pr.noColor)
 			if err != nil || prof != pr.p {
 				t.Fatalf("%s: renderProfile = %v %v, want %v", pr.name, prof, err, pr.p)
 			}
 			for _, dark := range []bool{true, false} {
-				m := newApp(tf, dark, false)
+				m := newApp(tf, dark, pr.ascii)
 				m.profile = prof
 				for _, s := range []string{"palette", "confirm", "help"} {
 					m.setState(s)
@@ -218,6 +225,19 @@ func TestOverlaysInReducedProfiles(t *testing.T) {
 					c.PaintBackground()
 					if err := checkSize(ansi.Strip(downsample(c.String(), prof)), s, 80, 24); err != nil {
 						t.Errorf("%s %s dark=%v: %v", filepath.Base(f), pr.name, dark, err)
+					}
+					if x, y, ok := pageBeside(c, m.ovRect, 80); ok {
+						t.Errorf("%s %s %s dark=%v: no scrim, and the page shows %q at %d,%d beside the dialog", filepath.Base(f), s, pr.name, dark, c.CellAt(x, y).Content, x, y)
+					}
+					r := m.ovRect
+				rows:
+					for y := r.Min.Y; y < r.Max.Y; y++ {
+						for x := range 80 {
+							if cell := c.CellAt(x, y); cell != nil && !uv.Pos(x, y).In(r) && !sameRGB(cell.Style.Bg, m.t.P.Bg) {
+								t.Errorf("%s %s %s dark=%v: a cleared cell at %d,%d keeps a background %v, not the page's %v", filepath.Base(f), s, pr.name, dark, x, y, cell.Style.Bg, m.t.P.Bg)
+								break rows
+							}
+						}
 					}
 				}
 			}
@@ -298,12 +318,25 @@ func TestRenderProfile(t *testing.T) {
 	}
 }
 
+// dialogText is the plain text of the rows a dialog was drawn on (m.ovRect) and the
+// footer: what a test about the dialog judges. The page under it has cut rows of its
+// own ("↑ 12 more", "… (6 lines hidden)" in a transcript), and a copied test that
+// scanned the whole frame failed under every overlay of an app whose page has one.
+func dialogText(c *ui.Canvas, r uv.Rectangle, fy int) string {
+	rows := strings.Split(ansi.Strip(c.String()), "\n")
+	keep := append([]string{}, rows[max(0, r.Min.Y):min(len(rows), r.Max.Y)]...)
+	keep = append(keep, rows[min(len(rows), fy):]...)
+	return strings.Join(keep, "\n")
+}
+
 // A dialog never reaches the footer: the help dialog was 20 rows, so at 80×24 its
 // bottom edge landed on the footer rule (a double rule) and at 60×18 both were
 // clipped. Every overlay state, every theme, both sizes: the dialog ends above the
 // footer, a row of air between while it fits; a body that doesn't fit scrolls (↑↓),
 // and a dialog whose keys don't scroll (confirm, palette) is never cut at the kit's own
-// minimum size, where a rollback confirmation hid its consequences ("… 2 more").
+// minimum size, where a rollback confirmation hid its consequences ("… 2 more"). Each
+// overlay is judged over the services list and over the assistant's transcript, whose
+// tail is cut ("↑ n more", "… (n lines hidden)"): only the dialog's rows count.
 func TestDialogsStayAboveTheFooter(t *testing.T) {
 	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)
@@ -312,37 +345,53 @@ func TestDialogsStayAboveTheFooter(t *testing.T) {
 		}
 		for _, sz := range [][2]int{{80, 24}, {60, 18}} {
 			w, h := sz[0], sz[1]
-			for _, s := range []string{"help", "confirm", "palette"} {
-				m := newApp(tf, true, false)
-				m.setState(s)
-				frame := ansi.Strip(m.render(w, h).String())
-				fy := h - len(ui.Footer(m.t, w, "", nil, ""))
-				if m.ovRect.Max.Y > fy {
-					t.Errorf("%s %s %dx%d: the dialog's last row is %d, the footer starts at %d", filepath.Base(f), s, w, h, m.ovRect.Max.Y-1, fy)
-				}
-				if m.ovRect.Dy() <= fy-5 && m.ovRect.Max.Y > fy-1 {
-					t.Errorf("%s %s %dx%d: the dialog fits with air (%d rows) but ends on row %d, against the footer at %d", filepath.Base(f), s, w, h, m.ovRect.Dy(), m.ovRect.Max.Y-1, fy)
-				}
-				if m.ovRect.Dy() == 0 {
-					t.Errorf("%s %s %dx%d: no dialog drawn", filepath.Base(f), s, w, h)
-				}
-				if cut := strings.Contains(frame, m.t.G.Ellipsis+" ") && strings.Contains(frame, " more"); cut && !strings.Contains(frame, "scroll") {
-					t.Errorf("%s %s %dx%d: the body is cut (\"%s n more\") with no scroll key in the footer", filepath.Base(f), s, w, h, m.t.G.Ellipsis)
-				}
-				if s != "help" && strings.Contains(frame, m.t.G.Ellipsis+" ") && strings.Contains(frame, " more") {
-					t.Errorf("%s %s %dx%d: a dialog that fits the kit's minimum size is cut:\n%s", filepath.Base(f), s, w, h, frame)
+			for _, page := range []screen{scrServices, scrAssistant} {
+				for _, s := range []string{"help", "confirm", "palette"} {
+					m := newApp(tf, true, false)
+					m.setState(s)
+					if page == scrAssistant {
+						// the page a dialog is judged over: the assistant's cut transcript
+						m.screen, m.sent = scrAssistant, []string{"ship it as v2.4.1"}
+					}
+					if page == scrAssistant {
+						ov := m.ov
+						m.ov = ovNone
+						if full := ansi.Strip(m.render(w, h).String()); !strings.Contains(full, m.t.G.More+" ") || !strings.Contains(full, " more") {
+							t.Fatalf("%s %s %dx%d: the transcript under the dialog has no cut row to be fooled by", filepath.Base(f), s, w, h)
+						}
+						m.ov = ov
+					}
+					c := m.render(w, h)
+					fy := h - len(ui.Footer(m.t, w, "", nil, ""))
+					frame := dialogText(c, m.ovRect, fy)
+					if m.ovRect.Max.Y > fy {
+						t.Errorf("%s %s %dx%d: the dialog's last row is %d, the footer starts at %d", filepath.Base(f), s, w, h, m.ovRect.Max.Y-1, fy)
+					}
+					if m.ovRect.Dy() <= fy-5 && m.ovRect.Max.Y > fy-1 {
+						t.Errorf("%s %s %dx%d: the dialog fits with air (%d rows) but ends on row %d, against the footer at %d", filepath.Base(f), s, w, h, m.ovRect.Dy(), m.ovRect.Max.Y-1, fy)
+					}
+					if m.ovRect.Dy() == 0 {
+						t.Errorf("%s %s %dx%d: no dialog drawn", filepath.Base(f), s, w, h)
+					}
+					if cut := strings.Contains(frame, m.t.G.Ellipsis+" ") && strings.Contains(frame, " more"); cut && !strings.Contains(frame, "scroll") {
+						t.Errorf("%s %s %dx%d: the body is cut (\"%s n more\") with no scroll key in the footer", filepath.Base(f), s, w, h, m.t.G.Ellipsis)
+					}
+					if s != "help" && strings.Contains(frame, m.t.G.Ellipsis+" ") && strings.Contains(frame, " more") {
+						t.Errorf("%s %s %dx%d: a dialog that fits the kit's minimum size is cut:\n%s", filepath.Base(f), s, w, h, frame)
+					}
 				}
 			}
 			// the help body scrolls when cut: a "more" row at the bottom, then one above
 			m := newApp(tf, true, false)
 			m.setState("help")
-			frame := ansi.Strip(m.render(w, h).String())
+			fy := h - len(ui.Footer(m.t, w, "", nil, ""))
+			frame := dialogText(m.render(w, h), m.ovRect, fy)
 			if more := m.t.G.Ellipsis + " "; len(m.helpBody()) > m.helpRows() && !strings.Contains(frame, more) {
 				t.Errorf("%s help %dx%d: %d rows of keys in %d: want a %q row", filepath.Base(f), w, h, len(m.helpBody()), m.helpRows(), more)
 			}
 			if len(m.helpBody()) > m.helpRows() {
 				m.key(press("down"))
-				if f2 := ansi.Strip(m.render(w, h).String()); !strings.Contains(f2, m.t.G.More+" 1 more") {
+				if f2 := dialogText(m.render(w, h), m.ovRect, fy); !strings.Contains(f2, m.t.G.More+" 1 more") {
 					t.Errorf("%s help %dx%d: after down, no %q row", filepath.Base(f), w, h, m.t.G.More+" 1 more")
 				}
 				if !strings.Contains(frame, "scroll") {

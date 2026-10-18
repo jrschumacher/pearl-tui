@@ -73,9 +73,20 @@ the keys; hue stays for state (color.md).
   the tabs and a row of air above the footer) and scrolls its body when it doesn't fit
   (`ui.Clip`: `↑ n more` above, `… n more` below; `DialogScrolled` for a screen with an
   offset, `DialogBodyRows` and `ClipMax` to clamp it), so no dialog reaches the footer.
+- A dialog's status (the sending dots, `3 of 12`) is set right-aligned into its bottom
+  edge, as a rules title is into the top one, so it takes no row and never crowds the
+  buttons (`ui.DialogStatus`).
 - Palette: a prompt input with a caret, then a fixed-height list (it doesn't jump while
   typing), with fuzzy matches underlined and shortcuts right-aligned.
-- Only the front dialog takes input. `esc` closes it. The scrim dims the rest.
+- Only the front dialog takes input. `esc` closes it. The scrim dims the rest. Draw the
+  page under it unfocused (`focused=false` to its lists, tables and fields, a subtle
+  prompt and no caret in its input): one focus per frame, and a list keeps its
+  selection under the blurred mark.
+  `Canvas.Overlay` (and `Popover`) clears what would still read as live beside it: a
+  one-cell halo, a word the dialog cuts, whole, with an ellipsis where its phrase was
+  cut (`▲ notifications-…`, not `igh` or `1s` at the edge), a page rule on the dialog's
+  edge rows, and, where no scrim is drawn (16 colours, NO_COLOR, ASCII, `scrim: none`),
+  the rows the dialog spans.
 - Max ~64–70 cols wide; fullscreen below the minimum size.
 
 ## Confirm — destructive actions
@@ -173,21 +184,24 @@ on a filled strip, or under a rule. Full help (`?`) expands into columns, groupe
 badge's width and a space come out of the keys' 76 columns at 80: name it first in the
 state's keys cell (`[plan] · **enter send** · …`) so `tuilint spec` [S-FOOTER] counts it.
 
-## Stream (chat, logs, events) — `ui.UserMessage`, `ui.AssistantMessage`, `ui.ToolCall`, `ui.Thinking`, `ui.TurnFooter`
+## Stream (chat, logs, events) — `ui.Transcript`, `ui.UserMessage`, `ui.AssistantMessage`, `ui.ToolCall`, `ui.Thinking`, `ui.TurnFooter`
 
 - The user's voice carries a bar: the focus bar while the turn is focused, the turn bar
   in muted when it isn't (a bold or coloured bar means focus, and a sent turn has none);
   the assistant's text is indented 2 and wrapped to the measure.
 - Actions use the tool-call grammar (`idiom.md` §6). Collapsed output gets an honest
   "N lines hidden" affordance.
-- Follow mode pins to the bottom. When scrolled up, show "↑ N more lines" at the top and
-  a "new below" hint.
+- Follow mode pins to the bottom. When scrolled up, show "↑ N more" at the top and
+  a "new below" hint. The cut falls on a block boundary: where it would split a block, the
+  marker row carries that block's head with the count right-aligned
+  (`✓ Edit config/timeouts.go        ↑ 25 more  pgup`), so no output shows with its head
+  off-screen (`ui.Transcript`).
 - A turn ends with a section-rule footer (model, provider, duration).
 
 ## Editor / Prompt
 
 A rule above, a prompt glyph in the focus ink (`t.S.Prompt`: primary, or bold fg under
-`focus: fg`; tertiary where primary is under 3:1 on `bgOverlay`; muted when not
+`focus: fg`; tertiary where primary is under 3:1 on `bgOverlay`; subtle when not
 focused), since where you type is the focus,
 continuation lines with a subtle `:`, and the real cursor via `View.Cursor`. Grow from 1
 to ~8 rows with content, then scroll. The placeholder says what to type, in the brand's

@@ -67,6 +67,10 @@ quieter tone, so the user can see where they were.
 - The status glyph is coloured by state (pending, running, `✓` done, `×` error), the name
   in the info colour, the main parameter muted, `k=v` options subtle.
 - The `k=v` group is dropped before the main parameter would drop below 30 cells.
+- A right-aligned note in subtle on the head row says how long the call took and how it
+  was allowed (`allowed for session · 6s`), dropped before Param is cut, and a
+  description is a muted line under the head, never a `desc=` option (`Tool.Meta`,
+  `Tool.Desc`; an option with no value draws bare).
 - The body is collapsed to N lines with an honest affordance. It never hides exactly one
   line (it shows that line instead).
 - An error is an `ERROR` chip plus a one-line message, not a stack trace.

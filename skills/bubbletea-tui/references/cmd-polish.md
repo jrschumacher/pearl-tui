@@ -32,7 +32,7 @@ Run after the screens work and the critique's P0/P1s are fixed. Go through every
 - [ ] Filled bars (selection, footer, header) have no holes and reach the full width.
 - [ ] Help ends cleanly (`…`, never a dangling separator).
 - [ ] The scrollbar appears only when content overflows.
-- [ ] The "N more lines" and "N lines hidden" affordances are honest.
+- [ ] The "↑ N more" and "N lines hidden" affordances are honest.
 
 ## Motion
 

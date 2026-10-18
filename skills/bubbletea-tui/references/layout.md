@@ -62,7 +62,7 @@ child components only when a rectangle changes.
 
 Draw (or measure) the header and footer first. The body gets whatever is left. Never
 let body content push the footer off the screen. Overflow scrolls inside the body, with a
-visible "↑ 25 more lines" affordance.
+visible "↑ 25 more" affordance.
 
 ## Rows Go By Content
 

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
 )
@@ -92,7 +93,9 @@ const (
 type Tool struct {
 	Name   string
 	Param  string      // the main parameter (a command, a path, a pattern)
-	Opts   [][2]string // secondary k=v params, dropped first when narrow
+	Opts   [][2]string // secondary k=v params, dropped first when narrow; a flag has an empty value and draws bare
+	Desc   string      // what the call is for ("Run import tests"), muted under the head
+	Meta   string      // a note right-aligned on the head (elapsed, "allowed for session"); Opts go before it, it goes before Param is cut
 	State  ToolState
 	Body   []string // output lines (pre-styled or plain)
 	Err    string
@@ -104,7 +107,8 @@ type Tool struct {
 // ToolCall renders the Crush grammar (its fixed copy, "Canceled." and "Waiting for
 // permission", in the theme's case):
 //
-//	● Name main-param (k=v, k=v)
+//	● Name main-param (k=v, flag)              allowed for session · 6s
+//	  what the call is for
 //
 //	  output line on the panel colour, full width
 //	  … (12 lines hidden) [space to expand]
@@ -131,9 +135,20 @@ func ToolCall(t *theme.Theme, tc Tool, w int, focused bool) []string {
 	if len(tc.Opts) > 0 {
 		var kv []string
 		for _, o := range tc.Opts {
-			kv = append(kv, o[0]+"="+o[1])
+			if o[1] == "" {
+				kv = append(kv, o[0]) // a flag
+			} else {
+				kv = append(kv, o[0]+"="+o[1])
+			}
 		}
 		opts = " (" + strings.Join(kv, ", ") + ")"
+	}
+	// the note keeps its place while the whole parameter and two cells of air fit
+	// beside it, and goes before the parameter is cut for it; the k=v group goes first
+	meta := ""
+	if tc.Meta != "" && lipgloss.Width(param)+2+lipgloss.Width(tc.Meta) <= avail {
+		meta = tc.Meta
+		avail -= 2 + lipgloss.Width(meta)
 	}
 	// drop the k=v group before the main param gets cramped (< 30 cells)
 	if lipgloss.Width(param)+lipgloss.Width(opts) > avail && avail-lipgloss.Width(opts) < 30 {
@@ -143,7 +158,13 @@ func ToolCall(t *theme.Theme, tc Tool, w int, focused bool) []string {
 	if tc.State == ToolRunning && tc.Spin != "" {
 		head += " " + tc.Spin
 	}
+	if meta != "" {
+		head += strings.Repeat(" ", max(2, inner-lipgloss.Width(head)-lipgloss.Width(meta))) + t.S.Subtle.Render(meta)
+	}
 	rows := []string{head}
+	if tc.Desc != "" {
+		rows = append(rows, t.S.Muted.Render(Trunc(t, tc.Desc, inner)))
+	}
 	switch {
 	case tc.State == ToolError:
 		rows = append(rows, "", Tag(t, "error", "ERROR")+" "+t.S.Muted.Render(Trunc(t, tc.Err, inner-8)))
@@ -225,4 +246,112 @@ func Tree(t *theme.Theme, items []string) []string {
 		}
 	}
 	return out
+}
+
+// Transcript is a stream's visible rows: blocks (each a component's rows: a turn, a
+// tool call, a thinking panel) joined by a row of air, following the tail, scrolled up
+// by scroll rows (clamped, so the first block can reach the top and no further). The
+// tail is cut at the top under a marker row that says how much is above; the cut never
+// falls inside a block: when it would, the marker row carries the cut block's head,
+// truncated to make room, so the first visible row is always a block head or the
+// marker, and a tool's output is never shown with its head off-screen. hint is a key
+// after the marker (the one that scrolls up). A page draws the result into its stream
+// rectangle; a block cut at the bottom (scrolled up) is cut on a row:
+//
+//	● Logs checkout-api (since=14:00)              ↑ 24 more  pgup
+//	  14:02:40  WARN   upstream timeout
+func Transcript(t *theme.Theme, blocks [][]string, w, h, scroll int, hint string) []string {
+	if h <= 0 {
+		return nil
+	}
+	var rows []string
+	var heads []int // the row each block starts on
+	for _, b := range blocks {
+		if len(b) == 0 {
+			continue
+		}
+		if len(rows) > 0 {
+			rows = append(rows, Fit("", w)) // air between blocks
+		}
+		heads = append(heads, len(rows))
+		rows = append(rows, b...)
+	}
+	end := len(rows) - min(max(0, scroll), max(0, len(rows)-h))
+	if end <= h {
+		return rows[:end]
+	}
+	hidden := end - h + 1 // the marker takes a row
+	// the block the cut falls in: its head is the last one at or before the cut, and
+	// the cut is inside it when it is past the head and short of the air after it (the
+	// last block has none: its "air" is one past the end)
+	head, next := -1, len(rows)+1
+	for _, hd := range heads {
+		if hd <= hidden {
+			head = hd
+		} else {
+			next = hd
+			break
+		}
+	}
+	more := func(n int) string { return t.S.Subtle.Render(t.G.More + " " + strconv.Itoa(n) + " more") }
+	tail := ""
+	if hint != "" {
+		tail = "  " + hint
+	}
+	if head >= 0 && hidden > head && hidden < next-1 {
+		right := more(hidden-1) + tail
+		// lifted only where the head keeps its icon and name; narrower, the plain
+		// marker counts the head with the rest
+		if room := w - lipgloss.Width(right) - 2; room >= headWidth(rows[head]) {
+			return append([]string{Fit(cutRow(t, rows[head], room)+"  "+right, w)}, rows[hidden:end]...)
+		}
+	}
+	marker := "  " + more(hidden) + tail
+	return append([]string{Fit(marker, w)}, rows[hidden:end]...)
+}
+
+// headWidth is the cells a block's head needs to say what it is: through its second
+// word (the gutter, then an icon and a name: "  ● Edit") and a cell for the ellipsis
+// after it, or all of it when that is shorter.
+func headWidth(row string) int {
+	plain := []rune(ansi.Strip(row))
+	all := ansi.StringWidth(strings.TrimRight(string(plain), " "))
+	words, in := 0, false
+	for i, r := range plain {
+		switch {
+		case r != ' ' && !in:
+			in = true
+		case r == ' ' && in:
+			in = false
+			if words++; words == 2 {
+				return min(all, ansi.StringWidth(string(plain[:i]))+1)
+			}
+		}
+	}
+	return all
+}
+
+// cutRow truncates a padded row to w cells: plainly when only its padding is lost;
+// at the gap before a right-aligned note (two blanks or more) when the cut falls in
+// the note, so no "allowed …" fragment is left; else with the theme's ellipsis.
+func cutRow(t *theme.Theme, s string, w int) string {
+	w = max(0, w)
+	if lipgloss.Width(s) <= w {
+		return Fit(s, w)
+	}
+	if strings.TrimSpace(ansi.Strip(ansi.TruncateLeft(s, w, ""))) == "" {
+		return ansi.Truncate(s, w, "")
+	}
+	kept := []rune(ansi.Strip(ansi.Truncate(s, w, "")))
+	for x := len(kept) - 1; x > 0; x-- {
+		if kept[x] == ' ' && kept[x-1] == ' ' {
+			if strings.TrimSpace(string(kept[:x])) != "" {
+				return Fit(ansi.Truncate(s, lipgloss.Width(string(kept[:x])), ""), w)
+			}
+			break
+		}
+	}
+	// the row is pre-styled: the ellipsis gets its own ink, or it would be unstyled
+	ell := t.S.Subtle.Render(t.G.Ellipsis)
+	return Fit(ansi.Truncate(s, w-lipgloss.Width(ell), "")+ell, w)
 }
