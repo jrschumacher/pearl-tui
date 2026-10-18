@@ -238,29 +238,34 @@ func selFilled(t *theme.Theme, plain string) string {
 // reset that drops the background, so it is set again after any SGR sequence that
 // clears it. A span with a background of its own (a tag) keeps it.
 func underlay(s string, bg color.Color) string {
-	on := ansi.Style{}.BackgroundColor(bg).String()
+	return reapply(s, ansi.Style{}.BackgroundColor(bg).String(), "49") + ansi.Style{}.DefaultBackgroundColor().String()
+}
+
+// reapply writes the SGR sequence on before s and again after every SGR sequence in s
+// that clears what it sets (a full reset, or code: 39 the ink, 49 the fill), so a span
+// that sets its own keeps it and the rest of s keeps on.
+func reapply(s, on, code string) string {
 	var b strings.Builder
 	b.WriteString(on)
 	var state byte
 	for len(s) > 0 {
 		seq, _, n, next := ansi.DecodeSequence(s, state, nil)
 		b.WriteString(seq)
-		if ansi.HasCsiPrefix(seq) && strings.HasSuffix(seq, "m") && clearsBg(seq) {
+		if ansi.HasCsiPrefix(seq) && strings.HasSuffix(seq, "m") && clears(seq, code) {
 			b.WriteString(on)
 		}
 		s, state = s[n:], next
 	}
-	b.WriteString(ansi.Style{}.DefaultBackgroundColor().String())
 	return b.String()
 }
 
-// clearsBg reports whether an SGR sequence resets the background: a full reset (none or
-// 0) or 49, read past the arguments of an extended colour (38/48/58;5;n and ;2;r;g;b).
-func clearsBg(seq string) bool {
+// clears reports whether an SGR sequence resets code (39, 49): a full reset (none or 0)
+// or code itself, read past the arguments of an extended colour (38/48/58;5;n, ;2;r;g;b).
+func clears(seq, code string) bool {
 	params := strings.Split(strings.TrimSuffix(strings.TrimPrefix(seq, "\x1b["), "m"), ";")
 	for i := 0; i < len(params); i++ {
 		switch params[i] {
-		case "", "0", "49":
+		case "", "0", code:
 			return true
 		case "38", "48", "58":
 			if i+1 < len(params) && params[i+1] == "5" {

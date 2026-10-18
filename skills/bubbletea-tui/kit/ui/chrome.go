@@ -144,11 +144,14 @@ func Details(t *theme.Theme, parts ...string) string {
 }
 
 // Section is "Title ───────── info": a title then a rule to the width.
-// The rule is the region separator; boxes are not.
+// The rule is the region separator; boxes are not. Info is fgSubtle, and a span of it
+// the caller styles keeps its own ink (t.S.Err.Render(t.G.Fail)+" 4 of 4 pinned", a
+// t.S.Base figure, a bold filter), every unstyled span after it subtle again, so a
+// section never has to be rebuilt to colour its figure.
 func Section(t *theme.Theme, title string, w int, info string) string {
 	ti := t.S.Title.Render(t.Case(title))
 	if info != "" {
-		info = " " + t.S.Subtle.Render(info)
+		info = " " + reapply(info, ansi.Style{}.ForegroundColor(t.P.FgSubtle).String(), "39") + ansi.Style{}.DefaultForegroundColor().String()
 	}
 	n := w - lipgloss.Width(ti) - 1 - lipgloss.Width(info)
 	if n < 1 {

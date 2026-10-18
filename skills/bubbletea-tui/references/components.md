@@ -23,7 +23,9 @@ names in subtle; a count is only red if it needs attention now.
 ## Section — `ui.Section(t, title, w, info)`
 
 `Title ───────── info`. The title is in the theme's title style and case, the rule is in
-the border colour, and right info is subtle. This is how regions separate.
+the border colour, and right info is subtle. Style a span of the info to give it its own
+ink (`t.S.Err.Render(t.G.Fail)+" 4 of 4 pinned"`, a figure in `t.S.Base`); the unstyled
+rest stays subtle. Don't rebuild Section for it. This is how regions separate.
 
 ## List — `ui.List(t, items, sel, offset, w, h, focused)`
 
