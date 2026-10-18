@@ -214,6 +214,7 @@ func TestRules(t *testing.T) {
 		// heading may have a dash, and a block's sub-headings may have none
 		{"a group heading with a dash", "## Screens\n### Main\n#### list — every job\n### Overlays — dialogs and help\nbrand: terse\n#### confirm — stop it\n#### help — every key\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 2}},
 		{"a jobless block with sub-headings", "### Screens\n#### list — every job\n#### detail\nbrand: terse\n##### regions\n##### keys\n#### confirm — stop it\nbrand: plain\n" + table("| list | list | enter open |", ""), nil},
+		{"a block's colon sub-heading is part of it", "### Screens\n#### list — every job\n#### detail — one process\nbrand: terse labels\n##### layout: two panes side by side\n" + table("| list | list | enter open |", ""), nil},
 		{"a sibling screens section continues it", "### Screens\n#### list — every job\n### Secondary screens\n#### detail — one job\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
 		{"a numbered screens heading", "### 4. Screens\n#### list — every job\n#### detail — one job\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
 		{"dialogs under Architecture are not § Screens", "### Screens\n#### list — every job\n#### detail — one job\nbrand: terse\n## Architecture\n### Dialogs\n#### confirm — ui.Dialog\n" + table("| list | list | enter open |", ""), nil},

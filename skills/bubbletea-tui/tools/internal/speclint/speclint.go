@@ -875,10 +875,11 @@ func fenceToggle(fence *string, t string) bool {
 // screenBrand is S-SLOTS for § Screens: each block (a heading under the Screens
 // heading) after the first, which is the main screen and carries the read's move and
 // signature, is a secondary screen or an overlay, and names a `brand:` line: what the
-// brand's three words change there, or "nothing, because …". A heading whose next
-// heading is deeper and has a job (a dash or a colon) groups blocks ("Main", "Overlays —
-// dialogs and help") and is no block itself; a block's own sub-headings ("regions")
-// have no job. Presence only, but a value that skips the question
+// brand's three words change there, or "nothing, because …". Blocks sit at the level of
+// the section's first heading with a job (a dash or a colon); a heading above that level
+// whose next heading is deeper groups blocks ("Main", "Overlays — dialogs and help") and
+// is no block itself, and one below it ("regions", "layout: two panes") is part of its
+// block. Presence only, but a value that skips the question
 // ("nothing", "none", "n/a", "-" with no reason) doesn't count, nor does an empty
 // value, a fenced line (the sketch) or a slot word in backticks; the critic judges
 // what the line says.
@@ -898,7 +899,7 @@ func (s *spec) screenBrand(add func(string, int, string, ...any)) {
 			hs = append(hs, heading{i, len(m[1]), clean(m[2])})
 		}
 	}
-	screens, block := 0, 0 // the Screens heading's level; the current block's level
+	screens, block, blockLevel := 0, 0, 0 // the Screens heading's level; the current block's; the blocks
 	blocks, start, name, has, skip := 0, -1, "", false, -1
 	flush := func() {
 		switch {
@@ -924,13 +925,28 @@ func (s *spec) screenBrand(add func(string, int, string, ...any)) {
 			case screensHeading.MatchString(h.text) || (screens > 0 && h.level <= screens && screensSibling.MatchString(h.text)):
 				flush()
 				screens, block = h.level, 0
+				// the blocks' level: the first heading of the section with a job, else its
+				// first heading
+				blockLevel = 0
+				for _, g := range hs[next:] {
+					if g.level <= screens {
+						break
+					}
+					if blockLevel == 0 {
+						blockLevel = g.level
+					}
+					if jobRe.MatchString(g.text) {
+						blockLevel = g.level
+						break
+					}
+				}
 			case screens > 0 && h.level <= screens:
 				flush()
 				screens = 0
 			case screens == 0 || (start >= 0 && h.level > block):
 				// outside § Screens, or a sub-heading inside a block
-			case next < len(hs) && hs[next].level > h.level && jobRe.MatchString(hs[next].text):
-				flush() // a group heading: its blocks, deeper and with a job, follow
+			case h.level < blockLevel && next < len(hs) && hs[next].level > h.level:
+				flush() // a group heading, above the blocks' level: its blocks follow
 				block = 0
 			default:
 				flush()
