@@ -114,8 +114,9 @@
 //	                  the brand's three words change on it (copy voice, dialog form, footer
 //	                  phrasing). A heading with no job (no dash or colon) whose next heading is
 //	                  deeper groups blocks (`Main`, `Overlays`) and is not one. `brand: nothing,
-//	                  because …` counts; a bare `nothing`, `none`, `n/a` or `-`, an empty value,
-//	                  a line in a ``` or ~~~ fence (the sketch) or in backticks doesn't. Two
+//	                  because …` counts; a bare `nothing`, `none`, `n/a` or `-`, a placeholder
+//	                  (`TBD`, `todo`, `?`, `nothing yet`, `<…>`), an empty value, a line in a
+//	                  ``` or ~~~ fence (the sketch) or in backticks doesn't. Two
 //	                  brands on one spec otherwise share every screen behind the main one word
 //	                  for word (references/cmd-shape.md § Behind The Main Screen).
 //	S-GOLDEN     [P2] (with --frames) a state's footer in <state>-80x24.ansi and its row disagree:

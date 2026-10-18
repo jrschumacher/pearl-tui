@@ -847,8 +847,9 @@ var (
 	// right after § Screens, so "Dialogs" under Architecture is not a screen list
 	screensSibling = regexp.MustCompile(`(?i)^(?:\d+[.)]?\s+)?(?:(?:main|secondary|other|more)\s+)?(?:screens?|overlays?|dialogs?)(?:\s+and\s+(?:screens|overlays|dialogs|states))?\s*(?:\([^)]*\))?\s*:?$`)
 	brandLine      = regexp.MustCompile(`(?i)^(?:[-*+]\s+)?brand\s*:\s*(.*)$`)
-	// a value that skips the question: "nothing", "none", "n/a", "-" with no reason after it
-	brandSkip = regexp.MustCompile(`(?i)^(?:nothing|none|n/?a|-+|—|–)[.!]?$`)
+	// a value that skips the question: "nothing", "none", "n/a", "-" with no reason after
+	// it, or a placeholder: "TBD", "todo", "?", "nothing yet", the template's "<…>"
+	brandSkip = regexp.MustCompile(`(?i)^(?:nothing|none|n/?a|-+|—|–|tb[dac]|to-?\s?do|\?+|(?:nothing|not)\s+yet|later|pending|wip|fixme|x{3,}|<[^>]*>)[.!]?$`)
 	// a block's heading names its job after a dash or a colon: "detail — one job"
 	jobRe = regexp.MustCompile(`\s[—–-]\s|:`)
 )
@@ -902,7 +903,7 @@ func (s *spec) screenBrand(add func(string, int, string, ...any)) {
 		switch {
 		case start < 0 || blocks <= 1 || has:
 		case skip >= 0:
-			add("S-SLOTS", skip+1, "%s: `%s` gives no reason. Say what the brand's three words change on this screen (its copy voice, its dialog form, its footer phrasing), or why nothing: `brand: nothing, because help lists the action tables as written` (references/cmd-shape.md § Behind The Main Screen)", name, strings.TrimSpace(s.lines[skip]))
+			add("S-SLOTS", skip+1, "%s: `%s` is a placeholder or gives no reason. Say what the brand's three words change on this screen (its copy voice, its dialog form, its footer phrasing), or why nothing: `brand: nothing, because help lists the action tables as written` (references/cmd-shape.md § Behind The Main Screen)", name, strings.TrimSpace(s.lines[skip]))
 		default:
 			add("S-SLOTS", start+1, "%s: a secondary screen or overlay with no `brand:` line (the first block under § Screens is read as the main screen, so put the main screen's block first). Say what the brand's three words change on it (its copy voice, its dialog form, its footer phrasing), or `brand: nothing, because …`: two brands built from one spec differed on the main screen and matched behind it word for word, footers, confirm copy and all (references/cmd-shape.md § Behind The Main Screen)", name)
 		}
