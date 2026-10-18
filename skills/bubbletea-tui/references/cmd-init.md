@@ -121,7 +121,7 @@ glyphs: <glyph> <meaning> (ascii <twin>), one line each; twins the kit lacks go 
 themes/<brand>.json   (palette derive from <measured hexes, source>)
 
 ### Screens
-One block per screen: `shape` fills it, `craft` builds it in § First slice order.
+One block per screen, the main screen's first (`tuilint spec` reads the first block as the main screen): `shape` fills it, `craft` builds it in § First slice order.
 
 #### <screen> — <its job in one line, and what the eye lands on first>
 80×24:  <region> <x,y w×h> · <region> <x,y w×h> · footer 0,23 80×1     (outer widths; text width = outer − gutters)
@@ -130,6 +130,7 @@ One block per screen: `shape` fills it, `craft` builds it in § First slice orde
 collapse: < 110 cols <what becomes what>; < 30 rows <what goes>
 components: <ui.Table, ui.Dot, …>; new: <none | name, and why no kit component draws it>
 fixtures: <count, the longest name, the failing row, the empty list>
+brand: <every block after the main screen's: what the three words change here, copy voice, dialog form or footer phrasing, or nothing, because …>
 sketch (exactly 80 wide, real content):
 ```
 <row 0>

@@ -54,7 +54,8 @@ fixed chrome, then the body into rectangles from its § Screens block at both si
 (`layout.md` § Use The Room); use the components it names; add the states; wire the keys
 and the help. Name in its § Screens block the frame its identity shows on; the main
 screen's default frame (nothing pressed) draws the read's move and signature (`brand.md`
-§6, question 2). After each screen, run the loop below on that screen before
+§6, question 2), and every other screen words its question, buttons and footer labels
+(the action table's help text) as its `brand:` line says. After each screen, run the loop below on that screen before
 starting the next. The slice is the order because it is the main loop the design gets
 judged on; the integrations wait behind it.
 

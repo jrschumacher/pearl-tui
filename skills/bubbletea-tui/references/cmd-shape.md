@@ -2,9 +2,9 @@
 
 Input: `TUI.md` and the user's ask. Output: a screen spec the user agrees to, written
 into `TUI.md` § Screens (one block per screen, in the template's shape: job, regions at
-both sizes, collapse rule, components, fixtures, sketch) and § States and keys, and
-nowhere else: a second file gets skipped, and the project's own docs belong to the user.
-No Go yet.
+both sizes, collapse rule, components, fixtures, brand line, sketch) and § States and
+keys, and nowhere else: a second file gets skipped, and the project's own docs belong
+to the user. No Go yet.
 
 ## For Each Screen
 
@@ -29,7 +29,62 @@ No Go yet.
    component you'll need. A new component is a reason to stop and think: is it a real
    need, or a box you're reaching for?
 7. **Identity**: where the brand shows on this screen (header, motif, selection style,
-   copy). On the main screen, the sketch draws the read's move and signature.
+   copy). On the main screen, whose block comes first, the sketch draws the read's move
+   and signature. Every other screen and overlay block gets one `brand:` line (§ Behind
+   The Main Screen).
+
+## Behind The Main Screen
+
+The move and the signature reach the main screen only. Two brands built cold from one
+spec had main screens with nothing in common, and a detail, a picker and a confirm that
+matched word for word: the same footers, the same target line, and one sentence about
+the action that neither the spec nor the kit held. A user meets those screens after one
+keypress. So each secondary screen and overlay block says, in one `brand:` line, what
+the brand's three words change on it: its copy voice, its dialog form, its footer
+phrasing. Like `move:`, it follows from one word and is judged by what the user reads,
+not by paint. `tuilint spec` warns on a block after the first without one [S-SLOTS].
+
+The same confirm, two brands (a backup tool deleting one snapshot):
+
+```
+#### confirm-delete — delete one snapshot            (terse · sharp · fast)
+brand: terse: fewer words, never fewer facts: the object, its size and the consequence on one line; the buttons are the verb and its no; y and n answer it
+
+  delete nightly-0412? 41.2 GB, no undo
+                                        [ delete ]  › [ keep ]
+  y delete · n/esc keep · ? help
+```
+
+```
+#### confirm-delete — delete one snapshot            (patient · thorough · plain)
+brand: thorough: the question says what goes and what stays; the buttons name the outcome; the footer names each way out once
+
+  Delete snapshot nightly-0412?
+  It holds 41.2 GB from 12 April and can't be restored once deleted.
+  The 13 snapshots after it keep their own copies; nothing else is removed.
+                                  Delete snapshot   › Keep it
+  ←→ choose · enter confirm · esc keep it
+```
+
+Same snapshot, same facts, same `ui.Dialog`, same theme slots, Keep focused in both;
+what differs is the question's length and register, the button words and the footer's
+verbs and keys (the terse one leaves ←→ and enter to ? help). The detail behind it
+differs the same way: `r restore · d delete · esc back` against `r restore to a folder ·
+d delete snapshot · esc back to the list`.
+
+**DO** write each line from one of the three words, as what the user reads: the
+question, the button labels, the footer's verbs (the action table's help text), the
+detail's labels and empty copy.
+Where the spec gives the words, keep its facts (what is acted on, the number, the
+consequence) and word them in the brand's voice (`brand.md` § The Read Reaches Past The
+Main Screen).
+**DON'T** drop a fact to sound terse: terse means fewer words, never fewer facts, and a
+confirm still names the object and what changes (`interaction.md` § Destructive Actions).
+**DON'T** count what the theme already paints (`dialog: rules`, underline buttons, a
+hue) as a brand line, or write `brand: nothing` because the spec has copy. `nothing,
+because …` is for a screen whose words are not the brand's to choose: `brand: nothing,
+because help lists the action tables as written`. A bare `nothing`, `none` or `-` gives
+no reason, and `tuilint spec` warns on it [S-SLOTS].
 
 ## Sketch In Cells
 

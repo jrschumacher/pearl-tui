@@ -194,6 +194,7 @@ func LintFrames(file, src, frames string) []Finding {
 	s.footerFit(add)
 	s.accentDrift(add)
 	s.brandSlots(add)
+	s.screenBrand(add)
 	if frames != "" {
 		s.goldenFooters(frames, add)
 	}
@@ -816,4 +817,121 @@ func (s *spec) brandSlots(add func(string, int, string, ...any)) {
 	if remember > 0 && !slots {
 		add("S-SLOTS", remember, "`remember:` with no `move:` or `signature:`: the brand read now names a move (one region elsewhere in the screen's order than the kit puts it, or gone, or added) and a signature (one element the kit doesn't draw), both on the main screen's default frame, and brand, craft and the critic look for those. Write both from this line and the brand's three words (references/brand.md § Move A Region)")
 	}
+}
+
+var (
+	// § Screens, numbered or not; "Screens as models" under Architecture is not one
+	screensHeading = regexp.MustCompile(`(?i)^(?:\d+[.)]?\s+)?screens\s*(?:\([^)]*\))?\s*:?$`)
+	// a sibling section that continues it ("Secondary screens", "Overlays"), read only
+	// right after § Screens, so "Dialogs" under Architecture is not a screen list
+	screensSibling = regexp.MustCompile(`(?i)^(?:\d+[.)]?\s+)?(?:(?:main|secondary|other|more)\s+)?(?:screens?|overlays?|dialogs?)(?:\s+and\s+(?:screens|overlays|dialogs|states))?\s*(?:\([^)]*\))?\s*:?$`)
+	brandLine      = regexp.MustCompile(`(?i)^(?:[-*+]\s+)?brand\s*:\s*(.*)$`)
+	// a value that skips the question: "nothing", "none", "n/a", "-" with no reason after it
+	brandSkip = regexp.MustCompile(`(?i)^(?:nothing|none|n/?a|-+|—|–)[.!]?$`)
+	// a block's heading names its job after a dash or a colon: "detail — one job"
+	jobRe = regexp.MustCompile(`\s[—–-]\s|:`)
+)
+
+// fenceToggle tracks ``` and ~~~ fences: a fence closes only on its own marker.
+func fenceToggle(fence *string, t string) bool {
+	for _, m := range []string{"```", "~~~"} {
+		if strings.HasPrefix(t, m) {
+			switch *fence {
+			case "":
+				*fence = m
+			case m:
+				*fence = ""
+			default:
+				return false // the other marker inside a fence is content
+			}
+			return true
+		}
+	}
+	return false
+}
+
+// screenBrand is S-SLOTS for § Screens: each block (a heading under the Screens
+// heading) after the first, which is the main screen and carries the read's move and
+// signature, is a secondary screen or an overlay, and names a `brand:` line: what the
+// brand's three words change there, or "nothing, because …". A heading with no job
+// (no dash or colon) whose next heading is deeper groups blocks ("Main", "Overlays")
+// and is no block itself. Presence only, but a value that skips the question
+// ("nothing", "none", "n/a", "-" with no reason) doesn't count, nor does an empty
+// value, a fenced line (the sketch) or a slot word in backticks; the critic judges
+// what the line says.
+func (s *spec) screenBrand(add func(string, int, string, ...any)) {
+	type heading struct {
+		line, level int
+		text        string
+	}
+	var hs []heading
+	fence := ""
+	for i, l := range s.lines {
+		t := strings.TrimSpace(l)
+		if fenceToggle(&fence, t) || fence != "" {
+			continue
+		}
+		if m := headingRe.FindStringSubmatch(t); m != nil {
+			hs = append(hs, heading{i, len(m[1]), clean(m[2])})
+		}
+	}
+	screens, block := 0, 0 // the Screens heading's level; the current block's level
+	blocks, start, name, has, skip := 0, -1, "", false, -1
+	flush := func() {
+		switch {
+		case start < 0 || blocks <= 1 || has:
+		case skip >= 0:
+			add("S-SLOTS", skip+1, "%s: `%s` gives no reason. Say what the brand's three words change on this screen (its copy voice, its dialog form, its footer phrasing), or why nothing: `brand: nothing, because help lists the action tables as written` (references/cmd-shape.md § Behind The Main Screen)", name, strings.TrimSpace(s.lines[skip]))
+		default:
+			add("S-SLOTS", start+1, "%s: a secondary screen or overlay with no `brand:` line (the first block under § Screens is read as the main screen, so put the main screen's block first). Say what the brand's three words change on it (its copy voice, its dialog form, its footer phrasing), or `brand: nothing, because …`: two brands built from one spec differed on the main screen and matched behind it word for word, footers, confirm copy and all (references/cmd-shape.md § Behind The Main Screen)", name)
+		}
+		start, name, has, skip = -1, "", false, -1
+	}
+	next := 0 // index into hs of the next heading
+	fence = ""
+	for i, l := range s.lines {
+		t := strings.TrimSpace(l)
+		if fenceToggle(&fence, t) || fence != "" {
+			continue
+		}
+		if next < len(hs) && hs[next].line == i {
+			h := hs[next]
+			next++
+			switch {
+			case screensHeading.MatchString(h.text) || (screens > 0 && h.level <= screens && screensSibling.MatchString(h.text)):
+				flush()
+				screens, block = h.level, 0
+			case screens > 0 && h.level <= screens:
+				flush()
+				screens = 0
+			case screens == 0 || (start >= 0 && h.level > block):
+				// outside § Screens, or a sub-heading inside a block
+			case !jobRe.MatchString(h.text) && next < len(hs) && hs[next].level > h.level:
+				flush() // a group heading: its blocks follow
+				block = 0
+			default:
+				flush()
+				block, blocks, start = h.level, blocks+1, i
+				name = strings.TrimSpace(jobRe.Split(h.text, 2)[0])
+			}
+			continue
+		}
+		if start < 0 {
+			continue
+		}
+		m := brandLine.FindStringSubmatch(strings.NewReplacer("**", "", "__", "").Replace(t))
+		if m == nil {
+			continue
+		}
+		switch v := strings.TrimSpace(m[1]); {
+		case v == "":
+		case brandSkip.MatchString(v):
+			if skip < 0 {
+				skip = i
+			}
+		default:
+			has = true
+		}
+	}
+	flush()
 }

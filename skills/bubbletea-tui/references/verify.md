@@ -90,8 +90,12 @@ Rubric (score each 0–4, cite rows/cells, not impressions; 0 = a default or a b
 2 = works but surprises, 4 = designed):
   1. Identity: with colour stripped, is it recognisably this brand? Does the main
      screen's default frame show the read's move (a region placed where the kit
-     doesn't) and its signature (an element the kit doesn't draw)? Any default
-     (pink-purple, emoji, figlet, Loading...)?
+     doesn't) and its signature (an element the kit doesn't draw)? Then read one
+     secondary screen (a dialog or the detail): do its question, buttons and footer
+     carry its § Screens `brand:` line, or are they the kit's and the spec's words,
+     which another brand on the same spec would match? Identity that stops at the
+     main screen scores at most 2. Any default (pink-purple, emoji, figlet,
+     Loading...)?
   2. Hierarchy: 3–4 text levels used correctly; what the eye lands on first is what
      matters most; one alert at most.
   3. Focus and flow: exactly one visible focus; where am I, what can I do, how do I go
