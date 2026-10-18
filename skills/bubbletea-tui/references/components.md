@@ -109,7 +109,7 @@ the keys; hue stays for state (color.md).
   own rows, so the line it completes stays.
 - Max ~64–70 cols wide; fullscreen below the minimum size.
 
-## Confirm — what can't be undone, or is risky now
+## Confirm — what can't be taken back, or is risky now
 
 ```
 Roll back checkout-api? ───────────────
@@ -125,11 +125,11 @@ impact  3 pods restart, one at a time (~90s)
 The title is the question, naming the object. The body says what changes, with before
 and after. The danger button is coloured even when unfocused. **Cancel is focused by
 default.** `y`/`n` shortcuts for experts. It asks for a judgement, so it guards rungs 3
-and 4 of `interaction.md` § Confirm By Consequence only: what destroys something no
-check can vouch for, or what a failing signal makes risky ("2 checks failing: lint,
-e2e. Merge anyway?"). A reaction, a toggle, a message sent with its send key or a
-merge the checks passed gets none: a confirm on every write teaches `y` before the one
-that matters.
+and 4 of `interaction.md` § Confirm By Consequence only: what can't be taken back, or
+what a failing signal makes risky ("2 checks failing: lint, e2e. Merge anyway?"). This
+roll back is rung 3: it ships to production, and the fix would be another ship, so it
+confirms even when the target is healthy. Anything a revert or the same key takes back
+gets no confirm: one on every write teaches `y` before the one that matters.
 
 ## Form Field
 
@@ -197,13 +197,14 @@ alert per screen. If there are many, it's a list.
 
 ## Toast — `ui.Toast`
 
-Paints over the footer row for ~4 s (a tag and a message on a tinted bar), then the help
-returns. Never a new row, never a modal.
+Paints over the footer row for ~4 s, an undo toast ~8 s (`motion.md` § Budget), as a
+tag and a message on a tinted bar, then the help returns. Never a new row, never a
+modal.
 
 An undo toast is what a reversible action gets instead of a confirm: it names what
 happened and the key that takes it back (`Closed #812 · x reopen`, `Marked 12 done · u
-undo`), stays ~8 s so the hand can reach the key, and that key is bound in the state's
-action table while it shows. Never for something that can't be undone: that one had a
+undo`), stays the longer ~8 s so the hand can reach the key, and that key is bound in
+the state's action table while it shows. Never for something that can't be undone: that one had a
 confirm, and an undo that can't is a lie.
 
 ## Footer / Help — `ui.Footer`, `ui.Help`

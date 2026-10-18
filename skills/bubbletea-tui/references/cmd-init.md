@@ -174,13 +174,14 @@ Bubbles: <textarea, viewport, …>. Kit ui: <List, Table, Dialog, Footer, …>.
 One action table per state; footer and dispatcher both read it. Every screen that
 loads data has its empty, loading, error and partial (some sources failed) rows.
 Footer keys are **bold** (in a long cell, ‖ after the last of them does the same): main actions first, then the way out and ? help (ctrl+g help where a text box types ?). The rest are help-only.
+A `confirm-*` row exists only for an action that can't be taken back or that a failing signal makes risky; its § Screens block names the rung and why (`rung 3: ships to prod`, `rung 4: opens on red checks`).
 
 | state (harness name) | screen / overlay | keys |
 |---|---|---|
 | services             | services         | **↑↓ move** · **enter open** · **d deploy** · **r roll back** · **/ filter** · **q quit** · **? help** · l logs · c copy id · s sort by status |
 | services-empty       | services         | r refresh · ? help · q quit |
 | reply                | reply (textarea) | **ctrl+s send** · **esc cancel** · **ctrl+g help** · shift+enter/ctrl+j newline |
-| confirm              | overlay          | ←→ choose · enter confirm · esc cancel |
+| confirm-rollback     | overlay          | ←→ choose · enter confirm · esc cancel |
 | toosmall             | any              | q quit |
 
 Global: ctrl+c quit

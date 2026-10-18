@@ -67,11 +67,10 @@ every action must also have a key.
 A confirm is a request for a human's judgement, so ask only when there is a judgement
 left for the human to make. A confirm costs a keypress and a read, and each one that
 asks for nothing trains the user to press `y` without reading; the one in front of a
-delete then gets the same reflex. Sending a write to a server is not a reason to ask,
-and neither is "consequential" or "hard to undo" alone: when automation has already
-judged the action (green checks, a passing gate) or the gesture was the judgement (an
-explicit send, a one-key toggle), a confirm adds nothing. Put every action on the first
-rung that fits it:
+delete then gets the same reflex. Sending a write to a server is not a reason to ask.
+Nor is "consequential" alone: when automation has already judged an action a revert
+can take back (green checks, a passing gate), or the gesture was the judgement (an
+explicit send), a confirm adds nothing. Put every action on the first rung that fits:
 
 1. **Reversible in one gesture: the action is the confirmation.** It happens on the
    key, the screen shows it at once (the reaction appears, the thread folds as
@@ -83,33 +82,34 @@ rung that fits it:
 2. **Composed, then sent: the send is the confirmation.** A comment, reply or message
    the user wrote and sent with an explicit send key (`enter`, `ctrl+s`) posts at once.
    They read it while writing it; "Post this comment?" only asks them to read it
-   again. Recover with edit or delete on the sent item, not a prompt before it.
-3. **Destroys what no check can vouch for: confirm.** Deleting, purging, force-pushing,
-   paging a person, shipping a release nobody can pull back. Only the user knows
-   whether that object is the one to lose, so the dialog names the object and what is
-   lost ("Delete nightly-0412? 41.2 GB, no undo"), focuses **Cancel**, colours the
-   destructive button as danger, and accepts `y` for experts. For irreversible actions
-   on production, make the user type the object's name.
+   again. Where the service allows, offer edit or delete on the sent item.
+3. **Can't be taken back, so nothing vouches for it: confirm.** Deleting, purging,
+   force-pushing, and shipping to production (a release, a deploy, a rollback: a
+   rollback is a deploy) even with green checks: traffic meets it the moment it lands,
+   and the fix is another ship, not an undo. Hard to undo isn't can't be undone: a
+   merge reverts, an issue reopens. Only the user knows whether this is the object to
+   lose, so the dialog names it and what can't be taken back ("Delete nightly-0412?
+   41.2 GB, no undo"), focuses **Cancel**, colours the destructive button as danger,
+   and accepts `y` for experts. For irreversible actions on production, make the user
+   type the object's name.
 4. **Normally safe, but a signal says no: confirm only in that state.** The signal is
    one the user should weigh: red checks, a blocking review, an unsaved draft, a stale
    view of what they're acting on. On a code host, merging with green checks takes no
    confirm: the checks already judged it, and a revert undoes it. Merging with red
    checks asks, and the question names the signal ("2 checks failing: lint, e2e. Merge
    anyway?"), so the user judges the failure, not "are you sure?". A failing signal
-   escalates; a passing one stands in for the confirm.
+   escalates; a passing one stands in for the confirm only on an action a revert takes
+   back. On rung 3 the confirm stays, and a failing signal goes in its question.
 
 Make an action reversible where you can, and it moves down to rung 1: a delete that
 goes to a trash, or a send held for the length of its undo toast, needs no dialog.
 
 **DO** choose the rung per action when you list the states: a `confirm-*` state exists
 only for rungs 3 and 4, and a rung-4 confirm says which signal opens it.
-**DO** write the question about the one thing to judge: the object and what is lost
-(rung 3), or the failing signal (rung 4).
+**DO** write the question about the one thing to judge: the object and what can't be
+taken back (rung 3), or the failing signal (rung 4).
 **DO** bind the toast's undo key in the state's action table while the toast shows, so
 the key it advertises works (Law 6).
-**DON'T** confirm a reaction, a resolve, a close, a toggle, a message its send key just
-sent, or a merge the checks passed: the undo, the edit or the automation is the safety
-net, and the dialog teaches `y`.
 **DON'T** ask a question that fits any action ("Are you sure?", "Continue?"): it asks for
 no judgement, so it gets none.
 **DON'T** offer undo for what can't be undone: an undo toast after a purge is a lie,
@@ -175,9 +175,9 @@ Terminal copy is read at speed by people mid-task. Every word earns its cells.
   pods". Never "Loading...", "Please wait", or "Processing".
 - **Confirmations**: only when a judgement is left to the user (§ Confirm By
   Consequence). The question names what they are judging: the object and what changes
-  ("Roll back checkout-api?"), or the signal that made it risky ("2 checks failing:
-  lint, e2e. Merge anyway?"). The buttons are verbs ("Roll back" / "Cancel"), never
-  "OK" / "Yes".
+  ("Roll back checkout-api?", rung 3: it ships to production), or the signal that made
+  it risky ("2 checks failing: lint, e2e. Merge anyway?"). The buttons are verbs
+  ("Roll back" / "Cancel"), never "OK" / "Yes".
 - **Success**: past tense + object + the fact that matters. "Rolled back checkout-api
   to v2.3.9 · 3/3 pods healthy". No "Successfully".
 - **Voice** comes from the brand read: Crush's `Yep!` / `Nope` and rotating

@@ -19,9 +19,10 @@ to the user. No Go yet.
    An overlay's name carries `dialog`, `palette`, `confirm`, `modal`, `overlay`, `popup`,
    `help` or `keys` (`confirm-discard`, not `discard`): `tuilint frames` finds a ruled,
    ASCII or borderless dialog only by that name, and otherwise lints its scrim [F-CONTRAST].
-   A write gets a `confirm-*` state only if it can't be undone or is risky in that state
-   (rungs 3 and 4, `interaction.md` § Confirm By Consequence); a reversible one gets a
-   done state with its undo toast instead (`closed-undo`), and a sent message its `sent`.
+   A write gets a `confirm-*` state only if it can't be taken back or is risky in that
+   state (rungs 3 and 4, `interaction.md` § Confirm By Consequence); a reversible one
+   gets a done state with its undo toast instead (`closed-undo`), and a sent message its
+   `sent`.
 4. **Keys**: the bindings, the help order, what `esc` does, and where focus starts and
    moves.
 5. **Content**: realistic fixture data, including the longest name, the failing row and

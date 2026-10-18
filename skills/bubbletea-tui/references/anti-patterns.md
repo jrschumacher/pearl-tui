@@ -169,8 +169,8 @@ the default; the destructive one is coloured and needs a deliberate move.
 in front of an action the same key undoes, a message the user just wrote and sent, or
 a change automation already passed. Each one trains `y` without reading, so the
 confirm in front of a delete gets the same reflex. *Instead:* do it at once, show it,
-and offer the undo in a toast; confirm only what destroys something no check can vouch
-for, or what a failing signal makes risky, and name that thing in the question
+and offer the undo in a toast; confirm only what can't be taken back, or what a
+failing signal makes risky, and name that thing in the question
 (`interaction.md` § Confirm By Consequence).
 
 **I8 fmt.Print in a program** [C-PRINT]. Corrupts the frame. Use `tea.Println` (above the

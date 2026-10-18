@@ -81,7 +81,8 @@ Terminals don't tween layout, and you shouldn't try. What works:
 - **Appear**: draw in place. A dialog appearing over a scrim is enough motion.
 - **State change**: change the glyph and colour of the one cell that changed (`●` → `✓`).
   A one-frame flash (the row in `bgSubtle` for 150 ms) is the most you need.
-- **Toasts**: appear over the footer and vanish after ~4 s. No slide.
+- **Toasts**: appear over the footer and vanish after ~4 s; an undo toast stays ~8 s,
+  long enough to read it and reach its key. No slide.
 - **Progress**: the fill advances by real progress, never on a timer.
 
 ## Brand Motion (Splash, Intros, Idle)
@@ -98,6 +99,7 @@ lint, and intros that play once and hand off to an identical idle frame.
 | row spinner | 100 ms | 1 cell |
 | field drift | 160 ms | full screen (static otherwise) |
 | toast TTL | 4 s | footer |
+| undo toast TTL | 8 s | footer |
 | cursor blink | terminal's own (`tea.Cursor{Blink: true}`) | 1 cell |
 
 ## DO / DON'T
