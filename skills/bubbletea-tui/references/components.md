@@ -128,10 +128,11 @@ default.** `y`/`n` shortcuts for experts. It asks for a judgement, so it guards 
 and 4 of `interaction.md` § Confirm By Consequence only: what can't be taken back, or
 what a failing signal makes risky ("2 checks failing: lint, e2e. Merge anyway?"). This
 roll back is rung 3: it ships to production, and the fix would be another ship, so it
-confirms even when the target is healthy. A ship started from a form gets no dialog: the
-form's review step is its confirmation (the showcase's deploy: what ships where, a
-danger button named `Deploy v2.4.1 to prod`, focus arriving on Cancel). Anything a revert or the same key takes back
-gets no confirm: one on every write teaches `y` before the one that matters.
+confirms even when the target is healthy. A ship started from a form gets no dialog:
+the form's review step is its confirmation (the showcase's `deploy-review`: what ships
+where, a danger button named `Deploy v2.4.1 to prod`, focus arriving on Cancel).
+Anything a revert or the same key takes back gets no confirm: one on every write
+teaches `y` before the one that matters.
 
 ## Form Field
 
@@ -212,9 +213,10 @@ the state's action table while it shows. Never for something that can't be undon
 that one had a confirm, and an undo that can't is a lie.
 
 A grace window is the default undo toast for a send that can't be recalled once it
-goes (a page, an email), skipped only where seconds matter: the action is pending until the toast ends, the undo key cancels it,
-and the toast says what will happen and when (`Paging payments on-call in 5 s · u
-undo`, counting down). When it ends the send goes, and a plain toast says it went.
+goes (a page, an email), skipped only where seconds matter: the action is pending
+until the toast ends, the undo key cancels it, and the toast says what will happen
+and when (`Paging payments on-call in 5 s · u undo`, counting down). When it ends the
+send goes, and a plain toast says it went.
 
 ## Footer / Help — `ui.Footer`, `ui.Help`
 

@@ -75,10 +75,10 @@ explicit send), a confirm adds nothing. Put every action on the first rung that 
 1. **Reversible in one gesture: the action is the confirmation.** It happens on the
    key, the screen shows it at once (the reaction appears, the thread folds as
    resolved, the row's mark flips), and the same key undoes it: a reaction,
-   resolve/unresolve, close/reopen, star, mute, any flag. The footer names what the
-   key does now (`x close` becomes `x reopen`). At most a toast that names what
-   happened and the undo ("Closed #812 · x reopen"). A bulk one stays here: "Marked 12
-   done · u undo" undoes the batch.
+   resolve/unresolve, close/reopen, star, mute, any mark (pin, label). The footer
+   names what the key does now (`x close` becomes `x reopen`). At most a toast that
+   names what happened and the undo ("Closed #812 · x reopen"). A bulk one stays here:
+   "Marked 12 done · u undo" undoes the batch.
 2. **Composed, then sent: the send is the confirmation.** A comment, reply, message or
    page the user wrote and sent with an explicit send key (`enter`, `ctrl+s`) goes
    without a dialog. They read it while writing it; "Post this comment?" only asks them
@@ -100,13 +100,14 @@ explicit send), a confirm adds nothing. Put every action on the first rung that 
    merge reverts, an issue reopens. Only the user knows whether this is the object to
    lose, so the dialog names it and what can't be taken back ("Delete nightly-0412?
    41.2 GB, no undo"), focuses **Cancel**, colours the destructive button as danger,
-   and accepts `y` for experts. For irreversible actions on production, make the user
-   type the object's name. A ship started from a form is confirmed by the form's last
-   step when that step says exactly what ships where (version, target, what changes),
-   its button is named for the act (`Deploy v2.4.1 to prod`, not `Submit` or `OK`) and
-   drawn as danger, and focus arrives on Cancel so enter alone doesn't ship. No dialog
-   after it: it would repeat what the user just read. The dialog is for a ship one key
-   starts (`r roll back` from a list).
+   and accepts `y` for experts. For what destroys production data (dropping a
+   database, deleting a prod bucket), make the user type its name; a ship doesn't
+   need it, since its fix is another ship. A ship started from a form is confirmed by
+   the form's last step when that step says exactly what ships where (version, target,
+   what changes), its button is named for the act (`Deploy v2.4.1 to prod`, not
+   `Submit` or `OK`) and drawn as danger, and focus arrives on Cancel so enter alone
+   doesn't ship. No dialog after it: it would repeat what the user just read. The
+   dialog is for a ship one key starts (`r roll back` from a list).
 4. **Normally safe, but a signal says no: confirm only in that state.** The signal is
    one the user should weigh: red checks, a blocking review, an unsaved draft, a stale
    view of what they're acting on. On a code host, merging with green checks takes no
