@@ -47,7 +47,7 @@ rest stays subtle. Don't rebuild Section for it. This is how regions separate.
 ## Table — `ui.Table`
 
 Borderless. The header row in subtle UPPERCASE (or the theme's case), one rule under it,
-2-cell column gaps, numbers right-aligned, the first column taking the rest. The
+2-cell column gaps (a last argument of 1 for a dense table: 10 columns at 80 cells), numbers right-aligned, the first column taking the rest. The
 selected row is marked like a list row; on a filled selection a trace or sparkline in a
 cell draws its bars in a shade of the fill (`Styles.SelBars`), since in the row's ink they
 are blocks of the page punched through the bar. Color a cell only when its value is

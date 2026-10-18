@@ -337,13 +337,20 @@ func matchUnderline(s string, idx []int, st lipgloss.Style) string {
 // Table renders a borderless table: a muted header row (upper case unless the theme's
 // labelCase says otherwise), a rule, then rows
 // with aligned columns. widths are cells per column (the last may be 0 =
-// take the rest). align: 'l' or 'r' per column. Selected row per selection.
-func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align string, sel, w int, focused bool) []string {
+// take the rest). align: 'l' or 'r' per column. Selected row per selection. gap is the
+// cells between columns, 2 unless given: a 10-column table at 78 cells fits on 1
+// (ui.Table(…, focused, 1)).
+func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align string, sel, w int, focused bool, gap ...int) []string {
+	g := 2
+	if len(gap) > 0 && gap[0] >= 0 {
+		g = gap[0]
+	}
+	sp := strings.Repeat(" ", g)
 	ws := append([]int(nil), widths...)
 	used := 0
 	for i, x := range ws {
 		if i < len(ws)-1 || x > 0 {
-			used += x + 2
+			used += x + g
 		}
 	}
 	if ws[len(ws)-1] == 0 {
@@ -360,13 +367,13 @@ func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 	for i, c := range header {
 		h = append(h, t.S.Subtle.Render(cell(t.Label(c, "upper"), i)))
 	}
-	out := []string{Fit("  "+strings.Join(h, "  "), w), "  " + Rule(t, w-2)}
+	out := []string{Fit("  "+strings.Join(h, sp), w), "  " + Rule(t, w-2)}
 	for r, row := range rows {
 		var cs []string
 		for i, c := range row {
 			cs = append(cs, cell(c, i))
 		}
-		line := strings.Join(cs, "  ")
+		line := strings.Join(cs, sp)
 		selected := r == sel
 		mode := t.X.Selection
 		switch {
