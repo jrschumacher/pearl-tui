@@ -106,7 +106,8 @@ skills/bubbletea-tui/
 │   ├── tuilint           slop + correctness lint on rendered frames, on Go source and on TUI.md's keys (rule IDs)
 │   ├── tuivet            the code rules as a go vet tool, for editors and CI
 │   ├── palette           derive a dark+light role palette from brand hexes (OKLCH, tinted neutrals, contrast-tuned)
-│   └── diversity         are these themes actually different from each other and from the default?
+│   ├── diversity         are these themes actually different from each other and from the default?
+│   └── feedback          draft, dedupe and file an issue here from the agent, on your yes
 ├── scripts/              Python + Pillow, only for converting brand assets
 │   ├── wordmark.py       a brand name in terminal cells, from a real font
 │   └── logo2cells.py     a logo raster onto the cell grid, with lint
@@ -152,13 +153,45 @@ cellshot frames/*-80x24.ansi --sheet sheet.png             # look at it
 
 ![A first-run setup wizard built on Huh, themed per brand: stepper, summary, a sign-in wait with a fallback](docs/images/gallery-setup.png)
 
-## Roadmap and feedback
+## Feedback
+
+The skill gets better from what it gets wrong in real builds, and your agent sees that
+first. When the skill, the kit or a tool cost it a round (a rule the kit contradicts, a
+lint that fired on a correct frame, a component it had to write, a slow tool), it offers
+to file an issue here at the next natural stop, with the `feedback` tool
+(`references/cmd-feedback.md`):
+
+```sh
+feedback similar --title "F-CONTRAST fires on a ruled dialog's scrim"   # file on an existing issue instead?
+feedback draft --kind bug --title "…" --field area="tuilint frames" …    # the exact issue; nothing is sent
+feedback submit --kind bug --title "…" …                                 # gh issue create, or a prefilled link
+```
+
+It shows you the draft first and files only on your yes. Your project path, home
+directory and user name are redacted, and it leaves out your code and app names unless
+you approve them. Without a signed-in `gh` it files nothing: it prints a link to the
+issue form with every field filled in, and asks before opening your browser. Forks set
+`FEEDBACK_REPO=owner/name`.
+
+Filing by hand works the same way: pick a form on the
+[new issue](https://github.com/jrschumacher/skill-bubbletea-tui/issues/new/choose) page.
+
+| Form | For | Label |
+|---|---|---|
+| Bug | the skill, kit or a tool got it wrong (with the miss class: never said / said and missed / not expressible in prose) | `bug` |
+| Performance | a tool or kit path too slow for the loop: the command, timing, sizes | `performance` |
+| Eval suggestion | a prompt and the assertion that would have caught a mistake | `eval` |
+| Feature | a component, rule or flag the agent had to invent | `enhancement` |
+
+All four carry `feedback`.
+
+## Roadmap
 
 This is v0.1, verified by the authors' own render, lint and critique loop and by one
 dogfood run so far: a `restyle` of a real CLI's Huh setup wizard. That run's misses (a
 recolour instead of the idiom, Huh's default colours, flipping button order) are now eval
 cases, lint rules and kit code. The most useful thing you can do is build something with
-it and file what it got wrong with the **Skill feedback** issue template. [ROADMAP.md](ROADMAP.md) has the plan. It also covers the open problems that
+it and file what it got wrong (§ Feedback). [ROADMAP.md](ROADMAP.md) has the plan. It also covers the open problems that
 are bigger than this repo: no accessibility standard for terminals, no semantic
 locators for TUI testing, models that can't see terminals, and no shared ground truth
 for what terminals render.
