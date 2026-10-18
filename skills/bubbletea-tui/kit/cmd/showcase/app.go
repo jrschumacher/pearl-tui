@@ -206,11 +206,13 @@ func (m *app) hasDeploying() bool {
 }
 
 // step is one frame of the clock, what a tick does before it re-arms: the frame moves,
-// and the toast row counts down, returning a grace window's send when it ends (its
-// clock waits under a dialog, where the toast's key can't be reached).
+// and the toast row counts down, returning a grace window's send when it ends. Its clock
+// waits whenever the toast's key isn't offered (toastAction: under a dialog, while an
+// input takes letters, below the floor, or where the state binds the key), so a window
+// never sends, and an undo never lapses, out of reach.
 func (m *app) step() tea.Cmd {
 	m.frame++
-	return m.toasts.Tick(m.ov != ovNone)
+	return m.toasts.Tick(m.toastAction() == nil)
 }
 
 // startClock arms the clock if something animates and it isn't already running.

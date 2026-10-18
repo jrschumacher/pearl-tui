@@ -850,6 +850,34 @@ func TestGraceWindow(t *testing.T) {
 		t.Errorf("after the confirmation the row reads %q, want h's toast, which waited", toastRow(m, 80, 24))
 	}
 
+	// wherever the toast's key isn't offered its clock waits: tab to Assistant, where the
+	// input takes u as a letter, and the page doesn't go while u types (review of #76,
+	// round 2: it went 5 s later with no key on the row); below the floor the same
+	m = fixture(t, "incidents")
+	press1(m, "n")
+	for m.screen != scrAssistant {
+		press1(m, "tab")
+	}
+	press1(m, "u")
+	if m.input != "u" || m.toastAction() != nil {
+		t.Fatalf("on Assistant u should be typed (input %q) and the toast offer no key", m.input)
+	}
+	advance(m, 3*ui.Frames(ui.GraceTTL))
+	if m.declared || m.pages != 0 || !m.toasts.Holding() {
+		t.Fatalf("the window ran out on Assistant, its u typed into the input: %d pages", m.pages)
+	}
+	m = fixture(t, "incidents")
+	press1(m, "n")
+	m.Update(tea.WindowSizeMsg{Width: minW - 1, Height: minH})
+	advance(m, 3*ui.Frames(ui.GraceTTL))
+	if m.declared || m.pages != 0 {
+		t.Fatal("the window ran out below the floor, where no row shows it")
+	}
+	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	if row := toastRow(m, 80, 24); !strings.Contains(row, "in 5s") || !strings.Contains(row, "u undo") {
+		t.Errorf("back at 80x24 the row reads %q, want the window where it was", row)
+	}
+
 	// help over the window stops its clock: it never sends unseen, without its key
 	m = fixture(t, "incidents")
 	press1(m, "n")

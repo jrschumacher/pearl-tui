@@ -180,11 +180,13 @@ func (q *Toasts) Text() string {
 }
 
 // Tick advances the showing note one frame and ends it when its time is up, returning a
-// grace window's send. covered is true while a dialog (help, the palette) hides the row:
-// a note that offers a key then waits, so a window never sends, and an undo never
-// lapses, while its key is out of reach.
-func (q *Toasts) Tick(covered bool) tea.Cmd {
-	if q.cur == nil || (covered && q.cur.Key.Help().Key != "") {
+// grace window's send. Pass unreachable true whenever the app doesn't offer the note's
+// key right now (a dialog covers the row, an input takes letters, the screen is below
+// its floor, the state binds the key: toastAction returns nil): a note that offers a key
+// then waits, so a window never sends, and an undo never lapses, while its key is out of
+// reach. A plain note runs on.
+func (q *Toasts) Tick(unreachable bool) tea.Cmd {
+	if q.cur == nil || (unreachable && q.cur.Key.Help().Key != "") {
 		return nil
 	}
 	if q.left--; q.left > 0 {
