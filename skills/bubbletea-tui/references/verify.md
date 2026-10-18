@@ -116,10 +116,11 @@ Rubric (score each 0–4, cite rows/cells, not impressions; 0 = a default or a b
      names no domain fact (who acts, on how many objects, whether the act can be taken
      back) is P2, and so is an act that reaches many objects or can't be taken back
      and shows nothing of what it will change before it runs. Hold every confirm to
-     interaction.md § Confirm By Consequence, P1 on a break: Depth never moves an
+     interaction.md § Confirm By Consequence, P1 on a break: depth never moves an
      act's rung, so no confirm goes in front of a rung-1 or rung-2 act or a rung-4 act
-     outside its signal's state, and a rung-3 act, or a rung-4 act in its signal's
-     state, keeps its confirm (or a form's review step) and gets no second one after it.
+     outside its signal's state; a rung-3 act keeps its confirm or its form's review
+     step, a rung-4 act in its signal's state keeps its confirm, and neither gets a
+     second one after it.
   4. Layout: budgets respected; 80×24, 120×40 and 200×60 are the same design; room
      used, not stretched (layout.md § Use The Room: a blank sidebar or unused columns
      beside the body at 120×40 is a stretch); nothing touching edges; no box soup.

@@ -47,16 +47,16 @@ flow: space marks records and a applies the marked set, because for operators; t
 
 ```
 #### apply — publish the edited records              (calm · plain · careful)
-flow: the spec's, one record at a time and no batch path, because calm; the rung-3 confirm lists the record old → new, because resolvers cache the new answer for its TTL, so republishing the old one can't take it back
+flow: the spec's, one record at a time and no batch path, because its users edit one zone at a time and calm asks for nothing more; the rung-3 confirm lists the record old → new, because resolvers cache the new answer for its TTL, so republishing the old one can't take it back
 ```
 
 **DO** keep what the product does: `SPEC.md` decides which tasks exist and what each
 does, and depth changes only how a task is reached and what shows on the way.
 **DON'T** set the depth with a confirm (`interaction.md` § Confirm By Consequence).
 Depth never moves an act's rung, so no confirm goes in front of a rung-1 or rung-2 act
-or a rung-4 act outside its signal's state, and a rung-3 act, or a rung-4 act in its
-signal's state, keeps its confirm (or a form's review step) and gets no second one
-after it.
+or a rung-4 act outside its signal's state; a rung-3 act keeps its confirm or its
+form's review step, a rung-4 act in its signal's state keeps its confirm, and neither
+gets a second one after it.
 **DON'T** let a flow differ from the spec's where no domain fact or brand word on its
 `flow:` line asks for it: two brands of one spec then differ by chance, which is drift,
 not identity, and the critic marks it.
