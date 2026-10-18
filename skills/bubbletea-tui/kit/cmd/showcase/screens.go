@@ -130,7 +130,9 @@ func (m *app) footerRight() string {
 		if m.paused {
 			return m.t.S.Subtle.Render("paused")
 		}
-		return m.t.S.Subtle.Render("synced 4s ago")
+		// the product clock's rate, which is true at every rate; an elapsed "synced 4s
+		// ago" is true only if a tick redraws it every second
+		return m.t.S.Subtle.Render("syncs every " + refreshRates[m.refresh.rate].label)
 	}
 	if m.screen == scrSetup && m.ov == ovNone && !m.setup.saved {
 		return m.t.S.Subtle.Render("not saved yet")

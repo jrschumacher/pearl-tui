@@ -842,3 +842,22 @@ func TestGraceWindow(t *testing.T) {
 		}
 	}
 }
+
+// The services footer says how fresh the list is from the product clock: it read
+// "synced 4s ago" whatever the rate, at 1s and at 1m. It names the rate the list syncs
+// at, after every change, and "paused" while paused.
+func TestFooterNamesTheRefreshRate(t *testing.T) {
+	m := fixture(t, "services")
+	for range refreshRates {
+		m.command("Refresh rate")
+		r := refreshRates[m.refresh.rate]
+		got := ansi.Strip(m.footerRight())
+		if !strings.Contains(got, "every "+r.label) || strings.Contains(got, "ago") {
+			t.Errorf("at %s the footer's status reads %q, want the rate (every %s)", r.every, got, r.label)
+		}
+	}
+	m.key(press("p"))
+	if got := ansi.Strip(m.footerRight()); got != "paused" {
+		t.Errorf("paused, the footer's status reads %q", got)
+	}
+}

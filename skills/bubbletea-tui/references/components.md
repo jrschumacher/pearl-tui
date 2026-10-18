@@ -233,7 +233,8 @@ replaces the window, or quitting, sends it then (the showcase's `raise` and `qui
 ## Footer / Help — `ui.Footer`, `ui.Help`
 
 An optional left badge (mode, `PROD`, `PLAN`), the help packed from `key.Binding`s by
-importance, and right status text (`synced 4s ago`). Per `expressions.footer`: bare,
+importance, and right status text (`syncs every 5s`: from the product clock, never a fixed
+`synced 4s ago`). Per `expressions.footer`: bare,
 on a filled strip, or under a rule. Full help (`?`) expands into columns, grouped. The
 badge's width and a space come out of the keys' 76 columns at 80: name it first in the
 state's keys cell (`[plan] · **enter send** · …`) so `tuilint spec` [S-FOOTER] counts it.
