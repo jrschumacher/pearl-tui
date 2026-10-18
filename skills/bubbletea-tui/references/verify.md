@@ -94,8 +94,11 @@ Rubric (score each 0–4, cite rows/cells, not impressions; 0 = a default or a b
      secondary screen (a dialog or the detail): do its question, buttons and footer
      carry its § Screens `brand:` line, or are they the kit's and the spec's words,
      which another brand on the same spec would match? Identity that stops at the
-     main screen scores at most 2. Any default (pink-purple, emoji, figlet,
-     Loading...)?
+     main screen scores at most 2. Then hold every secondary screen's render to its
+     `brand:` line: a line that promises what its frame doesn't do ("no
+     descriptions" over a picker that draws one, a sentence worded otherwise in the
+     dialog) is a defect; name the line and the frame. Any default (pink-purple,
+     emoji, figlet, Loading...)?
   2. Hierarchy: 3–4 text levels used correctly; what the eye lands on first is what
      matters most; one alert at most.
   3. Focus and flow: exactly one visible focus; where am I, what can I do, how do I go
