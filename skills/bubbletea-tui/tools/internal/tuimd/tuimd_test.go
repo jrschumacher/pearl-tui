@@ -20,6 +20,7 @@ const doc = "# x TUI\n\n### Screens\n" +
 	"- 2026-10-18 tuilint F-TRUNC warns: cuts: is a word here, not a line\n" +
 	"- 2026-10-18: cuts: a\n- 2026-10-18 — cuts: b\n- [2026-10-18] cuts: c\n- 2026-10-18 shape: cuts: d\n" +
 	"- cuts: detail: name, owner — a file name has no longest\n" +
+	"- cuts: path: a path has no longest\n" +
 	"## Assumed decisions\n- cuts: url\n"
 
 func TestBudgets(t *testing.T) {
@@ -42,7 +43,7 @@ func TestCuts(t *testing.T) {
 	got := Cuts(doc)
 	want := []Cut{{Names: []string{"command", "program"}, Line: 17}, {Names: []string{"title"}, Line: 18},
 		{Names: []string{"a"}, Line: 20}, {Names: []string{"b"}, Line: 21}, {Names: []string{"c"}, Line: 22}, {Names: []string{"d"}, Line: 23},
-		{Screen: "detail", Names: []string{"name", "owner"}, Line: 24}}
+		{Screen: "detail", Names: []string{"name", "owner"}, Line: 24}, {Names: []string{"path"}, Line: 25}}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Cuts:\n got %+v\nwant %+v", got, want)
 	}

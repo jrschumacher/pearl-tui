@@ -120,9 +120,17 @@ func Budgets(src string) []Budget {
 
 // Cuts reads the `cuts:` lines of § Decisions (a heading `Decisions`, to the next heading
 // at its level or above): `- 2026-10-18 cuts: command, program — a command line has no
-// longest; the detail shows it whole`, or for one screen `- cuts: detail: name — …`. The
-// names end at the reason (a dash, a ";", "because" or a "("), and are split on commas.
+// longest; the detail shows it whole`, or for one screen `- cuts: detail: name — …` (a
+// screen is a heading with a job, `#### detail — …`; after any other word the colon
+// starts the reason). The names end at the reason (a dash, a ";", "because" or a "("),
+// and are split on commas.
 func Cuts(src string) []Cut {
+	screens := map[string]bool{} // the names of headings with a job: the screen blocks
+	lines(src, func(_ int, t string) {
+		if m := headingRe.FindStringSubmatch(t); m != nil && jobRe.MatchString(clean(m[2])) {
+			screens[strings.ToLower(strings.TrimSpace(jobRe.Split(clean(m[2]), 2)[0]))] = true
+		}
+	})
 	var out []Cut
 	level := 0
 	lines(src, func(n int, t string) {
@@ -145,7 +153,11 @@ func Cuts(src string) []Cut {
 		names := reasonCut.Split(m[1], 2)[0]
 		c := Cut{Line: n}
 		if sc := scopeRe.FindStringSubmatch(names); sc != nil {
-			c.Screen, names = strings.ToLower(sc[1]), sc[2]
+			if screens[strings.ToLower(sc[1])] {
+				c.Screen, names = strings.ToLower(sc[1]), sc[2]
+			} else {
+				names = sc[1] // `cuts: path: a path has no longest`: the colon starts the reason
+			}
 		}
 		for _, nm := range strings.Split(names, ",") {
 			if nm = strings.ToLower(strings.TrimSpace(nm)); nm != "" {
