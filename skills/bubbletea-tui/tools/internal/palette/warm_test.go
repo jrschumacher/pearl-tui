@@ -227,3 +227,34 @@ func TestKitThemesReadAt16Colours(t *testing.T) {
 		}
 	}
 }
+
+// A brand whose own slot reads under 3:1 on a light page (cyan 6 is 2.80:1 on white,
+// green 2 2.47:1 in cellshot's palette) has no hue there: cartridge's, moss's and
+// terrarium's light primaries drew on cyan 6 and lumen's on green 2 with no pin, and
+// Inks16 judged only pinned primaries (#60). check now fails it unpinned, naming fg's
+// grey as the pin, and derive writes that pin; a blue brand on 4 (4.87:1) keeps its hue.
+func TestFaintLightBrandHasNoHue(t *testing.T) {
+	for _, c := range []struct {
+		primary string
+		want    int // the light primary pin derive writes; -1 none
+	}{{"#0E937E", 0}, {"#1C7A6F", 0}, {"#009298", 0}, {"#2E8B57", 0}, {"#2472C8", -1}} {
+		f := themeOf(Derive(c.primary, "", "", "", "", 0.012))
+		n, ok := Pins16(f)["light"]["primary"]
+		if !ok {
+			n = -1
+		}
+		if n != c.want {
+			t.Errorf("%s: derive pins light primary %d, want %d", c.primary, n, c.want)
+		}
+		roles := `{"light": {"bg": "#FFFFFF", "fg": "#1C1C1C", "primary": "` + f.Roles["light"].Primary + `", "warning": "#8C6800", "error": "#A13E40", "success": "#007835", "info": "#006A9D"}}`
+		path := filepath.Join(t.TempDir(), "theme.json")
+		if err := os.WriteFile(path, []byte(`{"roles": `+roles+`, "ansi16": {"light": {"warning": 3}}}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		if failed := strings.Contains(errb.String(), "under 3.0: pin it where"); failed != (c.want == 0) || (code == 1) != (c.want == 0) {
+			t.Errorf("%s: check exit %d, stderr %q", c.primary, code, errb.String())
+		}
+	}
+}

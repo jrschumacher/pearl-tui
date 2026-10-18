@@ -176,7 +176,8 @@ and look at the PNGs. What usually breaks:
   the brand accepts it in its read. Pin bright (9-14) on dark, normal (1-6) on light,
   error to 9/1, a status role to its own slot (warning 3/11, success 2/10, info 4/12 or
   6/14), never a grey but for the brand on a light page, when it is warm (below) or its
-  slot reads under 3:1 there (green 2, cyan 6); the user's terminal
+  slot reads under 3:1 there (green 2, cyan 6: `check` fails such a brand pinned or not,
+  and `derive` pins it to 0); the user's terminal
   palette decides the exact colour. A pin that moves a role more than 60° of hue while
   a nearer slot is free (a rose brand on blue 12, with magenta 13 free) warns with the
   hex, the slot and the nearer pin: the brand reads as info there.

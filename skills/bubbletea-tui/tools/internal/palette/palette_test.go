@@ -42,7 +42,9 @@ import (
 // (TestBorderFloor): every check/*.txt border line, every derive/* border (its .out,
 // .err and the swatch's rule row) and the kit themes' own borders were regenerated for
 // that alone; corpus.txt keeps palette.py's rows, with border compared against the new
-// rule instead.
+// rule instead. A brand whose own slot reads under 3:1 on a light page (green 2, cyan 6)
+// takes fg's grey there (faintSlot16): derive/tint and derive/tint-zero, a green, gained
+// "primary": 0 in their light ansi16 block and on stderr, and nothing else.
 
 const kitThemes = "../../../kit/themes"
 

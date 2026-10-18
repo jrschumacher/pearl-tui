@@ -42,6 +42,6 @@
     ok   onError      on error      6.17  (want ≥3.5)  #F4FDF7 / #A03F40
     ok   onSuccess    on success    5.44  (want ≥3.5)  #F4FDF7 / #137738
     ok   fgSelected   on primary    4.51  (want ≥3.5)  #001307 / #2E8B57
-pinned at 16 colours ("ansi16", kept in the theme): dark warning 11, light warning 3
+pinned at 16 colours ("ansi16", kept in the theme): dark warning 11, light primary 0, light warning 3
 wrote swatch.ansi (render: cellshot.py swatch.ansi swatch.png)
 OK (0 contrast problems)
