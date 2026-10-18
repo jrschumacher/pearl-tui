@@ -645,6 +645,8 @@ func TestGoldenFooters(t *testing.T) {
 		"| list-toast | list | **a add** · **? help** |",
 		"| confirm | overlay | ←→ choose · enter confirm · esc cancel |",
 		"| form | form | enter next field · esc back ‖ tab/shift+tab field |",
+		"| list-selected | list | **↑↓/jk move** · **enter open** · **? help** · d delete |",
+		"| list-picked | list | **↑↓/jk move** · **enter open** |",
 	}, "\n"), "ctrl+c quit")
 	cases := []struct {
 		name, frame string
@@ -657,6 +659,10 @@ func TestGoldenFooters(t *testing.T) {
 		{"confirm", footer("<> choose", "enter confirm"), []string{"lacks `esc cancel`, which the row puts in the footer"}},
 		// a badge one blank before the first hint, in its own style, is not part of it
 		{"form", "  \x1b[1;38;2;207;162;78m[PROD]" + off + " " + strings.TrimPrefix(footer("enter next field", "esc back"), "  "), nil},
+		// ui.Footer's right status after the pinned help hint ("4 of 101", its count in
+		// the key's ink) is status, not a hint; so is an "N of M" count with no help hint
+		{"list-selected", footer("↑↓/jk move", "enter open", "? help") + "  " + key + "4" + off + desc + " of 101" + off, nil},
+		{"list-picked", footer("↑↓/jk move", "enter open") + "  " + key + "1" + off + desc + " of 9" + off, nil},
 	}
 	dir := t.TempDir()
 	for _, c := range cases {

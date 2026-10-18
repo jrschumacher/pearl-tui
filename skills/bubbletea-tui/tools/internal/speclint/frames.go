@@ -20,8 +20,10 @@ type frameHint struct {
 // two or more blank cells fall, as ui.Help joins hints. A chunk is a hint when its first
 // word reads as keys and is drawn in another style than the word after it (ui.Help's
 // Key and KeyDesc), so status text on the row ("5 variables") is not one; a row with
-// no style at all (NO_COLOR) takes every chunk that reads as keys. cut is a lone
-// ellipsis among the chunks: Help dropped hints behind it.
+// no style at all (NO_COLOR) takes every chunk that reads as keys. ui.Footer's right
+// status is not a hint: the chunks after the help hint ui.Help pins last (`? help  4 of
+// 101`), and a count ("1 of 9") anywhere. cut is a lone ellipsis among the chunks: Help
+// dropped hints behind it.
 func frameFooter(text string) (hints []frameHint, cut bool) {
 	f := framelint.Parse(strings.TrimSuffix(strings.ReplaceAll(text, "\r\n", "\n"), "\n"))
 	var row []framelint.Cell
@@ -85,11 +87,26 @@ func frameFooter(text string) (hints []frameHint, cut bool) {
 				h, ok = chunkHint(ch[at:], styled)
 			}
 		}
-		if ok {
-			hints = append(hints, h)
+		if !ok {
+			continue
+		}
+		if countRe.MatchString(h.text) {
+			continue // "4 of 101", "1/9": a position, ui.Footer's right status
+		}
+		hints = append(hints, h)
+		if pinsHelp(h) {
+			break // ui.Help pins the help hint last: what follows is ui.Footer's right status
 		}
 	}
 	return hints, cut
+}
+
+// countRe is a footer chunk that counts rather than binds: "4 of 101", "1/9", "3 / 12".
+var countRe = regexp.MustCompile(`^\d+\s*(?:of|/)\s*\d+\b`)
+
+// pinsHelp is ui.Help's test for the hint it pins last: its key is exactly ? or ctrl+g.
+func pinsHelp(h frameHint) bool {
+	return len(h.keys) == 1 && (h.keys[0].String() == "?" || h.keys[0].String() == "ctrl+g")
 }
 
 // asciiArrows are the arrow keys as an ASCII frame draws them (theme.ASCIITwin): "^v"
