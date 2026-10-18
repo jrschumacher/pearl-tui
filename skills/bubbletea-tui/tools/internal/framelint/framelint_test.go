@@ -883,9 +883,9 @@ func contrastHits(t *testing.T, args ...string) []Finding {
 	return out
 }
 
-// A "dialog": "rules" panel (two rule rows of one span around a filled panel) and an
-// ASCII +--+ box are dialogs: their inside is judged for contrast as a bordered box's
-// is, and the scrim around them is not. testdata/overlays holds the kit's quire confirm
+// A "dialog": "rules" panel (two rule rows of one span around a filled panel, a title
+// or a status set into either) and an ASCII +--+ box are dialogs: their inside is judged
+// for contrast as a bordered box's is, and the scrim around them is not. testdata/overlays holds the kit's quire confirm
 // (rules), quire help under --ascii (rules in -) and halyard confirm under --ascii
 // (+--+); a "dialog": "none" palette (moss) still gets the P2 note, since it has no edge.
 func TestOverlayDialogsAreFound(t *testing.T) {
@@ -941,6 +941,18 @@ func TestOverlayDialogsAreFound(t *testing.T) {
 		"\x1b[38;2;167;177;174;48;2;25;35;32mdeploy", "\x1b[38;2;28;38;35;48;2;25;35;32mdeploy")
 	if hits := contrastHits(t, boxedKeys, "--theme", "testdata/themes/terrarium.json"); len(hits) != 1 || hits[0].Sev != "P1" || !strings.Contains(hits[0].Msg, "6 text cells") {
 		t.Errorf("low contrast inside a rules dialog with boxed keys: %+v, want one P1 on the 6 letters", hits)
+	}
+	// a rules help with a status set into its bottom edge (ui.DialogStatus, "1 of 2"):
+	// the bottom edge is two runs around the status, and the one-run match missed it, so
+	// a cold app's scrolled help got the note and its panel went unjudged. The frame is
+	// the kit's (quire, DialogStatus over a page); a planted 1.3:1 label inside fails
+	if hits := contrastHits(t, "testdata/overlays/rules-status-help-80x24.ansi", "--theme", "testdata/themes/quire.json"); len(hits) != 0 {
+		t.Errorf("quire help with a status in its bottom edge: %+v, want no F-CONTRAST", hits)
+	}
+	status := mutate("testdata/overlays/rules-status-help-80x24.ansi", "help-status-80x24.ansi",
+		"\x1b[38;2;135;130;125;22mquit", "\x1b[38;2;42;42;46;22mquit")
+	if hits := contrastHits(t, status, "--theme", "testdata/themes/quire.json"); len(hits) != 1 || hits[0].Sev != "P1" {
+		t.Errorf("low contrast inside a rules dialog with a status edge: %+v, want one P1", hits)
 	}
 	// the same inside an ASCII +--+ box (halyard ascii confirm: box bg #142030)
 	boxed := mutate("testdata/overlays/box-ascii-confirm-80x24.ansi", "confirm-box-80x24.ansi",
