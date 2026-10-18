@@ -228,17 +228,25 @@ func TestOverlayFrameHasOneFocus(t *testing.T) {
 // focusMarks are the page body's cells holding the theme's focus bar, selection cursor,
 // or an input's prompt or caret, in its focus ink with a blank after. Only these
 // glyphs count: a blurred selection's mark (the blur ink, or a blur glyph) is the
-// quieter mark an unfocused page keeps, not a focus.
+// quieter mark an unfocused page keeps, not a focus. Under a "fill" or "inverse"
+// selection the focused row is the mark: its cells in the selection's reverse video
+// (a blurred one keeps a bgSubtle band), or a list page in such a theme drew no mark
+// at all and the focus tests judged nothing.
 func (m *app) focusMarks(c *ui.Canvas) []uv.Position {
 	t := m.t
 	marks := []struct {
 		g  string
 		st lipgloss.Style
 	}{{t.G.FocusBar, t.S.FocusBar}, {t.G.Cursor, t.S.Focus}, {t.G.Caret, t.S.Prompt}, {t.G.Prompt, t.S.Prompt}}
+	fill := t.X.Selection == "fill" || t.X.Selection == "inverse"
 	var out []uv.Position
 	for y := m.body.Min.Y; y < m.body.Max.Y; y++ {
 		for x := m.body.Min.X; x+1 < m.body.Max.X; x++ {
 			cell, next := c.CellAt(x, y), c.CellAt(x+1, y)
+			if fill && cell != nil && cell.Style.Attrs&uv.AttrReverse != 0 && sameRGB(cell.Style.Fg, t.S.SelRow.GetForeground()) {
+				out = append(out, uv.Pos(x, y))
+				continue
+			}
 			if cell == nil || next == nil || strings.TrimSpace(next.Content) != "" {
 				continue
 			}
@@ -261,12 +269,44 @@ func sameRGB(a, b color.Color) bool {
 	return r1 == r2 && g1 == g2 && b1 == b2
 }
 
+// The tables the harness tests read are the app's own: a state opens a dialog exactly
+// when overlays names it, every overlayPages entry is a page with no dialog up, and
+// every page that draws a focus mark is in overlayPages or unjudgedPages. A cold build
+// left its menu overlay out of the help test, and its help over the menu named the
+// screen's keys; leaving it out of overlays would hide it as well.
+func TestOverlayTablesMatchTheStates(t *testing.T) {
+	for _, list := range [][]string{overlays, overlayPages, unjudgedPages} {
+		for _, s := range list {
+			if !slices.Contains(states, s) {
+				t.Errorf("%q is in the harness tables but not in states", s)
+			}
+		}
+	}
+	for _, s := range states {
+		if s == "toosmall" {
+			continue
+		}
+		m := fixture(t, s)
+		switch in := slices.Contains(overlays, s); {
+		case m.ov != ovNone && !in:
+			t.Errorf("%s opens a dialog but isn't in overlays: the overlay tests never judge it", s)
+		case m.ov == ovNone && in:
+			t.Errorf("%s is in overlays but opens no dialog", s)
+		case m.ov != ovNone && slices.Contains(overlayPages, s):
+			t.Errorf("%s is in overlayPages but has a dialog up", s)
+		case m.ov == ovNone && !slices.Contains(overlayPages, s) && !slices.Contains(unjudgedPages, s) && len(m.focusMarks(m.render(80, 24))) > 0:
+			t.Errorf("%s draws a focus mark but is in neither overlayPages nor unjudgedPages: no overlay is judged over it", s)
+		}
+	}
+}
+
 // Help opened over an overlay names that overlay's keys, not the screen's under it
 // (a recreation's help listed the conversation's keys over its permission dialog), and
 // closing it goes back to the overlay. Every overlay's help key opens it, the body holds
 // each of the overlay's bindings and none of the screen's, and esc returns. The help key
 // is whichever of the overlay's keys opens help, and the screen's keys are the page's
-// own action table, so the test reads the app's tables, not the showcase's words.
+// own action table, so the test reads the app's tables, not the showcase's words. Help
+// over a page (each of overlayPages) names every key of that page's table.
 func TestHelpOverAnOverlayNamesItsKeys(t *testing.T) {
 	for _, s := range overlays {
 		if s == "help" {
@@ -276,42 +316,23 @@ func TestHelpOverAnOverlayNamesItsKeys(t *testing.T) {
 		from := m.ov
 		var own []string
 		for _, a := range m.actions() {
-			own = append(own, a.b.Help().Desc)
-		}
-		var helpKey string
-		for _, a := range m.actions() {
-			for _, k := range a.b.Keys() {
-				if helpKey != "" {
-					break
-				}
-				p := fixture(t, s)
-				p.key(press(k))
-				if p.ov == ovHelp {
-					helpKey = k
-				}
-			}
-		}
-		if helpKey == "" {
-			t.Fatalf("%s: no key in the overlay's action table opens help", s)
+			own = append(own, strings.Join(strings.Fields(a.b.Help().Desc), " "))
 		}
 		// the screen's keys: the page under the overlay, with the overlay closed
 		page := *fixture(t, s)
 		page.ov = ovNone
 		var screenKeys []string
 		for _, a := range page.actions() {
-			if d := a.b.Help().Desc; !slices.Contains(own, d) {
+			if d := strings.Join(strings.Fields(a.b.Help().Desc), " "); !slices.Contains(own, d) {
 				screenKeys = append(screenKeys, d)
 			}
 		}
-		m.key(press(helpKey))
+		k := helpKey(t, s)
+		m.key(press(k))
 		if m.ov != ovHelp {
-			t.Fatalf("%s: %q did not open help", s, helpKey)
+			t.Fatalf("%s: %q did not open help", s, k)
 		}
-		// each help row is a 12-cell key column, then what the key does
-		var named []string
-		for _, row := range m.helpBody() {
-			named = append(named, strings.TrimSpace(ansi.Strip(ansi.Cut(row, 12, 200))))
-		}
+		named := helpNames(m)
 		for _, d := range own {
 			if !slices.Contains(named, d) {
 				t.Errorf("%s: help over the overlay doesn't name its %q key: %q", s, d, named)
@@ -327,4 +348,50 @@ func TestHelpOverAnOverlayNamesItsKeys(t *testing.T) {
 			t.Errorf("%s: esc from help went to overlay %d, want back to %d", s, m.ov, from)
 		}
 	}
+	for _, p := range overlayPages {
+		m := fixture(t, p)
+		var own []string
+		for _, a := range m.actions() {
+			own = append(own, strings.Join(strings.Fields(a.b.Help().Desc), " "))
+		}
+		m.key(press(helpKey(t, p)))
+		named := helpNames(m)
+		for _, d := range own {
+			if !slices.Contains(named, d) {
+				t.Errorf("%s: help over the page doesn't name its %q key: %q", p, d, named)
+			}
+		}
+		if m.key(press("esc")); m.ov != ovNone {
+			t.Errorf("%s: esc from help left overlay %d up", p, m.ov)
+		}
+	}
+}
+
+// helpKey is the key of state s's action table that opens help, whatever the app calls
+// it: each key is pressed on a fresh fixture until one brings ovHelp up.
+func helpKey(t *testing.T, s string) string {
+	t.Helper()
+	for _, a := range fixture(t, s).actions() {
+		for _, k := range a.b.Keys() {
+			p := fixture(t, s)
+			p.key(press(k))
+			if p.ov == ovHelp {
+				return k
+			}
+		}
+	}
+	t.Fatalf("%s: no key in the action table opens help", s)
+	return ""
+}
+
+// helpNames are what each help row says a key does: the row after its key (a key name
+// holds no space), however wide the app's key column is.
+func helpNames(m *app) []string {
+	var named []string
+	for _, row := range m.helpBody() {
+		if f := strings.Fields(ansi.Strip(row)); len(f) > 1 {
+			named = append(named, strings.Join(f[1:], " "))
+		}
+	}
+	return named
 }

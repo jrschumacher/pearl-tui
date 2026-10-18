@@ -206,7 +206,8 @@ go run ./cmd/<app> -out frames -sizes 80x24,120x40  every state × size into fra
 The `states` list names every screen and overlay the app can show (including empty,
 loading, error, too-small). `setState(name)` builds each from scratch with fixture data.
 `overlays` names the states that open a dialog and `overlayPages` the pages they open
-over; `openOverlay` opens one over the page shown. The harness tests read these tables
+over (`unjudgedPages` the focus-drawing pages left out, with why); `openOverlay` opens
+one over the page shown. The harness tests read these tables, hold them to the states,
 and name no state of the showcase's but `help` and `toosmall`, so a copied app keeps
 them whole (`kit/README.md`).
 `View` and the harness share one `render(w, h)`, so the PNG is the program. See

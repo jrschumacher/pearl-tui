@@ -58,13 +58,13 @@ the kit can't draw (`theme.CheckLadder`).
   `-ascii`, `-profile`, `-frame`), `setState` for every named state, and the app's
   tables the harness tests read: `states`, `overlays` (the states that open a dialog,
   `help` among them), `overlayPages` (the states that draw a selection, a focused field
-  or a caret) and `openOverlay`.
+  or a caret), `unjudgedPages` (such states left out, each with why) and `openOverlay`.
 - The harness tests, which read those tables and name no showcase state:
   `showcase_test.go` (the footprint at 5 sizes and the app's floor × every theme × 3
   modes, contrast floors, no unstyled cells, frame names, every overlay at 16 colours,
   NO_COLOR and ASCII, dialogs above the footer, one focus column, ASCII keeps text),
-  `overlay_test.go` (every overlay over every page: the page keeps its rows, one focus,
-  help names the overlay's keys), `behaviour_test.go` (every advertised key is handled,
+  `overlay_test.go` (the tables match the states; every overlay over every page: the
+  page keeps its rows, one focus, help names the overlay's keys and a page's), `behaviour_test.go` (every advertised key is handled,
   the too-small screen's keys, ASCII is ASCII with distinct status glyphs) and
   `ansi16_test.go` (warning glyphs and inks at 16 colours).
 - The showcase's own tests: `screens_test.go` (actions target the selection, inputs
@@ -128,14 +128,24 @@ Once your screens are in, delete what is the showcase's alone:
 - `setup.go` and `setup_test.go`, the first-run wizard, with its wiring: each `scrSetup`,
   `m.setup` and `firstRun` branch in `app.go` and `screens.go`, and in `main.go` the
   `setup-*` states, `setupState`, `-first-run` and the `runAccessibleSetup` call.
-- In `main.go`, set `states`, `overlays`, `overlayPages` and `openOverlay` to yours.
-  Keep `help` as the keys overlay's state and `toosmall` as the too-small one: the
-  tests name those two.
+- In `main.go`, set `states`, `overlays`, `overlayPages`, `unjudgedPages` and
+  `openOverlay` to yours. Keep `help` as the keys overlay's state and `toosmall` as the
+  too-small one: the tests name those two. `TestOverlayTablesMatchTheStates` holds the
+  tables to your states: a state opens a dialog exactly when `overlays` names it, and a
+  page that draws a focus mark is in `overlayPages` (or in `unjudgedPages`, with why).
 
 Keep `showcase_test.go`, `overlay_test.go`, `behaviour_test.go` and `ansi16_test.go`
-whole: they read your tables and these names from your app: `newApp`, `render`,
-`actions`, `key`, `helpBody`, `helpRows`, `minW`/`minH` (your floor), the fields `t`,
-`profile`, `ov`, `last`, `ovRect`, `body` and `footY`, and `ovNone`/`ovHelp`. Then
-delete each import `go vet ./...` reports unused. CI deletes these files from a copy,
-stubs a two-state app with one overlay and runs the kept tests, so they hold for an app
+whole. They read your tables and these from your app:
+
+- `newApp`, `render`, `key`, `helpBody`, `helpRows`, `minW`/`minH` (your floor), and
+  `actions()`, whose entries carry the binding as `b` and whether the footer shows it
+  as `show`;
+- the fields `t`, `profile`, `ov`, `last`, `ovRect`, `body` and `footY`, and the
+  overlay values `ovNone` and `ovHelp`;
+- help's shape: one row per binding, the key then what it does (a key name holds no
+  space), and `esc` closing help back to whatever it was opened over.
+
+Then delete each import `go vet ./...` reports unused. CI deletes these files from a
+copy, puts a two-page app with one overlay of its own in place of the screens
+(`.github/kit-stub`) and runs the kept tests with three donors, so they hold for an app
 that isn't the showcase.

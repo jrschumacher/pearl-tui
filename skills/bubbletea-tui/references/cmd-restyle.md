@@ -17,7 +17,7 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
 2. **Add the harness from the kit.** Copy `theme/` and `ui/` with the README block
    (`cmd-craft.md` §1; skip `cmd/showcase`, the app exists), then lift `main.go`'s
    harness (`render(w, h)`, `setState`, `states`, `overlays`, `overlayPages`,
-   `openOverlay`, the `-golden`/`-out` flags) into the app's package and give the app's
+   `unjudgedPages`, `openOverlay`, the `-golden`/`-out` flags) into the app's package and give the app's
    model the names the harness tests read (`kit/README.md`), then copy
    `showcase_test.go`, `overlay_test.go`, `behaviour_test.go` and `ansi16_test.go`
    whole. Written by hand, the harness loses the kit's tests (`TestHelpIsHandled`,

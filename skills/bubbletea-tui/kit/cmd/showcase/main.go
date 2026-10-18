@@ -50,6 +50,12 @@ var overlays = []string{"palette", "confirm", "help"}
 // validates it.)
 var overlayPages = []string{"services", "deploys", "assistant", "deploy"}
 
+// unjudgedPages are the states that draw a focus mark but aren't in overlayPages, each
+// for a reason TestOverlayTablesMatchTheStates can't see: the wizard (see above) and a
+// page already judged under another state's name.
+var unjudgedPages = []string{"services-toast", // services with a toast over the footer
+	"setup-target", "setup-namespace", "setup-invalid", "setup-auth", "setup-alerts", "setup-review", "setup-failed", "setup-done"}
+
 // openOverlay opens the overlay s over whatever page m shows, as its key would.
 func (m *app) openOverlay(s string) {
 	switch s {

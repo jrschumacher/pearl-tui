@@ -53,6 +53,10 @@ jobs:
             donor: themes/lumen.json
           - theme: quire
             donor: theme/testdata/quire.json
+          # halyard is a "fill" selection: the focused row, not a glyph, is the page's
+          # focus mark, which the stub's list page draws and the focus tests must find
+          - theme: halyard
+            donor: themes/halyard.json
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7

@@ -84,7 +84,14 @@ func TestFrameNameIsRenderedSize(t *testing.T) {
 // the whole screen, and it is invisible in code review.
 func TestFootprint(t *testing.T) {
 	files := testThemes(t)
-	sizes := [][2]int{{80, 24}, {100, 30}, {120, 40}, {200, 60}, {60, 18}, {minW, minH}} // the app's floor (TUI.md § Size floor)
+	// the app's floor (TUI.md § Size floor; 60×18 in the kit) and the sizes above it: a
+	// size under the floor draws the too-small screen, which -golden checks
+	sizes := [][2]int{{minW, minH}}
+	for _, sz := range [][2]int{{80, 24}, {100, 30}, {120, 40}, {200, 60}} {
+		if sz[0] >= minW && sz[1] >= minH && sz != [2]int{minW, minH} {
+			sizes = append(sizes, sz)
+		}
+	}
 	for _, f := range files {
 		tf, err := theme.Load(f)
 		if err != nil {
@@ -367,8 +374,9 @@ func TestDialogsStayAboveTheFooter(t *testing.T) {
 			// the help body scrolls when cut: a "more" row at the bottom, then one above
 			m := newApp(tf, true, false)
 			m.setState("help")
-			fy := h - len(ui.Footer(m.t, w, "", nil, ""))
-			frame := dialogText(m.render(w, h), m.ovRect, fy)
+			c := m.render(w, h)
+			fy := m.footY
+			frame := dialogText(c, m.ovRect, fy)
 			if more := m.t.G.Ellipsis + " "; len(m.helpBody()) > m.helpRows() && !strings.Contains(frame, more) {
 				t.Errorf("%s help %dx%d: %d rows of keys in %d: want a %q row", filepath.Base(f), w, h, len(m.helpBody()), m.helpRows(), more)
 			}
@@ -391,7 +399,7 @@ func TestDialogsStayAboveTheFooter(t *testing.T) {
 func dialogFits(t *testing.T, name string, m *app, s string, w, h int) {
 	t.Helper()
 	c := m.render(w, h)
-	fy := h - len(ui.Footer(m.t, w, "", nil, ""))
+	fy := m.footY // the app's own footer row, as render drew it
 	frame := dialogText(c, m.ovRect, fy)
 	if m.ovRect.Max.Y > fy {
 		t.Errorf("%s: the dialog's last row is %d, the footer starts at %d", name, m.ovRect.Max.Y-1, fy)

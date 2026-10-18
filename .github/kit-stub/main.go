@@ -26,9 +26,11 @@ import (
 // states are every screen the app can show.
 var states = []string{"list", "detail", "confirm", "help", "toosmall"}
 
-// overlays and overlayPages: the harness tests open each overlay over each page.
+// overlays, overlayPages and unjudgedPages: the harness tests open each overlay over
+// each page.
 var overlays = []string{"confirm", "help"}
 var overlayPages = []string{"list", "detail"}
+var unjudgedPages []string
 
 func (m *app) openOverlay(s string) {
 	switch s {
