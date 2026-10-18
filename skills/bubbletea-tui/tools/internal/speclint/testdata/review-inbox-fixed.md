@@ -13,7 +13,7 @@ palette: deep slate neutrals; amber means unread and nothing else
 focus: the ▌ gutter (ascii |) in fg on a bgSubtle row, so the cursor never reads as unread
 tone: calm, nocturnal, precise
 motif: inbox state dots in a 2-cell column, ● unread, ◑ seen, ○ done (ascii * ~ o)
-remember: amber is "this needs you", and only that
+move: the open thread leads and the inbox folds to a rail beside it, because precise
 
 ### Theme
 themes/tern.json   (palette derive from #F2A33A, measured from the spec)

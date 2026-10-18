@@ -124,8 +124,8 @@ func TestRules(t *testing.T) {
 		// S-GLYPHWIDTH
 		{"motif with no ascii", "### Brand read\nmotif: ◐ seen ★ starred\n" + table("| list | list | enter open |", ""), map[string]int{"S-GLYPHWIDTH": 1}},
 		{"glyph in the key table", table("| list | list ★ | enter open ◐ |", ""), map[string]int{"S-GLYPHWIDTH": 1}},
-		{"reported once per glyph", "### Brand read\nmotif: ★\nremember: the ★ row\n" + table("| list | list | enter open |", ""), map[string]int{"S-GLYPHWIDTH": 1}},
-		{"ascii twin on the line", "### Brand read\nmotif: ★ starred ◐ seen (ascii * ~)\nremember: the ★ row\n" + table("| list | list ★ | enter open |", ""), nil},
+		{"reported once per glyph", "### Brand read\nmotif: ★\nsignature: the ★ row\n" + table("| list | list | enter open |", ""), map[string]int{"S-GLYPHWIDTH": 1}},
+		{"ascii twin on the line", "### Brand read\nmotif: ★ starred ◐ seen (ascii * ~)\nsignature: the ★ row\n" + table("| list | list ★ | enter open |", ""), nil},
 		{"ascii twin elsewhere", "### Brand read\nmotif: ★ starred\n\n### Glyphs\nASCII: ★ → *\n" + table("| list | list | enter open |", ""), nil},
 		{"glyphs the kit maps to ascii", "### Brand read\nfocus: the ▌ gutter, ─ rules, │ rails, ● ○ ◆ ▲ ■ state marks\n" + table("| list | list ● | enter open ◆ |", ""), nil},
 		{"arrows in prose", "### Brand read\nmotion: queued → running → done, retries ⇒ backoff ↻\n" + table("| list | list | enter open |", ""), nil},
@@ -164,6 +164,12 @@ func TestRules(t *testing.T) {
 		{"77 columns don't", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 43)+" |", ""), map[string]int{"S-FOOTER": 1}},
 		{"Global keys are not in the footer", table("| list | list | ↑↓ move · enter open · ? help |", "ctrl+c quit · ctrl+p palette · ctrl+o switch · ctrl+s save · ctrl+r reload · ctrl+t theme · f1 manual"), nil},
 		{"an empty cell has no footer", table("| splash | splash | — |", ""), nil},
+
+		// S-SLOTS: a read from before move and signature replaced remember
+		{"remember alone", "### Brand read\ntone: calm\nremember: the orange row\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
+		{"remember beside a move", "### Brand read\nremember: the orange row\nmove: the detail leads\n" + table("| list | list | enter open |", ""), nil},
+		{"remember beside a signature", "### Brand read\n- remember: the orange row\n- **signature:** a tide strip\n" + table("| list | list | enter open |", ""), nil},
+		{"remember in a fence", "### Notes\n```\nremember: the orange row\n```\n" + table("| list | list | enter open |", ""), nil},
 
 		{"brand section ends at the next heading", "## Brand\n### Brand read\ntone: calm\n## Architecture\nregions ★ ★\n" + table("| list | list | enter open |", ""), nil},
 	}
@@ -318,7 +324,7 @@ func TestReviewInbox(t *testing.T) {
 	if out.String() != string(want) {
 		t.Errorf("output differs from %s (go test -update to accept):\n%s", golden, out.String())
 	}
-	for _, r := range []string{"S-KEYAMBIG", "S-KEYDUP", "S-KEYSHADOW", "S-GLYPHWIDTH", "S-FOOTER"} {
+	for _, r := range []string{"S-KEYAMBIG", "S-KEYDUP", "S-KEYSHADOW", "S-GLYPHWIDTH", "S-FOOTER", "S-SLOTS"} {
 		if !strings.Contains(out.String(), r) {
 			t.Errorf("review-inbox.md does not fire %s", r)
 		}

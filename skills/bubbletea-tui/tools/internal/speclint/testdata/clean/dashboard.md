@@ -18,7 +18,7 @@ focus: the ▌ gutter in fg on a bgSubtle row
 tone: quiet, factual, tidal
 geometry: rules not boxes; ─ section rules, │ between panels
 motif: a job moves left to right through its lanes, queued → running → done; a retry ⇒ back to queued
-remember: coral rows are the only colour on screen
+move: the lanes run left to right across the body, the job list folds under them, because tidal
 
 ### Theme
 themes/tidewatch.json   (palette derive from #0E4D52 #FF6F59)

@@ -28,7 +28,7 @@ func Usage() string { return cmddoc.Text(docSrc) + "\n" }
 // Severity maps each rule ID to P1 (fails the run) or P2 (warns).
 var Severity = map[string]string{
 	"S-TABLE": "P1", "S-KEYAMBIG": "P1", "S-KEYDUP": "P1",
-	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2", "S-FOOTER": "P2", "S-ACCENT": "P2", "S-GOLDEN": "P2",
+	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2", "S-FOOTER": "P2", "S-ACCENT": "P2", "S-SLOTS": "P2", "S-GOLDEN": "P2",
 }
 
 // Finding is one result, in the shape the other tuilint modes write to --json: Where
@@ -193,6 +193,7 @@ func LintFrames(file, src, frames string) []Finding {
 	s.glyphWidth(add)
 	s.footerFit(add)
 	s.accentDrift(add)
+	s.brandSlots(add)
 	if frames != "" {
 		s.goldenFooters(frames, add)
 	}
@@ -775,3 +776,30 @@ func (s *spec) accentDrift(add func(string, int, string, ...any)) {
 
 // accentStop are words of an accents line that carry no meaning of their own.
 var accentStop = map[string]bool{"the": true, "and": true, "for": true, "only": true, "nothing": true, "else": true, "one": true, "its": true, "hue": true, "never": true, "not": true, "any": true, "all": true, "that": true, "this": true, "with": true}
+
+var slotLine = regexp.MustCompile(`(?i)^(?:[-*+]\s+)?(remember|move|signature)\s*:`)
+
+// brandSlots is S-SLOTS: a `remember:` line outside a fence, and no `move:` or
+// `signature:` line anywhere, is a brand read from before those two replaced it.
+func (s *spec) brandSlots(add func(string, int, string, ...any)) {
+	remember, slots, fenced := 0, false, false
+	for i, l := range s.lines {
+		t := strings.TrimSpace(l)
+		if strings.HasPrefix(t, "```") {
+			fenced = !fenced
+			continue
+		}
+		m := slotLine.FindStringSubmatch(clean(t))
+		if fenced || m == nil {
+			continue
+		}
+		if !strings.EqualFold(m[1], "remember") {
+			slots = true
+		} else if remember == 0 {
+			remember = i + 1
+		}
+	}
+	if remember > 0 && !slots {
+		add("S-SLOTS", remember, "`remember:` with no `move:` or `signature:`: the brand read now names a move (one region in other rows than the kit puts it, or absent, or added) and a signature (one element the kit doesn't draw), both on the main screen's default frame, and brand, craft and the critic look for those. Write both from this line and the brand's three words (references/brand.md § Move A Region)")
+	}
+}
