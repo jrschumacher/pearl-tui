@@ -79,8 +79,9 @@ the keys; hue stays for state (color.md).
 - Palette: a prompt input with a caret, then a fixed-height list (it doesn't jump while
   typing), with fuzzy matches underlined and shortcuts right-aligned.
 - Only the front dialog takes input. `esc` closes it. The scrim dims the rest. Draw the
-  page under it unfocused (`focused=false` to its lists, tables and fields, no caret in
-  its input): one focus per frame, and a list keeps its selection under the blurred mark.
+  page under it unfocused (`focused=false` to its lists, tables and fields, a subtle
+  prompt and no caret in its input): one focus per frame, and a list keeps its
+  selection under the blurred mark.
   `Canvas.Overlay` (and `Popover`) clears what would still read as live beside it: a
   one-cell halo, a word the dialog cuts, whole, with an ellipsis where its phrase was
   cut (`▲ notifications-…`, not `igh` or `1s` at the edge), a page rule on the dialog's
@@ -200,7 +201,7 @@ state's keys cell (`[plan] · **enter send** · …`) so `tuilint spec` [S-FOOTE
 ## Editor / Prompt
 
 A rule above, a prompt glyph in the focus ink (`t.S.Prompt`: primary, or bold fg under
-`focus: fg`; tertiary where primary is under 3:1 on `bgOverlay`; muted when not
+`focus: fg`; tertiary where primary is under 3:1 on `bgOverlay`; subtle when not
 focused), since where you type is the focus,
 continuation lines with a subtle `:`, and the real cursor via `View.Cursor`. Grow from 1
 to ~8 rows with content, then scroll. The placeholder says what to type, in the brand's
