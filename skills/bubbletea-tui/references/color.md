@@ -135,7 +135,8 @@ and look at the PNGs. What usually breaks:
 - the background ramp merges at 256 colours: moss's dark `bg` `#1A1C19` and `bgPanel`
   `#1A2720` are both xterm 234, so every panel and borderless dialog loses its edge. The
   kit draws a step that lands on a lower step's index on the next grey past it (`bgPanel`
-  235), and `palette check` warns with that grey as a pin. Keep it, or move the hex.
+  235), so leave it unpinned: `palette check` warns only on an `ansi256` pin that holds
+  a step on the shared index, and names the grey that parts them.
 - downsampling at 256 colours goes by RGB distance, so an amber `#D4883C` draws as 173, a
   salmon, where the perceptual nearest is 172. Pin it, as at 16 colours, for 256 only:
   `"ansi256": {"dark": {"primary": 172}}`. `palette derive` writes the block for every

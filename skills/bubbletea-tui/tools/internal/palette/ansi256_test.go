@@ -14,14 +14,14 @@ import (
 
 // At 256 colours a theme's background ramp can land on one xterm index: moss's dark bg
 // #1A1C19 and bgPanel #1A2720 are both 234, so a panel, an output block and a borderless
-// dialog lose their edge (#55). check names the two roles, the index and the grey the kit
-// draws the upper one at instead, with the pin that keeps it; it says nothing once the
-// theme pins the step apart, and a pin that keeps the two together is named as the
-// theme's own, with the grey that parts them.
+// dialog lose their edge (#55). The kit draws the upper step on the next grey instead
+// (theme.ramp256), so check says nothing of a step it moves, nor of a pin that parts
+// them; a pin that keeps the two together is the theme's own, and check names it with
+// the grey that parts them.
 func TestCheckReportsASharedIndexAt256(t *testing.T) {
 	roles := `{"dark": {"bg": "#1A1C19", "bgPanel": "#1A2720", "fg": "#C7D2CC", "primary": "#86C29F"}}`
 	for _, c := range []struct{ name, pins, want string }{
-		{"shared", ``, `dark: bg #1A1C19 and bgPanel #1A2720 both draw as xterm 234 at 256 colours (-profile ansi256), so a panel has no edge on the page there; the kit draws bgPanel as grey 235 instead, "ansi256": {"dark": {"bgPanel": 235}} keeps that in the theme, or move its hex a step from bg's`},
+		{"shared", ``, ``}, // the kit draws bgPanel as grey 235 (theme.ramp256): nothing for the theme to do
 		{"pinned apart", `, "ansi256": {"dark": {"bgPanel": 235}}`, ``},
 		{"pinned together", `, "ansi256": {"dark": {"bgPanel": 234}}`, `both draw as xterm 234 at 256 colours (-profile ansi256), so a panel has no edge on the page there; the theme pins it: "ansi256": {"dark": {"bgPanel": 235}} gives it an edge`},
 	} {

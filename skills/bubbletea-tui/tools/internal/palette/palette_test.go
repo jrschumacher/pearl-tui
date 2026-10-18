@@ -827,7 +827,7 @@ func TestCheckFailsDialogRolesOnRedAt16Colours(t *testing.T) {
 		{"edge on the brand", `{"dark": {"primary": 11, "warning": 3, "borderFocus": 11}}`, 0, nil},
 	} {
 		path := filepath.Join(t.TempDir(), "theme.json")
-		if err := os.WriteFile(path, []byte(`{"roles": `+roles+`, "ansi16": `+c.pins+`, "ansi256": {"dark": {"bgOverlay": 236}}}`), 0o644); err != nil { // bgOverlay and the derived bgSubtle share xterm 235 (#55)
+		if err := os.WriteFile(path, []byte(`{"roles": `+roles+`, "ansi16": `+c.pins+`}`), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		var out, errb bytes.Buffer

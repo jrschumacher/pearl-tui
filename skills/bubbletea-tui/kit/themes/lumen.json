@@ -12,9 +12,6 @@
    "warning": 3
   }
  },
- "ansi256": {
-  "dark": {"bgOverlay": 238}
- },
  "roles": {
   "dark": {
    "primary": "#5FC4B5",

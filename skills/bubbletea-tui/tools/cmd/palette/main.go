@@ -81,10 +81,12 @@
 // gold, a lime) is placed the same way in both modes: the hue past yellow, cyan 14, is
 // info's. Each off its slot is a warning with the pin.
 //
-// A primary the theme pins to a hue is checked there, in cellshot's palette (VS Code's
-// terminal, the one every sheet shows): primary as text on the page at 3:1, and
-// fgSelected (unless "focus": "fg") and onPrimary on it at 4.5:1, each as the kit draws
-// it. Under one, it exits 1: yellow 3 on white is 1.35:1, which the truecolour check of
+// The brand is checked where it draws at 16 colours, in cellshot's palette (VS Code's
+// terminal, the one every sheet shows): primary, secondary, tertiary and accent as text
+// on the page at 3:1, pinned or not (a light page's green 2 and cyan 6 are under it, so
+// a brand or a step there takes fg's grey, or a bright slot's readable normal twin), and
+// for a primary pinned to a hue, fgSelected (unless "focus": "fg") and onPrimary on it
+// at 4.5:1, each as the kit draws it. Under one, it exits 1: yellow 3 on white is 1.35:1, which the truecolour check of
 // the hex never sees. The kit re-inks an on-colour written as a hex that reads under its
 // floor on its fill's slot (white on bright yellow, 1.17:1, draws black there); one the
 // theme pins in "ansi16" is judged as pinned.
@@ -100,12 +102,12 @@
 // the hex, its hue, the slot and the nearer pin; a pin that is the nearest free hue,
 // however far, is not reported.
 //
-// At 256 colours (-profile ansi256) it warns when two steps of the background ramp (bg,
-// bgPanel, bgSubtle, bgOverlay) that differ in the theme draw as one xterm index, after
-// its "ansi256" pins: a panel, a button or a popover with no edge there (moss's dark bg
-// and bgPanel are both 234). The kit draws an unpinned step on the next grey past the
-// steps below it; the warning names the index and that grey as a pin. A step the kit
-// derives (not written) is not reported. An "ansi256" pin that names no mode, role or
+// At 256 colours (-profile ansi256) two steps of the background ramp (bg, bgPanel,
+// bgSubtle, bgOverlay) can draw as one xterm index (moss's dark bg and bgPanel are both
+// 234). The kit draws an unpinned step on the next grey past the steps below it, so check
+// says nothing of it; it warns on an "ansi256" pin that holds a step on a lower step's
+// index (a panel, a button or a popover with no edge), naming the grey that parts them.
+// An "ansi256" pin that names no mode, role or
 // colour 0-255 exits 2; one further from its role's hex than the nearest index by more
 // than 0.06 in OKLab (a pin left behind when the hex was tuned) warns, unless it is the
 // grey the kit gives that ramp step.
