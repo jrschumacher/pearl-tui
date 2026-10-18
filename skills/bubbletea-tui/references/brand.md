@@ -77,6 +77,10 @@ is acted on, the number, the consequence) and the voice is the brand's: a terse 
 asks `delete nightly-0412? 41.2 GB, no undo`, a thorough one says in two sentences what
 goes and what stays. Terse means fewer words, never fewer facts.
 
+The words can reach the flow too, within the depth the domain sets, but never add a
+step to a flow the domain keeps light, nor change a restyled app's flow unless the user
+asks (`cmd-shape.md` § Depth Follows The Domain, Then The Brand).
+
 ## 2. Translate Traits Into Terminal Moves
 
 | The brand is… | Terminal moves that say it |

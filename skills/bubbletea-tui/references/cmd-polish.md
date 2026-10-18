@@ -24,7 +24,7 @@ Run after the screens work and the critique's P0/P1s are fixed. Go through every
 - [ ] The brand's marks (motif, selection style, header) are visible on this screen,
       and the main screen shows the read's move and signature; any other screen words
       its question, buttons and footer labels (the action table's help text) as its
-      § Screens `brand:` line says.
+      § Screens `brand:` line says; every screen takes the steps its `flow:` line names.
 - [ ] Glyphs come from the theme. One glyph per meaning across the app.
 - [ ] Copy is in the brand's voice (`interaction.md` § Copy). No "Loading...", no
       "Successfully", no "An error occurred".

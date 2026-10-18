@@ -64,8 +64,9 @@ screen's default frame (nothing pressed) draws the read's move and signature (`b
 §6, question 2), and once it renders, the read's `skeleton:` line says what that frame
 shows, axis by axis: fix the frame where it misses the move, and the line where it
 guessed. Every other screen words its question, buttons and footer labels (the action
-table's help text) as its `brand:` line says. Read its render against the line: where
-they disagree, change one, since the critic marks the mismatch. After each screen, run
+table's help text) as its `brand:` line says, and any screen takes the steps and shows
+the preview its `flow:` line names. Read its render against the lines: where they
+disagree, change one, since the critic marks the mismatch. After each screen, run
 the loop below on that screen before starting the next. The slice is the order because
 it is the main loop the design gets judged on; the integrations wait behind it.
 

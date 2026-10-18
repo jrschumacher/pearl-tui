@@ -2,9 +2,64 @@
 
 Input: `TUI.md` and the user's ask. Output: a screen spec the user agrees to, written
 into `TUI.md` § Screens (one block per screen, in the template's shape: job, regions at
-both sizes, collapse rule, components, fixtures, brand line, sketch) and § States and
-keys, and nowhere else: a second file gets skipped, and the project's own docs belong
-to the user. No Go yet.
+both sizes, collapse rule, components, fixtures, brand line, any flow line, sketch) and
+§ States and keys, and nowhere else: a second file gets skipped, and the project's own
+docs belong to the user. No Go yet.
+
+## Depth Follows The Domain, Then The Brand
+
+Before the first block, answer one question: does this domain, or this brand, earn more
+or fewer steps than the spec's default flow? Depth is how many steps a task takes, how
+much shows before an act (a preview, a diff, a summary), what is one key away against a
+screen away, and whether an expert path exists (a command line, batch selection). Read
+the domain first (`SPEC.md` or the ask, § Product, § Users and terminals), then the
+read's three words: the domain sets the range, and a word picks a place in it.
+
+- **High consequence, many objects** (cluster ops, deploys, infrastructure, finance)
+  earns what an act will change, and to what, shown before it runs (`3 replicas v2.4.0
+  → v2.4.1 · 1 unchanged`): on the screen its key is pressed from, one key away, or in
+  the confirm its rung already has, never as a screen in front of a rung-1 act, whose
+  key is the act. One wrong act there reaches many objects.
+- **Experts earn the expert path**: users who run it all day (§ Users and terminals:
+  operators, on-call) or a word such as "for operators" earn `:` for a command line and
+  `space` to mark a batch, because they act on many objects at speed.
+- **Personal, low consequence** (mail, notes, a todo list) earns fewer steps and fewer
+  screens: the item opens in place and the act happens on its key, because an undo
+  covers a slip and every extra step is paid on every use. A screen the ask or
+  `SPEC.md` names stays.
+- **A word places the flow within that range, and never adds a step to a flow the
+  domain keeps light**: "calm" earns one thing at a time on a deep flow, with the rarely
+  read fields behind a key, and on a todo list changes nothing. A restyle keeps the
+  original's flow unless the user asks.
+
+Write the answer on the main screen's block as a `flow:` line that names the domain
+fact (who acts, on how many objects, whether the act can be taken back) and any word
+that moves it: `flow: the spec's, because one person's own list: every act is one key
+and the same key undoes it`, never `the spec's, because the spec defines it`. Give every
+other block whose steps, preview or detail differ from the spec's its own line;
+`tuilint spec` flags one left as a placeholder [S-SLOTS]. The same apply step of a DNS
+zone editor, two brands:
+
+```
+#### apply — publish the edited records              (exact · fast · for operators)
+flow: space marks records and a applies the marked set, because for operators; the rung-3 confirm lists each record old → new, because resolvers cache the new answer for its TTL, so republishing the old one can't take it back
+```
+
+```
+#### apply — publish the edited records              (calm · plain · careful)
+flow: the spec's, one record at a time and no batch path, because its users edit one zone at a time and calm asks for nothing more; the rung-3 confirm lists the record old → new, because resolvers cache the new answer for its TTL, so republishing the old one can't take it back
+```
+
+**DO** keep what the product does: `SPEC.md` decides which tasks exist and what each
+does, and depth changes only how a task is reached and what shows on the way.
+**DON'T** set the depth with a confirm (`interaction.md` § Confirm By Consequence).
+Depth never moves an act's rung, so no confirm goes in front of a rung-1 or rung-2 act
+or a rung-4 act outside its signal's state; a rung-3 act keeps its confirm or its
+form's review step, a rung-4 act in its signal's state keeps its confirm, and neither
+gets a second one after it.
+**DON'T** let a flow differ from the spec's where no domain fact or brand word on its
+`flow:` line asks for it: two brands of one spec then differ by chance, which is drift,
+not identity, and the critic marks it.
 
 ## For Each Screen
 
@@ -43,7 +98,8 @@ to the user. No Go yet.
 7. **Identity**: where the brand shows on this screen (header, motif, selection style,
    copy). On the main screen, whose block comes first, the sketch draws the read's move
    and signature. Every other screen and overlay block gets one `brand:` line (§ Behind
-   The Main Screen).
+   The Main Screen), and a `flow:` line where its flow differs from the spec's (§ Depth
+   Follows The Domain, Then The Brand).
 
 ## Behind The Main Screen
 
@@ -82,7 +138,8 @@ Same snapshot, same facts, same `ui.Dialog`, same theme slots, Keep focused in b
 what differs is the question's length and register, the button words and the footer's
 verbs and keys (the terse one leaves ←→ and enter to ? help). The detail behind it
 differs the same way: `r restore · d delete · esc back` against `r restore to a folder ·
-d delete snapshot · esc back to the list`.
+d delete snapshot · esc back to the list`. Both keep the spec's flow, one key to one
+confirm; a brand that changes it says why on a `flow:` line.
 
 **DO** write each line from one of the three words, as what the user reads: the
 question, the button labels, the footer's verbs (the action table's help text), the

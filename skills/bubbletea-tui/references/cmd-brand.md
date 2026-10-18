@@ -23,7 +23,8 @@ drifts), contact sheets in both modes, a passing diversity lint. Read
 3. **Write the read** into `TUI.md` § Brand read (`brand.md` §1): palette, tone,
    geometry, density, type, motif, move, signature, then one line per expression tying
    it to a trait. Use the translation table in `brand.md` §2 as a starting point, not an
-   answer.
+   answer. The words also feed `shape`'s depth question, whose answer lives on § Screens'
+   `flow:` lines only (`cmd-shape.md` § Depth Follows The Domain, Then The Brand).
 4. **Choose the move and the signature** (`brand.md` § Move A Region). With the motif
    (`▲ △` sails, lowercase titles), they are the moves this brand owns; everything else
    may stay quiet. Then write the read's `skeleton:` line (`brand.md` § 5, the words in
