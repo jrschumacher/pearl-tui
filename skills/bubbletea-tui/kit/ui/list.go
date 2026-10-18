@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
@@ -207,9 +208,11 @@ func bolden(s string) string {
 }
 
 // selFilled draws plain text as a selected row on a filled bar: text in SelRow, and the
-// bars of a trace or sparkline (block elements, braille) in SelBars, the fill with the
-// bars in its shade. In the row's ink they were blocks of the page through the fill.
+// cells of a trace or sparkline (traceCell) in SelBars, the fill with the bars in its
+// shade. In the row's ink they were blocks of the page through the fill.
 func selFilled(t *theme.Theme, plain string) string {
+	plain = noBars(t, plain)
+	is := traceCell(t)
 	var b, run strings.Builder
 	bars := false
 	flush := func() {
@@ -224,7 +227,7 @@ func selFilled(t *theme.Theme, plain string) string {
 		run.Reset()
 	}
 	for _, r := range plain {
-		if isBar := r >= 0x2580 && r <= 0x259F || r >= 0x2800 && r <= 0x28FF; isBar != bars {
+		if isBar := is(r); isBar != bars {
 			flush()
 			bars = isBar
 		}
@@ -232,6 +235,35 @@ func selFilled(t *theme.Theme, plain string) string {
 	}
 	flush()
 	return b.String()
+}
+
+// traceCell reports whether r is a glyph Trace or Sparkline draws (Theme.TraceGlyphs),
+// so a row can tell its bars from its text. Under ASCII the trace draws text characters
+// (. : ;), which a row can't tell apart, so nothing is a bar there.
+func traceCell(t *theme.Theme) func(rune) bool {
+	if t.ASCII {
+		return func(rune) bool { return false }
+	}
+	floor, ramp := t.TraceGlyphs()
+	set := floor + strings.Join(ramp, "")
+	return func(r rune) bool { return strings.ContainsRune(set, r) }
+}
+
+// noBars blanks the trace cells of a selected row under NO_COLOR, where the selection is
+// reverse video, whose one ink is the page's: any bar glyph on it is a hole, so the fill
+// runs through and the row's figure carries the reading. A blurred selection does the
+// same, so a row reads the same under an overlay. s may be styled: escapes are ASCII.
+func noBars(t *theme.Theme, s string) string {
+	if t.Profile != colorprofile.Ascii && t.Profile != colorprofile.NoTTY {
+		return s
+	}
+	is := traceCell(t)
+	return strings.Map(func(r rune) rune {
+		if is(r) {
+			return ' '
+		}
+		return r
+	}, s)
 }
 
 // underlay sets bg under every cell of a pre-styled line: each span's style ends in a
@@ -392,7 +424,7 @@ func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 		case selected && mode == "caret":
 			out = append(out, Fit(t.S.BlurBar.Render(t.BlurBar())+" "+line, w))
 		case selected:
-			out = append(out, underlay(Fit("  "+line, w), t.P.BgSubtle))
+			out = append(out, underlay(Fit("  "+noBars(t, line), w), t.P.BgSubtle))
 		default:
 			out = append(out, Fit("  "+line, w))
 		}
