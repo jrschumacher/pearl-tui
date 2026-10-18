@@ -141,3 +141,59 @@ func slot16(c, def color.Color) int {
 	}
 	return theme.Slot16(c)
 }
+
+// The warning keeps yellow at 16 colours (#51), and yellow 3 on a white page is 1.35:1:
+// halyard's thin "!", a [DEGRADED] tag and a [PROD] badge drawn in it vanished. Where the
+// warning's slot reads under 3:1 on the page, no cell draws in the warning as text
+// alone: the warning is a fill there (theme.Styles.Warn), a yellow cell with a dark ink.
+// The warning's own cells are found by a second render with the warning pinned to
+// magenta: other roles that land on yellow (an accent) stay put.
+func TestWarningIsAFillWhereItsSlotIsFaint(t *testing.T) {
+	for _, path := range testThemes(t) {
+		tf, err := theme.Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dark := range []bool{true, false} {
+			mode := map[bool]string{true: "dark", false: "light"}[dark]
+			moved := tf
+			moved.ANSI16 = map[string]map[string]int{}
+			for m, pins := range tf.ANSI16 {
+				moved.ANSI16[m] = map[string]int{}
+				for r, n := range pins {
+					moved.ANSI16[m][r] = n
+				}
+			}
+			if moved.ANSI16[mode] == nil {
+				moved.ANSI16[mode] = map[string]int{}
+			}
+			probe := map[bool]int{true: 13, false: 5}[dark]
+			moved.ANSI16[mode]["warning"] = probe
+			for _, state := range ansi16States {
+				m, c := renderState(tf, dark, colorprofile.ANSI, state, 80, 24)
+				if theme.Contrast16(m.t.P.Warning, m.t.P.Bg) >= 3 {
+					continue
+				}
+				_, c2 := renderState(moved, dark, colorprofile.ANSI, state, 80, 24)
+				warn := theme.Slot16(m.t.P.Warning)
+				found := 0
+				for y := range 24 {
+					for x := range 80 {
+						cell, probed := c.CellAt(x, y), c2.CellAt(x, y)
+						if cell == nil || probed == nil || strings.TrimSpace(cell.Content) == "" || cell.Style.Attrs&uv.AttrReverse != 0 {
+							continue
+						}
+						if slot16(probed.Style.Fg, m.t.P.Fg) != probe || slot16(cell.Style.Fg, m.t.P.Fg) != warn {
+							continue // not the warning's ink
+						}
+						found++
+						if slot16(cell.Style.Bg, m.t.P.Bg) != warn && found < 3 {
+							t.Errorf("%s dark=%v %s: %q at %d,%d draws in the warning's ANSI %d as text on ANSI %d, %.2f:1: %q", filepath.Base(path), dark, state,
+								cell.Content, x, y, warn, slot16(cell.Style.Bg, m.t.P.Bg), theme.Contrast16(m.t.P.Warning, m.t.P.Bg), strings.TrimRight(rowText(c, y), " "))
+						}
+					}
+				}
+			}
+		}
+	}
+}

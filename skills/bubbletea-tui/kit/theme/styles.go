@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/rivo/uniseg"
 )
 
@@ -43,6 +44,10 @@ type Styles struct {
 	BarOK, BarErr, BarWarn, BarInfo lipgloss.Style
 }
 
+// warnFloor16 is the contrast under which the warning's slot is drawn as a fill at 16
+// colours: 3:1, the floor for a state mark on its page.
+const warnFloor16 = 3
+
 func build(t *Theme) Styles {
 	p, x := t.P, t.X
 	var s Styles
@@ -62,6 +67,13 @@ func build(t *Theme) Styles {
 	s.Tertiary = s.Base.Foreground(p.Tertiary)
 	s.Accent = s.Base.Foreground(p.Accent)
 	s.OK, s.Err, s.Warn, s.Info = s.Base.Foreground(p.Success), s.Base.Foreground(p.Error), s.Base.Foreground(p.Warning), s.Base.Foreground(p.Info)
+	// the warning keeps yellow at 16 colours (#51), and yellow 3 on a light page is 1.35:1:
+	// a yellow hairline vanishes on white where a yellow cell does not, so there the
+	// warning is a fill, its ink dark (OnWarning, re-inked to read on the slot), and every
+	// mark, word and sparkline drawn in it is a yellow block that carries its shape
+	if t.Profile == colorprofile.ANSI && Contrast16(p.Warning, p.Bg) < warnFloor16 {
+		s.Warn = lipgloss.NewStyle().Background(p.Warning).Foreground(p.OnWarning)
+	}
 	s.Rule = lipgloss.NewStyle().Foreground(p.Border)
 	// focus "fg": the hue is the brand's state colour, so the kit's emphasis is weight
 	fgFocus := x.Focus == "fg"
