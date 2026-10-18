@@ -35,7 +35,10 @@
 //	                 a wordmark on an empty page is what a splash is)
 //	F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
 //	F-TAB       [P1] a raw tab in a frame: lipgloss measures it as 0 cells, a terminal as the
-//	                 run to the next 8-column stop, so the row tears; expand tabs before fitting
+//	                 run to the next 8-column stop, so the row tears; expand tabs before fitting.
+//	                 The kit's canvas expands tabs (ui.ExpandTabs), so this fires only where a
+//	                 view bypasses it: file or log content written straight into View(), the
+//	                 place a tab arrives from data; it stays P1 because the row it tears is real
 //	F-TRUNC     [P2] more than 3 rows ending in an ellipsis (…, the theme's glyphs.ellipsis, or
 //	                 ... with --ascii) at one column: a column budgeted narrower than its content
 //	                 (not a table's last column headed path, file, command or url, its columns
@@ -106,6 +109,8 @@ else is a rune the ASCII sweep had no twin for, which reads as a question.
   F-EMPTY     [P2] frame is more than 98.5% blank (not on a splash*/intro*/wordmark* frame)
   F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
   F-TAB       [P1] a raw tab: 0 cells to lipgloss, up to 8 to a terminal; expand it before fitting
+                   (the kit's canvas does; this catches a view that bypasses it with file or
+                   log content)
   F-TRUNC     [P2] more than 3 rows ending in an ellipsis at one column: widen it from the
                    longest fixture, or, for paths, URLs, code, name its header or budget region
                    on a "cuts:" line in TUI.md § Decisions and pass --spec TUI.md
