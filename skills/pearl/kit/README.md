@@ -52,10 +52,10 @@ themes/         ink (the fallback: theme.Default() as a file, TestInkIsTheDefaul
 cmd/showcase/   the Bubble Tea reference app and its harness
 ```
 
-`theme/bubbletea/theme.go` is the contract: every key the kit reads, its values and what each
-draws, mirrored in `references/brand.md` §4. `palette check` fails a key or value the
-kit doesn't know. `wordmark.style` is the one key nothing reads: wordmark.py records the
-style it drew with; the tones come from the glyphs in the rows.
+`theme/bubbletea/theme.go` is the contract: every key the kit reads, its values and what
+each draws, mirrored in `references/brand.md` §4. `palette check` fails a key or value
+the kit doesn't know. `wordmark.style` is the one key nothing reads: wordmark.py records
+the style it drew with; the tones come from the glyphs in the rows.
 
 `ladder` (optional) is the product's own status ladder, `[{"glyph", "meaning", "role"}]`
 in the order a thing moves through it: a glyph that is a status slot (`current`, never a
@@ -63,8 +63,8 @@ chrome glyph such as `focusBar`) or a one-cell literal with a twin, a meaning of
 product's own (`new`; never a kit slot's name such as `done`), and any colour role (or
 `focus` / `working`). `ui.Rungs`, `ui.Mark(t, "new")` and the `ladder` state draw those
 rungs in those inks instead of the kit's default rungs; the kit's slots keep theirs.
-`theme/bubbletea/testdata/quire.json` declares one; `palette check` fails a role, glyph or meaning
-the kit can't draw (`theme.CheckLadder`).
+`theme/bubbletea/testdata/quire.json` declares one; `palette check` fails a role, glyph
+or meaning the kit can't draw (`theme.CheckLadder`).
 
 ## The showcase is the pattern
 

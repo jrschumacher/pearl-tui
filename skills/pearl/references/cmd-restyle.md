@@ -18,18 +18,19 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
    short form, saying what you assumed; otherwise suggest `init` and stop: restyling
    without the brand read and the screen plan only recolours.
 1. **Get eyes on it first** (`cmd-critique.md` §1) and save the "before" sheets.
-2. **Add the harness from the kit.** Copy `theme/bubbletea` and `ui/bubbletea` with the README block
-   (`cmd-craft.md` §1; skip `cmd/showcase`, the app exists), then lift `main.go`'s
-   harness (`render(w, h)`, `setState`, `states`, `overlays`, `scrolls`, `overlayPages`,
-   `unjudgedPages`, `openOverlay`, the `-golden`/`-out` flags) into the app's package
-   and give the app's model the names the harness tests read (`kit/README.md`), then copy
-   `showcase_test.go`, `overlay_test.go`, `behaviour_test.go` and `ansi16_test.go`
-   whole. Written by hand, the harness loses the kit's tests (`TestHelpIsHandled`,
-   footprint, contrast). Fix footprint failures before anything visual.
+2. **Add the harness from the kit.** Copy `theme/bubbletea` and `ui/bubbletea` with the
+   README block (`cmd-craft.md` §1; skip `cmd/showcase`, the app exists), then lift
+   `main.go`'s harness (`render(w, h)`, `setState`, `states`, `overlays`, `scrolls`,
+   `overlayPages`, `unjudgedPages`, `openOverlay`, the `-golden`/`-out` flags) into the
+   app's package and give the app's model the names the harness tests read
+   (`kit/README.md`), then copy `showcase_test.go`, `overlay_test.go`,
+   `behaviour_test.go` and `ansi16_test.go` whole. Written by hand, the harness loses the
+   kit's tests (`TestHelpIsHandled`, footprint, contrast). Fix footprint failures before
+   anything visual.
 3. **Migrate to v2** if it's on v1 (`bubbletea-architecture.md`): import paths,
-   `View() tea.View`, `tea.KeyPressMsg`, the AltScreen/mouse view fields, Lip Gloss colours, Bubbles style
-   setters. Use the official upgrade guides for the mechanics. The renders must match
-   before and after.
+   `View() tea.View`, `tea.KeyPressMsg`, the AltScreen/mouse view fields, Lip Gloss
+   colours, Bubbles style setters. Use the official upgrade guides for the mechanics. The
+   renders must match before and after.
 4. **Pull every colour and glyph into a theme.** `tuilint code` lists the hex literals
    [C-HEX] and emoji [C-EMOJI]. Map each literal to a role (most map to 6–8 roles), and
    each glyph to the glyph set. If the product has a brand, run `cmd-brand.md`; if not,

@@ -39,16 +39,19 @@ its first and only framework today is Bubble Tea v2.
 
 - The skill is renamed from `bubbletea-tui` to `pearl`, and the repository from
   `jrschumacher/skill-bubbletea-tui` to `jrschumacher/pearl-tui`: install with
-  `npx skills add jrschumacher/pearl-tui` or `/plugin marketplace add jrschumacher/pearl-tui`
-  and `/plugin install pearl@jrschumacher`; commands are `/pearl <command>`; the skill
+  `npx skills add jrschumacher/pearl-tui` or
+  `/plugin marketplace add jrschumacher/pearl-tui` and
+  `/plugin install pearl@jrschumacher`; commands are `/pearl <command>`; the skill
   directory is `skills/pearl` (`.claude/skills/pearl` once installed). Remove the old
   install first, or the skill loads twice and the old copy stops updating:
   - skills.sh: delete `.claude/skills/bubbletea-tui` (and `.agents/skills/bubbletea-tui`
     when it is a link there, or `~/.claude/skills/bubbletea-tui`) and the
-    `bubbletea-tui` entry in `skills-lock.json`, then `npx skills add jrschumacher/pearl-tui`;
+    `bubbletea-tui` entry in `skills-lock.json`, then
+    `npx skills add jrschumacher/pearl-tui`;
   - plugin: `/plugin uninstall bubbletea-tui@jrschumacher`, then
     `/plugin marketplace remove jrschumacher`,
-    `/plugin marketplace add jrschumacher/pearl-tui` and `/plugin install pearl@jrschumacher`.
+    `/plugin marketplace add jrschumacher/pearl-tui` and
+    `/plugin install pearl@jrschumacher`.
 - The kit's packages move under their framework: `kit/theme` is `kit/theme/bubbletea`
   and `kit/ui` is `kit/ui/bubbletea`, imported as `tuikit/theme/bubbletea` and
   `tuikit/ui/bubbletea`. The package names stay `theme` and `ui`. `kit/themes/*.json`,

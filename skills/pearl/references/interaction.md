@@ -6,9 +6,10 @@ any framework.*
 
 ## Keys Are A Contract
 
-- Define every key once, in a per-state **action table** (binding + handler), which
-  both the dispatcher and the footer read (`bubbletea-architecture.md` § Keys). A key in
-  the help that doesn't work is a bug [C-KEYS], and `TestHelpIsHandled` makes it a failing test.
+- Define every key once, in a per-state **action table** (binding + handler), which both
+  the dispatcher and the footer read (`bubbletea-architecture.md` § Keys). A key in the
+  help that doesn't work is a bug [C-KEYS], and `TestHelpIsHandled` makes it a failing
+  test.
 - Actions act on **the selection**, not on the first item of the fixture. Test it:
   select the fifth row, press the key, and check the dialog names the fifth item.
 - **Conventions users already have:** `↑/↓` and `j/k` move, `enter` selects/submits,
