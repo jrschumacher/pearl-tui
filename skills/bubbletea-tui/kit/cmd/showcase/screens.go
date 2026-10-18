@@ -108,12 +108,12 @@ func (m *app) draw(w, h int) *ui.Canvas {
 	// the toast takes the footer's row; under a dialog that row holds the dialog's keys
 	// (a help opened in the toast's 4 s lost its "scroll" key to it)
 	// it names the key it offers only where that key works (toastAction)
-	if m.toast != nil && m.ov == ovNone {
+	if n, ok := m.toasts.Current(); ok && m.ov == ovNone {
 		var k key.Binding
 		if a := m.toastAction(); a != nil {
 			k = a.b
 		}
-		c.Draw(ui.ToastKey(t, m.toast.kind, m.toast.label, m.toastMsg(), k, w), ui.Rect(0, h-1, w, 1))
+		c.Draw(ui.ToastKey(t, n.Kind, n.Label, m.toasts.Text(), k, w), ui.Rect(0, h-1, w, 1))
 	}
 	return c
 }

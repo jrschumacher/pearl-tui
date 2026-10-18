@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"image/color"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -274,8 +275,8 @@ func TestRefreshRateToastNamesTheRate(t *testing.T) {
 	for range refreshRates {
 		m.command("Refresh rate")
 		r := refreshRates[m.refresh.rate]
-		if m.toast == nil || m.toast.msg != "every "+r.label {
-			t.Fatalf("the toast for %s reads %+v, want \"every %s\"", r.every, m.toast, r.label)
+		if n, ok := m.toasts.Current(); !ok || n.Msg != "every "+r.label {
+			t.Fatalf("the toast for %s reads %+v, want \"every %s\"", r.every, n, r.label)
 		}
 		if strings.HasSuffix(r.label, "0s") && r.every >= time.Minute {
 			t.Errorf("the %s label %q prints the zero seconds", r.every, r.label)
@@ -373,7 +374,7 @@ func TestDeployLifecycle(t *testing.T) {
 		t.Fatal("deploy never finished")
 	}
 	m.Update(deployDoneMsg{"search-indexer"})
-	m.toast = nil
+	m.toasts = ui.Toasts{}
 	if m.animating() {
 		t.Fatal("nothing is deploying and no toast: the clock must stop")
 	}
@@ -682,72 +683,52 @@ func TestFaintWarningSparklineStaysQuiet(t *testing.T) {
 	}
 }
 
-// advance runs the frame clock n frames, as its ticks would arrive.
+// advance runs the frame clock n frames (step, what each tick does before it re-arms)
+// and runs every command they return, a grace window's send among them.
 func advance(m *app, n int) {
 	for range n {
-		m.Update(tickMsg{gen: m.tick.gen})
+		runCmd(m, m.step())
 	}
 }
 
-// toastRow is the footer row as drawn at w×h, where a toast stands while it shows.
-func toastRow(m *app, w, h int) string {
-	return rowText(m.render(w, h), h-1)
-}
-
-// pressToastKeys checks the toast m shows (if it offers a key): the footer row names
-// the key and what it does, the state's action table binds it, and every one of its
-// keys, pressed on a fresh copy of the state, reaches the toast's handler. fresh
-// rebuilds the state the toast was raised in.
-func pressToastKeys(t *testing.T, name string, m *app, fresh func() *app) {
-	t.Helper()
-	a := m.toastAction()
-	if a == nil {
+// runCmd runs cmd as Bubble Tea would, batches and sequences included, and feeds each
+// message back to the model, except quit. It is how a test sees a command that was
+// returned rather than dropped. (Only for commands that answer at once: a timer's would
+// wait out its time.)
+func runCmd(m *app, cmd tea.Cmd) {
+	if cmd == nil {
 		return
 	}
-	h := a.b.Help()
-	for _, sz := range [][2]int{{minW, minH}, {80, 24}, {120, 40}} {
-		if row := toastRow(m, sz[0], sz[1]); !strings.Contains(row, h.Key+" "+h.Desc) {
-			t.Errorf("%s %dx%d: the toast offers %s %s but its row reads %q", name, sz[0], sz[1], h.Key, h.Desc, row)
+	got := cmd()
+	switch msg := got.(type) {
+	case nil, tea.QuitMsg:
+	case tea.BatchMsg:
+		for _, c := range msg {
+			runCmd(m, c)
 		}
-	}
-	if !slices.ContainsFunc(m.actions(), func(b action) bool { return b.b.Help() == h }) {
-		t.Errorf("%s: the toast names %s %s, which the state's action table doesn't hold", name, h.Key, h.Desc)
-	}
-	for _, k := range a.b.Keys() {
-		f := fresh()
-		f.key(press(k))
-		if f.last != h.Desc {
-			t.Errorf("%s: %q, which the toast names (%s), reached %q", name, k, h.Desc, f.last)
+	default:
+		if v := reflect.ValueOf(msg); v.Kind() == reflect.Slice && v.Type().Elem() == reflect.TypeOf(tea.Cmd(nil)) {
+			for i := range v.Len() { // tea.Sequence's message: its commands, in order
+				runCmd(m, v.Index(i).Interface().(tea.Cmd))
+			}
+			return
+		}
+		if _, isKey := msg.(tea.KeyPressMsg); !isKey {
+			m.Update(msg) // its own command (a clock re-arm) is the clock's: advance drives it
 		}
 	}
 }
 
-// Law 6 for the one key a toast names: every key a toast offers (u undo, u unsilence)
-// is in the state's action table while the toast shows, its row names it at every size
-// down to the floor, and pressing it does what the row says. Every toast the app
-// raises is reached: each key of each state's table, and each palette command.
-func TestToastKeysAreHandled(t *testing.T) {
-	offered := 0
-	for _, s := range states {
-		m := fixture(t, s)
-		if m.toastAction() != nil {
-			offered++
-			pressToastKeys(t, s, m, func() *app { return fixture(t, s) })
-		}
-		for _, a := range m.actions() {
-			k := a.b.Keys()[0]
-			raise := func() *app { f := fixture(t, s); f.key(press(k)); return f }
-			if r := raise(); r.toastAction() != nil {
-				offered++
-				pressToastKeys(t, s+" then "+k, r, raise)
-			}
-		}
-	}
+// Every toast the showcase raises that offers a key is reached and its key works: the
+// kept TestToastKeysAreHandled walks each state's keys, and this adds each palette
+// command (Silence alerts raises the undo toast), and holds that some toast offers one.
+func TestShowcaseToastKeysAreHandled(t *testing.T) {
+	offered := toastKeysOffered(t)
 	for _, c := range commands {
 		raise := func() *app { f := fixture(t, "services"); f.command(c.Title); return f }
 		if r := raise(); r.toastAction() != nil {
 			offered++
-			pressToastKeys(t, "services then "+c.Title, r, raise)
+			pressToastKeys(t, "services", "services then "+c.Title, r, raise)
 		}
 	}
 	if offered == 0 {
@@ -765,8 +746,8 @@ func TestSilenceUndoes(t *testing.T) {
 	if !m.silenced[name] {
 		t.Fatal("Silence alerts didn't silence the selected service")
 	}
-	if m.toast == nil || m.toast.until-m.frame != ui.Frames(ui.UndoTTL) {
-		t.Fatalf("the silence toast %+v should stand for UndoTTL (%d frames)", m.toast, ui.Frames(ui.UndoTTL))
+	if n, ok := m.toasts.Current(); !ok || n.For != ui.UndoTTL {
+		t.Fatalf("the silence toast %+v should stand for UndoTTL", n)
 	}
 	if row := toastRow(m, 80, 24); !strings.Contains(row, "Silenced "+name+" alerts for 1h") || !strings.Contains(row, "u unsilence") {
 		t.Errorf("the silence toast reads %q", row)
@@ -781,8 +762,8 @@ func TestSilenceUndoes(t *testing.T) {
 	// the undo key lives as long as its toast
 	m.command("Silence alerts")
 	advance(m, ui.Frames(ui.UndoTTL))
-	if m.toast != nil || m.toastAction() != nil {
-		t.Fatalf("the undo toast outlived UndoTTL: %+v", m.toast)
+	if _, ok := m.toasts.Current(); ok || m.toastAction() != nil {
+		t.Fatal("the undo toast outlived UndoTTL")
 	}
 	m.last = ""
 	m.key(press("u"))
@@ -795,32 +776,37 @@ func TestSilenceUndoes(t *testing.T) {
 }
 
 // A page is rung 2: `n declare incident` is the judgement, so no confirm, but the page
-// waits out a grace window under an undo toast that counts down. Undo inside the window
-// means it never goes; letting the window run sends it, and a plain toast says it went.
+// waits out a grace window under an undo toast that counts down. The send is a command
+// (page), observed by its message arriving: it runs once when the window ends, once on
+// quit (q or ctrl+c), and never once undone. No other key cuts the window short (h's
+// toast waits and shows after the confirmation), and help over it stops the clock.
 func TestGraceWindow(t *testing.T) {
+	press1 := func(m *app, k string) { runCmd(m, m.key(press(k))) }
 	m := fixture(t, "incidents")
-	m.Update(press("n"))
-	if m.declared {
+	press1(m, "n")
+	if m.declared || m.pages != 0 {
 		t.Fatal("the incident was declared at once: the page should wait out its grace window")
 	}
-	if row := toastRow(m, 80, 24); !strings.Contains(row, "Paging payments on-call in 5 s") || !strings.Contains(row, "u undo") {
+	if row := toastRow(m, 80, 24); !strings.Contains(row, "Paging payments on-call in 5s") || !strings.Contains(row, "u undo") {
 		t.Errorf("the grace toast reads %q", row)
 	}
 	advance(m, ui.Frames(time.Second))
-	if row := toastRow(m, 80, 24); !strings.Contains(row, "in 4 s") {
+	if row := toastRow(m, 80, 24); !strings.Contains(row, "in 4s") {
 		t.Errorf("a second in, the grace toast reads %q: it should count down", row)
 	}
-	m.Update(press("u"))
-	advance(m, ui.Frames(ui.GraceTTL)+ui.Frames(ui.ToastTTL))
-	if m.declared {
-		t.Fatal("u undo inside the grace window, and the page went anyway")
+	press1(m, "u")
+	advance(m, 2*ui.Frames(ui.GraceTTL))
+	press1(m, "ctrl+c")
+	if m.declared || m.pages != 0 {
+		t.Fatalf("u undo inside the grace window, and the page went anyway (%d pages)", m.pages)
 	}
 
+	// the window runs out: the page goes once, and the row says it went
 	m = fixture(t, "incidents")
-	m.Update(press("n"))
+	press1(m, "n")
 	advance(m, ui.Frames(ui.GraceTTL))
-	if !m.declared {
-		t.Fatal("the grace window ended and nothing was sent")
+	if !m.declared || m.pages != 1 {
+		t.Fatalf("the grace window ended: declared %v, %d pages, want one", m.declared, m.pages)
 	}
 	if row := toastRow(m, 80, 24); !strings.Contains(row, "Declared INC-2041") || !strings.Contains(row, "paged payments on-call") {
 		t.Errorf("after the window the toast reads %q, want it to say the page went", row)
@@ -831,15 +817,73 @@ func TestGraceWindow(t *testing.T) {
 	if slices.ContainsFunc(m.actions(), func(a action) bool { return a.b.Help().Desc == "declare incident" }) {
 		t.Error("n declare incident is still offered with INC-2041 declared")
 	}
+	advance(m, 3*ui.Frames(ui.GraceTTL))
+	press1(m, "q")
+	if m.pages != 1 {
+		t.Errorf("the page went %d times", m.pages)
+	}
 
-	// moving on doesn't drop what is held: another toast, or quitting, sends it now
-	for _, k := range []string{"h", "q"} {
+	// quitting inside the window sends it, once
+	for _, k := range []string{"q", "ctrl+c"} {
 		m = fixture(t, "incidents")
-		m.Update(press("n"))
-		m.key(press(k))
-		if !m.declared {
-			t.Errorf("%s during the grace window dropped the page: it was neither undone nor sent", k)
+		press1(m, "n")
+		press1(m, k)
+		if !m.declared || m.pages != 1 {
+			t.Errorf("%s during the grace window: declared %v, %d pages, want the page sent once", k, m.declared, m.pages)
 		}
+	}
+
+	// another key doesn't cut it short: h's toast waits behind it and the confirmation
+	m = fixture(t, "incidents")
+	press1(m, "n")
+	advance(m, ui.Frames(time.Second))
+	press1(m, "h")
+	if m.declared || m.pages != 0 || !strings.Contains(toastRow(m, 80, 24), "in 4s") {
+		t.Fatalf("h a second into the window: declared %v, %d pages, row %q", m.declared, m.pages, toastRow(m, 80, 24))
+	}
+	advance(m, ui.Frames(ui.GraceTTL)-ui.Frames(time.Second))
+	if m.pages != 1 || !strings.Contains(toastRow(m, 80, 24), "Declared INC-2041") {
+		t.Fatalf("at the window's end: %d pages, row %q, want the page and its confirmation", m.pages, toastRow(m, 80, 24))
+	}
+	advance(m, ui.Frames(ui.ToastTTL))
+	if !strings.Contains(toastRow(m, 80, 24), "No incidents in the last 30 days") {
+		t.Errorf("after the confirmation the row reads %q, want h's toast, which waited", toastRow(m, 80, 24))
+	}
+
+	// help over the window stops its clock: it never sends unseen, without its key
+	m = fixture(t, "incidents")
+	press1(m, "n")
+	press1(m, "?")
+	if m.ov != ovHelp || m.toastAction() != nil {
+		t.Fatalf("help over the window: ov %v, toast key %v, want help and no toast key", m.ov, m.toastAction())
+	}
+	advance(m, 3*ui.Frames(ui.GraceTTL))
+	if m.declared || m.pages != 0 {
+		t.Fatal("the window ran out under help, where its undo key can't be reached")
+	}
+	press1(m, "esc")
+	if row := toastRow(m, 80, 24); !strings.Contains(row, "in 5s") || !strings.Contains(row, "u undo") {
+		t.Errorf("back from help the row reads %q, want the window where it was", row)
+	}
+}
+
+// The state's own key wins a clash with a toast's key, and the toast then offers none:
+// a toast whose key the state binds (an undo on h where incidents binds h history)
+// names no key, and h does what the state's table says. With the toast's key first in
+// actions() the row named "h undo" and h undid, while the footer said history.
+func TestStateKeyWinsAClashWithAToast(t *testing.T) {
+	m := fixture(t, "incidents")
+	undone := false
+	m.sayUndo("ok", "DONE", "Archived the postmortem", bind([]string{"h"}, "h", "unarchive"), func(*app) tea.Cmd { undone = true; return nil })
+	if a := m.toastAction(); a != nil {
+		t.Errorf("the toast offers %q, which the state binds", a.b.Keys())
+	}
+	if row := toastRow(m, 80, 24); strings.Contains(row, "unarchive") {
+		t.Errorf("the toast row names a key the state binds: %q", row)
+	}
+	m.key(press("h"))
+	if undone || m.last != "history" {
+		t.Errorf("h undid the toast (%v) or reached %q, want the state's history", undone, m.last)
 	}
 }
 

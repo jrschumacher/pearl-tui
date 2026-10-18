@@ -183,7 +183,7 @@ func (m *app) toForm(msg tea.Msg) tea.Cmd {
 	case stAlerts:
 		return tea.Batch(cmd, m.goStep(stReview))
 	case stDone:
-		m.finishSetup(true)
+		return tea.Batch(cmd, m.finishSetup(true))
 	}
 	return cmd
 }
@@ -205,16 +205,16 @@ func (f *setupFlow) focusedConfirm() *huh.Confirm {
 	return c
 }
 
-func (m *app) finishSetup(connected bool) {
+func (m *app) finishSetup(connected bool) tea.Cmd {
 	f := m.setup
 	m.screen = scrServices
 	switch {
 	case !connected:
-		m.say("info", "SKIPPED", "Nothing was saved "+m.t.G.Sep+" run "+m.t.AppName()+" connect any time")
+		return m.say("info", "SKIPPED", "Nothing was saved "+m.t.G.Sep+" run "+m.t.AppName()+" connect any time")
 	case f.makeDefault:
-		m.say("ok", "CONNECTED", f.cluster+" is your default cluster "+m.t.G.Sep+" 38 services")
+		return m.say("ok", "CONNECTED", f.cluster+" is your default cluster "+m.t.G.Sep+" 38 services")
 	default:
-		m.say("ok", "CONNECTED", f.cluster+" "+m.t.G.Sep+" pass --cluster to use it")
+		return m.say("ok", "CONNECTED", f.cluster+" "+m.t.G.Sep+" pass --cluster to use it")
 	}
 }
 
@@ -272,18 +272,15 @@ func (m *app) setupActions(help action) []action {
 		}
 		acts := []action{esc("cancel", func(m *app) tea.Cmd {
 			m.setup.gen++ // the pending result is now stale
-			m.say("info", "CANCELED", "Sign-in canceled "+m.t.G.Sep+" nothing was sent to "+m.setup.cluster)
-			return m.goStep(stReview)
+			return tea.Batch(m.say("info", "CANCELED", "Sign-in canceled "+m.t.G.Sep+" nothing was sent to "+m.setup.cluster), m.goStep(stReview))
 		})}
 		if f.auth != "token" {
 			acts = append(acts,
 				action{bind([]string{"c"}, "c", "copy code"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
-					m.say("ok", "COPIED", deviceCode)
-					return tea.SetClipboard(deviceCode)
+					return tea.Batch(m.say("ok", "COPIED", deviceCode), tea.SetClipboard(deviceCode))
 				}},
 				action{bind([]string{"o"}, "o", "open page"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
-					m.say("info", "OPENED", m.signinURL())
-					return nil
+					return m.say("info", "OPENED", m.signinURL())
 				}})
 		}
 		return append(acts, help)
@@ -296,14 +293,12 @@ func (m *app) setupActions(help action) []action {
 		escAct = esc("quit setup", func(m *app) tea.Cmd {
 			if m.setup.namespace != "" && !m.setup.escArmed {
 				m.setup.escArmed = true // never drop typed input on one key
-				m.say("warning", "ESC AGAIN", "to discard what you typed and leave setup")
-				return nil
+				return m.say("warning", "ESC AGAIN", "to discard what you typed and leave setup")
 			}
-			m.finishSetup(false)
-			return nil
+			return m.finishSetup(false)
 		})
 	case stDone:
-		escAct = esc("skip", func(m *app) tea.Cmd { m.setup.makeDefault = false; m.finishSetup(true); return nil })
+		escAct = esc("skip", func(m *app) tea.Cmd { m.setup.makeDefault = false; return m.finishSetup(true) })
 	default:
 		escAct = back(f.step - 1)
 	}
@@ -349,8 +344,7 @@ func (m *app) reviewChoose() tea.Cmd {
 	case 1:
 		return m.goStep(stTarget)
 	}
-	m.finishSetup(false)
-	return nil
+	return m.finishSetup(false)
 }
 
 func (m *app) signinURL() string { return "https://login." + m.t.AppName() + ".example/device" }

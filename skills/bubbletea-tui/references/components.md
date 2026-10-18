@@ -226,31 +226,39 @@ review step, not Edit).
 across the width: the banner for "something is wrong with what you're looking at". One
 alert per screen. If there are many, it's a list.
 
-## Toast — `ui.Toast`, `ui.ToastKey`
+## Toast — `ui.Toast`, `ui.ToastKey`, `ui.Toasts`
 
 Paints over the footer row for ~4 s, an undo toast ~8 s and a grace window ~5 s
 (`ui.ToastTTL`, `ui.UndoTTL`, `ui.GraceTTL`; `motion.md` § Budget), as a tag and a
-message on a tinted bar, then the help returns. Never a new row, never a modal. Hold
-each toast's end on the frame clock (`until: frame + ui.Frames(ui.UndoTTL)`), so one
-tick both animates and ends it, and a test drives both.
+message on a tinted bar, then the help returns. Never a new row, never a modal. Keep the
+row in a `ui.Toasts` and raise `ui.Note`s on it: it runs on the frame clock (`Tick` each
+frame and return what it returns), so one tick both animates and ends a toast, and a
+test drives both.
 
 An undo toast is what a reversible action gets instead of a confirm: it names what
 happened and the key that takes it back (`Closed #812 · x reopen`, `Marked 12 done · u
 undo`), stays the longer ~8 s so the hand can reach the key, and that key is bound in
 the state's action table while it shows. Never for something that can't be undone:
-that one had a confirm, and an undo that can't is a lie. Copy the showcase's `toast`
-(`kit/cmd/showcase/app.go`): its one `action` goes first in `actions()` while it shows
-and leaves with it, so `TestHelpIsHandled` presses it, and `ui.ToastKey` draws the row
-from that binding, cutting the message, never the key. Under a dialog, or while an
-input takes letters, the toast offers no key and its row names none.
+that one had a confirm, and an undo that can't is a lie. Copy the showcase's
+`toastAction` (`kit/cmd/showcase/app.go`): the note's `Key` joins `actions()` while it
+shows and leaves with it, so `TestHelpIsHandled` presses it, and `ui.ToastKey` draws the
+row from that binding, cutting the message, never the key. Under a dialog, or while an
+input takes letters, the toast offers no key and its row names none; pick a key the
+state doesn't bind, since where it does the state's key wins and the toast offers none.
 
 A grace window is the default undo toast for a send that can't be recalled once it
-goes (a page, an email), skipped only where seconds matter: the action is pending
-until the toast ends, the undo key cancels it, and the toast says what will happen
-and when (`Paging payments on-call in 5 s · u undo`, counting down with
-`ui.SecondsLeft`). When it ends the send goes, and a plain toast says it went
-(`Declared INC-2041 · paged payments on-call`). Moving on is not undo: a toast that
-replaces the window, or quitting, sends it then (the showcase's `raise` and `quit`).
+goes (a page, an email), skipped only where seconds matter: the note's `Send` is
+pending until it ends, its key cancels it, and the row says what will happen and when
+(`Paging payments on-call in 5s · u undo`, counting down). When it ends the send goes,
+and a plain toast says it went (`Declared INC-2041 · paged payments on-call`). The send
+is a command: return it from `Tick` and `Flush`, and every call that raises a note
+returns one too, since a send whose command is dropped never went while the row says
+it did. Nothing cuts the window short: a toast raised meanwhile waits and shows after
+the confirmation (the latest only), so an unrelated key never sends early; quitting
+sends it first (`tea.Sequence(toasts.Flush(), tea.Quit)`); and while help or the
+palette covers the row its clock stops, so it never goes unseen with its key out of
+reach. One window at a time: offer the key that starts one only while `Holding` is
+false.
 
 ## Footer / Help — `ui.Footer`, `ui.Help`
 

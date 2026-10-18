@@ -46,7 +46,11 @@ type app struct {
 	ovRect   uv.Rectangle
 	body     uv.Rectangle
 	footY    int
+	toasts   ui.Toasts // this app raises none; the kept toast tests then pass on nothing
 }
+
+// toastAction is the key the showing toast offers, or nil: this app's toasts offer none.
+func (m *app) toastAction() *action { return nil }
 
 func newApp(f theme.File, dark, ascii bool) *app {
 	return &app{file: f, t: theme.Resolve(f, dark, ascii), ascii: ascii, profile: colorprofile.TrueColor, w: 80, h: 24,
