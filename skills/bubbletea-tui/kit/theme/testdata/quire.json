@@ -13,6 +13,9 @@
    "warning": 3
   }
  },
+ "ansi256": {
+  "dark": {"bgPanel": 235, "bgSubtle": 236}
+ },
  "roles": {
   "dark": {
    "accent": "#E4E2DF",

@@ -185,6 +185,18 @@ func check(path string, stdout, stderr io.Writer) int {
 	for _, x := range FarPins(tf) {
 		fmt.Fprintf(stderr, "palette: warning: %s: %s\n", path, farPinText(x))
 	}
+	if err := theme.CheckANSI256(tf); err != nil {
+		return fail(stderr, fmt.Errorf("%s: %w", path, err))
+	}
+	for _, x := range theme.Ramp256Shares(tf) {
+		if _, pinned := tf.ANSI256[x.Mode][x.B]; !pinned && !written(tf, x.Mode, x.B) {
+			continue // a step the kit derives: it moves it, and there is no hex to move
+		}
+		fmt.Fprintf(stderr, "palette: warning: %s: %s\n", path, shared256Text(x))
+	}
+	for _, x := range Stale256(tf) {
+		fmt.Fprintf(stderr, "palette: warning: %s: %s\n", path, x)
+	}
 	if clashes > 0 {
 		fmt.Fprintf(stdout, "FAIL (%d contrast problems, %d problems at 16 colours)\n", bad, clashes)
 		return 1
@@ -819,6 +831,77 @@ func FarPins(f theme.File) []FarPin {
 				}
 			}
 			out = append(out, FarPin{Mode: mode, Role: role, Col: col, Hue: h, Pin: n, Moved: moved, Nearer: nearer, Yielded: yielded})
+		}
+	}
+	return out
+}
+
+// written reports whether the theme writes role in mode, rather than leaving it to the
+// kit to derive.
+func written(f theme.File, mode, role string) bool {
+	b, _ := json.Marshal(f.Roles[mode])
+	var m map[string]string
+	_ = json.Unmarshal(b, &m)
+	return m[role] != ""
+}
+
+// shared256Text is the warning for two background roles on one xterm index at 256
+// colours (theme.Ramp256Shares), with what the kit does about it and the pin that keeps
+// that.
+func shared256Text(x theme.Shared256) string {
+	what := fmt.Sprintf("%s: %s %s and %s %s both draw as xterm %d at 256 colours (-profile ansi256), so %s has no edge on %s there",
+		x.Mode, x.A, hexOf(x.ColA), x.B, hexOf(x.ColB), x.Index, neutralText[x.B], neutralText[x.A])
+	pin := fmt.Sprintf(`"ansi256": {%q: {%q: %d}}`, x.Mode, x.B, x.Kit)
+	if x.Kit == x.Index { // the theme pinned it there: the kit leaves a pin alone
+		g := theme.NextGrey256([]int{x.Index}, x.Mode != "light")
+		return fmt.Sprintf("%s; the theme pins it: %s gives it an edge", what, fmt.Sprintf(`"ansi256": {%q: {%q: %d}}`, x.Mode, x.B, g))
+	}
+	return fmt.Sprintf("%s; the kit draws %s as grey %d instead, %s keeps that in the theme, or move its hex a step from %s's", what, x.B, x.Kit, pin, x.A)
+}
+
+// staleMax is how much further from its hex than the nearest index an ansi256 pin may
+// be, in OKLab distance, before Stale256 reports it: past ~0.06 the pin is a visibly
+// different colour (a pin left behind when the hex was tuned by hand), where a ramp
+// step moved one grey (~0.03) is not.
+const staleMax = 0.06
+
+// Stale256 are the theme's ansi256 pins (16-255) that draw a role as a colour visibly
+// apart from its hex: further from it than the nearest xterm index (oklch.Xterm256) by
+// more than staleMax. derive writes every role's nearest, so a pin like this is one the
+// hex moved away from, or a typo; at 256 colours the role draws as the pin, not the hex.
+func Stale256(f theme.File) []string {
+	var out []string
+	for _, mode := range []string{"dark", "light"} {
+		pins := f.ANSI256[mode]
+		if len(pins) == 0 || f.Roles[mode] == (theme.Roles{}) {
+			continue
+		}
+		tc := theme.Resolve(f, mode != "light", false)
+		for _, role := range sortedRoles16(pins) {
+			n, c := pins[role], tc.Role(role)
+			if c == nil {
+				continue
+			}
+			hex := hexOf(c)
+			near := oklch.Xterm256(hex)
+			d, dn := oklch.XtermDist(hex, n), oklch.XtermDist(hex, near)
+			if d < 0 || d-dn <= staleMax {
+				continue
+			}
+			// a ramp step on the grey the kit moves it to unpinned (theme.Ramp256Shares'
+			// pin) is that step, however far from its hex
+			lifted := f
+			lifted.ANSI256 = map[string]map[string]int{mode: {}}
+			for r, v := range pins {
+				if r != role {
+					lifted.ANSI256[mode][r] = v
+				}
+			}
+			if theme.Index256(theme.Resolve256(lifted, mode != "light").Role(role)) == n {
+				continue
+			}
+			out = append(out, fmt.Sprintf("%s: %s %s is pinned to xterm %d at 256 colours (-profile ansi256), %.2f from it in OKLab where xterm %d is %.2f, so it draws as another colour there; %s", mode, role, hex, n, d, near, dn,
+				fmt.Sprintf(`"ansi256": {%q: {%q: %d}} draws it as its hex`, mode, role, near)))
 		}
 	}
 	return out

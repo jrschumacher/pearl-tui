@@ -14,9 +14,11 @@
 //	                                "contrastAccept": {"dark.primary": "the brand's own hex, used as a fill"}
 //
 // `derive` prints the roles as JSON (`{"dark": {...}, "light": {...}}`, the theme contract's
-// shape), a contrast table, the nearest xterm-256 index for each role (for the
-// ANSI256 fallback), and the "ansi16" pins its own check would ask for (below), so the
-// first check of the theme prints no 16-colour pin. With one hex, secondary and tertiary are
+// shape), a contrast table, the "ansi256" pins (each role's nearest xterm-256 index in
+// OKLab, which the kit draws at 256 colours where its own downsampling by RGB distance
+// would pick another: an amber 172, not the salmon 173; the background ramp's steps on
+// indices of their own, the next grey where two would share one), and the "ansi16" pins
+// its own check would ask for (below), so the first check of the theme prints no pin. With one hex, secondary and tertiary are
 // lightness steps of it (accent its pale tint), not a hue 40° off and a complement the
 // brand never chose; with two, the second is the brand's and tertiary a complement.
 // `--swatch` writes an .ansi file you can render with cellshot.
@@ -96,6 +98,16 @@
 // the tool would pin it nearer (a rose pinned to blue 12 while magenta is free), naming
 // the hex, its hue, the slot and the nearer pin; a pin that is the nearest free hue,
 // however far, is not reported.
+//
+// At 256 colours (-profile ansi256) it warns when two steps of the background ramp (bg,
+// bgPanel, bgSubtle, bgOverlay) that differ in the theme draw as one xterm index, after
+// its "ansi256" pins: a panel, a button or a popover with no edge there (moss's dark bg
+// and bgPanel are both 234). The kit draws an unpinned step on the next grey past the
+// steps below it; the warning names the index and that grey as a pin. A step the kit
+// derives (not written) is not reported. An "ansi256" pin that names no mode, role or
+// colour 0-255 exits 2; one further from its role's hex than the nearest index by more
+// than 0.06 in OKLab (a pin left behind when the hex was tuned) warns, unless it is the
+// grey the kit gives that ramp step.
 //
 // Thresholds (WCAG 2 contrast ratio against the role's background):
 //

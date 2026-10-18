@@ -45,7 +45,8 @@ palette check theme.json   # on any existing theme
 - from one brand hue makes `secondary` and `tertiary` lightness steps of it (and
   `accent` its pale tint), not a hue shift and a complement the brand never chose; with
   two hues the second is the brand's and the tertiary a complement
-- writes both a dark and a light set, the nearest xterm-256 index per role, and the
+- writes both a dark and a light set, the `ansi256` pins (each role's nearest xterm-256
+  index in OKLab, the background ramp's steps on indices of their own), and the
   `ansi16` pins its own `check` would ask for (most brands' warning lands on error's red
   at 16 colours), so the first `palette check` of the theme prints no 16-colour pin and
   exits 0. The warning keeps yellow; a warm brand takes 11 on a dark page and no hue on a
@@ -128,8 +129,14 @@ go run ./cmd/<app> -out frames -profile ascii
 
 and look at the PNGs. What usually breaks:
 
-- the `bg`/`bgSubtle` step merges at 256 colours, so selection disappears. Move it further
-  apart, or add the glyph marker.
+- the background ramp merges at 256 colours: moss's dark `bg` `#1A1C19` and `bgPanel`
+  `#1A2720` are both xterm 234, so every panel and borderless dialog loses its edge. The
+  kit draws a step that lands on a lower step's index on the next grey past it (`bgPanel`
+  235), and `palette check` warns with that grey as a pin. Keep it, or move the hex.
+- downsampling at 256 colours goes by RGB distance, so an amber `#D4883C` draws as 173, a
+  salmon, where the perceptual nearest is 172. Pin it, as at 16 colours, for 256 only:
+  `"ansi256": {"dark": {"primary": 172}}`. `palette derive` writes the block for every
+  role; `check` warns on a pin far from its hex (one the hex was tuned away from).
 - a tinted neutral downsamples by distance onto a hue at 16 colours: a warm page lands on
   yellow, warm hints on red, and three cool text levels on one blue; a warm `borderFocus`
   one notch lighter than its neighbour draws a ruled dialog's edge in error's red. The

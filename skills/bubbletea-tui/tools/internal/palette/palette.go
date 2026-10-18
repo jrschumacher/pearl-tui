@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"image/color"
 	"math"
+	"slices"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -555,6 +556,35 @@ func sortedRoles(r map[string]string) []string {
 	return keys
 }
 
+// Ansi256 is the ansi256 block derive writes for a mode: each role's nearest xterm-256
+// index by OKLab distance (oklch.Xterm256), which the kit draws at 256 colours as pins,
+// with the background ramp kept apart: a step (bgPanel, bgSubtle, bgOverlay) on the
+// index of the page or a step below it takes the next grey past them, away from the
+// page (theme.NextGrey256, the kit's own rule for an unpinned ramp), so a panel keeps
+// its edge there (#55).
+func Ansi256(m Mode) map[string]int {
+	out := make(map[string]int, len(m.Roles))
+	for k, h := range m.Roles {
+		out[k] = oklch.Xterm256(h)
+	}
+	dark := m.Name != "light"
+	taken := []int{out["bg"]}
+	for _, role := range []string{"bgPanel", "bgSubtle", "bgOverlay"} {
+		n, ok := out[role]
+		if !ok {
+			continue
+		}
+		if slices.Contains(taken, n) {
+			if g := theme.NextGrey256(taken, dark); g >= 0 {
+				n = g
+			}
+			out[role] = n
+		}
+		taken = append(taken, n)
+	}
+	return out
+}
+
 // JSON renders the derive document as palette.py's json.dumps(indent=1) did:
 // {"name", "roles": {mode: {role: hex}}, "ansi256": {mode: {role: index}}}, roles
 // sorted, then "ansi16": {mode: {role: index}} when pins is not empty (Pins16): the
@@ -562,13 +592,13 @@ func sortedRoles(r map[string]string) []string {
 func JSON(name string, modes []Mode, pins map[string]map[string]int) string {
 	var b strings.Builder
 	b.WriteString("{\n \"name\": " + pyfmt.QuoteJSON(name) + ",\n")
-	section := func(key string, value func(string) string, last bool) {
+	section := func(key string, value func(mode, role string) string, last bool) {
 		b.WriteString(" " + pyfmt.QuoteJSON(key) + ": {\n")
 		for i, m := range modes {
 			b.WriteString("  " + pyfmt.QuoteJSON(m.Name) + ": {\n")
 			keys := sortedRoles(m.Roles)
 			for j, k := range keys {
-				b.WriteString("   " + pyfmt.QuoteJSON(k) + ": " + value(m.Roles[k]))
+				b.WriteString("   " + pyfmt.QuoteJSON(k) + ": " + value(m.Name, k))
 				if j < len(keys)-1 {
 					b.WriteByte(',')
 				}
@@ -586,8 +616,19 @@ func JSON(name string, modes []Mode, pins map[string]map[string]int) string {
 		}
 		b.WriteByte('\n')
 	}
-	section("roles", pyfmt.QuoteJSON, false)
-	section("ansi256", func(h string) string { return fmt.Sprint(oklch.Xterm256(h)) }, len(pins) == 0)
+	section("roles", func(mode, role string) string {
+		for _, m := range modes {
+			if m.Name == mode {
+				return pyfmt.QuoteJSON(m.Roles[role])
+			}
+		}
+		return ""
+	}, false)
+	idx := map[string]map[string]int{}
+	for _, m := range modes {
+		idx[m.Name] = Ansi256(m)
+	}
+	section("ansi256", func(mode, role string) string { return fmt.Sprint(idx[mode][role]) }, len(pins) == 0)
 	if len(pins) > 0 {
 		b.WriteString(" \"ansi16\": {\n")
 		var ms []string

@@ -50,8 +50,8 @@ func Default() File {
 
 // derive resolves a role set into colours, filling any missing role from the
 // ones present so a theme with only the core roles still renders well. pins (the
-// theme's ansi16 at 16 colours, else nil) replace the roles they name with one of the
-// 16 colours, before anything is derived from them.
+// theme's ansi16 at 16 colours, its ansi256 at 256, else nil) replace the roles they
+// name with one of those colours, before anything is derived from them.
 func derive(r Roles, dark bool, pins map[string]int) Palette {
 	var p Palette
 	if len(pins) > 0 {
@@ -63,6 +63,9 @@ func derive(r Roles, dark bool, pins map[string]int) Palette {
 		}
 		if n, ok := strings.CutPrefix(s, "ansi:"); ok {
 			i, _ := strconv.Atoi(n)
+			if i > 15 {
+				return ansi.IndexedColor(i) // an ansi256 pin
+			}
 			return ansi.BasicColor(i)
 		}
 		return lipgloss.Color(s)
@@ -154,7 +157,7 @@ func pins16(f File, mode string, dark bool) map[string]int {
 }
 
 // pinned writes each pinned role as "ansi:<n>", which derive's c reads as that basic
-// colour: a hex can't name one (the xterm hex of ANSI 8 downsamples to 7), and a role
+// colour (0-15) or indexed one (16-255): a hex can't name one (the xterm hex of ANSI 8 downsamples to 7), and a role
 // derived from a pinned one then follows it.
 func pinned(r Roles, pins map[string]int) Roles {
 	v, t := reflect.ValueOf(&r).Elem(), reflect.TypeOf(r)

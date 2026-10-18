@@ -277,3 +277,19 @@ func Xterm256(hex string) int {
 	}
 	return bi
 }
+
+// XtermDist is the OKLab distance from a hex colour to xterm-256 index n (16..255), the
+// measure Xterm256 takes the nearest by; -1 for an index outside the cube and greys.
+func XtermDist(hex string, n int) float64 {
+	if n < 16 || n > 255 {
+		return -1
+	}
+	c := MustRGB(hex)
+	var q RGB
+	for i, v := range c {
+		q[i] = float64(Round(v*255)) / 255
+	}
+	L, a, b := ToOKLab(q)
+	p := xtermLab[n-16]
+	return math.Sqrt((p[0]-L)*(p[0]-L) + (p[1]-a)*(p[1]-a) + (p[2]-b)*(p[2]-b))
+}
