@@ -3,6 +3,7 @@ package framelint
 import (
 	"fmt"
 	"math"
+	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -13,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"tuikit/theme"
+	"tuitools/internal/tuimd"
 )
 
 // Finding is one rule hit. Its JSON shape is tuilint.py's.
@@ -349,7 +351,7 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 			tls = append(tls, c)
 		}
 	}
-	dialog := findDialog(name, f, cornersSeen)
+	dialog := frameDialog(name, f, cornersSeen, bgDefault)
 	if overlayName.MatchString(name) && dialog == nil && (len(lowc) > 0 || len(offCells) > 0) {
 		// a borderless dialog over a scrim: we can't find its edges, so don't judge the scrim
 		add("F-CONTRAST", "P2", "frame", "overlay frame without a bordered or ruled dialog: contrast and palette checked only by eye here")
@@ -855,7 +857,7 @@ var (
 )
 
 // lintText lints one frame's text, named by the file's base name. ascii adds F-ASCII.
-func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii bool) []Finding {
+func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii bool, spec *Spec) []Finding {
 	f := parseText(text)
 	out := LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
 	out = append(out, LintTab(filepath.Base(path), normText(text))...)
@@ -868,7 +870,7 @@ func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii boo
 		twin, _ := theme.ASCIITwin(theme.Ellipsis)
 		ellipses = append(ellipses, twin)
 	}
-	out = append(out, LintTrunc(filepath.Base(path), f, ellipses)...)
+	out = append(out, lintTrunc(filepath.Base(path), f, ellipses, spec, bg)...)
 	return out
 }
 
@@ -949,11 +951,74 @@ func LintASCIIQuestion(name string, asc, uni Frame) []Finding {
 			n, strings.Join(runes, ", "))}}
 }
 
+// frameDialog is findDialog, trusted by the frame's name or by a scrim. On a frame named
+// as an overlay, or for a bordered box, it is what findDialog finds. A ruled or ASCII
+// dialog on a frame named for its state (a confirm's sending, send-error) counts only
+// when ui.Overlay's marks are around it: a blank row above and below it (margined), and
+// the rest of the page dimmed under 2.3:1 or hidden but its header (scrimmed). A sectioned page, a titled section
+// rule over a later rule of one span, has the shape and neither mark, and is judged whole.
+func frameDialog(name string, f Frame, cs []corner, bg RGB) *region {
+	d := findDialog(f, cs)
+	if d == nil || overlayName.MatchString(name) || slices.ContainsFunc(cs, func(c corner) bool { return strings.ContainsRune(topLeft, c.ch) }) {
+		return d
+	}
+	if margined(f.Rows, *d) && scrimmed(f, *d, bg) {
+		return d
+	}
+	return nil
+}
+
+// scrimmed reports a page around r that ui.Overlay dimmed or hid: outside r's rows and
+// the blank row on each side, and above the footer (the last row), 3 rows or more hold
+// text and every one has 2 in 3 of its text cells under 2.3:1 (dimmed: a scrim leaves a
+// wordmark or an accent readable, the kit's quire 3 cells in 10); or 3 rows at
+// most hold text, none of it under 2.3:1 (hidden but its header). One or two faint rows
+// say nothing: a scrim over a sparse page and a page's faint header look the same, so
+// that page is judged whole.
+func scrimmed(f Frame, r region, bg RGB) bool {
+	rows, dim, lows := 0, 0, 0
+	for y, row := range f.Rows {
+		if (y >= r.y0-1 && y <= r.y1+1) || y == len(f.Rows)-1 {
+			continue
+		}
+		text, low := 0, 0
+		for _, c := range row {
+			ch := first(c.Ch)
+			if ch < 0 || isSpace(ch) || strings.ContainsRune(ruleChars, ch) || (0x2500 <= ch && ch <= 0x259F) || (0x2800 <= ch && ch <= 0x28FF) {
+				continue
+			}
+			text++
+			fg, b := defaultFG, bg
+			if c.FG != nil {
+				fg = *c.FG
+			}
+			if c.BG != nil {
+				b = *c.BG
+			}
+			if c.Reverse {
+				fg, b = b, fg
+			}
+			if contrast(fg, b) < 2.3 {
+				low++
+			}
+		}
+		if text > 0 {
+			rows++
+			lows += low
+			if 3*low >= 2*text {
+				dim++
+			}
+		}
+	}
+	return (rows >= 3 && dim == rows) || (rows <= 3 && lows == 0)
+}
+
 // findDialog is the one dialog over a scrim: a bordered box (the frame's only top-left
-// corner), or on an overlay frame without one, an ASCII +--+ box or a rules dialog (two
-// rule rows of one span bounding a filled panel). nil when there is none to find, as
-// under a borderless dialog.
-func findDialog(name string, f Frame, cornersSeen []corner) *region {
+// corner), or on a frame without one, an ASCII +--+ box or a rules dialog (two rule rows
+// of one span bounding a filled panel). It goes by the dialog's shape, not the frame's
+// name, so a dialog's states named for what they show (sending, send-error) are found
+// too. nil when there is none to find, as under a borderless dialog.
+func findDialog(f Frame, cornersSeen []corner) *region {
 	var tls []corner
 	for _, c := range cornersSeen {
 		if strings.ContainsRune(topLeft, c.ch) {
@@ -980,7 +1045,7 @@ func findDialog(name string, f Frame, cornersSeen []corner) *region {
 			}
 		}
 		dialog = &region{y0, x0, y1, x1}
-	} else if len(tls) == 0 && overlayName.MatchString(name) {
+	} else if len(tls) == 0 {
 		if r, ok := asciiBox(grid); ok {
 			dialog = &r
 		} else if r, ok := rulesDialog(grid, f.Basic || f.Indexed); ok {
@@ -1102,21 +1167,33 @@ const truncMax = 3
 // column with the most. A table's last column headed path, file, command or url is
 // skipped (unboundedColumn): no budget fits a path, so cutting it is the design.
 //
-// On an overlay frame an ellipsis the kit's Overlay put where the dialog cut a word is
+// On an overlay frame (named as one, or with a ruled or ASCII dialog over a scrim)
+// an ellipsis the kit's Overlay put where the dialog cut a word is
 // skipped (rows a dialog cuts all end near its edge); the dialog's own rows are judged
 // like any column. The dialog is found by its border (with two or more boxes, the one
 // filled off the page's background, else the largest) or, when it has no edge the
 // lint can find (a filled panel, a ruled dialog at 16 colours), by its fill: an
 // ellipsis on the page's background followed by blanks up to another background. With
 // neither, a column that would be reported with rows running on past the ellipsis is
-// reported as not run, to judge by eye.
-func LintTrunc(name string, f Frame, ellipses []string) []Finding {
+// reported as not run, to judge by eye. bg is the terminal background for cells that set
+// none (DefaultBG, or --bg), which the scrim test reads contrast against.
+func LintTrunc(name string, f Frame, ellipses []string, bg RGB) []Finding {
+	return lintTrunc(name, f, ellipses, nil, bg)
+}
+
+// lintTrunc is LintTrunc honouring spec's `cuts:` lines (nil: no --spec): a column whose
+// header, or a region of a budget line at this size holding every cut row, is
+// named on one cuts by decision and is not reported.
+func lintTrunc(name string, f Frame, ellipses []string, spec *Spec, bg RGB) []Finding {
 	overlay := overlayName.MatchString(name)
 	var dialog *region
 	page, fill := pageBG(f)
-	if overlay {
-		cs := frameCorners(f)
-		if dialog = findDialog(name, f, cs); dialog == nil {
+	cs := frameCorners(f)
+	if !overlay && len(cs) == 0 { // a ruled or ASCII dialog over a scrim, on a frame named for its state
+		dialog = frameDialog(name, f, cs, bg)
+	}
+	if overlay && dialog == nil {
+		if dialog = findDialog(f, cs); dialog == nil {
 			dialog = pickBox(f, cs, page)
 		}
 	}
@@ -1221,15 +1298,111 @@ func LintTrunc(name string, f Frame, ellipses []string) []Finding {
 	}
 	ys := rowsAt[best]
 	slices.Sort(ys)
-	if unboundedColumn(f, ys, best) {
+	var hidden func(y int) bool
+	if d := dialog; d != nil && !slices.ContainsFunc(ys, func(y int) bool { return y >= d.y0 && y <= d.y1 }) {
+		hidden = func(y int) bool { return y >= d.y0 && y <= d.y1 } // page rows: the dialog may hide their header
+	}
+	if unbounded, covered := unboundedColumn(f, ys, best, hidden); unbounded || covered {
+		return nil
+	}
+	header, top := "", -1 // the topmost cell of the column above the cut: its header, for the message
+	decided, _ := columnHeader(f, ys, best, hidden, func(y int, words []string) bool {
+		if top < 0 || y < top {
+			header, top = strings.ToLower(strings.Join(words, " ")), y
+		}
+		return spec.cuts(name, words)
+	})
+	if decided || spec.cutsRegion(name, f, best, ys) {
 		return nil
 	}
 	if slices.ContainsFunc(ys, func(y int) bool { return unsureRows[y] }) {
 		return []Finding{{"F-TRUNC", "P2", name, "frame",
 			fmt.Sprintf("not run on this frame (no dialog found): %d rows end in an ellipsis at column %d with more of the row after them, which may be a dialog's cut or a column budgeted short; judge it by eye", len(ys), best)}}
 	}
+	cut := "<its header or region>"
+	if header != "" {
+		cut = header
+	}
+	record := fmt.Sprintf("record the cut in TUI.md § Decisions as `cuts: %s` (a column header, or a region of the screen's budget line; `cuts: <screen>: …` for one screen) and lint with --spec TUI.md", cut)
+	if spec != nil {
+		record = fmt.Sprintf("add `cuts: %s` to TUI.md § Decisions (a column header, or a region of the screen's budget line; `cuts: <screen>: …` for one screen): no cuts: line there names this column or its region", cut)
+	}
 	return []Finding{{"F-TRUNC", "P2", name, fmt.Sprintf("r%dc%d", ys[0], best),
-		fmt.Sprintf("%d rows end in an ellipsis at column %d: widen the column from the longest fixture (layout.md), or, when its content has no bound (paths, URLs, code), say in TUI.md § Decisions that this column cuts", len(ys), best)}}
+		fmt.Sprintf("%d rows end in an ellipsis at column %d: widen the column from the longest fixture (layout.md), or, when its content has no bound (paths, URLs, code), %s", len(ys), best, record)}}
+}
+
+// Spec is what --spec TUI.md gives F-TRUNC: § Decisions' `cuts:` lines and the
+// screens' region budgets (tuimd).
+type Spec struct {
+	Cuts    []tuimd.Cut
+	Budgets []tuimd.Budget
+}
+
+// LoadSpec reads a TUI.md for --spec.
+func LoadSpec(path string) (*Spec, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return &Spec{Cuts: tuimd.Cuts(string(b)), Budgets: tuimd.Budgets(string(b))}, nil
+}
+
+// onScreen reports a frame of screen: its state (the file name before -<W>x<H>.ansi) is
+// the screen's name, or starts with it and a dash (detail-gone is detail).
+func onScreen(name, screen string) bool {
+	state := strings.TrimSuffix(sizeSuffix.ReplaceAllString(name, ""), ".ansi")
+	return state == screen || strings.HasPrefix(state, screen+"-")
+}
+
+// names are the cut names that hold on the frame named name: a line naming no screen
+// holds on every one, a scoped line (`cuts: detail: name`) on its own.
+func (s *Spec) names(name string) map[string]bool {
+	out := map[string]bool{}
+	if s == nil {
+		return out
+	}
+	for _, c := range s.Cuts {
+		if c.Screen == "" || onScreen(name, c.Screen) {
+			for _, n := range c.Names {
+				out[strings.TrimSuffix(n, "s")] = true
+			}
+		}
+	}
+	return out
+}
+
+// cuts reports a header cell a cuts: line names: the whole cell or its first word.
+func (s *Spec) cuts(name string, words []string) bool {
+	if len(words) == 0 {
+		return false
+	}
+	norm := func(w string) string { return strings.TrimSuffix(strings.ToLower(w), "s") }
+	ns := s.names(name)
+	return ns[norm(strings.Join(words, " "))] || ns[norm(words[0])]
+}
+
+// cutsRegion reports a cut whose rows all lie in a region a cuts: line names, in the
+// budget line at the frame's size of the frame's own screen: a region is its screen's.
+func (s *Spec) cutsRegion(name string, f Frame, x int, ys []int) bool {
+	if s == nil || len(f.Rows) == 0 {
+		return false
+	}
+	ns := s.names(name)
+	w, h := len(f.Rows[0]), len(f.Rows)
+	for _, b := range s.Budgets {
+		if b.W != w || b.H != h || !onScreen(name, b.Screen) {
+			continue
+		}
+		for _, r := range b.Regions {
+			if !ns[strings.TrimSuffix(r.Name, "s")] {
+				continue
+			}
+			if !slices.ContainsFunc(ys, func(y int) bool { return !r.Contains(x, y) }) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // unboundedHeaders name a column whose content has no length to budget from.
@@ -1240,77 +1413,111 @@ var unboundedHeaders = map[string]bool{"path": true, "file": true, "command": tr
 var headerCount = regexp.MustCompile(`^(?:[(\[]?\d+[)\]]?|·)$`)
 
 // unboundedColumn reports whether the column cut at x on rows ys is a table's last column
-// under a header in unboundedHeaders: nothing follows x on any cut row, and walking up
-// from the first cut through the column's other rows (text starting where the cut rows'
-// text starts, past at most one rule or blank row), the first row that isn't one holds,
-// at that start, a cell that is the header word alone or with a count ("pid  program
-// command"). A heading ("Recent files") or a hint ("press y to Copy path") is not one.
-func unboundedColumn(f Frame, ys []int, x int) bool {
+// under a header in unboundedHeaders: nothing follows x on any cut row, and its header
+// (columnHeader) is the header word alone or with a count ("pid  program  command"). A
+// heading ("Recent files") or a hint ("press y to Copy path") is not one. covered is a
+// header the dialog's band hides on an overlay frame (hidden rows): the page's own frame
+// shows it and is judged there.
+func unboundedColumn(f Frame, ys []int, x int, hidden func(y int) bool) (unbounded, covered bool) {
 	for _, y := range ys {
 		for _, c := range f.Rows[y][x+1:] {
 			if !cutsNothing(c.Ch) {
-				return false
+				return false, false
 			}
 		}
 	}
-	// the column starts after the last gap of two blank cells left of the cut, the same
-	// on most cut rows
-	starts := map[int]int{}
-	col := -1
-	for _, y := range ys {
-		row, start := f.Rows[y], 0
-		for i := x - 1; i >= 1; i-- {
-			if cutsNothing(row[i].Ch) && cutsNothing(row[i-1].Ch) && row[i].Ch != "" && row[i-1].Ch != "" {
-				start = i + 1
-				break
-			}
-		}
-		starts[start]++
-		if col < 0 || starts[start] > starts[col] {
-			col = start
-		}
-	}
-	gaps := 0
-	for y := ys[0] - 1; y >= 0; y-- {
-		row := f.Rows[y]
-		if col >= len(row) {
+	return columnHeader(f, ys, x, hidden, func(_ int, words []string) bool {
+		if !unboundedHeaders[strings.TrimSuffix(strings.ToLower(words[0]), "s")] {
 			return false
 		}
-		if cutsNothing(row[col].Ch) || row[col].Ch == "-" || row[col].Ch == "=" { // a rule (ASCII's too) or a blank row under the header: one at most
-			if gaps++; gaps > 1 {
+		for _, w := range words[1:] {
+			if !headerCount.MatchString(w) {
 				return false
 			}
-			continue
 		}
-		if col > 0 && !cutsNothing(row[col-1].Ch) {
-			return false // text that doesn't start at the column: no header
-		}
-		var cell strings.Builder // the cell: to the next gap of two blank cells
-		for i := col; i < len(row); i++ {
-			if row[i].Ch == "" {
-				continue // a wide glyph's second cell
-			}
-			if cutsNothing(row[i].Ch) && (i+1 >= len(row) || cutsNothing(row[i+1].Ch)) {
+		return true
+	})
+}
+
+// columnHeader walks up the column cut at x on rows ys and reports whether a row of it
+// holds a cell isHeader accepts. The column may start at any cell right of the cut rows'
+// last gap of two blank cells (left of it is another column) where most cut rows' text
+// starts after a blank, so columns one blank apart (a process list's trace and command)
+// are found; the walk tries the start nearest the cut first. It passes the column's
+// other rows (text starting where the cut rows' does) and at most one rule or blank row;
+// the cell it reads runs to the next gap of two blank cells, and must be the last text on
+// its row before x, so a header word earlier on the row ("path  size  name") heads its
+// own column. covered: the walk reached a row the dialog covers (hidden) first.
+func columnHeader(f Frame, ys []int, x int, hidden func(y int) bool, isHeader func(y int, words []string) bool) (found, covered bool) {
+	counts := map[int]int{}
+	for _, y := range ys {
+		row, from := f.Rows[y], 1
+		for i := x - 1; i >= 1; i-- { // no column starts left of a gap of two blank cells
+			if cutsNothing(row[i].Ch) && cutsNothing(row[i-1].Ch) && row[i].Ch != "" && row[i-1].Ch != "" {
+				from = i + 1
 				break
 			}
-			cell.WriteString(row[i].Ch)
 		}
-		words := strings.Fields(cell.String())
-		if unboundedHeaders[strings.TrimSuffix(strings.ToLower(words[0]), "s")] {
-			header := true
-			for _, w := range words[1:] {
-				header = header && headerCount.MatchString(w)
-			}
-			if header {
-				return true
+		for s := from; s <= x && s < len(row); s++ {
+			if cutsNothing(row[s-1].Ch) && row[s-1].Ch != "" && !cutsNothing(row[s].Ch) {
+				counts[s]++
 			}
 		}
-		if gaps > 0 {
-			return false // past a rule or blank, the row is the header or there is none
-		}
-		// another row of the column (a row not cut): keep walking up
 	}
-	return false
+	var starts []int
+	for s, n := range counts {
+		if 2*n > len(ys) {
+			starts = append(starts, s)
+		}
+	}
+	slices.Sort(starts)
+	slices.Reverse(starts)
+	for _, col := range starts {
+		gaps := 0
+	walk:
+		for y := ys[0] - 1; y >= 0; y-- {
+			if hidden != nil && hidden(y) {
+				return false, true
+			}
+			row := f.Rows[y]
+			if col >= len(row) {
+				break
+			}
+			if cutsNothing(row[col].Ch) || row[col].Ch == "-" || row[col].Ch == "=" { // a rule (ASCII's too) or a blank row under the header: one at most
+				if gaps++; gaps > 1 {
+					break
+				}
+				continue
+			}
+			if !cutsNothing(row[col-1].Ch) {
+				break // text that doesn't start at the column: no header
+			}
+			var cell strings.Builder // the cell: to the next gap of two blank cells
+			end := col
+			for i := col; i < len(row); i++ {
+				if row[i].Ch == "" {
+					continue // a wide glyph's second cell
+				}
+				if cutsNothing(row[i].Ch) && (i+1 >= len(row) || cutsNothing(row[i+1].Ch)) {
+					break
+				}
+				cell.WriteString(row[i].Ch)
+				end = i
+			}
+			last := true // nothing else on the row up to the cut
+			for i := end + 1; i <= x && i < len(row); i++ {
+				last = last && cutsNothing(row[i].Ch)
+			}
+			if words := strings.Fields(cell.String()); last && isHeader(y, words) {
+				return true, false
+			}
+			if gaps > 0 {
+				break walk // past a rule or blank, the row is the header or there is none
+			}
+			// another row of the column (a row not cut): keep walking up
+		}
+	}
+	return false, false
 }
 
 // cutsNothing is a cell an ellipsis can't have cut: blank, or a rule or box glyph.

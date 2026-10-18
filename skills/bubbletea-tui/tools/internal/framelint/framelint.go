@@ -15,11 +15,18 @@
 //	F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1. Box drawing and blocks (U+2500–259F),
 //	                 braille, legacy blocks and rule runs (────, ----, ====, ····, and the
 //	                 "--" a titled rule leads with) are decoration; status
-//	                 marks (● ◆ ▶ ○ ◐ •) are text. On an overlay frame (named dialog, palette,
-//	                 confirm, modal, overlay, popup, help or keys) only the dialog and the footer
-//	                 are judged: a bordered box, an ASCII +--+ box, or a "dialog": "rules" panel
-//	                 (two rule rows of one span around a filled panel); with none found, a P2
-//	                 note instead ("dialog": "none" has no edge to find).
+//	                 marks (● ◆ ▶ ○ ◐ •) are text. On a frame with a dialog, only the dialog
+//	                 and the footer are judged: a bordered box, an ASCII +--+ box, or a
+//	                 "dialog": "rules" panel (two rule rows of one span around a filled panel),
+//	                 found by its shape whatever the frame's name (a confirm's sending state
+//	                 too; on a frame not named as an overlay, a ruled or ASCII one counts only
+//	                 with a scrim: a blank row above and below it, and the page's other rows,
+//	                 3 or more, each two-thirds under 2.3:1, or the page hidden but a header of
+//	                 3 rows at most with none under it; a sectioned page, or a sparse one with
+//	                 a faint header, is judged whole). On an
+//	                 overlay frame (named dialog, palette, confirm, modal, overlay,
+//	                 popup, help or keys) with none found, a P2 note instead ("dialog": "none"
+//	                 has no edge to find).
 //	                 In a 16-colour frame: text in the same slot as its background
 //	F-BOXES     [P1] more than one bordered box (nested or side by side noted)
 //	F-RAINBOW   [P2] more than 7 distinct foreground hues (not judged on a 256-colour frame, where
@@ -33,11 +40,22 @@
 //	                 a wordmark on an empty page is what a splash is)
 //	F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
 //	F-TAB       [P1] a raw tab in a frame: lipgloss measures it as 0 cells, a terminal as the
-//	                 run to the next 8-column stop, so the row tears; expand tabs before fitting
+//	                 run to the next 8-column stop, so the row tears; expand tabs before fitting.
+//	                 The kit's canvas expands tabs (ui.ExpandTabs), so this fires only where a
+//	                 view bypasses it: file or log content written straight into View(), the
+//	                 place a tab arrives from data; it stays P1 because the row it tears is real
 //	F-TRUNC     [P2] more than 3 rows ending in an ellipsis (…, the theme's glyphs.ellipsis, or
 //	                 ... with --ascii) at one column: a column budgeted narrower than its content
-//	                 (not a table's last column headed path, file, command or url, nor
-//	                 an ellipsis an overlay's cut put beside its dialog)
+//	                 (not a table's last column headed path, file, command or url, its columns
+//	                 two blanks or one apart, nor an ellipsis an overlay's cut put beside its
+//	                 dialog, nor page rows on an overlay frame whose column header the dialog
+//	                 hides: the page's own frame shows it and is judged there). With --spec
+//	                 TUI.md, a column that cuts by decision isn't either: a `cuts:` line in
+//	                 § Decisions names its header (`- 2026-10-18 cuts: command, title — no
+//	                 longest`) or a region of its screen's budget line at the frame's size that
+//	                 holds every cut row (`cuts: list`). A line holds on every screen, or on one
+//	                 it names (`cuts: detail: name`); a frame's screen is its state, or the
+//	                 state's prefix before a dash (detail-gone is detail)
 //	F-ASCII     [P1] (with --ascii) a cell outside ASCII in a frame rendered for ASCII; with
 //	                 --unicode, also a "?" where the unicode frame of the same state draws
 //	                 something else (a rune the sweep had no twin for)
@@ -56,7 +74,7 @@ import (
 	"strings"
 )
 
-const usage = `usage: tuilint frames <dir|files...> [--cols W --rows H] [--theme theme.json] [--bg #rrggbb] [--ascii [--unicode dir|file]] [--max-warnings N] [--json out.json]
+const usage = `usage: tuilint frames <dir|files...> [--cols W --rows H] [--theme theme.json] [--bg #rrggbb] [--ascii [--unicode dir|file]] [--spec TUI.md] [--max-warnings N] [--json out.json]
 
 Lints rendered truecolor ANSI frames (the output of your -state X -w W -h H flag).
 A directory means its *.ansi files. A name ending -<W>x<H>.ansi (what -out writes) sets
@@ -72,6 +90,8 @@ every cell must be ASCII: a glyph that leaks through is tofu on a console font.
 --unicode names the unicode render of the same states (a directory, matched by file
 name, or one frame): a "?" in the ASCII frame where the unicode frame draws something
 else is a rune the ASCII sweep had no twin for, which reads as a question.
+--spec names the TUI.md whose § Decisions "cuts:" lines say which columns cut on purpose
+(F-TRUNC): "cuts: command" on every screen, "cuts: detail: name" on one.
 
   F-WIDTH     [P0] a row is not exactly W cells / frame is not H rows
   F-EMOJI     [P1] emoji glyphs
@@ -81,10 +101,12 @@ else is a rune the ASCII sweep had no twin for, which reads as a question.
                    (a 16-colour frame, -profile ansi, is not judged: the terminal owns those slots)
   F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1; box drawing, blocks, braille and
                    rule runs (their ASCII twins too: ----, ====, and a titled rule's "--" lead)
-                   are decoration, status marks (● ◆ ▶ ○ •) are text. On an overlay
-                   frame (named dialog|palette|confirm|modal|overlay|popup|help|keys) only the
-                   dialog is judged: a bordered box, an ASCII +--+ box or a "dialog": "rules"
-                   panel (two rule rows of one span around a filled panel); none found is a
+                   are decoration, status marks (● ◆ ▶ ○ •) are text. Where a frame has a
+                   dialog, found by its shape whatever the frame's name (a bordered box, an
+                   ASCII +--+ box or a "dialog": "rules" panel: two rule rows of one span
+                   around a filled panel; off an overlay-named frame, only over a scrim that
+                   dims or hides the rest of the page), only the dialog is judged; an overlay frame (named
+                   dialog|palette|confirm|modal|overlay|popup|help|keys) with none found is a
                    P2 note. In a 16-colour frame, text in the same slot as its background
   F-BOXES     [P1] more than one bordered box
   F-RAINBOW   [P2] more than 7 distinct foreground hues (not on a 256-colour frame)
@@ -95,13 +117,20 @@ else is a rune the ASCII sweep had no twin for, which reads as a question.
   F-EMPTY     [P2] frame is more than 98.5% blank (not on a splash*/intro*/wordmark* frame)
   F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
   F-TAB       [P1] a raw tab: 0 cells to lipgloss, up to 8 to a terminal; expand it before fitting
+                   (the kit's canvas does; this catches a view that bypasses it with file or
+                   log content)
   F-TRUNC     [P2] more than 3 rows ending in an ellipsis at one column: widen it from the
-                   longest fixture, or say in TUI.md that it cuts (paths, URLs, code)
+                   longest fixture, or, for paths, URLs, code, name its header or budget region
+                   on a "cuts:" line in TUI.md § Decisions and pass --spec TUI.md
   F-ASCII     [P1] (with --ascii) a cell outside ASCII: give the glyph an ASCII twin;
                    with --unicode, a "?" where the unicode frame of the state has none
 `
 
 var sevOrder = map[string]int{"P0": 0, "P1": 1, "P2": 2}
+
+// DefaultBG is the terminal background a cell that sets none is judged on, unless --bg
+// names another: a dark terminal's.
+var DefaultBG = RGB{0x16, 0x16, 0x1a}
 
 // Main runs the mode with its arguments and returns the exit status.
 func Main(args []string, stdout, stderr io.Writer) int {
@@ -125,7 +154,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		}
 		k := a[2:]
 		switch k {
-		case "cols", "rows", "theme", "json", "bg", "max-warnings", "unicode":
+		case "cols", "rows", "theme", "json", "bg", "max-warnings", "unicode", "spec":
 		default:
 			fmt.Fprintf(stderr, "tuilint frames: unknown flag %s\n%s", a, usage)
 			return 2
@@ -162,7 +191,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		}
 		maxWarnings = n
 	}
-	bg := RGB{0x16, 0x16, 0x1a}
+	bg := DefaultBG
 	if v, ok := opts["bg"]; ok {
 		if !hexRe.MatchString("#" + strings.TrimLeft(v, "#")) {
 			fmt.Fprintf(stderr, "tuilint frames: --bg %q is not #rrggbb\n", v)
@@ -175,6 +204,14 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		var err error
 		if pal, err = LoadPalette(p); err != nil {
 			fmt.Fprintf(stderr, "tuilint frames: theme: %v\n", err)
+			return 2
+		}
+	}
+	var spec *Spec
+	if p, ok := opts["spec"]; ok {
+		var err error
+		if spec, err = LoadSpec(p); err != nil {
+			fmt.Fprintf(stderr, "tuilint frames: --spec: %v\n", err)
 			return 2
 		}
 	}
@@ -213,7 +250,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 				h = fh
 			}
 		}
-		fs := lintText(p, string(data), w, h, pal, bg, ascii)
+		fs := lintText(p, string(data), w, h, pal, bg, ascii, spec)
 		if hasUni {
 			up := uni
 			if uniDir {
