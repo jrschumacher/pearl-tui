@@ -79,7 +79,9 @@ func TestHelpIsHandled(t *testing.T) {
 
 // The too-small screen's key is the toosmall action table's, drawn from it: ui.TooSmall
 // hard-coded "q quit" and TestHelpIsHandled skipped toosmall, so an app whose table
-// bound only ctrl+c showed q quit, a help lie in a lint-clean frame.
+// bound only ctrl+c showed q quit, a help lie in a lint-clean frame. A table that shows
+// no key (a spec whose too-small screen is its sentence and nothing else, ui.TooSmallText)
+// draws no key row, and ctrl+c must still leave.
 func TestTooSmallKeysAreTheTable(t *testing.T) {
 	m := fixture(t, "toosmall")
 	var want []string
@@ -89,7 +91,14 @@ func TestTooSmallKeysAreTheTable(t *testing.T) {
 		}
 	}
 	if len(want) == 0 {
-		t.Fatal("toosmall: no key in the footer: the screen must say how to leave")
+		cmd := m.key(press("ctrl+c"))
+		if cmd == nil {
+			t.Fatal("toosmall shows no key and ctrl+c does nothing: the screen has no way out")
+		}
+		if _, ok := cmd().(tea.QuitMsg); !ok {
+			t.Fatal("toosmall shows no key and ctrl+c does not quit: the screen has no way out")
+		}
+		return
 	}
 	w, h := frameSize("toosmall", 80, 24)
 	rows := strings.Split(ansi.Strip(m.render(w, h).String()), "\n")

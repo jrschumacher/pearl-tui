@@ -3,9 +3,12 @@ package theme
 import (
 	"image/color"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/rivo/uniseg"
 )
 
@@ -31,6 +34,7 @@ type Styles struct {
 	Motif   lipgloss.Style // the header rule and dialog-title rule runs (primary, or the rule role)
 	// selection
 	SelRow   lipgloss.Style // a selected row (per expressions.selection)
+	SelBars  lipgloss.Style // a trace's or sparkline's bars on a filled selected row: the fill, bars in its shade (ui.Table)
 	FocusBar lipgloss.Style // ▌ beside the focused block
 	BlurBar  lipgloss.Style // the same column, unfocused
 	Match    lipgloss.Style // fuzzy-match characters
@@ -136,6 +140,13 @@ func build(t *Theme) Styles {
 	default: // bar: bold text beside a focus bar
 		s.SelRow = s.Bold
 	}
+	// a trace's bars on a filled row: in the row's ink, which is the page's own colour on
+	// most themes, ▆▇█ are blocks of the page punched through the fill, so they take a
+	// shade of the fill instead and the fill runs the whole row (ui.Table)
+	s.SelBars = s.SelRow
+	if x.Selection == "fill" || x.Selection == "inverse" {
+		s.SelBars = s.SelRow.Background(t.selShade(s.SelRow.GetForeground(), s.SelRow.GetBackground()))
+	}
 	s.FocusBar = lipgloss.NewStyle().Foreground(p.Primary)
 	if fgFocus {
 		s.FocusBar = s.Bold
@@ -231,15 +242,61 @@ func RuleEdge(rule string) lipgloss.Border {
 		Left: " ", Right: " "}
 }
 
-// Case applies the theme's title case.
+// Case applies the theme's title case. Under lower a word in capitals keeps them
+// (SIGTERM, CPU, PRs, HTTP/2: two capitals or more and no small letter but a plural or
+// possessive s), so "Send SIGTERM?" is "send SIGTERM?", not "send sigterm?".
 func (t *Theme) Case(s string) string {
 	switch t.X.TitleCase {
 	case "upper":
 		return strings.ToUpper(s)
 	case "lower":
-		return strings.ToLower(s)
+		return caseWords(s, func(w string) string {
+			if acronym(w) {
+				return w
+			}
+			return strings.ToLower(w)
+		})
 	}
 	return s
+}
+
+// caseWords applies fn to each run of non-space runes in s and keeps the spaces.
+func caseWords(s string, fn func(string) string) string {
+	var b strings.Builder
+	for s != "" {
+		i := strings.IndexFunc(s, unicode.IsSpace)
+		if i < 0 {
+			b.WriteString(fn(s))
+			break
+		}
+		b.WriteString(fn(s[:i]))
+		_, n := utf8.DecodeRuneInString(s[i:])
+		b.WriteString(s[i : i+n])
+		s = s[i+n:]
+	}
+	return b.String()
+}
+
+// acronym reports whether w is a word in capitals: two capital letters or more and no
+// small letter but a last letter s (PRs, CPUs, SIGTERM's).
+func acronym(w string) bool {
+	upper, letters, lowerAt := 0, 0, -1
+	var lower rune
+	for _, r := range w {
+		switch {
+		case unicode.IsUpper(r):
+			upper++
+		case unicode.IsLower(r):
+			if lowerAt >= 0 {
+				return false
+			}
+			lowerAt, lower = letters, r
+		default:
+			continue
+		}
+		letters++
+	}
+	return upper >= 2 && (lowerAt < 0 || lower == 's' && lowerAt == letters-1)
 }
 
 // Copy applies the theme's case to a label of the kit's own fixed copy: tab names and
@@ -262,7 +319,9 @@ func (t *Theme) Sentence(s string) string { return t.Case(s) }
 
 // Label applies the theme's label case (expressions.labelCase) to a table header, tag,
 // toast or summary label; own is the component's case when the theme leaves it unset
-// ("upper" for table headers, "lower" for summary-strip labels, "as-is" for tags).
+// ("upper" for table headers, "lower" for summary-strip labels, "as-is" for tags). A
+// label is a word of the brand's UI, so labelCase lower lowers capitals too ("CPU" →
+// "cpu").
 func (t *Theme) Label(s, own string) string {
 	c := t.X.LabelCase
 	if c == "" {
@@ -307,4 +366,36 @@ func (t *Theme) Gap() int {
 		return 0
 	}
 	return 1
+}
+
+// selShade is the ink of a trace's bars on a filled selection (Styles.SelBars): the fill
+// mixed 70 % of the way to the row's ink (a crisp dark or light shade, not a muddy half),
+// nearer or further until the bars read on the fill (1.3:1) and not as the page (1.5:1). At 16 colours, where a mix lands on the fill's slot or the ink's, it is the
+// grey that reads best on the fill and is not the page. Under NO_COLOR it is the ink:
+// reverse video is all there is.
+func (t *Theme) selShade(fill, ink color.Color) color.Color {
+	page := t.P.Bg
+	switch t.Profile {
+	case colorprofile.ANSI:
+		best, cr := ink, 0.0
+		for _, n := range []int{8, 7, 0, 15} {
+			g := ansi.BasicColor(n)
+			if Slot16(g) == Slot16(page) || Slot16(g) == Slot16(fill) || Contrast16(g, page) < 1.5 {
+				continue
+			}
+			if c := Contrast16(g, fill); c > cr {
+				best, cr = g, c
+			}
+		}
+		return best
+	case colorprofile.Ascii, colorprofile.NoTTY:
+		return ink
+	}
+	for _, m := range []float64{0.7, 0.6, 0.8, 0.5, 0.4, 0.3} {
+		c := color.Color(rgb8(Mix(fill, ink, m))) // judged as the terminal gets it, 8 bits a channel
+		if Contrast(c, page) >= 1.5 && Contrast(c, fill) >= 1.3 && t.Distinct(c, page) && t.Distinct(c, fill) {
+			return c
+		}
+	}
+	return ink
 }

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"image/color"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -205,6 +206,105 @@ func bolden(s string) string {
 	return b.String()
 }
 
+// selFilled draws plain text as a selected row on a filled bar: text in SelRow, and the
+// bars of a history (barCell) in SelBars, the fill with the bars in its shade. In the
+// row's ink they were blocks of the page through the fill. Under NO_COLOR SelBars is
+// SelRow: the bars stay, reversed like the rest of the row, so the fill is unbroken and
+// the history still reads, as marks in the page's ink.
+func selFilled(t *theme.Theme, plain string) string {
+	is := barCell(t)
+	var b, run strings.Builder
+	bars := false
+	flush := func() {
+		if run.Len() == 0 {
+			return
+		}
+		st := t.S.SelRow
+		if bars {
+			st = t.S.SelBars
+		}
+		b.WriteString(st.Render(run.String()))
+		run.Reset()
+	}
+	for _, r := range plain {
+		if isBar := is(r); isBar != bars {
+			flush()
+			bars = isBar
+		}
+		run.WriteRune(r)
+	}
+	flush()
+	return b.String()
+}
+
+// barCell reports whether r is a bar of a history in a row: a block element or braille
+// (ui.Trace, ui.Sparkline, or a history the app draws itself), but not one of the
+// theme's own marks (a spinner frame such as ▖, a status mark, the focus bar, a
+// scrollbar) that aren't also a height, which are the row's text and take its ink. Under ASCII a history is drawn
+// in punctuation a row can't tell from its text, so nothing is a bar there.
+func barCell(t *theme.Theme) func(rune) bool {
+	if t.ASCII {
+		return func(rune) bool { return false }
+	}
+	g := t.G
+	marks := strings.Join(append([]string{g.FocusBar, t.BlurBar(), g.Cursor, g.Done, g.Current, g.Todo,
+		g.Fail, g.Warn, g.Pending, g.Partial, g.Bullet, g.Thumb, g.Track, g.Caret, g.TurnBar,
+		g.ProgressFill, g.ProgressEmpty, g.ProgressHead, g.TabUnderline, g.FieldA, g.FieldB}, g.Spinner...), "")
+	for _, rung := range t.Ladder {
+		marks += t.LadderGlyph(rung)
+	}
+	floor, ramp := t.TraceGlyphs()
+	trace := floor + strings.Join(ramp, "") // a mark that is also a height (a █ thumb) is a bar here
+	return func(r rune) bool {
+		return strings.ContainsRune(trace, r) ||
+			(r >= 0x2580 && r <= 0x259F || r >= 0x2800 && r <= 0x28FF) && !strings.ContainsRune(marks, r)
+	}
+}
+
+// underlay sets bg under every cell of a pre-styled line: each span's style ends in a
+// reset that drops the background, so it is set again after any SGR sequence that
+// clears it. A span with a background of its own (a tag) keeps it.
+func underlay(s string, bg color.Color) string {
+	return reapply(s, ansi.Style{}.BackgroundColor(bg).String(), "49") + ansi.Style{}.DefaultBackgroundColor().String()
+}
+
+// reapply writes the SGR sequence on before s and again after every SGR sequence in s
+// that clears what it sets (a full reset, or code: 39 the ink, 49 the fill), so a span
+// that sets its own keeps it and the rest of s keeps on.
+func reapply(s, on, code string) string {
+	var b strings.Builder
+	b.WriteString(on)
+	var state byte
+	for len(s) > 0 {
+		seq, _, n, next := ansi.DecodeSequence(s, state, nil)
+		b.WriteString(seq)
+		if ansi.HasCsiPrefix(seq) && strings.HasSuffix(seq, "m") && clears(seq, code) {
+			b.WriteString(on)
+		}
+		s, state = s[n:], next
+	}
+	return b.String()
+}
+
+// clears reports whether an SGR sequence resets code (39, 49): a full reset (none or 0)
+// or code itself, read past the arguments of an extended colour (38/48/58;5;n, ;2;r;g;b).
+func clears(seq, code string) bool {
+	params := strings.Split(strings.TrimSuffix(strings.TrimPrefix(seq, "\x1b["), "m"), ";")
+	for i := 0; i < len(params); i++ {
+		switch params[i] {
+		case "", "0", code:
+			return true
+		case "38", "48", "58":
+			if i+1 < len(params) && params[i+1] == "5" {
+				i += 2
+			} else if i+1 < len(params) && params[i+1] == "2" {
+				i += 4
+			}
+		}
+	}
+	return false
+}
+
 // filledRow is a selected row on a filled bar. Every span, the padding
 // included, carries the bar's style: one bare space would punch a hole.
 func filledRow(t *theme.Theme, it Item, w int, c cols) string {
@@ -264,13 +364,20 @@ func matchUnderline(s string, idx []int, st lipgloss.Style) string {
 // Table renders a borderless table: a muted header row (upper case unless the theme's
 // labelCase says otherwise), a rule, then rows
 // with aligned columns. widths are cells per column (the last may be 0 =
-// take the rest). align: 'l' or 'r' per column. Selected row per selection.
-func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align string, sel, w int, focused bool) []string {
+// take the rest). align: 'l' or 'r' per column. Selected row per selection. gap is the
+// cells between columns, 2 unless given: a 10-column table at 78 cells fits on 1
+// (ui.Table(…, focused, 1)).
+func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align string, sel, w int, focused bool, gap ...int) []string {
+	g := 2
+	if len(gap) > 0 && gap[0] >= 0 {
+		g = gap[0]
+	}
+	sp := strings.Repeat(" ", g)
 	ws := append([]int(nil), widths...)
 	used := 0
 	for i, x := range ws {
 		if i < len(ws)-1 || x > 0 {
-			used += x + 2
+			used += x + g
 		}
 	}
 	if ws[len(ws)-1] == 0 {
@@ -287,18 +394,18 @@ func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 	for i, c := range header {
 		h = append(h, t.S.Subtle.Render(cell(t.Label(c, "upper"), i)))
 	}
-	out := []string{Fit("  "+strings.Join(h, "  "), w), "  " + Rule(t, w-2)}
+	out := []string{Fit("  "+strings.Join(h, sp), w), "  " + Rule(t, w-2)}
 	for r, row := range rows {
 		var cs []string
 		for i, c := range row {
 			cs = append(cs, cell(c, i))
 		}
-		line := strings.Join(cs, "  ")
+		line := strings.Join(cs, sp)
 		selected := r == sel
 		mode := t.X.Selection
 		switch {
 		case selected && focused && (mode == "fill" || mode == "inverse"):
-			out = append(out, t.S.SelRow.Render(Fit("  "+ansi.Strip(line), w)))
+			out = append(out, selFilled(t, Fit("  "+ansi.Strip(line), w)))
 		case selected && (mode == "bar"):
 			bar, glyph := t.S.FocusBar, t.G.FocusBar
 			if !focused {
@@ -312,7 +419,7 @@ func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 		case selected && mode == "caret":
 			out = append(out, Fit(t.S.BlurBar.Render(t.BlurBar())+" "+line, w))
 		case selected:
-			out = append(out, lipgloss.NewStyle().Background(t.P.BgSubtle).Render(Fit("  "+line, w)))
+			out = append(out, underlay(Fit("  "+line, w), t.P.BgSubtle))
 		default:
 			out = append(out, Fit("  "+line, w))
 		}

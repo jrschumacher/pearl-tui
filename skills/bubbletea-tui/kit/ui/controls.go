@@ -164,7 +164,8 @@ func KV(t *theme.Theme, rows [][2]string, keyW int) []string {
 }
 
 // Progress is a bar of w cells in the theme's progress glyphs: ━━━━━━╌╌╌ (ASCII ======---).
-// frac 0..1. The filled part takes a gradient from secondary to primary.
+// frac 0..1. The filled part takes a gradient from secondary to primary; the empty part
+// is the rule's colour, or fgSubtle under ASCII, where its dashes are text.
 func Progress(t *theme.Theme, frac float64, w int) string {
 	frac = math.Max(0, math.Min(1, frac))
 	full := frac * float64(w)
@@ -181,7 +182,14 @@ func Progress(t *theme.Theme, frac float64, w int) string {
 		filled = t.S.Mark.Render(filled)
 	}
 	rest := w - n - lipgloss.Width(head)
-	return filled + t.S.Rule.Render(strings.Repeat(empty, max(0, rest)))
+	// under ASCII the empty part is "-", a character, not a rule glyph: a run shorter than
+	// a rule (a 1-cell remainder) reads as text, and in the border colour it is text at
+	// 1.5:1. fgSubtle is the quietest ink that clears the text floor
+	track := t.S.Rule
+	if t.ASCII {
+		track = t.S.Subtle
+	}
+	return filled + track.Render(strings.Repeat(empty, max(0, rest)))
 }
 
 // StateSparkline is Sparkline for a row in a status state, over w cells: the line over
@@ -214,7 +222,14 @@ func warnIsFill(t *theme.Theme) bool {
 	return bg != nil && !none
 }
 
-// Sparkline draws values as ▁▂▃▄▅▆▇█ over w cells (the last w values).
+// Sparkline draws values as ▁▂▃▄▅▆▇█ over w cells (the last w values, left-aligned),
+// scaled to the series itself: for a reading whose shape matters more than its level
+// (latency, throughput). A reading with a fixed range (a percentage, a load) is a Trace,
+// where an idle 3 % stays at the floor. How far a series rises is set by its spread
+// (hi−lo)/hi: under 10 % it is noise and draws the floor (⣀, Theme.TraceGlyphs) in every
+// cell, since ±5 % drawn full height reads as an incident; from 10 % to a third it rises
+// to ▂▃▄ at most, so a +20 % step still shows as a step; past a third it uses the full
+// height. A series of zeros draws the floor in fgSubtle, a step under a quiet one.
 func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) string {
 	if len(vals) > w {
 		vals = vals[len(vals)-w:]
@@ -223,27 +238,30 @@ func Sparkline(t *theme.Theme, vals []float64, w int, style lipgloss.Style) stri
 	for _, v := range vals {
 		lo, hi = math.Min(lo, v), math.Max(hi, v)
 	}
-	// a flat series stays a low flat line: ±5% noise drawn full-height reads
-	// as an incident
-	flat := hi <= 0 || (hi-lo)/hi < 0.25
-	bars := []rune(theme.SparkRamp)
-	if t.ASCII {
-		bars = []rune(theme.SparkRampASCII)
+	_, ramp := t.TraceGlyphs()
+	top := len(ramp) - 1 // the highest level above the lowest bar
+	spread := 0.0
+	if hi > 0 {
+		spread = (hi - lo) / hi
 	}
-	var b strings.Builder
-	for _, v := range vals {
-		k := 0
+	if spread < 1.0/3 {
+		top = min(top, 1+int((spread-0.10)/(1.0/3-0.10)*3)) // 10 % → ▂, a third → ▄
+	}
+	levels := make([]int, len(vals))
+	inks := make([]lipgloss.Style, len(vals))
+	for i, v := range vals {
+		inks[i] = style
 		switch {
-		case flat && hi > lo:
-			k = 1 + int(math.Round((v-lo)/(hi-lo)))
-		case flat:
-			k = 0
+		case hi <= 0:
+			levels[i], inks[i] = 0, t.S.Subtle
+		case spread < 0.10:
+			levels[i] = 0
 		default:
-			k = int(math.Round((v - lo) / (hi - lo) * float64(len(bars)-1)))
+			levels[i] = 1 + int(math.Round((v-lo)/(hi-lo)*float64(top)))
 		}
-		b.WriteRune(bars[k])
 	}
-	return style.Render(Fit(b.String(), w))
+	line := traceRows(t, levels, inks, 1)[0]
+	return line + strings.Repeat(" ", max(0, w-len(vals)))
 }
 
 // Scrollbar returns h cells (top to bottom) for a list of total rows with
