@@ -73,3 +73,26 @@ func TestStateSparklineKeepsTheTimeAxis(t *testing.T) {
 		}
 	}
 }
+
+// Under ASCII a progress bar's empty part is "-", and a 1-cell remainder is too short to
+// read as a rule: tuilint frames judged it text in the border colour, 1.52:1 (#61). The
+// ASCII track is drawn in an ink that clears the 2.3:1 text floor.
+func TestASCIIProgressTrackReadsAsText(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dark := range []bool{true, false} {
+			th := theme.Resolve(tf, dark, true)
+			bar := Progress(th, 0.95, 20) // 19 filled, 1 empty
+			c := cellAt(bar, th.G.ProgressEmpty)
+			if c == nil {
+				t.Fatalf("%s dark=%v: no empty cell in %q", filepath.Base(f), dark, bar)
+			}
+			if cr := theme.Contrast(c.Style.Fg, th.P.Bg); cr < 2.3 {
+				t.Errorf("%s dark=%v: the ASCII remainder %q is %.2f:1 on the page, under the 2.3:1 text floor", filepath.Base(f), dark, c.Content, cr)
+			}
+		}
+	}
+}

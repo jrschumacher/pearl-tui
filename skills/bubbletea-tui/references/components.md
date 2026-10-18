@@ -23,7 +23,9 @@ names in subtle; a count is only red if it needs attention now.
 ## Section — `ui.Section(t, title, w, info)`
 
 `Title ───────── info`. The title is in the theme's title style and case, the rule is in
-the border colour, and right info is subtle. This is how regions separate.
+the border colour, and right info is subtle. Style a span of the info to give it its own
+ink (`t.S.Err.Render(t.G.Fail)+" 4 of 4 pinned"`, a figure in `t.S.Base`); the unstyled
+rest stays subtle. Don't rebuild Section for it. This is how regions separate.
 
 ## List — `ui.List(t, items, sel, offset, w, h, focused)`
 
@@ -45,8 +47,14 @@ the border colour, and right info is subtle. This is how regions separate.
 ## Table — `ui.Table`
 
 Borderless. The header row in subtle UPPERCASE (or the theme's case), one rule under it,
-2-cell column gaps, numbers right-aligned, the first column taking the rest. The
-selected row is marked like a list row. Color a cell only when its value is abnormal (a
+2-cell column gaps (a last argument of 1 for a dense table: 10 columns at 80 cells),
+numbers right-aligned, the first column taking the rest. The selected row is marked like
+a list row. On a filled selection every block or braille cell (a trace, a sparkline, or a
+history the app draws itself) takes a shade of the fill (`Styles.SelBars`): in the row's
+ink they are blocks of the page punched through the bar. The theme's own marks among them
+(a `▖` spinner frame, a status mark) stay in the row's ink. Under NO_COLOR the bars stay,
+reversed with the rest of the row, so the fill is unbroken and the selected history
+still reads, as marks in the page's ink. Color a cell only when its value is abnormal (a
 red error rate), never a whole column.
 
 ## Detail Pane
@@ -223,7 +231,7 @@ and ASCII alike), never a multi-cell spinner that pushes the name out of line; t
 clock for such a row runs only when `ui.BusyAnimates(t)`. The label or a tag beside it
 says the state in words.
 
-## Progress, Sparkline, Meter — `ui.Progress`, `ui.Sparkline`
+## Progress, Trace, Sparkline — `ui.Progress`, `ui.Trace`, `ui.Sparkline`
 
 - Progress: `━━━━╸╌╌╌` with the fill in a short gradient, then the fraction and what is
   progressing ("3/5 pods"). Indeterminate work gets a spinner, not a fake bar.
@@ -232,13 +240,31 @@ says the state in words.
   past its error level the fail mark, not only amber or red: at 16 colours amber is often
   red's slot and under NO_COLOR it is the text colour, so the band is the mark's to say.
   The `ladder` frame shows the marks a reading can carry.
-- Sparkline: `▁▂▃▅▇` over a fixed column, coloured by state, with a flat series kept
-  flat. Always print the current value beside it. A warning's ends in the warn mark
-  (`ui.StateSparkline`: `▁▃▅▇█▲`): at 16 colours a warm brand's yellow and the
-  warning's are one hue, so bars in yellow alone read as the selection. A sparkline taller than one row grows
-  upward from the label's row: label, value and the bar's base share the bottom row,
-  the rows above hold the peaks, so a two-row graph never splits the label from the
-  bar it names (a `▂▆▆▂` fragment alone on a row reads as noise).
+- Trace: a history of a reading with a fixed range (cpu %, a disk, a load) is
+  `ui.Trace(t, vals, w, ui.TraceOpts{Min, Max, Per, Rows, Warn, Fail})` (one row:
+  `ui.TraceRow`), never a Sparkline, which scales each series to itself and draws an
+  idle 3 % full height. The zero `Min, Max` is 0..100; set `Max` for bytes or a rate.
+  Newest sample at the right; a cell holds `Per` samples drawn as their max (60 s at Per
+  4 is 15 cells, and a 1 s spike survives); cells before the first sample are blank, not
+  zero; a cell at or over `Warn` takes the warning's ink and over `Fail` the error's;
+  `Rows: 3` is 24 heights, the floor on the bottom row.
+- Idle is dots, never a line. A sample under 1/8 of the scale draws the floor `⣀` (`⠤`
+  beside a rule drawn in braille), so a 4–9 % band is one even row, not `⣀▁⣀▁`, and a
+  quiet row is never a hairline: `▁▁▁▁` reads as one more rule beside any rule, and over
+  the next row's bars it closes a box. A series of zeros draws the floor in fgSubtle, a
+  step under a low reading's fgMuted; a missing sample is blank. ASCII draws heights
+  `.,:;%&#@` (punctuation thickening upward) and the floor `.` (`,` beside a `.` rule),
+  never `-`, `_` or `=`, whose runs are rules.
+- Sparkline: `▁▂▃▅▇` over a fixed column, scaled to the series (latency, throughput),
+  coloured by state. A series within 10 % of its peak is noise and draws the floor; from
+  10 % to a third it rises to `▂▃▄` at most, so a +20 % p99 step shows as a step and
+  never as a wall; past a third it takes the full height. Always print the current value
+  beside it. A warning's ends in the warn mark (`ui.StateSparkline`: `▁▃▅▇█▲`): at 16
+  colours a warm brand's yellow and the warning's are one hue, so bars in yellow alone
+  read as the selection. A sparkline taller than one row grows upward from the label's
+  row: label, value and the bar's base share the bottom row, the rows above hold the
+  peaks, so a two-row graph never splits the label from the bar it names (a `▂▆▆▂`
+  fragment alone on a row reads as noise).
 
 ## Empty, Loading, Error — `ui.Empty`
 
@@ -261,8 +287,12 @@ for steps, nested agents and dependencies.
 See `cell-art.md`. Mark, wordmark, spinner with subject, version bottom-left, quit hint
 bottom-right, brand field behind with a clearing. It is shown only while something loads.
 
-## Too Small — `ui.TooSmall(t, w, h, minW, minH, bindings)`
+## Too Small — `ui.TooSmall(t, w, h, minW, minH, bindings)`, `ui.TooSmallText(t, w, h, say, bindings)`
 
-One centred line with the actual and the needed size, then the keys of the `toosmall`
-row of the action table (`m.footerBindings()` while the size is below the minimum),
-never a key typed into the screen: `TestHelpIsHandled` presses every one. Nothing else.
+The wordmark, one centred line with the actual and the needed size, then the keys of the
+`toosmall` row of the action table (`m.footerBindings()` while the size is below the
+minimum), never a key typed into the screen: `TestHelpIsHandled` presses every one. A
+spec that words the screen itself ("Terminal is 60×18; needs 80×24") passes its sentence
+to `ui.TooSmallText`, which wraps it at 56 cells and draws no wordmark. A spec that asks
+for the sentence and nothing else leaves the `toosmall` row without a shown key: no key
+row is drawn, and ctrl+c still quits (`TestTooSmallKeysAreTheTable` checks it).

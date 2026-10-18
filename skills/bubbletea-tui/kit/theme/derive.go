@@ -301,6 +301,8 @@ func glyphDefaults(g Glyphs) Glyphs {
 	d(&g.Caret, "▏")
 	d(&g.More, "↑")
 	d(&g.UpDown, "↑↓")
+	d(&g.Up, "↑")
+	d(&g.Down, "↓")
 	d(&g.LeftRight, "←→")
 	d(&g.Back, "←")
 	d(&g.ProgressFill, "━")

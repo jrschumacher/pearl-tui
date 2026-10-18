@@ -163,3 +163,52 @@ func TestListStatusColumnKeepsItsMarks(t *testing.T) {
 		}
 	}
 }
+
+// ui.Table's gap was fixed at 2 cells, which a 10-column process list at 80 columns
+// can't afford: Thrift (#61) hand-wrote its rows for 1-cell gaps. The gap is an argument,
+// 2 by default.
+func TestTableGapIsTheCallers(t *testing.T) {
+	th := testTheme(t, false)
+	header := []string{"pid", "s", "program", "user", "mem", "cpu", "hist", "bal", "thr", "command"}
+	widths := []int{6, 1, 12, 6, 5, 5, 8, 4, 3, 0}
+	row := []string{"13912", "R", "yes", "root", "1.4M", "24.6", "abcdefgh", "100", "1", "yes --verbose"}
+	starts := func(line string, gap int) []int {
+		var out []int
+		x := 2
+		for _, w := range widths[:len(widths)-1] {
+			out = append(out, x)
+			x += w + gap
+		}
+		return append(out, x)
+	}
+	for _, gap := range []int{1, 2} {
+		var out []string
+		if gap == 2 {
+			out = Table(th, header, [][]string{row}, widths, "rllllrrlll", -1, 80, true)
+		} else {
+			out = Table(th, header, [][]string{row}, widths, "rllllrrlll", -1, 80, true, gap)
+		}
+		line := []rune(ansi.Strip(out[2]))
+		if len(line) > 80 || len([]rune(ansi.Strip(out[0]))) > 80 {
+			t.Fatalf("gap %d: rows of %d cells at 80", gap, len(line))
+		}
+		for i, x := range starts(string(line), gap) {
+			end := len(line)
+			if widths[i] > 0 {
+				end = x + widths[i]
+			}
+			cell := strings.TrimSuffix(strings.TrimSpace(string(line[x:end])), th.G.Ellipsis)
+			if !strings.HasPrefix(row[i], cell) || cell == "" {
+				t.Errorf("gap %d: column %d at cell %d reads %q, want %q", gap, i, x, cell, row[i])
+			}
+		}
+	}
+	// at 80 the command column has 19 cells on 1-cell gaps and 10 on 2: the whole command fits only on 1
+	wide := ansi.Strip(Table(th, header, [][]string{row}, widths, "rllllrrlll", -1, 80, true, 1)[2])
+	if !strings.HasSuffix(strings.TrimRight(wide, " "), "yes --verbose") {
+		t.Errorf("1-cell gaps at 80: %q, want the whole command", wide)
+	}
+	if narrow := ansi.Strip(Table(th, header, [][]string{row}, widths, "rllllrrlll", -1, 80, true)[2]); strings.Contains(narrow, "yes --verbose") {
+		t.Errorf("the default gap is not 2: %q", narrow)
+	}
+}

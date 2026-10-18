@@ -114,6 +114,7 @@ read it too.
     "spinner": ["◢","◣","◤","◥"], "fieldA": "▲", "fieldB": "△",
     "caret": "▏", "more": "↑",   // the input caret; the "↑ 12 more" marker
     "upDown": "↑↓", "leftRight": "←→", "back": "←",       // key labels in footers and forms
+    "up": "↑", "down": "↓",      // one arrow key in a footer ("↓ select"); optional, these defaults
     "progressFill": "━", "progressEmpty": "╌", "progressHead": "╸",
     "turnBar": "│", "tabUnderline": "▔",                  // a blurred chat turn; the active tab
     "ascii": { "◭": "~" }         // twins for glyphs the kit's map lacks (theme.ASCIITwin)
@@ -122,7 +123,8 @@ read it too.
     "header": "bar",            // rule | bar | minimal | stamp | banner
     "wordmark": "tracked",      // gradient | solid | inverse | tracked | bracket | upper | plain (fg, bold)
     "sectionTitle": "primary",  // accent | primary | muted-upper | fg
-    "titleCase": "sentence",    // sentence | upper | lower
+    "titleCase": "sentence",    // sentence | upper | lower (lower keeps words in capitals:
+                                //   "send SIGTERM?")
     "labelCase": "lower",       // upper | lower | as-is: table headers, tags, toast and summary
                                 //   labels, and the kit's fixed labels (tab names; its
                                 //   sentences, "Canceled.", take titleCase; unset: headers upper,

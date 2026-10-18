@@ -102,6 +102,8 @@ type Glyphs struct {
 	Caret         string `json:"caret"`         // input caret after the typed text: ▏ _ (ASCII '; never a bar glyph or its twin |, the focus bar's: CheckGlyphs fails it)
 	More          string `json:"more"`          // marks lines scrolled off ("↑ 12 more"): ↑ ▲ ^
 	UpDown        string `json:"upDown"`        // the arrow-key pair as footers name it: ↑↓ (ascii ^v)
+	Up            string `json:"up"`            // one arrow key as a footer names it, "↑ back": ↑ (ascii ^)
+	Down          string `json:"down"`          // "↓ select" where only down moves yet: ↓ (ascii v)
 	LeftRight     string `json:"leftRight"`     // ←→ (ascii <>)
 	Back          string `json:"back"`          // a form's back link: ← ‹ <
 	ProgressFill  string `json:"progressFill"`  // the filled part of a progress bar: ━ █ ■
@@ -161,13 +163,55 @@ const (
 // (ui.Fit); ui.Trunc cuts with the theme's own glyphs.ellipsis.
 const Ellipsis = "…"
 
-// SparkRamp is the eight heights of a sparkline, lowest first, and SparkRampASCII what
-// an ASCII terminal draws in their place (controls.go Sparkline): no "*" or "+", the
-// current and done twins, so a peak never reads as a status mark beside the dots.
+// SparkRamp is the eight heights of a trace or sparkline, lowest first, and SparkRampASCII
+// what an ASCII terminal draws in their place: punctuation that thickens from the
+// baseline up, with no letter (a run of them reads as a word), no "*" or "+" (the current
+// and done twins, so a peak never reads as a status mark beside the dots) and no "-",
+// "_", "=" or "~" (a run of any of them is a rule, and a steady series would draw one).
+//
+// TraceFloor is a sample at the bottom of its scale (idle: under 1/8 of it), in braille
+// dots: never a solid line, which reads as a rule whatever the theme's own rule is.
+// TraceFloorBraille replaces it where the theme's rule is itself drawn in braille. Under
+// ASCII the floor is "." (TraceFloorASCII), or "," where the rule twins to ".".
+// Theme.TraceGlyphs picks them for the theme.
 const (
-	SparkRamp      = "▁▂▃▄▅▆▇█"
-	SparkRampASCII = "_.-=:;%#@"
+	SparkRamp          = "▁▂▃▄▅▆▇█"
+	SparkRampASCII     = ".,:;%&#@"
+	TraceFloor         = "⣀"
+	TraceFloorBraille  = "⠤"
+	TraceFloorASCII    = "."
+	TraceFloorASCIIAlt = ","
+	traceRuleLikeASCII = "-_=~"
 )
+
+// TraceGlyphs are the glyphs ui.Trace and ui.Sparkline draw a history in: the floor (an
+// idle sample) and the heights above it, lowest first. The floor is braille dots (⣀, or
+// ⠤ beside a rule drawn in braille), never a solid line: a run of ▁ is a hairline, and a
+// hairline reads as a rule. No height is the rule's or the header rule's glyph, and
+// under ASCII no glyph is "-", "_", "=", "~" or the rule's twin.
+func (t *Theme) TraceGlyphs() (floor string, ramp []string) {
+	all := SparkRamp
+	floor = TraceFloor
+	if r := []rune(t.Unicode.Rule); len(r) > 0 && r[0] >= 0x2800 && r[0] <= 0x28FF {
+		floor = TraceFloorBraille
+		if t.Unicode.Rule == TraceFloorBraille {
+			floor = TraceFloor
+		}
+	}
+	if t.ASCII {
+		all, floor = SparkRampASCII, TraceFloorASCII
+		if t.G.Rule == TraceFloorASCII {
+			floor = TraceFloorASCIIAlt
+		}
+	}
+	for _, r := range all {
+		g := string(r)
+		if g != t.G.Rule && g != t.G.HeaderRule && !(t.ASCII && strings.Contains(traceRuleLikeASCII, g)) {
+			ramp = append(ramp, g)
+		}
+	}
+	return floor, ramp
+}
 
 // Wordmark is an optional multi-row wordmark (scripts/wordmark.py output).
 type Wordmark struct {

@@ -228,3 +228,26 @@ func TestMinimalHeaderRight(t *testing.T) {
 		t.Errorf("header %q, want the separator between brand and details", row)
 	}
 }
+
+// Section forced its info to fgSubtle, so both cold monitors in #61 rebuilt it to show
+// a red "4 of 4 pinned" or a bold filter. Styled info keeps its ink; plain info is subtle.
+func TestSectionKeepsStyledInfo(t *testing.T) {
+	th := testTheme(t, false)
+	styled := Section(th, "cpu", 40, th.S.Err.Render("pinned")+" 4 of 4 "+th.S.Base.Render("xeon"))
+	if c := cellAt(styled, "pinned"); c == nil || !same8(c.Style.Fg, th.P.Error) {
+		t.Errorf("styled info %q lost its ink: %v", ansi.Strip(styled), c)
+	}
+	if c := cellAt(styled, "xeon"); c == nil || !same8(c.Style.Fg, th.P.Fg) {
+		t.Errorf("a figure styled in fg lost its ink: %v", c)
+	}
+	if c := cellAt(styled, "4 of 4"); c == nil || !same8(c.Style.Fg, th.P.FgSubtle) {
+		t.Errorf("unstyled info after a styled span is %v, want fgSubtle (it fell to the terminal's default)", c)
+	}
+	plain := Section(th, "cpu", 40, "4 of 4")
+	if c := cellAt(plain, "4 of 4"); c == nil || !same8(c.Style.Fg, th.P.FgSubtle) {
+		t.Errorf("plain info is not subtle: %v", c)
+	}
+	if lipgloss.Width(styled) != 40 || lipgloss.Width(plain) != 40 {
+		t.Errorf("widths %d and %d, want 40", lipgloss.Width(styled), lipgloss.Width(plain))
+	}
+}
