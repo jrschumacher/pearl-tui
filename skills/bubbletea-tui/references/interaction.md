@@ -79,10 +79,16 @@ explicit send), a confirm adds nothing. Put every action on the first rung that 
    key does now (`x close` becomes `x reopen`). At most a toast that names what
    happened and the undo ("Closed #812 · x reopen"). A bulk one stays here: "Marked 12
    done · u undo" undoes the batch.
-2. **Composed, then sent: the send is the confirmation.** A comment, reply or message
-   the user wrote and sent with an explicit send key (`enter`, `ctrl+s`) posts at once.
-   They read it while writing it; "Post this comment?" only asks them to read it
-   again. Where the service allows, offer edit or delete on the sent item.
+2. **Composed, then sent: the send is the confirmation.** A comment, reply, message or
+   page the user wrote and sent with an explicit send key (`enter`, `ctrl+s`) goes
+   without a dialog. They read it while writing it; "Post this comment?" only asks them
+   to read it again. This holds when the send can't be recalled (a page, an email, a
+   post): composing and sending was the judgement. Where the system can hold it, give
+   a grace window instead of a confirm: the send waits ~5 s under an undo toast
+   ("Paging payments on-call in 5 s · u undo", as mail apps offer undo send), then
+   goes. Where the service allows, offer edit or delete on the sent item. A failing
+   signal still moves a send to rung 4: paging a rotation that's off duty, or an
+   incident already open for the same thing.
 3. **Can't be taken back, so nothing vouches for it: confirm.** Deleting, purging,
    force-pushing, and shipping to production (a release, a deploy, a rollback: a
    rollback is a deploy) even with green checks: traffic meets it the moment it lands,
@@ -101,9 +107,10 @@ explicit send), a confirm adds nothing. Put every action on the first rung that 
    escalates; a passing one stands in for the confirm only on an action a revert takes
    back. On rung 3 the confirm stays, and a failing signal goes in its question.
 
-Make an action reversible where you can, and it moves down to rung 1: a delete that
-goes to a trash, or a send held for the length of its undo toast, needs no dialog.
-
+**DO** prefer undo to a confirm wherever the action can be held or reversed: a delete
+that goes to a trash, a send held for its grace window. Undo lets people act at speed
+and recover, so they learn the UI is safe to use; a confirm teaches them it is
+dangerous, and to press `y` without reading.
 **DO** choose the rung per action when you list the states: a `confirm-*` state exists
 only for rungs 3 and 4, and a rung-4 confirm says which signal opens it.
 **DO** write the question about the one thing to judge: the object and what can't be

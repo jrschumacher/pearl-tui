@@ -197,15 +197,20 @@ alert per screen. If there are many, it's a list.
 
 ## Toast — `ui.Toast`
 
-Paints over the footer row for ~4 s, an undo toast ~8 s (`motion.md` § Budget), as a
-tag and a message on a tinted bar, then the help returns. Never a new row, never a
-modal.
+Paints over the footer row for ~4 s, an undo toast ~8 s and a grace window ~5 s
+(`motion.md` § Budget), as a tag and a message on a tinted bar, then the help returns.
+Never a new row, never a modal.
 
 An undo toast is what a reversible action gets instead of a confirm: it names what
 happened and the key that takes it back (`Closed #812 · x reopen`, `Marked 12 done · u
 undo`), stays the longer ~8 s so the hand can reach the key, and that key is bound in
-the state's action table while it shows. Never for something that can't be undone: that one had a
-confirm, and an undo that can't is a lie.
+the state's action table while it shows. Never for something that can't be undone:
+that one had a confirm, and an undo that can't is a lie.
+
+A grace window is the undo toast for a send that can't be recalled once it goes (a
+page, an email): the action is pending until the toast ends, the undo key cancels it,
+and the toast says what will happen and when (`Paging payments on-call in 5 s · u
+undo`, counting down). When it ends the send goes, and a plain toast says it went.
 
 ## Footer / Help — `ui.Footer`, `ui.Help`
 
