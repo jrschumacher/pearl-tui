@@ -941,3 +941,52 @@ func TestFilterNarrowsTheList(t *testing.T) {
 		t.Errorf("a filter that leaves nothing draws:\n%s", txt)
 	}
 }
+
+// In a caret theme the input's prompt (») and the list's cursor (›) stand in one column,
+// both in the focus ink, >> over > under ASCII (#56). Judged clear, on three conditions
+// this holds: the two glyphs differ in both modes (theme.Validate refuses a prompt that
+// is the cursor), they are never on adjacent rows (the palette keeps a blank row under
+// its input, the filter line a row of air and the header), and a filter in force draws
+// its prompt quiet (ui.TestFilterLine), so the focus ink marks two places only while
+// both take keys: letters go to the query, ↑↓ to the selection.
+func TestPromptNeverSitsOnTheCursor(t *testing.T) {
+	sawColumn, caret := false, false
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		caret = caret || tf.Expressions.Selection == "caret"
+		for _, ascii := range []bool{false, true} {
+			for _, s := range []string{"palette", "services-filter", "services-filtered"} {
+				for _, sz := range [][2]int{{80, 24}, {120, 40}} {
+					m := newApp(tf, true, ascii)
+					m.setState(s)
+					c := m.render(sz[0], sz[1])
+					name := fmt.Sprintf("%s ascii=%v %s %dx%d", filepath.Base(f), ascii, s, sz[0], sz[1])
+					p, cur := m.t.G.Prompt, m.t.G.Cursor
+					if p == cur && tf.Expressions.Selection == "caret" {
+						t.Fatalf("%s: the prompt and the cursor are both %q", name, p)
+					}
+					for y := range sz[1] {
+						x := slices.Index(strings.Split(rowText(c, y), ""), string([]rune(p)[0]))
+						if x < 0 || !strings.HasPrefix(string([]rune(rowText(c, y))[x:]), p+" ") {
+							continue
+						}
+						for _, dy := range []int{-1, 1} {
+							if ny := y + dy; ny >= 0 && ny < sz[1] && cellText(c, x, ny) == cur {
+								t.Errorf("%s: the prompt %q on row %d sits on the cursor %q on row %d:\n%s\n%s", name, p, y, cur, ny, rowText(c, min(y, ny)), rowText(c, max(y, ny)))
+							}
+						}
+						for ny := y + 2; ny < min(sz[1], y+5); ny++ {
+							sawColumn = sawColumn || (tf.Expressions.Selection == "caret" && cellText(c, x, ny) == cur)
+						}
+					}
+				}
+			}
+		}
+	}
+	if caret && !sawColumn {
+		t.Error("no caret theme drew its cursor in the prompt's column: this test no longer sees the case it guards")
+	}
+}

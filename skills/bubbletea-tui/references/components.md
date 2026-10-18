@@ -76,8 +76,11 @@ on the arrows), `enter keep filter` gives the keys back with the filter in force
 `esc clear filter` drops it: offer `esc clear filter` only while a filter is typed or in
 force, early in the table so the footer keeps it. The selection stays on a row the
 filter leaves; when it leaves none, say so under the header (`ui.Empty` with
-`ui.NoMark`) and bind nothing that acts on a hidden row. The showcase's services list
-is the pattern (`services-filter`, `services-filtered`).
+`ui.NoMark`) and bind nothing that acts on a hidden row. In a caret theme the prompt
+(`»`, ASCII `>>`) stands in the cursor's (`›`) column in the same ink while both take
+keys; keep a row between them (the filter's air, the palette's blank row under its
+input), never adjacent, so they read as two marks, not a nested selection. The
+showcase's services list is the pattern (`services-filter`, `services-filtered`).
 
 ## Detail Pane
 
