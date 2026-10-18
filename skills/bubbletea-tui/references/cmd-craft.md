@@ -17,11 +17,13 @@ Run the copy block in `kit/README.md` § Copying it into a project, as written: 
 `themes/<brand>.json` with `themes/embed.go` (the binary carries the theme: no `-theme`
 flag, no path that breaks when it moves), rewrites the import paths and pins the
 versions, and CI proves it passes in a fresh module. Follow its notes on skipping the
-`<closest>.json` line when `brand` ran first and on what to delete once your screens
-are in. Then read `cmd/<app>/{app.go,screens.go,main.go}`: the model, `render(w,h)`,
-the harness. A cold rebuild from these references loses half the idiom at once (the
-focus gutter, the filled-row backgrounds, the help truncation, the scrim order). The
-code already has them.
+`<closest>.json` line when `brand` ran first, on what to delete once your screens are
+in, and on a root model outside `package main` (an existing app's `internal/app`: the
+kept tests move beside it and change only their package clause). Then read
+`cmd/<app>/{app.go,screens.go,main.go}`: the model, `render(w,h)`, the harness. A cold
+rebuild from these references loses half the idiom at once (the focus gutter, the
+filled-row backgrounds, the help truncation, the scrim order). The code already has
+them.
 
 ## 2. Skeleton First, With The Harness
 

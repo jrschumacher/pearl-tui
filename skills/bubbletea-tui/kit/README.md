@@ -162,6 +162,16 @@ whole. They read your tables and these from your app:
   ink, or under a `fill`/`inverse` selection `t.S.SelRow`'s reverse video, which is
   therefore the selection's style only (a badge in it reads as a focus).
 
+The four are `package main` because they sit beside the root model in `cmd/<app>`. An
+app whose root model lives elsewhere (an existing app's `internal/app`) moves them
+beside it and changes their package clause (`package app`), and that is the only edit
+they take. What they read moves with them: the tables, `setState` and `openOverlay`
+from `main.go`, with its `frameSize`, `frameName`, `checkSize`, `renderProfile` and
+`downsample`, so `cmd/<app>/main.go` keeps a `main` that calls into the package. Keep
+that package two levels below the project root, since the tests read
+`../../themes/*.json`, and put any `ui.NewForm` call in it, since the `unjudgedPages`
+check reads only its own `*.go` files.
+
 Then delete each import `go vet ./...` reports unused. CI deletes these files from a
 copy, puts a two-page app with one overlay of its own in place of the screens
 (`.github/kit-stub`) and runs the kept tests with three donors, so they hold for an app
