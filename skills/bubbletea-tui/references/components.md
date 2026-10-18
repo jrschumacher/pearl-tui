@@ -319,17 +319,18 @@ says the state in words.
 - Idle is dots, never a line. A sample under 1/8 of the scale draws the floor `⣀` (`⠤`
   beside a rule drawn in braille), so a 4–9 % band is one even row, not `⣀▁⣀▁`, and a
   quiet row is never a hairline: `▁▁▁▁` reads as one more rule beside any rule, and over
-  the next row's bars it closes a box. No data is not low data: a history with nothing
-  above `Min` (a series of zeros) draws blank, as a missing sample does, since a floor a
-  step of ink quieter than 0.01 % is the same row under NO_COLOR and in ASCII; a zero
-  beside activity draws the floor in fgSubtle, a step under a low reading's fgMuted. ASCII draws heights
+  the next row's bars it closes a box. A Trace's zeros are a reading (an idle queue, a
+  healthy error rate) and draw the floor in fgSubtle, a step under a low reading's
+  fgMuted; its no data is NaN or no samples, which draw blank, never 0. ASCII draws heights
   `.,:;%&#@` (punctuation thickening upward) and the floor `.` (`,` beside a `.` rule),
   never `-`, `_` or `=`, whose runs are rules.
 - Sparkline: `▁▂▃▅▇` over a fixed column, scaled to the series (latency, throughput),
   coloured by state. A series within 10 % of its peak is noise and draws the floor; past
   it the peak rises a level per ~8 % of spread (`▂` at 10 %, `▄` at a third, `▇` from
   about a half), so a +20 % p99 step shows as a step, never as a wall, and 34 % is not
-  twice 32 %. Always print the current value
+  twice 32 %. A series of zeros (a p99 with no requests) is no data and draws blank:
+  the floor a quiet series draws would be the same row as 0.01 % under NO_COLOR and in
+  ASCII. Always print the current value
   beside it. A warning's ends in the warn mark (`ui.StateSparkline`: `▁▃▅▆▇▲`): at 16
   colours a warm brand's yellow and the warning's are one hue, so bars in yellow alone
   read as the selection. A sparkline taller than one row grows upward from the label's

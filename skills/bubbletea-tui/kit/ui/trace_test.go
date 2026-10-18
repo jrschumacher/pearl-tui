@@ -189,24 +189,37 @@ func isASCIIText(s string) bool {
 	return true
 }
 
-// No data is not low data. A history with no activity at all (every sample at Min, a
-// series of zeros) drew the same dotted floor as one at 0.01 %, a step of ink apart, so
-// under NO_COLOR and in ASCII (..........) the two were one row. It draws blank, as a
-// history that hasn't started does: there is nothing to plot. A zero inside an active
-// window still draws the floor (the time axis runs on), a step quieter than a low
-// reading (fgSubtle against fgMuted).
+// No data is not low data, in a Sparkline: a series of zeros there (a p99 with no
+// requests) drew the same dotted floor as one at 0.01 %, a step of ink apart, so under
+// NO_COLOR and in ASCII (..........) the two were one row. A Sparkline of zeros draws
+// blank. A Trace is a fixed-scale reading, where a window of zeros is real (an idle
+// queue, a healthy error rate): it draws its floor in fgSubtle, a step under a low
+// reading's fgMuted, and a Trace's no data is NaN or no samples, which draw blank. A
+// zero inside an active window draws the floor too (the time axis runs on).
 func TestNoDataIsNotLowData(t *testing.T) {
+	nan := math.NaN()
 	for _, ascii := range []bool{false, true} {
 		th := testTheme(t, ascii)
+		floor, _ := th.TraceGlyphs()
 		low := TraceRow(th, []float64{4, 7, 5, 9, 6, 4}, 6, TraceOpts{})
 		for what, none := range map[string]string{
-			"Trace":             TraceRow(th, make([]float64, 6), 6, TraceOpts{}),
-			"Trace on 10..90":   TraceRow(th, []float64{10, 3, 10}, 6, TraceOpts{Min: 10, Max: 90}),
-			"Sparkline":         Sparkline(th, make([]float64, 6), 6, th.S.Muted),
-			"StateSparkline ok": StateSparkline(th, "ok", make([]float64, 6), 6),
+			"Sparkline of zeros":  Sparkline(th, make([]float64, 6), 6, th.S.Muted),
+			"StateSparkline ok":   StateSparkline(th, "ok", make([]float64, 6), 6),
+			"Trace of NaN":        TraceRow(th, []float64{nan, nan, nan, nan, nan, nan}, 6, TraceOpts{}),
+			"Trace of no samples": TraceRow(th, nil, 6, TraceOpts{}),
 		} {
 			if got := ansi.Strip(none); strings.TrimSpace(got) != "" || lipgloss.Width(none) != 6 {
-				t.Errorf("ascii=%v: %s of no data draws %q, want 6 blank cells", ascii, what, got)
+				t.Errorf("ascii=%v: %s draws %q, want 6 blank cells", ascii, what, got)
+			}
+		}
+		for what, zeros := range map[string]string{
+			"Trace of zeros":  TraceRow(th, make([]float64, 6), 6, TraceOpts{}),
+			"Trace on 10..90": TraceRow(th, []float64{10, 3, 10, 10, 10, 10}, 6, TraceOpts{Min: 10, Max: 90}),
+		} {
+			if got := ansi.Strip(zeros); got != strings.Repeat(floor, 6) {
+				t.Errorf("ascii=%v: %s draws %q, want its floor in every cell: a window of zeros is a reading", ascii, what, got)
+			} else if c := cellAt(zeros, floor); c == nil || !same8(c.Style.Fg, th.P.FgSubtle) {
+				t.Errorf("ascii=%v: %s is not in fgSubtle: %v", ascii, what, c)
 			}
 		}
 		if strings.TrimSpace(ansi.Strip(low)) == "" {
@@ -216,11 +229,8 @@ func TestNoDataIsNotLowData(t *testing.T) {
 			t.Errorf("ascii=%v: a low trace is not in fgMuted: %v", ascii, c)
 		}
 		mixed := TraceRow(th, []float64{0, 0, 50}, 3, TraceOpts{})
-		floor, _ := th.TraceGlyphs()
 		if got := []rune(ansi.Strip(mixed)); string(got[0]) != floor {
 			t.Errorf("ascii=%v: a zero beside activity draws %q, want the floor", ascii, string(got[0]))
-		} else if c := cellAt(mixed, floor); c == nil || !same8(c.Style.Fg, th.P.FgSubtle) {
-			t.Errorf("ascii=%v: a zero beside activity is not in fgSubtle: %v", ascii, c)
 		}
 	}
 }

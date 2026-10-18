@@ -33,20 +33,19 @@ type TraceOpts struct {
 	// Ink, when set, is the ink of a cell by its value, in place of fgMuted and the levels,
 	// for every cell above Min. It is never called for a cell at or below Min: that cell
 	// draws the floor in fgSubtle whatever Ink would say, so an Ink that inks zeros (a red
-	// "down" at 0) has no effect there; mark that state beside the trace instead. A
-	// history with nothing above Min draws blank.
+	// "down" at 0) has no effect there; mark that state beside the trace instead.
 	Ink func(v float64) lipgloss.Style
 }
 
 // Trace draws a history on a fixed scale in w cells, newest sample at the right edge, and
 // returns opts.Rows rows (top first); TraceRow is the one-row case. A cell before the
 // first sample is blank (a history that hasn't started is empty, not zero), and so is a
-// NaN, and so is every cell of a history with nothing above Min (no data, which must not
-// read as low data under NO_COLOR or ASCII). A cell under 1/8 of the scale is idle and
-// draws the floor (Theme.TraceGlyphs: ⣀; ASCII . or ,), one texture for the whole idle
-// band, so an idle 4–9 % never flickers between floor and bar and never reads as a
-// section rule; a cell at Min itself beside activity draws it in fgSubtle, a step under
-// a low reading's fgMuted. Above it the cell rises through ▁▂▃▄▅▆▇█ (ASCII .,:;%&#@),
+// NaN: pass NaN (or no samples) for no data, never 0. A history of zeros is real (an
+// idle queue, a healthy error rate) and draws its floor. A cell under 1/8 of the scale is
+// idle and draws the floor (Theme.TraceGlyphs: ⣀; ASCII . or ,), one texture for the
+// whole idle band, so an idle 4–9 % never flickers between floor and bar and never reads
+// as a section rule; a cell at Min itself draws it in fgSubtle, a step under a low
+// reading's fgMuted. Above it the cell rises through ▁▂▃▄▅▆▇█ (ASCII .,:;%&#@),
 // and the top row stops at ▇ (7/8): a full block would sit flush on the row above. On a
 // selected row ui.Table draws the bars in the selection's shade (Styles.SelBars).
 func Trace(t *theme.Theme, vals []float64, w int, o TraceOpts) []string {
@@ -64,12 +63,8 @@ func Trace(t *theme.Theme, vals []float64, w int, o TraceOpts) []string {
 	cells := traceCells(vals, w, per)
 	levels := make([]int, len(cells))
 	inks := make([]lipgloss.Style, len(cells))
-	data := false // anything above Min: else no data, drawn blank
-	for _, v := range cells {
-		data = data || v > lo
-	}
 	for i, v := range cells {
-		if math.IsNaN(v) || !data {
+		if math.IsNaN(v) {
 			levels[i] = -1
 			continue
 		}
