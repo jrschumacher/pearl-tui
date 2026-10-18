@@ -1,6 +1,8 @@
 package feedback
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/url"
 	"sort"
@@ -87,9 +89,18 @@ func (is Issue) Header() string {
 	return b.String()
 }
 
-// Draft is the full text `feedback draft` prints: the header, a rule, the body.
+// Hash is 8 hex digits of SHA-256 over exactly what submit sends: where, how labelled,
+// the title and the body. draft prints it; submit refuses a --confirm that differs, so
+// what is filed is the draft the user said yes to.
+func (is Issue) Hash() string {
+	sum := sha256.Sum256([]byte(is.Header() + "\x00" + is.Body()))
+	return hex.EncodeToString(sum[:])[:8]
+}
+
+// Draft is the full text `feedback draft` prints: the header with the confirm hash, a
+// blank line, the body.
 func (is Issue) Draft() string {
-	return is.Header() + "\n" + is.Body()
+	return is.Header() + "confirm:  " + is.Hash() + "\n\n" + is.Body()
 }
 
 // NewIssueURL builds the new-issue link that opens the form with the title, labels and

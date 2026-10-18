@@ -6,10 +6,13 @@
 //
 //	feedback draft   --kind bug|perf|eval|feature --title "…" [--field key=value …]
 //	feedback similar --title "…" [--redact WORD …]
-//	feedback submit  --kind bug|perf|eval|feature --title "…" [--field key=value …] [--open]
+//	feedback submit  --kind bug|perf|eval|feature --title "…" [--field key=value …] --confirm HASH [--open]
 //
-// draft prints the exact issue (repo, template, labels, title, then the body as GitHub
-// renders the form) and sends nothing.
+// draft prints the exact issue (repo, template, labels, title, a confirm hash, then the
+// body as GitHub renders the form) and sends nothing. The hash covers exactly what
+// submit would send; submit refuses without --confirm set to it, so what is filed is
+// the draft the user saw and said yes to. Change a field and the hash changes: draft
+// again and show the user again.
 //
 // similar lists existing issues, open and closed, whose titles share the four longest
 // words of the redacted --title (gh search issues), so a finding can go on one of them
@@ -31,6 +34,7 @@
 //	--field key=value a field by its id, repeatable; key=@file reads the value from a file,
 //	                  key=@@text is the literal "@text". A dropdown takes its option, its
 //	                  letter (miss-class=b) or a unique prefix
+//	--confirm HASH    submit: the hash the draft printed, after the user's yes to it
 //	--comment N       post the fields that have values as a comment on issue N (more
 //	                  evidence for an open issue) instead of opening one
 //	--repo owner/name file on a fork; FEEDBACK_REPO does the same (default
@@ -67,9 +71,10 @@
 //
 // Exit status: 0 drafted, filed, or searched; 1 gh failed, or a draft lacks a required
 // field (it prints anyway, the missing ids on stderr); 2 a usage error (bad flag, kind,
-// field or value, or submit missing a required field): nothing was sent; 3 no usable gh
-// (not installed, or gh auth status fails): nothing was filed or searched, and the link
-// to finish by hand is on stdout.
+// field or value, submit missing a required field, or a --confirm that is missing or
+// doesn't match the issue): nothing was sent; 3 no usable gh (not installed, or gh auth
+// status fails): nothing was filed or searched, and the link to finish by hand is on
+// stdout.
 package main
 
 import (

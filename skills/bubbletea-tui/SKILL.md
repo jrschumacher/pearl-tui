@@ -208,7 +208,7 @@ checking in with the user after `shape`. An existing app: `init` → `restyle`.
 | `palette` | `derive` a dark+light role set from brand hexes (OKLCH, tinted neutrals, contrast-tuned); `check` a theme |
 | `tuivet` | the `tuilint code` rules as a go vet tool (`tuivet ./...`, or `go vet -vettool=$(which tuivet) ./...`; exit 3 on a finding) |
 | `diversity` | how different are these themes from each other and from the default |
-| `feedback` | `draft`, dedupe (`similar`) and `submit` an issue on the skill's repository: gh when signed in, else a prefilled link |
+| `feedback` | `draft`, dedupe (`similar`) and `submit` an issue on the skill's repository, `submit` only on the user's yes to the shown draft (`--confirm` its hash): gh when signed in, else a prefilled link |
 | `scripts/wordmark.py` | the brand name in cells, from a real font: half / shade / ascii / tracked |
 | `scripts/logo2cells.py` | a logo raster onto the grid (half, shade or quadrants) with lint |
 

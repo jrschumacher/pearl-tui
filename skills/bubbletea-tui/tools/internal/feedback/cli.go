@@ -32,10 +32,10 @@ func (m *multi) String() string     { return strings.Join(*m, ",") }
 func (m *multi) Set(v string) error { *m = append(*m, v); return nil }
 
 type opts struct {
-	kind, title, repo, skill, out string
-	fields, redact                multi
-	noRedact, open                bool
-	comment                       int
+	kind, title, repo, skill, out, confirm string
+	fields, redact                         multi
+	noRedact, open                         bool
+	comment                                int
 }
 
 // Main runs the feedback command and returns its exit status.
@@ -63,6 +63,7 @@ func Main(args []string, usage string, env Env, stdout, stderr io.Writer) int {
 	fs.StringVar(&o.kind, "kind", "", "")
 	fs.StringVar(&o.title, "title", "", "")
 	fs.Var(&o.fields, "field", "")
+	fs.StringVar(&o.confirm, "confirm", "", "")
 	fs.StringVar(&o.repo, "repo", "", "")
 	fs.StringVar(&o.skill, "skill", "", "")
 	fs.Var(&o.redact, "redact", "")
@@ -116,6 +117,7 @@ func Main(args []string, usage string, env Env, stdout, stderr io.Writer) int {
 	if mode == "draft" {
 		fmt.Fprint(stdout, is.Draft())
 		note(stderr, red, "nothing was sent")
+		fmt.Fprintf(stderr, "feedback: after the user's yes to this draft: feedback submit <the same flags> --confirm %s\n", is.Hash())
 		if len(missing) > 0 {
 			fmt.Fprintf(stderr, "feedback: missing required: %s\n", strings.Join(missing, ", "))
 			return ExitFailed
@@ -124,6 +126,13 @@ func Main(args []string, usage string, env Env, stdout, stderr io.Writer) int {
 	}
 	if len(missing) > 0 {
 		return bad("missing required: %s (nothing was sent; see feedback draft)", strings.Join(missing, ", "))
+	}
+	switch {
+	case o.confirm == "":
+		return bad("submit needs --confirm <hash>, from the draft the user said yes to (feedback draft prints it); nothing was sent")
+	case !strings.EqualFold(strings.TrimSpace(o.confirm), is.Hash()):
+		// the right hash is not printed here: it comes from a draft the user saw
+		return bad("--confirm %s is not this issue: it changed since the draft the user saw; draft it again and show them; nothing was sent", o.confirm)
 	}
 	return submit(is, o, red, stdout, stderr)
 }

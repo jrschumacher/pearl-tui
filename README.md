@@ -162,16 +162,17 @@ to file an issue here at the next natural stop, with the `feedback` tool
 (`references/cmd-feedback.md`):
 
 ```sh
-feedback similar --title "F-CONTRAST fires on a ruled dialog's scrim"   # file on an existing issue instead?
+feedback similar --title "F-CONTRAST fires on a ruled dialog's scrim"    # file on an existing issue instead?
 feedback draft --kind bug --title "…" --field area="tuilint frames" …    # the exact issue; nothing is sent
-feedback submit --kind bug --title "…" …                                 # gh issue create, or a prefilled link
+feedback submit --kind bug --title "…" … --confirm <hash>                # on your yes: gh issue create, or a prefilled link
 ```
 
-It shows you the draft first and files only on your yes. Your project's path, name and
-module path, your home directory and your user name are redacted, and it leaves out your
-code and app names unless you approve them. Without a signed-in `gh` it files nothing:
-it prints a link to the issue form with every field filled in, and asks before opening
-your browser. Forks set `FEEDBACK_REPO=owner/name`.
+It shows you the draft first and files only on your yes: `submit` takes the hash of the
+draft you saw and refuses any other. Your project's path, name and module path, your
+home directory and your user name are redacted, and it leaves out your code and app
+names unless you approve them. Without a signed-in `gh` it files nothing: it prints a
+link to the issue form with every field filled in, and asks before opening your browser.
+Forks set `FEEDBACK_REPO=owner/name`.
 
 Filing by hand works the same way: pick a form on the
 [new issue](https://github.com/jrschumacher/skill-bubbletea-tui/issues/new/choose) page.

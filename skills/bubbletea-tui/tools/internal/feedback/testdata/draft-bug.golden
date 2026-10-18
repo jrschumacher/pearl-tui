@@ -2,6 +2,7 @@ repo:     jrschumacher/skill-bubbletea-tui
 template: bug.yml
 labels:   feedback, bug
 title:    tuilint F-CONTRAST fires on a ruled dialog's scrim at -profile ansi
+confirm:  2b2abadf
 
 ### What was asked
 

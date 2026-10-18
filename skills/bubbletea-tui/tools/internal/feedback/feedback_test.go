@@ -186,6 +186,31 @@ func TestBody(t *testing.T) {
 	}
 }
 
+// The hash covers what submit sends: a changed field, title, label set or target is a
+// different issue, so a --confirm for the old draft can't file it.
+func TestHash(t *testing.T) {
+	a := perfIssue()
+	h := a.Hash()
+	if len(h) != 8 || h != perfIssue().Hash() {
+		t.Fatalf("Hash = %q, not 8 stable hex digits", h)
+	}
+	for name, change := range map[string]func(*Issue){
+		"body":    func(is *Issue) { is.Values["timing"] = "9.2 s, 3 runs" },
+		"title":   func(is *Issue) { is.Title += "!" },
+		"repo":    func(is *Issue) { is.Repo = "me/fork" },
+		"comment": func(is *Issue) { is.Comment = 3 },
+	} {
+		b := perfIssue()
+		change(&b)
+		if b.Hash() == h {
+			t.Errorf("changing the %s kept the hash %s", name, h)
+		}
+	}
+	if !strings.Contains(a.Draft(), "\nconfirm:  "+h+"\n\n### What was asked") {
+		t.Errorf("the draft doesn't print the hash above the body:\n%s", a.Draft())
+	}
+}
+
 func TestNewIssueURL(t *testing.T) {
 	k, _ := KindNamed("bug")
 	is := Issue{Repo: "me/fork", Kind: k, Title: "F-CONTRAST & the scrim: 2.1:1 #fail", Values: map[string]string{
@@ -436,6 +461,18 @@ func (r *rig) run(args ...string) int {
 	return Main(args, "USAGE", r.env, &r.stdout, &r.stderr)
 }
 
+// submit drafts args, takes the confirm hash the draft printed, and submits with it, as
+// an agent does after the user's yes.
+func (r *rig) submit(args ...string) int {
+	draft := append([]string{"draft"}, args[1:]...)
+	r.run(draft...)
+	_, after, ok := strings.Cut(r.stdout.String(), "confirm:  ")
+	if !ok {
+		r.t.Fatalf("the draft printed no confirm hash:\n%s", r.stdout.String())
+	}
+	return r.run(append(args, "--confirm", after[:8])...)
+}
+
 func (r *rig) calls() string {
 	b, _ := os.ReadFile(r.log)
 	return string(b)
@@ -497,6 +534,33 @@ func TestDraftMissingRequired(t *testing.T) {
 	}
 }
 
+// submit files only the draft the user saw: no hash, or a hash of another draft (a field
+// changed after the yes), sends nothing.
+func TestSubmitNeedsTheDraftsHash(t *testing.T) {
+	r := newRig(t, true)
+	r.run(r.bugArgs("draft")...)
+	_, after, _ := strings.Cut(r.stdout.String(), "confirm:  ")
+	hash := after[:8]
+	if code := r.run(r.bugArgs("submit")...); code != ExitUsage || !strings.Contains(r.stderr.String(), "submit needs --confirm") {
+		t.Errorf("no --confirm: exit %d, stderr %q", code, r.stderr.String())
+	}
+	changed := r.bugArgs("submit", "--field", "expected=something the user never read", "--confirm", hash)
+	if code := r.run(changed...); code != ExitUsage || !strings.Contains(r.stderr.String(), "changed since the draft") {
+		t.Errorf("changed body: exit %d, stderr %q", code, r.stderr.String())
+	}
+	refused := r.stderr.String()
+	r.run(r.bugArgs("draft", "--field", "expected=something the user never read")...)
+	if _, after, _ := strings.Cut(r.stdout.String(), "confirm:  "); strings.Contains(refused, after[:8]) {
+		t.Errorf("the refusal gave away the changed draft's hash %s: %s", after[:8], refused)
+	}
+	if strings.Contains(r.calls(), "issue create") {
+		t.Errorf("filed without a matching hash:\n%s", r.calls())
+	}
+	if code := r.run(r.bugArgs("submit", "--confirm", hash)...); code != ExitOK {
+		t.Errorf("the draft's own hash: exit %d, stderr %q", code, r.stderr.String())
+	}
+}
+
 func TestUsageErrors(t *testing.T) {
 	r := newRig(t, false)
 	for _, args := range [][]string{
@@ -526,7 +590,7 @@ func TestUsageErrors(t *testing.T) {
 func TestSubmitWithGh(t *testing.T) {
 	r := newRig(t, true)
 	t.Setenv("GH_HOST", "ghe.example.com")
-	if code := r.run(r.bugArgs("submit")...); code != ExitOK {
+	if code := r.submit(r.bugArgs("submit")...); code != ExitOK {
 		t.Fatalf("submit exit %d: %s", code, r.stderr.String())
 	}
 	if got := strings.TrimSpace(r.stdout.String()); got != "https://github.com/o/r/issues/99" {
@@ -554,7 +618,7 @@ func TestSubmitForkWithoutLabels(t *testing.T) {
 		}
 		return ""
 	}
-	code := r.run("submit", "--kind", "eval", "--title", "catch a torn footer", "--field", "case=new", "--field", "mistake=m", "--field", "assertion=a")
+	code := r.submit("submit", "--kind", "eval", "--title", "catch a torn footer", "--field", "case=new", "--field", "mistake=m", "--field", "assertion=a")
 	if code != ExitOK || !strings.Contains(r.stderr.String(), "filing without labels") {
 		t.Errorf("exit %d, stderr %q", code, r.stderr.String())
 	}
@@ -565,7 +629,7 @@ func TestSubmitForkWithoutLabels(t *testing.T) {
 
 func TestSubmitComment(t *testing.T) {
 	r := newRig(t, true)
-	code := r.run("submit", "--kind", "bug", "--comment", "12", "--field", "evidence=@@media queries don't apply; also at 120x40")
+	code := r.submit("submit", "--kind", "bug", "--comment", "12", "--field", "evidence=@@media queries don't apply; also at 120x40")
 	if code != ExitOK || !strings.Contains(r.calls(), "issue comment 12 --repo github.com/jrschumacher/skill-bubbletea-tui --body-file") {
 		t.Errorf("exit %d, calls:\n%s", code, r.calls())
 	}
@@ -573,7 +637,7 @@ func TestSubmitComment(t *testing.T) {
 	if !strings.Contains(r.stdout.String(), "### Frames, sheets or a minimal repro\n\n@media queries don't apply\n") {
 		t.Errorf("@@ is a literal @:\n%s", r.stdout.String())
 	}
-	if code := r.run("submit", "--kind", "bug", "--comment", "12"); code != ExitUsage {
+	if code := r.run("submit", "--kind", "bug", "--comment", "12", "--confirm", "00000000"); code != ExitUsage {
 		t.Errorf("an empty comment: exit %d, want 2", code)
 	}
 }
@@ -591,7 +655,7 @@ func TestSubmitWithoutGh(t *testing.T) {
 			t.Setenv("STUB_AUTH", "0")
 			opened := filepath.Join(r.dir, "opened")
 			stub(t, r.dir, "xdg-open", `echo "$1" > "`+opened+"\"\n")
-			code := r.run(r.bugArgs("submit")...)
+			code := r.submit(r.bugArgs("submit")...)
 			if code != ExitNotFiled || !strings.Contains(r.stderr.String(), "nothing was filed: "+c.why) {
 				t.Fatalf("exit %d, stderr %q; want 3 and %q", code, r.stderr.String(), c.why)
 			}
@@ -609,7 +673,7 @@ func TestSubmitWithoutGh(t *testing.T) {
 				t.Error("opened a browser without --open")
 			}
 			if runtime.GOOS == "linux" {
-				r.run(r.bugArgs("submit", "--open")...)
+				r.submit(r.bugArgs("submit", "--open")...)
 				if b, _ := os.ReadFile(opened); strings.TrimSpace(string(b)) != link {
 					t.Errorf("--open opened %q, want %q", b, link)
 				}
@@ -621,7 +685,7 @@ func TestSubmitWithoutGh(t *testing.T) {
 func TestSubmitWithoutGhTooLong(t *testing.T) {
 	r := newRig(t, false)
 	out := filepath.Join(r.dir, "body.md")
-	code := r.run(r.bugArgs("submit", "--out", out, "--field", "evidence="+strings.Repeat("row 9 cell 41: fgSubtle on bgSubtle\n", 300))...)
+	code := r.submit(r.bugArgs("submit", "--out", out, "--field", "evidence="+strings.Repeat("row 9 cell 41: fgSubtle on bgSubtle\n", 300))...)
 	if code != ExitNotFiled {
 		t.Fatalf("exit %d", code)
 	}
