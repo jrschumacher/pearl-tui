@@ -79,8 +79,10 @@
 // A primary the theme pins to a hue is checked there, in cellshot's palette (VS Code's
 // terminal, the one every sheet shows): primary as text on the page at 3:1, and
 // fgSelected (unless "focus": "fg") and onPrimary on it at 4.5:1, each as the kit draws
-// it. Under one, it exits 1: white on bright yellow is 1.17:1, which the truecolour check
-// of the hex never sees.
+// it. Under one, it exits 1: yellow 3 on white is 1.35:1, which the truecolour check of
+// the hex never sees. The kit re-inks an on-colour written as a hex that reads under its
+// floor on its fill's slot (white on bright yellow, 1.17:1, draws black there); one the
+// theme pins in "ansi16" is judged as pinned.
 //
 // Any other suggested pin is a status role's own slot, else the nearest free hue, never
 // red and never the other brightness of a slot another state draws (10 beside success's

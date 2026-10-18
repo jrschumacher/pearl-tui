@@ -783,18 +783,53 @@ func ResolveProfile(f File, dark, ascii bool, profile colorprofile.Profile) *The
 	// rules are "barely lighter than bg": downsampled, they can land on bg itself and
 	// every section, table and footer rule vanishes
 	t.P.Border, t.P.BorderFocus = t.edge(t.P.Border), t.edge(t.P.BorderFocus)
-	// a pin moves a fill to a slot its ink was never chosen for: halyard's dark ink on a
-	// primary pinned to fg's black (a warm brand on a light page) is black on black in
-	// the header bar, the dialog title and a filled tag. Each ink that lands on its
-	// fill's slot takes fg or bg instead (Ink), once, for every component that draws it
+	// a pin moves a fill to a slot its ink was never chosen for: a deep rust's white
+	// onPrimary on the bright yellow 11 a warm brand pins to is 1.17:1, halyard's dark ink
+	// on a primary pinned to fg's black is black on black. No one hex reads on both the
+	// brand's hex and its slot, so at 16 colours each on-colour that reads under its
+	// floor on its fill's slot (Contrast16) takes fg or bg, whichever reads best: once,
+	// in the palette, for every component that draws it
+	// (an ink the theme pins itself is its own choice, and palette check judges it)
 	if pins != nil {
 		p := &t.P
-		p.OnPrimary, p.FgSelected = t.Ink(p.OnPrimary, p.Primary), t.Ink(p.FgSelected, p.Primary)
-		p.OnSecondary, p.OnError = t.Ink(p.OnSecondary, p.Secondary), t.Ink(p.OnError, p.Error)
-		p.OnWarning, p.OnSuccess = t.Ink(p.OnWarning, p.Warning), t.Ink(p.OnSuccess, p.Success)
+		for _, x := range []struct {
+			key   string
+			ink   *color.Color
+			fill  color.Color
+			floor float64
+		}{{"onPrimary", &p.OnPrimary, p.Primary, 4.5}, {"fgSelected", &p.FgSelected, p.Primary, 4.5},
+			{"onSecondary", &p.OnSecondary, p.Secondary, 3.5}, {"onError", &p.OnError, p.Error, 3.5},
+			{"onWarning", &p.OnWarning, p.Warning, 4.5}, {"onSuccess", &p.OnSuccess, p.Success, 3.5}} {
+			if _, own := f.ANSI16[mode][x.key]; !own {
+				*x.ink = t.ink16(*x.ink, x.fill, x.floor)
+			}
+		}
 	}
 	t.S = build(t)
 	return t
+}
+
+// reference16 is the 16 colours as VS Code's terminal draws them (cellshot draws every
+// sheet in these): the stand-in for a terminal's own palette when the kit judges a
+// 16-colour slot's contrast (Contrast16).
+var reference16 = [16]color.RGBA{{0, 0, 0, 255}, {205, 49, 49, 255}, {13, 188, 121, 255}, {229, 229, 16, 255},
+	{36, 114, 200, 255}, {188, 63, 188, 255}, {17, 168, 205, 255}, {229, 229, 229, 255}, {102, 102, 102, 255},
+	{241, 76, 76, 255}, {35, 209, 139, 255}, {245, 245, 67, 255}, {59, 142, 234, 255}, {214, 112, 214, 255},
+	{41, 184, 219, 255}, {255, 255, 255, 255}}
+
+// Reference16 is ANSI colour n (0-15) as the kit judges it: VS Code's terminal palette,
+// the one cellshot draws. The user's terminal decides the real colour; this one stands
+// in for it, so a check, a test and a sheet agree on a number.
+func Reference16(n int) color.RGBA { return reference16[n&15] }
+
+// Contrast16 is the contrast of a and b as a 16-colour terminal draws them: each on its
+// slot (Slot16), in Reference16. 0 when either has none.
+func Contrast16(a, b color.Color) float64 {
+	i, j := Slot16(a), Slot16(b)
+	if i < 0 || j < 0 {
+		return 0
+	}
+	return Contrast(reference16[i], reference16[j])
 }
 
 // Resolve16 is ResolveProfile at 16 colours (colorprofile.ANSI), without ASCII: what a
@@ -862,6 +897,24 @@ func (t *Theme) Ink(c, fill color.Color) color.Color {
 		}
 	}
 	return c
+}
+
+// ink16 is c, an ink on fill at 16 colours, or where it reads under floor on the fill's
+// slot (Contrast16), whichever of fg and bg reads best there. fg and bg are black and
+// white at 16 colours, and one of the two clears 4.5:1 on every hue of Reference16, so
+// the floors are palette check's truecolour ones and never cost a hue. A fill that is
+// itself fg or bg (a primary pinned to fg's grey) gets the other.
+func (t *Theme) ink16(c, fill color.Color, floor float64) color.Color {
+	best, r := c, Contrast16(c, fill)
+	if r >= floor {
+		return c
+	}
+	for _, alt := range []color.Color{t.P.Fg, t.P.Bg} {
+		if a := Contrast16(alt, fill); a > r {
+			best, r = alt, a
+		}
+	}
+	return best
 }
 
 // Role is the resolved colour of the role with JSON key key (primary, fgSubtle, …), or

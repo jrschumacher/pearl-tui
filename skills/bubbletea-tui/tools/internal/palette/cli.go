@@ -479,6 +479,11 @@ func Findings16(f theme.File) []Finding16 {
 			}
 		default:
 			found[i].Pin = Pin16(x.Role, x.Col, dark, used[x.Mode])
+			// on a light page the brand keeps a hue only on a slot that reads as text (green
+			// 2 and cyan 6 are under 3:1 on white): elsewhere it has none, as a warm brand
+			if x.Role == "primary" && !dark && theme.Contrast16(ansi.BasicColor(found[i].Pin), ansi.BasicColor(15)) < Floors16["primary"] {
+				found[i].Pin = theme.GreySlot16("fg", false)
+			}
 		}
 		used[x.Mode][found[i].Pin] = true
 	}

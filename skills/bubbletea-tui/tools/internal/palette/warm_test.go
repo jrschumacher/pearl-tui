@@ -3,8 +3,10 @@ package palette
 import (
 	"bytes"
 	"fmt"
+	"image/color"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -13,19 +15,29 @@ import (
 )
 
 // A warm brand at 16 colours (#51), swept over the hue circle: derive's output for a
-// brand at OKLCH L 0.62 C 0.15, every 15° and every 2° from 16° to 34° (the reds,
+// brand at OKLCH C 0.15 and L 0.45, 0.55 and 0.62 (a deep rust drew white ink on yellow
+// 11 where a mid one drew black), every 15° and every 2° from 16° to 34° (the reds,
 // vermilions and corals around ANSI red), on a dark page and a light one, with derive's
-// own pins. For every hue:
+// own pins. For every hue and lightness:
+//
+//   - check exits 0 on derive's output: derive writes no theme its own check fails;
+//
+//   - the selection ink and onPrimary read at 4.5:1 on primary's slot, as the kit draws
+//     them at 16 colours (a white ink on yellow 11 is re-inked black);
 //
 //   - the warning draws on yellow (3 or 11), never on green, blue or cyan;
+//
 //   - a warm brand never draws on magenta, nor its steps (secondary, tertiary, accent)
 //     on error's red or magenta;
+//
 //   - the brand shares the warning's hue only as a warm brand on a dark page, on 11
 //     beside the warning's 3, where the warning's glyph tells them apart;
+//
 //   - a pinned primary reads as text (3:1) and under its inks (4.5:1) in cellshot's
 //     palette (Inks16), and every other pin reads as text at 3:1, but for the warning's
 //     yellow 3 on a light page, which is 1.35:1 there: the warning keeps yellow and its
 //     glyph (▲ !), as every terminal palette means it;
+//
 //   - the pins leave nothing for check to report.
 //
 // Before #51 the oranges and coppers (30–45°) drew their brand on magenta 13/5, and the
@@ -39,17 +51,50 @@ func TestWarmHueSweep(t *testing.T) {
 		hues = append(hues, h)
 	}
 	text := func(n, bg int) float64 { return oklch.Contrast(basic16Hex(n), basic16Hex(bg)) }
-	var table []string
-	for _, h := range hues {
-		hex := oklch.FromLCH(0.62, 0.15, h)
-		f := themeOf(Derive(hex, "", "", "#1C1917", "#FAF7F2", 0.012))
-		f.ANSI16 = Pins16(f)
-		row := fmt.Sprintf("%3.0f° %s", h, hex)
+	tables := make([][]string, 3)
+	dir := t.TempDir()
+	t.Run("L", func(t *testing.T) {
+		for k, l := range []float64{0.45, 0.55, 0.62} {
+			t.Run(fmt.Sprintf("%.2f", l), func(t *testing.T) {
+				t.Parallel()
+				for _, h := range hues {
+					sweepHue(t, dir, l, h, text, &tables[k])
+				}
+			})
+		}
+	})
+	t.Logf("brand hue, L | dark P/W/S/I | light P/W/S/I\n%s", strings.Join(slices.Concat(tables...), "\n"))
+}
+
+// sweepHue is one row of TestWarmHueSweep.
+func sweepHue(t *testing.T, dir string, l, h float64, text func(n, bg int) float64, table *[]string) {
+	t.Helper()
+	{
+		hex := oklch.FromLCH(l, 0.15, h)
+		out := filepath.Join(dir, fmt.Sprintf("%03.0f-%.2f.json", h, l))
+		var dOut, dErr, cOut, cErr bytes.Buffer
+		if code := Main([]string{"derive", hex, "--bg", "#1C1917", "--light-bg", "#FAF7F2", "--out", out}, "", &dOut, &dErr); code != 0 {
+			t.Fatalf("derive %s: exit %d\n%s", hex, code, dErr.String())
+		}
+		if code := Main([]string{"check", out}, "", &cOut, &cErr); code != 0 {
+			t.Errorf("hue %.0f° L %.2f (%s): check exits %d on derive's output:\n%s", h, l, hex, code, cErr.String())
+		}
+		f, err := theme.Load(out)
+		if err != nil {
+			t.Fatal(err)
+		}
+		row := fmt.Sprintf("%3.0f° L%.2f %s", h, l, hex)
 		for _, mode := range []string{"dark", "light"} {
 			_, _, hp := oklch.LCH(f.Roles[mode].Primary)
 			p, w := theme.ANSI16Index(f, mode, "primary"), theme.ANSI16Index(f, mode, "warning")
 			s, i := theme.ANSI16Index(f, mode, "success"), theme.ANSI16Index(f, mode, "info")
-			where := fmt.Sprintf("hue %.0f° (%s, %s primary %s at %.0f°)", h, hex, mode, f.Roles[mode].Primary, hp)
+			where := fmt.Sprintf("hue %.0f° L %.2f (%s, %s primary %s at %.0f°)", h, l, hex, mode, f.Roles[mode].Primary, hp)
+			th := theme.Resolve16(f, mode != "light")
+			for name, ink := range map[string]color.Color{"fgSelected": th.P.FgSelected, "onPrimary": th.P.OnPrimary} {
+				if r := theme.Contrast16(ink, th.P.Primary); r < 4.5 {
+					t.Errorf("%s: %s draws %.2f:1 on primary's ANSI %d at 16 colours, under 4.5", where, name, r, theme.Slot16(th.P.Primary))
+				}
+			}
 			if w != 3 && w != 11 {
 				t.Errorf("%s: the warning draws as ANSI %d, want yellow 3 or 11", where, w)
 			}
@@ -84,14 +129,13 @@ func TestWarmHueSweep(t *testing.T) {
 			row += fmt.Sprintf(" | %s P%-2d W%-2d S%-2d I%-2d%s", mode[:1], p, w, s, i, shared)
 		}
 		for _, x := range Inks16(f) {
-			t.Errorf("hue %.0f° (%s): %s", h, hex, x)
+			t.Errorf("hue %.0f° L %.2f (%s): %s", h, l, hex, x)
 		}
 		for _, x := range Findings16(f) {
-			t.Errorf("hue %.0f° (%s): derive's pins leave %s", h, hex, x.What)
+			t.Errorf("hue %.0f° L %.2f (%s): derive's pins leave %s", h, l, hex, x.What)
 		}
-		table = append(table, row)
+		*table = append(*table, row)
 	}
-	t.Logf("brand hue | dark P/W/S/I | light P/W/S/I\n%s", strings.Join(table, "\n"))
 }
 
 // Coral #D15D51 is OKLCH 28°, 1° under ANSI red's 29°, where the first attempt's warm arc
@@ -122,13 +166,15 @@ func TestCoralIsWarm(t *testing.T) {
 // the sheets show (cellshot's), not only at truecolour, and fails each case #51's table
 // found with every check passing: white on bright yellow (ferrous's selection), a warning
 // on green, success's slot (ferrous's light warning), and yellow 3 brand text on white.
+// An ink the theme writes as a hex is the kit's to re-ink at 16 colours (white on 11
+// draws black there, so check passes it); one the theme pins itself is judged as pinned.
 func TestCheckFailsIssue51Table(t *testing.T) {
 	dark := `"dark": {"bg": "#1A1B1D", "fg": "#D7D9DC", "primary": "#E25317", "fgSelected": "#FFFFFF", "success": "#6E9E78", "error": "#E0453A", "warning": "#CFA24E", "info": "#8C98A6"}`
 	light := `"light": {"bg": "#FAF9F7", "fg": "#141516", "primary": "#B33A08", "fgSelected": "#FFFFFF", "success": "#2A6E36", "error": "#B71C1C", "warning": "#7A5200", "info": "#3C4A58"}`
 	for _, c := range []struct {
 		name, roles, pins, want string
 	}{
-		{"white on bright yellow", dark, `{"dark": {"primary": 11, "warning": 3}}`,
+		{"white on bright yellow", dark, `{"dark": {"primary": 11, "warning": 3, "fgSelected": 15}}`,
 			`dark: fgSelected #FFFFFF draws as ANSI 15 on primary's ANSI 11 at 16 colours (-profile ansi), 1.17:1 in cellshot's palette, under 4.5`},
 		{"warning on green", light, `{"light": {"primary": 0, "warning": 2}}`,
 			`light: warning #7A5200 draws as ANSI 2 at 16 colours (-profile ansi), success's green, so a warning reads as success there; the warning keeps yellow: pin it with "ansi16": {"light": {"warning": 3}}`},
@@ -146,6 +192,16 @@ func TestCheckFailsIssue51Table(t *testing.T) {
 		if !strings.Contains(errb.String(), c.want) {
 			t.Errorf("%s: stderr %q, want %q", c.name, errb.String(), c.want)
 		}
+	}
+	// the same white written as a hex, unpinned: the kit draws black on the yellow
+	f := theme.File{Roles: map[string]theme.Roles{"dark": {Bg: "#1A1B1D", Fg: "#D7D9DC", Primary: "#E25317", FgSelected: "#FFFFFF", OnPrimary: "#FFFFFF"}},
+		ANSI16: map[string]map[string]int{"dark": {"primary": 11, "warning": 3}}}
+	th := theme.Resolve16(f, true)
+	if s, o := theme.Slot16(th.P.FgSelected), theme.Slot16(th.P.OnPrimary); s != 0 || o != 0 {
+		t.Errorf("white inks on bright yellow draw as ANSI %d and %d at 16 colours, want black 0", s, o)
+	}
+	if x := Inks16(f); len(x) != 0 {
+		t.Errorf("Inks16 on the re-inked theme: %v", x)
 	}
 }
 
