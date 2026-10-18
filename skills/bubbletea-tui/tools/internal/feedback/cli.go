@@ -33,10 +33,10 @@ func (m *multi) String() string     { return strings.Join(*m, ",") }
 func (m *multi) Set(v string) error { *m = append(*m, v); return nil }
 
 type opts struct {
-	kind, title, bodyFile, repo, skill, out string
-	fields, redact                          multi
-	noRedact, open                          bool
-	comment                                 int
+	kind, title, repo, skill, out string
+	fields, redact                multi
+	noRedact, open                bool
+	comment                       int
 }
 
 // Main runs the feedback command and returns its exit status.
@@ -64,7 +64,6 @@ func Main(args []string, usage string, env Env, stdout, stderr io.Writer) int {
 	fs.StringVar(&o.kind, "kind", "", "")
 	fs.StringVar(&o.title, "title", "", "")
 	fs.Var(&o.fields, "field", "")
-	fs.StringVar(&o.bodyFile, "body-file", "", "")
 	fs.StringVar(&o.repo, "repo", "", "")
 	fs.StringVar(&o.skill, "skill", "", "")
 	fs.Var(&o.redact, "redact", "")
@@ -130,15 +129,6 @@ func build(o opts, repo string, env Env) (Issue, *Redactor, error) {
 		return Issue{}, nil, fmt.Errorf("--comment %d is not an issue number", o.comment)
 	}
 	is := Issue{Repo: repo, Kind: k, Title: strings.TrimSpace(o.title), Values: map[string]string{}, Comment: o.comment}
-	if o.bodyFile != "" {
-		b, err := os.ReadFile(o.bodyFile)
-		if err != nil {
-			return Issue{}, nil, err
-		}
-		if err := ParseBody(k, string(b), is.Values); err != nil {
-			return Issue{}, nil, fmt.Errorf("%s: %v", o.bodyFile, err)
-		}
-	}
 	for _, kv := range o.fields {
 		key, val, ok := strings.Cut(kv, "=")
 		if !ok {
@@ -190,60 +180,6 @@ func note(stderr io.Writer, red *Redactor, what string) {
 		msg += "; " + r + " (--redact WORD for more, --no-redact for none)"
 	}
 	fmt.Fprintln(stderr, msg)
-}
-
-var headingRe = regexp.MustCompile(`(?m)^###[ \t]+(.+?)[ \t]*$`)
-
-// ParseBody reads a body in the shape Body writes ("### Label" or "### field-id" sections)
-// into values, so a printed draft can be edited and handed back with --body-file.
-func ParseBody(k Kind, body string, values map[string]string) error {
-	locs := headingRe.FindAllStringSubmatchIndex(body, -1)
-	if len(locs) == 0 {
-		return errors.New("no \"### <field>\" headings")
-	}
-	if pre := strings.TrimSpace(body[:locs[0][0]]); pre != "" {
-		return fmt.Errorf("text before the first heading: %q", firstLine(pre))
-	}
-	for i, l := range locs {
-		name := body[l[2]:l[3]]
-		end := len(body)
-		if i+1 < len(locs) {
-			end = locs[i+1][0]
-		}
-		var f Field
-		found := false
-		for _, c := range k.Fields {
-			if strings.EqualFold(c.Label, name) || c.ID == name {
-				f, found = c, true
-				break
-			}
-		}
-		if !found {
-			return fmt.Errorf("--kind %s has no field %q (it has %s)", k.Name, name, k.fieldList())
-		}
-		v := strings.TrimSpace(body[l[1]:end])
-		if v == noResponse {
-			v = ""
-		}
-		if f.Render != "" {
-			v = strings.TrimPrefix(v, "```"+f.Render+"\n")
-			v = strings.TrimSuffix(v, "\n```")
-		}
-		if v != "" {
-			c, err := f.Choose(v)
-			if err != nil {
-				return err
-			}
-			v = c
-		}
-		values[f.ID] = strings.TrimSpace(v)
-	}
-	return nil
-}
-
-func firstLine(s string) string {
-	l, _, _ := strings.Cut(s, "\n")
-	return l
 }
 
 // ghReady reports whether gh can file: installed and signed in. why says what's missing.

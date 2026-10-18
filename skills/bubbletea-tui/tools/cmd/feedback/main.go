@@ -4,9 +4,9 @@
 // reaches the people who fix it. Filing publishes text on the user's behalf: show them
 // the draft and file only on their yes (references/cmd-feedback.md).
 //
-//	feedback draft   --kind bug|perf|eval|feature --title "…" [--field key=value …] [--body-file f]
+//	feedback draft   --kind bug|perf|eval|feature --title "…" [--field key=value …]
 //	feedback similar --title "…"
-//	feedback submit  --kind bug|perf|eval|feature --title "…" [--field key=value …] [--body-file f] [--open]
+//	feedback submit  --kind bug|perf|eval|feature --title "…" [--field key=value …] [--open]
 //
 // draft prints the exact issue (repo, template, labels, title, then the body as GitHub
 // renders the form) and sends nothing. similar lists existing issues, open and closed,
@@ -25,8 +25,6 @@
 //	--title T         the issue title: the miss in one line, not the app
 //	--field key=value a field by its id, repeatable; key=@file reads the value from a file.
 //	                  A dropdown takes its option, its letter (miss-class=b) or a unique prefix
-//	--body-file f     fields as "### <label or id>" sections, the shape draft prints, so an
-//	                  edited draft goes back in; --field values override it
 //	--comment N       post the fields that have values as a comment on issue N (more
 //	                  evidence for an open issue) instead of opening one
 //	--repo owner/name file on a fork; FEEDBACK_REPO does the same (default

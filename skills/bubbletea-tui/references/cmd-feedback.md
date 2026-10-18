@@ -49,7 +49,7 @@ but not taken back, so it sits on rung 3 of the confirm ladder
    `--redact` for each name in `TUI.md`: the product, the brand, customers, hosts.
 3. **Show it whole.** Paste the draft verbatim in a code block, and say what was
    redacted (the tool reports it on stderr: "redacted 2 × <project>, 1 × <redacted>").
-   An edit means a new draft, shown again.
+   An edit means a new draft, shown again: change the `--field` values and rerun.
 4. **File on an explicit yes to that draft.** `feedback submit` with the same flags;
    give the user the URL it prints.
 5. **No gh** (exit 3: not installed, or `gh auth status` fails): nothing was filed and the

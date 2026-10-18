@@ -173,7 +173,7 @@ func perfIssue() Issue {
 	}}
 }
 
-func TestBodyRoundTrips(t *testing.T) {
+func TestBody(t *testing.T) {
 	is := perfIssue()
 	body := is.Body()
 	if !strings.Contains(body, "### Command\n\n```shell\ncellshot frames/*.ansi --sheet sheet.png\n```\n") {
@@ -181,21 +181,6 @@ func TestBodyRoundTrips(t *testing.T) {
 	}
 	if !strings.Contains(body, "### Profile or repro\n\n_No response_\n") {
 		t.Errorf("an empty field reads _No response_:\n%s", body)
-	}
-	got := map[string]string{}
-	if err := ParseBody(is.Kind, body, got); err != nil {
-		t.Fatal(err)
-	}
-	for id, v := range is.Values {
-		if got[id] != v {
-			t.Errorf("round trip %s = %q, want %q", id, got[id], v)
-		}
-	}
-	if err := ParseBody(is.Kind, "### Nope\n\nx\n", got); err == nil || !strings.Contains(err.Error(), "asked*") {
-		t.Errorf("unknown heading err = %v, want the fields listed", err)
-	}
-	if err := ParseBody(is.Kind, "hello\n### asked\n\nx\n", got); err == nil {
-		t.Error("text before the first heading must fail")
 	}
 }
 
