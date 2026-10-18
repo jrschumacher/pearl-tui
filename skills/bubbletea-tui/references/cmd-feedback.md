@@ -50,7 +50,9 @@ but not taken back, so it sits on rung 3 of the confirm ladder
    `--skill <dir holding SKILL.md>` (the version is then read from it) and a
    `--redact` for each name in `TUI.md`: the product, the brand, customers, hosts. A
    `--redact` the tool says matched nothing is spelled differently in the text: redact
-   that spelling too.
+   that spelling too. One it says matched inside a longer word ("Lint" inside
+   "tuilint") may have cut a word of the report: check the draft reads, or pass a
+   longer form of the name.
 3. **Show it whole.** Paste the draft verbatim in a code block, and say what was
    redacted (the tool reports it on stderr: "redacted 2 × <project>, 1 × <redacted>").
    An edit means a new draft, shown again: change the `--field` values and rerun.

@@ -305,10 +305,39 @@ func TestRedactorAnyScript(t *testing.T) {
 	if u := r.Unmatched(words); !reflect.DeepEqual(u, []string{"Nowhere"}) {
 		t.Errorf("Unmatched = %v, want [Nowhere]", u)
 	}
+	// ZoëModel is two words to an identifier: no note; cafés is one
+	if in := r.Inside(); !reflect.DeepEqual(in, []string{`"Café" matched inside "cafés"`}) {
+		t.Errorf("Inside = %q", in)
+	}
 	// a word inside an earlier placeholder is not a match: no <<redacted>>
 	r = NewRedactor(Env{Cwd: t.TempDir()}, []string{"red", "project"})
 	if got := r.Apply("<project> and <redacted> and a red project"); got != "<project> and <redacted> and a <redacted> <redacted>" {
 		t.Errorf("Apply over placeholders = %q", got)
+	}
+}
+
+// A word under four letters matches only on its own, or as an identifier's part: "ui"
+// is redacted as a path segment and in "uiModel", never inside "build" or "guidance".
+// A longer word still matches inside a word, and says so.
+func TestRedactorShortWords(t *testing.T) {
+	t.Setenv("PATH", "")
+	const text = "F-CONTRAST in kit/ui/dialog.go: tuilint frames, the build screen, uiModel and UIList; bubbletea-tui guidance"
+	for _, c := range []struct {
+		word, want string
+		inside     []string
+	}{
+		{"ui", "F-CONTRAST in kit/<redacted>/dialog.go: tuilint frames, the build screen, <redacted>Model and <redacted>List; bubbletea-tui guidance", nil},
+		{"tui", "F-CONTRAST in kit/ui/dialog.go: tuilint frames, the build screen, uiModel and UIList; bubbletea-<redacted> guidance", nil},
+		{"a", text, nil},
+		{"Lint", "F-CONTRAST in kit/ui/dialog.go: tui<redacted> frames, the build screen, uiModel and UIList; bubbletea-tui guidance", []string{`"Lint" matched inside "tuilint"`}},
+	} {
+		r := NewRedactor(Env{Cwd: t.TempDir()}, []string{c.word})
+		if got := r.Apply(text); got != c.want {
+			t.Errorf("--redact %s: Apply =\n %s\nwant\n %s", c.word, got, c.want)
+		}
+		if in := r.Inside(); !reflect.DeepEqual(in, c.inside) {
+			t.Errorf("--redact %s: Inside = %q, want %q", c.word, in, c.inside)
+		}
 	}
 }
 
@@ -327,6 +356,10 @@ func TestDraftWarnsAnUnmatchedRedact(t *testing.T) {
 	r.run(r.bugArgs("draft", "--redact", "Kafe")...)
 	if !strings.Contains(r.stderr.String(), `--redact "Kafe" matched nothing`) {
 		t.Errorf("no warning for a word that matched nothing: %s", r.stderr.String())
+	}
+	r.run(r.bugArgs("draft", "--redact", "Lint")...)
+	if !strings.Contains(r.stderr.String(), `--redact "Lint" matched inside "tuilint"`) {
+		t.Errorf("no note for a word that matched inside another: %s", r.stderr.String())
 	}
 }
 

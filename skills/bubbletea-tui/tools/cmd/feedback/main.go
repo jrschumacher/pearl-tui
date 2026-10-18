@@ -42,8 +42,10 @@
 //	--skill DIR       the skill directory, for its version (default: the project's
 //	                  .claude/skills or .agents/skills copy, then ~/.claude/skills)
 //	--redact WORD     also replace WORD (the app's name, a customer's) with <redacted>,
-//	                  repeatable, in any case and script, inside longer words too
-//	                  (WORDModel); a WORD that matched nothing is named on stderr
+//	                  repeatable, in any case and script. A WORD of 4+ letters matches
+//	                  inside longer words too (acmeops), a shorter one only on its own or
+//	                  as an identifier's part (WORDModel). stderr names a WORD that
+//	                  matched nothing, and one that matched inside a longer word
 //	--no-redact       keep paths, modules, owners and the user name as written
 //	--out FILE        where submit writes the body when the link can't carry it
 //	--open            submit without gh: open the link in the browser

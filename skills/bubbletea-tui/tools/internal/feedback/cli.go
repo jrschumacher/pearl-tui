@@ -197,11 +197,15 @@ func build(o opts, repo string, env Env) (Issue, *Redactor, error) {
 	return is, red, nil
 }
 
-// unmatched warns about each --redact word that matched nothing: spelled differently in
-// the text, it is still there.
+// unmatched warns about each --redact word that matched nothing (spelled differently in
+// the text, it is still there) and each that matched inside a longer word (the draft may
+// no longer read).
 func unmatched(stderr io.Writer, red *Redactor, words []string) {
 	for _, w := range red.Unmatched(words) {
 		fmt.Fprintf(stderr, "feedback: --redact %q matched nothing; if the text spells it another way, redact that spelling\n", w)
+	}
+	for _, in := range red.Inside() {
+		fmt.Fprintf(stderr, "feedback: --redact %s; check the draft still reads, or pass a longer word\n", in)
 	}
 }
 

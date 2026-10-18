@@ -358,28 +358,74 @@ func moduleOwner(m string) string {
 // symlink's, when the tool runs through one); the path of every Go module in it or in
 // its go.work, and each one's host and owner (github.com/acme-corp); the home directory;
 // the user name where it is a path segment (/home/<user>, /Users/<user>); and words the
-// agent names (the app's name, a customer's), in any case and anywhere, inside a longer
-// word too ("AcmeModel").
+// agent names (the app's name, a customer's), in any case and script. A word of four or
+// more letters matches inside a longer word too ("AcmeModel", "acmeops"), and Inside
+// says where; a shorter one only as a word of its own, where an identifier's case change
+// counts as a word's edge ("Zoë" in "ZoëModel", never "ui" in "build").
 type Redactor struct {
 	rules  []rule
 	counts map[string]int
 	extra  map[string]int // matches per --redact word
+	inside []string       // "Lint" matched inside "tuilint", once each
 }
 
 type rule struct {
 	needle string
 	with   string
-	kind   int      // how a match is bounded: byPath, byWord or anywhere
+	kind   int      // how a match is bounded: byPath, byWord, byIdent or anywhere
 	prefix []string // for a user name: the path segment that must precede it
 	fold   bool     // match any case
 	extra  string   // the --redact word this rule is for
 }
 
 const (
-	anywhere = iota // a --redact word: inside a longer word too, over-redacting is the safe side
+	anywhere = iota // a --redact word of 4+ letters: inside a longer word too, the safe side
+	byIdent         // a shorter --redact word: a word or an identifier's part of its own
 	byWord          // a project's directory name: not the middle of a longer word
 	byPath          // a path or module: not the middle of a longer path
 )
+
+// minInside is the fewest letters a --redact word needs to match inside a longer word:
+// "ui" inside "build" and "guidance" would wreck the report and hide nothing.
+const minInside = 4
+
+// edgeAt reports whether a word can begin or end at byte k of s: at either end of s, next
+// to a rune that isn't a letter or digit, or at an identifier's case change ("zoë|Model",
+// "UI|List").
+func edgeAt(s string, k int) bool {
+	if k <= 0 || k >= len(s) {
+		return true
+	}
+	a, _ := utf8.DecodeLastRuneInString(s[:k])
+	b, n := utf8.DecodeRuneInString(s[k:])
+	if !isWordRune(a) || !isWordRune(b) {
+		return true
+	}
+	if unicode.IsLower(a) && unicode.IsUpper(b) {
+		return true
+	}
+	c, _ := utf8.DecodeRuneInString(s[k+n:])
+	return unicode.IsUpper(a) && unicode.IsUpper(b) && unicode.IsLower(c)
+}
+
+// wordAround is the whole word holding s[i:j], for saying where a match landed.
+func wordAround(s string, i, j int) string {
+	for i > 0 {
+		r, n := utf8.DecodeLastRuneInString(s[:i])
+		if !isWordRune(r) {
+			break
+		}
+		i -= n
+	}
+	for j < len(s) {
+		r, n := utf8.DecodeRuneInString(s[j:])
+		if !isWordRune(r) {
+			break
+		}
+		j += n
+	}
+	return s[i:j]
+}
 
 // isWordRune is a letter or digit in any script, or "_": what a word boundary separates.
 func isWordRune(r rune) bool { return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r) }
@@ -434,7 +480,11 @@ func NewRedactor(e Env, extra []string) *Redactor {
 	for _, w := range extra {
 		if w = strings.TrimSpace(w); w != "" {
 			r.extra[w] = 0
-			r.rules = append(r.rules, rule{needle: w, with: "<redacted>", kind: anywhere, fold: true, extra: w})
+			kind := anywhere
+			if len([]rune(w)) < minInside {
+				kind = byIdent
+			}
+			r.rules = append(r.rules, rule{needle: w, with: "<redacted>", kind: kind, fold: true, extra: w})
 		}
 	}
 	return r
@@ -461,6 +511,8 @@ func (ru rule) bounded(s string, i, j int) bool {
 			return false
 		}
 		return j == len(s) || !isWordRune(last) || !isWordRune(after)
+	case byIdent:
+		return edgeAt(s, i) && edgeAt(s, j)
 	}
 	return true
 }
@@ -497,6 +549,12 @@ func (r *Redactor) Apply(s string) string {
 			if !ru.bounded(s, m[0], m[1]) {
 				continue
 			}
+			if ru.kind == anywhere && !(edgeAt(s, m[0]) && edgeAt(s, m[1])) {
+				note := fmt.Sprintf("%q matched inside %q", ru.extra, wordAround(s, m[0], m[1]))
+				if !slices.Contains(r.inside, note) {
+					r.inside = append(r.inside, note)
+				}
+			}
 			b.WriteString(s[last:m[0]])
 			if ru.prefix != nil {
 				b.WriteString(s[m[0] : m[1]-len(ru.needle)]) // keep /home/
@@ -531,6 +589,11 @@ func (r *Redactor) Unmatched(order []string) []string {
 	}
 	return out
 }
+
+// Inside lists each --redact word that matched inside a longer word, with that word:
+// `"Lint" matched inside "tuilint"`. The match is redacted; the agent checks the draft
+// still reads, or passes a longer word.
+func (r *Redactor) Inside() []string { return r.inside }
 
 // Report says what was replaced, for the agent to tell the user: "redacted 3 × <project>,
 // 1 × ~", or "" when nothing was.
