@@ -18,29 +18,39 @@ import (
 // it drew as another one in a different colour: Dot's busy as the current glyph, ok's
 // own, and a running tool call as a pending one. Under NO_COLOR or ASCII the two were
 // one mark. Both draw the partial rung, so the shape says it, not only the colour.
+//
+// Each theme is judged as shipped and with glyphs.blurBar set to ╎, the glyph the kit
+// recommends: the blurred gutter then draws it before the state glyph, and the test read
+// the gutter's bar as the state, so every theme that set one failed here.
 func TestInProgressHasItsOwnShape(t *testing.T) {
 	files := append(testThemes(t), filepath.Join("..", "theme", "testdata", "quire.json"))
 	for _, f := range files {
-		tf, err := theme.Load(f)
+		shipped, err := theme.Load(f)
 		if err != nil {
 			t.Fatal(err)
 		}
+		blurred := shipped
+		blurred.Glyphs.BlurBar = "╎"
 		for _, ascii := range []bool{false, true} {
-			th := theme.Resolve(tf, true, ascii)
-			busy := ansi.Strip(Dot(th, "busy"))
-			for _, other := range []string{"ok", "error", "warning", "idle"} {
-				if o := ansi.Strip(Dot(th, other)); o == busy {
-					t.Errorf("%s ascii=%v: Dot busy and %s are both %q", filepath.Base(f), ascii, other, busy)
+			for _, tf := range []theme.File{shipped, blurred} {
+				th := theme.Resolve(tf, true, ascii)
+				busy := ansi.Strip(Dot(th, "busy"))
+				for _, other := range []string{"ok", "error", "warning", "idle"} {
+					if o := ansi.Strip(Dot(th, other)); o == busy {
+						t.Errorf("%s ascii=%v: Dot busy and %s are both %q", filepath.Base(f), ascii, other, busy)
+					}
 				}
-			}
-			if busy != th.G.Partial {
-				t.Errorf("%s ascii=%v: Dot busy is %q, want the partial glyph %q", filepath.Base(f), ascii, busy, th.G.Partial)
-			}
-			icon := func(s ToolState) string {
-				return strings.Fields(ansi.Strip(ToolCall(th, Tool{Name: "Edit", State: s}, 60, false)[0]))[0]
-			}
-			if run, wait := icon(ToolRunning), icon(ToolPending); run == wait {
-				t.Errorf("%s ascii=%v: a running and a pending tool call both lead with %q", filepath.Base(f), ascii, run)
+				if busy != th.G.Partial {
+					t.Errorf("%s ascii=%v: Dot busy is %q, want the partial glyph %q", filepath.Base(f), ascii, busy, th.G.Partial)
+				}
+				// the state glyph stands after the 2-cell gutter (Gutter), which a blurred
+				// call fills with the blur bar when the theme sets one
+				icon := func(s ToolState) string {
+					return strings.Fields(ansi.Strip(ansi.Cut(ToolCall(th, Tool{Name: "Edit", State: s}, 60, false)[0], 2, 60)))[0]
+				}
+				if run, wait := icon(ToolRunning), icon(ToolPending); run == wait {
+					t.Errorf("%s ascii=%v blurBar=%q: a running and a pending tool call both lead with %q", filepath.Base(f), ascii, tf.Glyphs.BlurBar, run)
+				}
 			}
 		}
 	}
