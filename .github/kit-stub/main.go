@@ -30,7 +30,7 @@ var states = []string{"list", "detail", "confirm", "help", "toosmall"}
 // each page.
 var overlays = []string{"confirm", "help"}
 var overlayPages = []string{"list", "detail"}
-var unjudgedPages []string
+var unjudgedPages = map[string]string{}
 
 func (m *app) openOverlay(s string) {
 	switch s {

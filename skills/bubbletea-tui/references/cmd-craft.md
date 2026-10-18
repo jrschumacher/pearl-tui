@@ -33,7 +33,8 @@ Before any real screen:
 - `setState(name)` for every state in the spec, using fixtures, and beside it in
   `main.go` the tables the kept harness tests read: `overlays` (the states that open a
   dialog, `help` among them), `overlayPages` (the pages they open over),
-  `unjudgedPages` (focus-drawing pages left out, each with why) and `openOverlay`. The
+  `unjudgedPages` (Huh-form pages whose focus can't blur, each with why, never the
+  main screen) and `openOverlay`. The
   tests then judge every overlay over every page with no edit, and hold the tables to
   the states; a test rewritten to skip an overlay hides the bug it was written for
 - flags: `-golden -w -h`, `-state`, `-out -sizes`, `-theme`, `-light`, `-ascii`,

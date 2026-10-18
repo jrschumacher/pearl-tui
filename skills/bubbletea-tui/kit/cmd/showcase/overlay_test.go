@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"maps"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -271,15 +272,30 @@ func sameRGB(a, b color.Color) bool {
 
 // The tables the harness tests read are the app's own: a state opens a dialog exactly
 // when overlays names it, every overlayPages entry is a page with no dialog up, and
-// every page that draws a focus mark is in overlayPages or unjudgedPages. A cold build
-// left its menu overlay out of the help test, and its help over the menu named the
-// screen's keys; leaving it out of overlays would hide it as well.
+// every page that draws a focus mark is in overlayPages, renders as one that is, or is
+// in unjudgedPages with a reason. A cold build left its menu overlay out of the help
+// test, and its help over the menu named the screen's keys; leaving it out of overlays
+// would hide it as well, and so would moving a page into unjudgedPages: an entry needs
+// a reason, is never the main screen (states[0]), and must keep a focus mark beside
+// some overlay (else it blurs, and belongs in overlayPages).
 func TestOverlayTablesMatchTheStates(t *testing.T) {
-	for _, list := range [][]string{overlays, overlayPages, unjudgedPages} {
+	for _, list := range [][]string{overlays, overlayPages, slices.Collect(maps.Keys(unjudgedPages))} {
 		for _, s := range list {
 			if !slices.Contains(states, s) {
 				t.Errorf("%q is in the harness tables but not in states", s)
 			}
+		}
+	}
+	for s, why := range unjudgedPages {
+		switch {
+		case s == states[0]:
+			t.Errorf("%s, the main screen, is in unjudgedPages: every overlay must be judged over it", s)
+		case strings.TrimSpace(why) == "":
+			t.Errorf("%s is in unjudgedPages with no reason: say why its focus can't be drawn blurred (and repeat it in TUI.md § Decisions)", s)
+		case slices.Contains(overlayPages, s):
+			t.Errorf("%s is in both overlayPages and unjudgedPages", s)
+		case !keepsFocusUnderAnOverlay(t, s):
+			t.Errorf("%s is in unjudgedPages, but every overlay over it draws it blurred: judge it in overlayPages", s)
 		}
 	}
 	for _, s := range states {
@@ -287,6 +303,7 @@ func TestOverlayTablesMatchTheStates(t *testing.T) {
 			continue
 		}
 		m := fixture(t, s)
+		_, unjudged := unjudgedPages[s]
 		switch in := slices.Contains(overlays, s); {
 		case m.ov != ovNone && !in:
 			t.Errorf("%s opens a dialog but isn't in overlays: the overlay tests never judge it", s)
@@ -294,10 +311,61 @@ func TestOverlayTablesMatchTheStates(t *testing.T) {
 			t.Errorf("%s is in overlays but opens no dialog", s)
 		case m.ov != ovNone && slices.Contains(overlayPages, s):
 			t.Errorf("%s is in overlayPages but has a dialog up", s)
-		case m.ov == ovNone && !slices.Contains(overlayPages, s) && !slices.Contains(unjudgedPages, s) && len(m.focusMarks(m.render(80, 24))) > 0:
-			t.Errorf("%s draws a focus mark but is in neither overlayPages nor unjudgedPages: no overlay is judged over it", s)
+		case m.ov == ovNone && !slices.Contains(overlayPages, s) && !unjudged && len(m.focusMarks(m.render(80, 24))) > 0 && judgedTwin(t, s) == "":
+			t.Errorf("%s draws a focus mark but is in neither overlayPages nor unjudgedPages, and renders as no page that is: no overlay is judged over it", s)
 		}
 	}
+}
+
+// judgedTwin is the overlayPages state whose page body renders as state s's at 80×24
+// (services with a toast over the footer is services), or "".
+func judgedTwin(t *testing.T, s string) string {
+	t.Helper()
+	body := func(s string) string {
+		m := fixture(t, s)
+		c := m.render(80, 24)
+		var rows []string
+		for y := m.body.Min.Y; y < m.body.Max.Y; y++ {
+			rows = append(rows, rowText(c, y))
+		}
+		return strings.Join(rows, "\n")
+	}
+	b := body(s)
+	for _, p := range overlayPages {
+		if body(p) == b {
+			return p
+		}
+	}
+	return ""
+}
+
+// keepsFocusUnderAnOverlay reports whether some overlay over state s, in some theme at
+// 80×24 or 120×40, leaves a focus mark of the page beside the dialog (drawn
+// unscrimmed): the limitation an unjudgedPages entry claims. A page whose focus blurs
+// under every overlay is judged instead.
+func keepsFocusUnderAnOverlay(t *testing.T, s string) bool {
+	t.Helper()
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, sz := range [][2]int{{80, 24}, {120, 40}} {
+			for _, o := range overlays {
+				m := newApp(tf, true, false)
+				m.setState(s)
+				m.openOverlay(o)
+				m.t.X.Scrim = "none"
+				c := m.render(sz[0], sz[1])
+				for _, p := range m.focusMarks(c) {
+					if !p.In(m.ovRect) {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
 }
 
 // Help opened over an overlay names that overlay's keys, not the screen's under it

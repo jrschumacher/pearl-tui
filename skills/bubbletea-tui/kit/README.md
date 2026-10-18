@@ -132,7 +132,10 @@ Once your screens are in, delete what is the showcase's alone:
   `openOverlay` to yours. Keep `help` as the keys overlay's state and `toosmall` as the
   too-small one: the tests name those two. `TestOverlayTablesMatchTheStates` holds the
   tables to your states: a state opens a dialog exactly when `overlays` names it, and a
-  page that draws a focus mark is in `overlayPages` (or in `unjudgedPages`, with why).
+  page that draws a focus mark is in `overlayPages` or renders as one that is.
+  `unjudgedPages` (state → reason, repeated in TUI.md § Decisions) is only for a page
+  whose focus the kit can't draw blurred, such as a Huh form's field: the test fails
+  an empty reason, your main screen (`states[0]`), and a page whose focus does blur.
 
 Keep `showcase_test.go`, `overlay_test.go`, `behaviour_test.go` and `ansi16_test.go`
 whole. They read your tables and these from your app:
@@ -143,7 +146,10 @@ whole. They read your tables and these from your app:
 - the fields `t`, `profile`, `ov`, `last`, `ovRect`, `body` and `footY`, and the
   overlay values `ovNone` and `ovHelp`;
 - help's shape: one row per binding, the key then what it does (a key name holds no
-  space), and `esc` closing help back to whatever it was opened over.
+  space), and `esc` closing help back to whatever it was opened over;
+- focus drawn in the theme's marks: the focus bar, cursor, caret or prompt glyph in its
+  ink, or under a `fill`/`inverse` selection `t.S.SelRow`'s reverse video, which is
+  therefore the selection's style only (a badge in it reads as a focus).
 
 Then delete each import `go vet ./...` reports unused. CI deletes these files from a
 copy, puts a two-page app with one overlay of its own in place of the screens

@@ -48,13 +48,28 @@ var overlays = []string{"palette", "confirm", "help"}
 // that draws a selection, a focused field or a caret. (Not the setup wizard: a Huh
 // form has no way to draw its focused field blurred short of Field.Blur, which
 // validates it.)
-var overlayPages = []string{"services", "deploys", "assistant", "deploy"}
+var overlayPages = []string{"services", "deploys", "assistant", "deploy", "services-toast"}
 
-// unjudgedPages are the states that draw a focus mark but aren't in overlayPages, each
-// for a reason TestOverlayTablesMatchTheStates can't see: the wizard (see above) and a
-// page already judged under another state's name.
-var unjudgedPages = []string{"services-toast", // services with a toast over the footer
-	"setup-target", "setup-namespace", "setup-invalid", "setup-auth", "setup-alerts", "setup-review", "setup-failed", "setup-done"}
+// unjudgedPages are the states that draw a focus mark that an overlay can't blur, kept
+// out of overlayPages, each with its reason (repeat it in TUI.md § Decisions). Only a
+// page whose focus the kit can't draw blurred belongs here, such as a Huh form's
+// field; never the main screen (states[0]). A page that renders as one in overlayPages
+// needs no entry: the tests find the twin.
+// TestOverlayTablesMatchTheStates fails an empty reason, the main screen and an entry
+// whose focus does blur under every overlay.
+var unjudgedPages = map[string]string{
+	"setup-target":    huhFocus,
+	"setup-namespace": huhFocus,
+	"setup-invalid":   huhFocus,
+	"setup-auth":      huhFocus,
+	"setup-alerts":    huhFocus,
+	"setup-review":    huhFocus,
+	"setup-failed":    huhFocus,
+	"setup-done":      huhFocus,
+}
+
+// huhFocus is why the wizard's pages are unjudged.
+const huhFocus = "a Huh form: its focused field can't be drawn blurred short of Field.Blur, which validates it"
 
 // openOverlay opens the overlay s over whatever page m shows, as its key would.
 func (m *app) openOverlay(s string) {

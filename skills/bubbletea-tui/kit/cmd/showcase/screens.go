@@ -100,7 +100,9 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		// the footer now describes the dialog's keys: it sits above the scrim
 		c.Draw(strings.Join(foot, "\n"), ui.Rect(0, fy, w, len(foot)))
 	}
-	if m.toast != nil {
+	// the toast takes the footer's row; under a dialog that row holds the dialog's keys
+	// (a help opened in the toast's 4 s lost its "scroll" key to it)
+	if m.toast != nil && m.ov == ovNone {
 		c.Draw(ui.Toast(t, m.toast.kind, m.toast.label, m.toast.msg, w), ui.Rect(0, h-1, w, 1))
 	}
 	return c
