@@ -55,7 +55,10 @@ but not taken back, so it sits on rung 3 of the confirm ladder
    longer form of the name.
 3. **Show it whole.** Paste the draft verbatim in a code block, and say what was
    redacted (the tool reports it on stderr: "redacted 2 × <project>, 1 × <redacted>").
-   An edit means a new draft, shown again: change the `--field` values and rerun.
+   The project folder's name is redacted as a whole word everywhere, so a folder named
+   `dashboard` turns "a queue dashboard" into "a queue <project>": the user sees it in
+   the draft and can ask for the wording back. An edit means a new draft, shown again:
+   change the `--field` values and rerun.
 4. **File on an explicit yes to that draft.** `feedback submit` with the same flags plus
    `--confirm <hash>`, the hash on that draft's `confirm:` line; give the user the URL it
    prints. Take the hash only from a draft the user saw and said yes to: submit refuses
