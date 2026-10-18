@@ -1,6 +1,6 @@
 // Command tuilint catches TUI slop deterministically: in rendered frames, in Go source and in TUI.md.
 //
-//	tuilint frames <dir|files...> [--cols W --rows H] [--theme theme.json] [--bg #rrggbb] [--json out.json]
+//	tuilint frames <dir|files...> [--cols W --rows H] [--theme theme.json] [--bg #rrggbb] [--spec TUI.md] [--json out.json]
 //	tuilint code <dir...> [--theme-pkg path/fragment] [--json out.json]
 //	tuilint spec [TUI.md...] [--frames DIR] [--json out.json]
 //	tuilint hook < posttooluse.json

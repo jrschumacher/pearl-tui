@@ -838,11 +838,11 @@ func TestTruncatedColumn(t *testing.T) {
 	procs := func(name, last string, top ...string) string {
 		var b strings.Builder
 		for _, l := range top {
-			b.WriteString(fmt.Sprintf("%-50s\n", l))
+			b.WriteString(fmt.Sprintf("%-51s\n", l))
 		}
-		b.WriteString(fmt.Sprintf("%-50s\n", fmt.Sprintf("    pid program  user cpu 20s    %s", last)))
+		b.WriteString(fmt.Sprintf("%-51s\n", fmt.Sprintf("    pid program  user cpu 20s    %s", last)))
 		for i, cmd := range []string{"/usr/lib/go/pkg/t…", "/root/.local/shar…", "/opt/claude-code/…", "/process_api --fi…", "timeout 60 sh -c …"} {
-			b.WriteString(fmt.Sprintf("%-50s\n", fmt.Sprintf("  %5d %-8s root ▂▂▂▂▂▂▂▂▂▂ %s", 9700+i, []string{"compile", "posting", "claude", "api", "timeout"}[i], cmd)))
+			b.WriteString(fmt.Sprintf("%-51s\n", fmt.Sprintf("  %5d %-8s root ▂▂▂▂▂▂▂▂▂▂ %s", 9700+i, []string{"compile", "posting", "claude", "api", "timeout"}[i], cmd)))
 		}
 		p := filepath.Join(dir, name)
 		if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
@@ -850,10 +850,10 @@ func TestTruncatedColumn(t *testing.T) {
 		}
 		return p
 	}
-	if got := truncs(procs("gaps-50x6.ansi", "command")); len(got) != 0 {
+	if got := truncs(procs("gaps-51x6.ansi", "command")); len(got) != 0 {
 		t.Errorf("a last column headed command, one blank from the trace: %+v, want none", got)
 	}
-	if got := truncs(procs("gaps-title-50x6.ansi", "title")); len(got) != 1 {
+	if got := truncs(procs("gaps-title-51x6.ansi", "title")); len(got) != 1 {
 		t.Errorf("a last column headed title, one blank from the trace: %+v, want one", got)
 	}
 	// a header word earlier on the row heads its own column, not the cut one
@@ -871,12 +871,12 @@ func TestTruncatedColumn(t *testing.T) {
 	}
 	// on an overlay frame the dialog's band can hide the header: the page's own frame
 	// shows it and is judged there
-	under := filepath.Join(dir, "confirm-50x12.ansi")
+	under := filepath.Join(dir, "confirm-51x12.ansi")
 	var ub strings.Builder
 	for _, l := range []string{"", "", "             ╭──────────────────╮", "             │ send it?         │", "             ╰──────────────────╯", ""} {
-		ub.WriteString(fmt.Sprintf("%-50s\n", l))
+		ub.WriteString(fmt.Sprintf("%-51s\n", l))
 	}
-	b, err := os.ReadFile(procs("page-50x6.ansi", "title"))
+	b, err := os.ReadFile(procs("page-51x6.ansi", "title"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -886,6 +886,35 @@ func TestTruncatedColumn(t *testing.T) {
 	}
 	if got := truncs(under); len(got) != 0 {
 		t.Errorf("a cut column whose header the dialog's band hides: %+v, want none", got)
+	}
+	// a column that cuts by decision: TUI.md § Decisions names it on a `cuts:` line, by
+	// its header or by a region of the screen's budget, and --spec TUI.md reads it
+	spec := func(name, body string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	titles := procs("procs-titles-51x6.ansi", "title")
+	if got := truncs(titles); len(got) != 1 || !strings.Contains(got[0].Msg, "`cuts: title`") || !strings.Contains(got[0].Msg, "--spec TUI.md") {
+		t.Errorf("a cut title column, no spec: %+v, want one that says to record `cuts: title` and pass --spec TUI.md", got)
+	}
+	byHeader := spec("header.md", "# x TUI\n\n## Decisions\n- 2026-10-18 cuts: title, url — a title has no bound; the detail shows it whole\n")
+	if got := truncs(titles, "--spec", byHeader); len(got) != 0 {
+		t.Errorf("`cuts: title` in § Decisions: %+v, want none", got)
+	}
+	byRegion := spec("region.md", "# x TUI\n\n### Screens\n#### services — what runs\n51×6: list 0,0 51×6\n\n## Decisions\n- cuts: list (no longest command)\n")
+	if got := truncs(titles, "--spec", byRegion); len(got) != 0 {
+		t.Errorf("`cuts: list`, the budget's region holding the cut: %+v, want none", got)
+	}
+	elsewhere := spec("elsewhere.md", "# x TUI\n\n### Screens\n#### procs — what runs\n51×6: list 0,0 51×1 · trace 0,1 30×5\n\n## Decisions\n- cuts: list, program\n\n## Assumed\n- cuts: title\n")
+	if got := truncs(titles, "--spec", elsewhere); len(got) != 1 || !strings.Contains(got[0].Msg, "`cuts: title`") {
+		t.Errorf("cuts naming another region and column, and a cuts line outside § Decisions: %+v, want one", got)
+	}
+	var stdout, stderr bytes.Buffer
+	if code := Main([]string{titles, "--spec", filepath.Join(dir, "missing.md")}, &stdout, &stderr); code != 2 {
+		t.Errorf("--spec on a missing file: exit %d, want 2", code)
 	}
 }
 

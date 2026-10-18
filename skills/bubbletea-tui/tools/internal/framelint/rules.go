@@ -3,6 +3,7 @@ package framelint
 import (
 	"fmt"
 	"math"
+	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -13,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"tuikit/theme"
+	"tuitools/internal/tuimd"
 )
 
 // Finding is one rule hit. Its JSON shape is tuilint.py's.
@@ -855,7 +857,7 @@ var (
 )
 
 // lintText lints one frame's text, named by the file's base name. ascii adds F-ASCII.
-func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii bool) []Finding {
+func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii bool, spec *Spec) []Finding {
 	f := parseText(text)
 	out := LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
 	out = append(out, LintTab(filepath.Base(path), normText(text))...)
@@ -868,7 +870,7 @@ func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii boo
 		twin, _ := theme.ASCIITwin(theme.Ellipsis)
 		ellipses = append(ellipses, twin)
 	}
-	out = append(out, LintTrunc(filepath.Base(path), f, ellipses)...)
+	out = append(out, lintTrunc(filepath.Base(path), f, ellipses, spec)...)
 	return out
 }
 
@@ -1111,6 +1113,13 @@ const truncMax = 3
 // neither, a column that would be reported with rows running on past the ellipsis is
 // reported as not run, to judge by eye.
 func LintTrunc(name string, f Frame, ellipses []string) []Finding {
+	return lintTrunc(name, f, ellipses, nil)
+}
+
+// lintTrunc is LintTrunc honouring spec's `cuts:` lines (nil: no --spec): a column whose
+// header, or a region of a budget line at this size holding every cut row, is
+// named on one cuts by decision and is not reported.
+func lintTrunc(name string, f Frame, ellipses []string, spec *Spec) []Finding {
 	overlay := overlayName.MatchString(name)
 	var dialog *region
 	page, fill := pageBG(f)
@@ -1228,12 +1237,85 @@ func LintTrunc(name string, f Frame, ellipses []string) []Finding {
 	if unbounded, covered := unboundedColumn(f, ys, best, hidden); unbounded || covered {
 		return nil
 	}
+	header, top := "", -1 // the topmost cell of the column above the cut: its header, for the message
+	decided, _ := columnHeader(f, ys, best, hidden, func(y int, words []string) bool {
+		if top < 0 || y < top {
+			header, top = strings.ToLower(strings.Join(words, " ")), y
+		}
+		return spec.cuts(words)
+	})
+	if decided || spec.cutsRegion(f, best, ys) {
+		return nil
+	}
 	if slices.ContainsFunc(ys, func(y int) bool { return unsureRows[y] }) {
 		return []Finding{{"F-TRUNC", "P2", name, "frame",
 			fmt.Sprintf("not run on this frame (no dialog found): %d rows end in an ellipsis at column %d with more of the row after them, which may be a dialog's cut or a column budgeted short; judge it by eye", len(ys), best)}}
 	}
+	cut := "<its header or region>"
+	if header != "" {
+		cut = header
+	}
+	record := fmt.Sprintf("record the cut in TUI.md § Decisions as `cuts: %s` (a column header, or a region of the screen's budget line) and lint with --spec TUI.md", cut)
+	if spec != nil {
+		record = fmt.Sprintf("add `cuts: %s` to TUI.md § Decisions (a column header, or a region of the screen's budget line): no cuts: line there names this column or its region", cut)
+	}
 	return []Finding{{"F-TRUNC", "P2", name, fmt.Sprintf("r%dc%d", ys[0], best),
-		fmt.Sprintf("%d rows end in an ellipsis at column %d: widen the column from the longest fixture (layout.md), or, when its content has no bound (paths, URLs, code), say in TUI.md § Decisions that this column cuts", len(ys), best)}}
+		fmt.Sprintf("%d rows end in an ellipsis at column %d: widen the column from the longest fixture (layout.md), or, when its content has no bound (paths, URLs, code), %s", len(ys), best, record)}}
+}
+
+// Spec is what --spec TUI.md gives F-TRUNC: the names on § Decisions' `cuts:` lines and
+// the screens' region budgets (tuimd).
+type Spec struct {
+	Cuts    map[string]bool
+	Budgets []tuimd.Budget
+}
+
+// LoadSpec reads a TUI.md for --spec.
+func LoadSpec(path string) (*Spec, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	s := &Spec{Cuts: map[string]bool{}, Budgets: tuimd.Budgets(string(b))}
+	for _, c := range tuimd.Cuts(string(b)) {
+		for _, n := range c.Names {
+			s.Cuts[strings.TrimSuffix(n, "s")] = true
+		}
+	}
+	return s, nil
+}
+
+// cuts reports a header cell a cuts: line names: the whole cell or its first word.
+func (s *Spec) cuts(words []string) bool {
+	if s == nil || len(words) == 0 {
+		return false
+	}
+	norm := func(w string) string { return strings.TrimSuffix(strings.ToLower(w), "s") }
+	return s.Cuts[norm(strings.Join(words, " "))] || s.Cuts[norm(words[0])]
+}
+
+// cutsRegion reports a cut whose rows all lie in a region a cuts: line names, in a
+// budget line at the frame's size (any screen's: a sidebar budgeted once runs beside
+// several screens).
+func (s *Spec) cutsRegion(f Frame, x int, ys []int) bool {
+	if s == nil || len(f.Rows) == 0 {
+		return false
+	}
+	w, h := len(f.Rows[0]), len(f.Rows)
+	for _, b := range s.Budgets {
+		if b.W != w || b.H != h {
+			continue
+		}
+		for _, r := range b.Regions {
+			if !s.Cuts[strings.TrimSuffix(r.Name, "s")] {
+				continue
+			}
+			if !slices.ContainsFunc(ys, func(y int) bool { return !r.Contains(x, y) }) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // unboundedHeaders name a column whose content has no length to budget from.
@@ -1257,7 +1339,7 @@ func unboundedColumn(f Frame, ys []int, x int, hidden func(y int) bool) (unbound
 			}
 		}
 	}
-	return columnHeader(f, ys, x, hidden, func(words []string) bool {
+	return columnHeader(f, ys, x, hidden, func(_ int, words []string) bool {
 		if !unboundedHeaders[strings.TrimSuffix(strings.ToLower(words[0]), "s")] {
 			return false
 		}
@@ -1279,7 +1361,7 @@ func unboundedColumn(f Frame, ys []int, x int, hidden func(y int) bool) (unbound
 // the cell it reads runs to the next gap of two blank cells, and must be the last text on
 // its row before x, so a header word earlier on the row ("path  size  name") heads its
 // own column. covered: the walk reached a row the dialog covers (hidden) first.
-func columnHeader(f Frame, ys []int, x int, hidden func(y int) bool, isHeader func(words []string) bool) (found, covered bool) {
+func columnHeader(f Frame, ys []int, x int, hidden func(y int) bool, isHeader func(y int, words []string) bool) (found, covered bool) {
 	counts := map[int]int{}
 	for _, y := range ys {
 		row, from := f.Rows[y], 1
@@ -1339,7 +1421,7 @@ func columnHeader(f Frame, ys []int, x int, hidden func(y int) bool, isHeader fu
 			for i := end + 1; i <= x && i < len(row); i++ {
 				last = last && cutsNothing(row[i].Ch)
 			}
-			if last && isHeader(strings.Fields(cell.String())) {
+			if words := strings.Fields(cell.String()); last && isHeader(y, words) {
 				return true, false
 			}
 			if gaps > 0 {

@@ -39,7 +39,11 @@
 //	                 (not a table's last column headed path, file, command or url, its columns
 //	                 two blanks or one apart, nor an ellipsis an overlay's cut put beside its
 //	                 dialog, nor page rows on an overlay frame whose column header the dialog
-//	                 hides: the page's own frame shows it and is judged there)
+//	                 hides: the page's own frame shows it and is judged there). With --spec
+//	                 TUI.md, a column that cuts by decision isn't either: a `cuts:` line in
+//	                 § Decisions names its header (`- cuts: command, title — no longest`) or a
+//	                 region of a budget line at the frame's size (`80×24: … list 1,10 78×13`)
+//	                 that holds every cut row (`cuts: list`)
 //	F-ASCII     [P1] (with --ascii) a cell outside ASCII in a frame rendered for ASCII; with
 //	                 --unicode, also a "?" where the unicode frame of the same state draws
 //	                 something else (a rune the sweep had no twin for)
@@ -58,7 +62,7 @@ import (
 	"strings"
 )
 
-const usage = `usage: tuilint frames <dir|files...> [--cols W --rows H] [--theme theme.json] [--bg #rrggbb] [--ascii [--unicode dir|file]] [--max-warnings N] [--json out.json]
+const usage = `usage: tuilint frames <dir|files...> [--cols W --rows H] [--theme theme.json] [--bg #rrggbb] [--ascii [--unicode dir|file]] [--spec TUI.md] [--max-warnings N] [--json out.json]
 
 Lints rendered truecolor ANSI frames (the output of your -state X -w W -h H flag).
 A directory means its *.ansi files. A name ending -<W>x<H>.ansi (what -out writes) sets
@@ -74,6 +78,8 @@ every cell must be ASCII: a glyph that leaks through is tofu on a console font.
 --unicode names the unicode render of the same states (a directory, matched by file
 name, or one frame): a "?" in the ASCII frame where the unicode frame draws something
 else is a rune the ASCII sweep had no twin for, which reads as a question.
+--spec names the TUI.md whose § Decisions "cuts:" lines say which columns cut on purpose
+(F-TRUNC).
 
   F-WIDTH     [P0] a row is not exactly W cells / frame is not H rows
   F-EMOJI     [P1] emoji glyphs
@@ -98,7 +104,8 @@ else is a rune the ASCII sweep had no twin for, which reads as a question.
   F-TOFU      [P2] private-use (Nerd Font) or replacement glyphs
   F-TAB       [P1] a raw tab: 0 cells to lipgloss, up to 8 to a terminal; expand it before fitting
   F-TRUNC     [P2] more than 3 rows ending in an ellipsis at one column: widen it from the
-                   longest fixture, or say in TUI.md that it cuts (paths, URLs, code)
+                   longest fixture, or, for paths, URLs, code, name its header or budget region
+                   on a "cuts:" line in TUI.md § Decisions and pass --spec TUI.md
   F-ASCII     [P1] (with --ascii) a cell outside ASCII: give the glyph an ASCII twin;
                    with --unicode, a "?" where the unicode frame of the state has none
 `
@@ -127,7 +134,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		}
 		k := a[2:]
 		switch k {
-		case "cols", "rows", "theme", "json", "bg", "max-warnings", "unicode":
+		case "cols", "rows", "theme", "json", "bg", "max-warnings", "unicode", "spec":
 		default:
 			fmt.Fprintf(stderr, "tuilint frames: unknown flag %s\n%s", a, usage)
 			return 2
@@ -180,6 +187,14 @@ func Main(args []string, stdout, stderr io.Writer) int {
 			return 2
 		}
 	}
+	var spec *Spec
+	if p, ok := opts["spec"]; ok {
+		var err error
+		if spec, err = LoadSpec(p); err != nil {
+			fmt.Fprintf(stderr, "tuilint frames: --spec: %v\n", err)
+			return 2
+		}
+	}
 	uni, hasUni := opts["unicode"]
 	if hasUni && !ascii {
 		fmt.Fprintf(stderr, "tuilint frames: --unicode compares an ASCII render; it needs --ascii\n")
@@ -215,7 +230,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 				h = fh
 			}
 		}
-		fs := lintText(p, string(data), w, h, pal, bg, ascii)
+		fs := lintText(p, string(data), w, h, pal, bg, ascii, spec)
 		if hasUni {
 			up := uni
 			if uniDir {
