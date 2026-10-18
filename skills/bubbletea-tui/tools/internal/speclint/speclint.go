@@ -28,7 +28,7 @@ func Usage() string { return cmddoc.Text(docSrc) + "\n" }
 // Severity maps each rule ID to P1 (fails the run) or P2 (warns).
 var Severity = map[string]string{
 	"S-TABLE": "P1", "S-KEYAMBIG": "P1", "S-KEYDUP": "P1",
-	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2", "S-FOOTER": "P2", "S-ACCENT": "P2", "S-SLOTS": "P2", "S-GOLDEN": "P2",
+	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2", "S-FOOTER": "P2", "S-ACCENT": "P2", "S-SLOTS": "P2", "S-GOLDEN": "P2", "S-REGION": "P2",
 }
 
 // Finding is one result, in the shape the other tuilint modes write to --json: Where
@@ -134,6 +134,23 @@ type binding struct {
 	keys   []key
 	action string // lowercased
 	bad    string // the first alternative that names no key, as written
+	cond   string // "if …", "when …", "while …" or "later": the footer shows it only then
+}
+
+// condMark ends an item the footer shows only under a condition, `(if a filter is
+// applied)`, `(when …)`, `(while the body overflows)`, or once a screen later in the
+// slice lands, `(later)`, `(later: palette)`. The rules read the item without it, and
+// S-GOLDEN doesn't ask a golden to show it.
+var condMark = regexp.MustCompile(`(?i)\s*\(\s*((?:if|when|while|later)\b[^)]*)\)\s*$`)
+
+// cutCond splits an item's condition mark off: the item as the other rules read it, and
+// the condition ("" for none).
+func cutCond(item string) (string, string) {
+	m := condMark.FindStringSubmatchIndex(item)
+	if m == nil {
+		return item, ""
+	}
+	return item[:m[0]], strings.ToLower(strings.TrimSpace(item[m[2]:m[3]]))
 }
 
 // row is one state of the table, or a Global line.
@@ -197,6 +214,7 @@ func LintFrames(file, src, frames string) []Finding {
 	s.screenBrand(add)
 	if frames != "" {
 		s.goldenFooters(frames, add)
+		s.regionBudgets(frames, add)
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		a, b := out[i], out[j]
@@ -360,15 +378,18 @@ func parseKeys(cell string) []binding {
 	}
 	var out []binding
 	for _, item := range splitItems(cell) {
+		item, cond := cutCond(item)
 		f := strings.Fields(item)
 		if len(f) == 0 {
 			continue
 		}
 		if proseLead[strings.ToLower(strings.Trim(f[0], "(),:"))] {
-			out = append(out, binding{action: actionText(f)})
+			out = append(out, binding{action: actionText(f), cond: cond})
 			continue
 		}
-		out = append(out, readItem(f))
+		b := readItem(f)
+		b.cond = cond
+		out = append(out, b)
 	}
 	return out
 }
@@ -826,8 +847,9 @@ var (
 	// right after § Screens, so "Dialogs" under Architecture is not a screen list
 	screensSibling = regexp.MustCompile(`(?i)^(?:\d+[.)]?\s+)?(?:(?:main|secondary|other|more)\s+)?(?:screens?|overlays?|dialogs?)(?:\s+and\s+(?:screens|overlays|dialogs|states))?\s*(?:\([^)]*\))?\s*:?$`)
 	brandLine      = regexp.MustCompile(`(?i)^(?:[-*+]\s+)?brand\s*:\s*(.*)$`)
-	// a value that skips the question: "nothing", "none", "n/a", "-" with no reason after it
-	brandSkip = regexp.MustCompile(`(?i)^(?:nothing|none|n/?a|-+|—|–)[.!]?$`)
+	// a value that skips the question: "nothing", "none", "n/a", "-" with no reason after
+	// it, or a placeholder: "TBD", "todo", "?", "nothing yet", the template's "<…>"
+	brandSkip = regexp.MustCompile(`(?i)^(?:nothing|none|n/?a|-+|—|–|tbd|todo|\?+|nothing\s+yet|<[^>]*>)[.!]?$`)
 	// a block's heading names its job after a dash or a colon: "detail — one job"
 	jobRe = regexp.MustCompile(`\s[—–-]\s|:`)
 )
@@ -853,9 +875,11 @@ func fenceToggle(fence *string, t string) bool {
 // screenBrand is S-SLOTS for § Screens: each block (a heading under the Screens
 // heading) after the first, which is the main screen and carries the read's move and
 // signature, is a secondary screen or an overlay, and names a `brand:` line: what the
-// brand's three words change there, or "nothing, because …". A heading with no job
-// (no dash or colon) whose next heading is deeper groups blocks ("Main", "Overlays")
-// and is no block itself. Presence only, but a value that skips the question
+// brand's three words change there, or "nothing, because …". Blocks sit at the level of
+// the section's first heading with a job (a dash or a colon); a heading above that level
+// whose next heading is deeper groups blocks ("Main", "Overlays — dialogs and help") and
+// is no block itself, and one below it ("regions", "layout: two panes") is part of its
+// block. Presence only, but a value that skips the question
 // ("nothing", "none", "n/a", "-" with no reason) doesn't count, nor does an empty
 // value, a fenced line (the sketch) or a slot word in backticks; the critic judges
 // what the line says.
@@ -875,13 +899,13 @@ func (s *spec) screenBrand(add func(string, int, string, ...any)) {
 			hs = append(hs, heading{i, len(m[1]), clean(m[2])})
 		}
 	}
-	screens, block := 0, 0 // the Screens heading's level; the current block's level
+	screens, block, blockLevel := 0, 0, 0 // the Screens heading's level; the current block's; the blocks
 	blocks, start, name, has, skip := 0, -1, "", false, -1
 	flush := func() {
 		switch {
 		case start < 0 || blocks <= 1 || has:
 		case skip >= 0:
-			add("S-SLOTS", skip+1, "%s: `%s` gives no reason. Say what the brand's three words change on this screen (its copy voice, its dialog form, its footer phrasing), or why nothing: `brand: nothing, because help lists the action tables as written` (references/cmd-shape.md § Behind The Main Screen)", name, strings.TrimSpace(s.lines[skip]))
+			add("S-SLOTS", skip+1, "%s: `%s` is a placeholder or gives no reason. Say what the brand's three words change on this screen (its copy voice, its dialog form, its footer phrasing), or why nothing: `brand: nothing, because help lists the action tables as written` (references/cmd-shape.md § Behind The Main Screen)", name, strings.TrimSpace(s.lines[skip]))
 		default:
 			add("S-SLOTS", start+1, "%s: a secondary screen or overlay with no `brand:` line (the first block under § Screens is read as the main screen, so put the main screen's block first). Say what the brand's three words change on it (its copy voice, its dialog form, its footer phrasing), or `brand: nothing, because …`: two brands built from one spec differed on the main screen and matched behind it word for word, footers, confirm copy and all (references/cmd-shape.md § Behind The Main Screen)", name)
 		}
@@ -901,13 +925,28 @@ func (s *spec) screenBrand(add func(string, int, string, ...any)) {
 			case screensHeading.MatchString(h.text) || (screens > 0 && h.level <= screens && screensSibling.MatchString(h.text)):
 				flush()
 				screens, block = h.level, 0
+				// the blocks' level: the first heading of the section with a job, else its
+				// first heading
+				blockLevel = 0
+				for _, g := range hs[next:] {
+					if g.level <= screens {
+						break
+					}
+					if blockLevel == 0 {
+						blockLevel = g.level
+					}
+					if jobRe.MatchString(g.text) {
+						blockLevel = g.level
+						break
+					}
+				}
 			case screens > 0 && h.level <= screens:
 				flush()
 				screens = 0
 			case screens == 0 || (start >= 0 && h.level > block):
 				// outside § Screens, or a sub-heading inside a block
-			case !jobRe.MatchString(h.text) && next < len(hs) && hs[next].level > h.level:
-				flush() // a group heading: its blocks follow
+			case h.level < blockLevel && next < len(hs) && hs[next].level > h.level:
+				flush() // a group heading, above the blocks' level: its blocks follow
 				block = 0
 			default:
 				flush()

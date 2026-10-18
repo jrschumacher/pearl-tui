@@ -74,6 +74,15 @@ func specs(t *testing.T) map[string]cmddoc.Spec {
 				"frames": free(frames), "code": free(code), "spec": free(spec), "hook": free(""), "help": free(""),
 			},
 		},
+		"feedback": func() cmddoc.Spec {
+			fb := free(cmddoc.Text(read(t, "tools/cmd/feedback/main.go")))
+			fb["--kind"] = []string{"bug", "perf", "performance", "eval", "eval-suggestion", "feature", "enhancement"}
+			return cmddoc.Spec{
+				Modes:     []string{"draft", "similar", "submit"},
+				Flags:     fb,
+				ModeFlags: map[string]map[string][]string{"draft": fb, "submit": fb, "similar": {"--title": nil, "--repo": nil, "--redact": nil, "--no-redact": nil, "-h": nil, "--help": nil}},
+			}
+		}(),
 		"tuivet":        {Flags: vet},
 		"wordmark.py":   {Flags: cmddoc.ArgparseFlags(read(t, "scripts/wordmark.py"))},
 		"logo2cells.py": {Flags: cmddoc.ArgparseFlags(read(t, "scripts/logo2cells.py"))},

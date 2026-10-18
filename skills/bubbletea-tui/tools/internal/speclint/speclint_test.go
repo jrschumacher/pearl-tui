@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -162,9 +163,24 @@ func TestRules(t *testing.T) {
 		{"a badge's row fits without it", table("| chat | chat | **enter send** · **ctrl+s sessions** · **ctrl+t toggle tools** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), nil},
 		{"a badge takes its share of the footer", table("| chat-plan | chat | [plan] · **enter send** · **ctrl+s sessions** · **ctrl+t toggle tools** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), map[string]int{"S-FOOTER": 1}},
 		{"a badge is no key", table("| chat-plan | chat | `[plan]` · **enter send** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), nil},
+		{"a key's condition takes no footer width", table("| a | a | **a "+strings.Repeat("x", 28)+"** · **b "+strings.Repeat("y", 42)+" (if the list is long)** |", ""), nil},
+		{"nor does a later key's marker", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 42)+" (later: the y screen) |", ""), nil},
 		{"77 columns don't", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 43)+" |", ""), map[string]int{"S-FOOTER": 1}},
 		{"Global keys are not in the footer", table("| list | list | ↑↓ move · enter open · ? help |", "ctrl+c quit · ctrl+p palette · ctrl+o switch · ctrl+s save · ctrl+r reload · ctrl+t theme · f1 manual"), nil},
 		{"an empty cell has no footer", table("| splash | splash | — |", ""), nil},
+		// the help overlay is full help: it needs no key that opens it; a state drawn with
+		// no footer row (toosmall through ui.TooSmallText) shows no keys at all
+		{"the help overlay hides keys behind nothing", table("| help | overlay | **esc close** · ↑↓ scroll · ?/h/f1/ctrl+g close |", ""), nil},
+		{"help over a tour is help too", table("| help-over-tour | overlay | esc close ‖ ↑↓ scroll |", ""), nil},
+		{"a state with no footer row", table("| toosmall | any | ‖ q quit |", ""), nil},
+		{"too-small too", table("| too-small | any | ‖ q quit |", ""), nil},
+		{"a keybinding editor is not help", table("| keys-editor | keys | **enter rebind** · **esc back** · x reset |", ""), map[string]int{"S-FOOTER": 1}},
+		{"a help picker is not help", table("| help-picker | overlay | **enter pick** · **esc back** · x remove |", ""), map[string]int{"S-FOOTER": 1}},
+		{"a cell that hides every key", table("| list | list | ‖ ↑↓ move · enter open · d delete · x export |", ""), map[string]int{"S-FOOTER": 1}},
+		// a help item's aliases are for the dispatcher: the footer draws its first key
+		// (`? help`), which ui.Help pins
+		{"?/h/f1 help counts as ? help", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 34)+" · ?/h/f1 help |", ""), nil},
+		{"? help that doesn't fit", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 35)+" · ?/h/f1 help |", ""), map[string]int{"S-FOOTER": 1}},
 
 		// S-SLOTS: a read from before move and signature replaced remember
 		{"remember alone", "### Brand read\ntone: calm\nremember: the orange row\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
@@ -190,8 +206,15 @@ func TestRules(t *testing.T) {
 		{"a brand line under a sub-heading of its block", "### Screens\n#### list — every job\n#### detail — one job\n##### regions\nbrand: terse\n" + table("| list | list | enter open |", ""), nil},
 		{"a bare nothing is no reason", "### Screens\n#### list — every job\n#### detail — one job\nbrand: nothing\n#### help — every key\nbrand: -\n#### confirm — stop it\nbrand: N/A.\n#### toosmall — too small\nbrand: none\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 4}},
 		{"nothing with a reason passes", "### Screens\n#### list — every job\n#### help — every key\nbrand: nothing: help lists the action tables as written\n#### toosmall — too small\nbrand: none, because the kit's one sentence is the spec's\n" + table("| list | list | enter open |", ""), nil},
+		{"a placeholder is no reason", "### Screens\n#### list — every job\n#### detail — one job\nbrand: TBD\n#### help — every key\nbrand: todo\n#### confirm — stop it\nbrand: ?\n#### toosmall — too small\nbrand: nothing yet\n#### picker — pick one\nbrand: <what the three words change here>\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 5}},
+		{"a reason that starts like a placeholder is one", "### Screens\n#### list — every job\n#### detail — one job\nbrand: nothing yet differs from the list, because the row is the detail\n" + table("| list | list | enter open |", ""), nil},
 		{"a brand line in a ~~~ fence is not one", "### Screens\n#### list — every job\n#### detail — one job\n~~~\nbrand: terse\n```\n~~~\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
 		{"group headings hold blocks", "## Screens\n### Main\n#### list — every job\n### Overlays\n#### confirm — stop it\n#### help — every key\nbrand: nothing, because help lists the tables\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
+		// a heading is a group when the next heading is deeper and has a job: a group's
+		// heading may have a dash, and a block's sub-headings may have none
+		{"a group heading with a dash", "## Screens\n### Main\n#### list — every job\n### Overlays — dialogs and help\nbrand: terse\n#### confirm — stop it\n#### help — every key\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 2}},
+		{"a jobless block with sub-headings", "### Screens\n#### list — every job\n#### detail\nbrand: terse\n##### regions\n##### keys\n#### confirm — stop it\nbrand: plain\n" + table("| list | list | enter open |", ""), nil},
+		{"a block's colon sub-heading is part of it", "### Screens\n#### list — every job\n#### detail — one process\nbrand: terse labels\n##### layout: two panes side by side\n" + table("| list | list | enter open |", ""), nil},
 		{"a sibling screens section continues it", "### Screens\n#### list — every job\n### Secondary screens\n#### detail — one job\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
 		{"a numbered screens heading", "### 4. Screens\n#### list — every job\n#### detail — one job\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
 		{"dialogs under Architecture are not § Screens", "### Screens\n#### list — every job\n#### detail — one job\nbrand: terse\n## Architecture\n### Dialogs\n#### confirm — ui.Dialog\n" + table("| list | list | enter open |", ""), nil},
@@ -554,9 +577,9 @@ func TestSuggestCut(t *testing.T) {
 		{"f1 help is not pinned, so it is packed last",
 			"↑↓/jk move · enter open · e done · s snooze · x select · E done selected · / filter · r refresh · f1 help",
 			"↑↓/jk move · enter open · e done · s snooze · x select · E done selected · f1 help", "/ filter · r refresh"},
-		{"?/f1 help is not pinned either",
+		{"?/f1 help is drawn as ? help, pinned last",
 			"↑↓/jk move · enter open · e done · s snooze · x select · E done selected · / filter · r refresh · ?/f1 help",
-			"↑↓/jk move · enter open · e done · s snooze · x select · ?/f1 help", "E done selected · / filter · r refresh"}, // 2 columns wider than f1 help
+			"↑↓/jk move · enter open · e done · s snooze · x select · E done selected · ?/f1 help", "/ filter · r refresh"}, // as narrow as f1 help
 		{"the way out and the state's purpose stay in front",
 			"↑↓/jk scroll · pgup/pgdn page · g/G top/bottom · tab next section · shift+tab previous section · r write the rest · esc stop writing · ? help",
 			"↑↓/jk scroll · pgup/pgdn page · r write the rest · esc stop writing · ? help", "g/G top/bottom · tab next section · shift+tab previous section"},
@@ -645,6 +668,17 @@ func TestGoldenFooters(t *testing.T) {
 		"| list-toast | list | **a add** · **? help** |",
 		"| confirm | overlay | ←→ choose · enter confirm · esc cancel |",
 		"| form | form | enter next field · esc back ‖ tab/shift+tab field |",
+		"| list-selected | list | **↑↓/jk move** · **enter open** · **? help** · d delete |",
+		"| list-picked | list | **↑↓/jk move** · **enter open** |",
+		"| grid | overlay | **↑↓←→ pick** · **enter send** · **esc back** |",
+		"| list-top | list | **↓ select** · **/ filter** · **? help** |",
+		"| list-filter | list | **enter keep** · **esc drop** · **ctrl+g help** · backspace erase |",
+		"| inbox | inbox | **↑↓ move** · **esc clear filter (if a filter is applied)** · **ctrl+p palette** (later) · **? help** |",
+		"| reply | overlay | **enter send** · **↑↓/jk scroll (while the body overflows)** · **esc cancel** · **a ask (later: ask)** |",
+		"| inbox-stale | inbox | **↑↓ move** · **d done (if read)** · **? help** |",
+		"| list-after | list | **↑↓ move** · **? help** |",
+		"| panes | list | **↑↓ move** · **? help** |",
+		"| panes-num | list | **1/2 pane** · **↑↓ move** · **? help** |",
 	}, "\n"), "ctrl+c quit")
 	cases := []struct {
 		name, frame string
@@ -657,6 +691,26 @@ func TestGoldenFooters(t *testing.T) {
 		{"confirm", footer("<> choose", "enter confirm"), []string{"lacks `esc cancel`, which the row puts in the footer"}},
 		// a badge one blank before the first hint, in its own style, is not part of it
 		{"form", "  \x1b[1;38;2;207;162;78m[PROD]" + off + " " + strings.TrimPrefix(footer("enter next field", "esc back"), "  "), nil},
+		// ui.Footer's right status after the pinned help hint ("4 of 101", its count in
+		// the key's ink) is status, not a hint; so is an "N of M" count with no help hint
+		{"list-selected", footer("↑↓/jk move", "enter open", "? help") + "  " + key + "4" + off + desc + " of 101" + off, nil},
+		{"list-picked", footer("↑↓/jk move", "enter open") + "  " + key + "1" + off + desc + " of 9" + off, nil},
+		// ASCII draws the four arrows as ^v<>; NO_COLOR draws a prompt one blank before
+		// the first hint with no style to tell them apart
+		{"grid", footer("^v<> pick", "enter send", "esc back"), nil},
+		{"list-top", footer("v select", "/ filter", "? help"), nil},
+		{"list-filter", "  /yes| enter keep  esc drop        ctrl+g help  9 rows", nil},
+		// a key the footer shows only under a condition, `(if …)`, `(when …)` or `(while
+		// …)`, or whose screen comes later in the slice, `(later)`, may be missing from a
+		// golden; a key the row doesn't bind at all is still one the footer offers falsely
+		{"inbox", footer("↑↓ move", "? help"), nil},
+		{"reply", footer("enter send", "esc cancel"), nil},
+		{"inbox-stale", footer("↑↓ move", "x close", "? help"), []string{"shows `x close`, which the row doesn't bind"}},
+		// a hint drawn after the help hint is still a hint, and a count is the whole chunk:
+		// `3/4 pane` and `1/2 pane` are keys
+		{"list-after", footer("↑↓ move", "? help", "d delete"), []string{"shows `d delete`, which the row doesn't bind"}},
+		{"panes", footer("↑↓ move", "3/4 pane", "? help"), []string{"shows `3/4 pane`, which the row doesn't bind"}},
+		{"panes-num", footer("1/2 pane", "↑↓ move", "? help"), nil},
 	}
 	dir := t.TempDir()
 	for _, c := range cases {
@@ -704,5 +758,45 @@ func TestGoldenFooters(t *testing.T) {
 	out.Reset()
 	if code := Main([]string{tui, "--frames=" + dir}, &out, &errb); code != 0 || !strings.Contains(out.String(), "S-GOLDEN") {
 		t.Errorf("--frames=dir: exit %d\n%s", code, out.String())
+	}
+}
+
+// S-REGION: with --frames, a region of a screen's budget line whose whole rectangle is
+// blank in <screen>-<W>x<H>.ansi: the layout moved and the budget went stale (a recreate
+// run's response pane drawn 8 rows higher than TUI.md said). A gap is blank by design; a
+// region with any text is not reported, even when the text is another region's (a status
+// line under a transcript touches it legitimately).
+func TestRegionBudgets(t *testing.T) {
+	doc := "# x TUI\n\n### Screens\n#### list — every job\n" +
+		"80×24:  header 0,0 80×1 · gap 0,1 80×1 · list 0,2 80×10 · status 0,20 80×2 · footer 0,23 80×1\n" +
+		"120×40: header 0,0 120×1 · list 0,2 120×30 · footer 0,39 120×1\n" +
+		"#### detail — one item\nbrand: nothing, because it is the list's row whole\n" +
+		"80×24:  pane 40,0 40×23\n" +
+		table("| list | list | enter open |", "")
+	dir := t.TempDir()
+	rows := make([]string, 24)
+	for i := range rows {
+		rows[i] = strings.Repeat(" ", 80)
+	}
+	rows[0] = fmt.Sprintf("%-80s", "  app · list")
+	for i := 2; i < 12; i++ {
+		rows[i] = fmt.Sprintf("%-80s", fmt.Sprintf("  item %d", i))
+	}
+	rows[12] = fmt.Sprintf("%-80s", "  status: 10 items") // the status line drawn right under the list
+	rows[23] = fmt.Sprintf("%-80s", "  enter open")
+	if err := os.WriteFile(filepath.Join(dir, "list-80x24.ansi"), []byte(strings.Join(rows, "\n")+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var got []Finding
+	for _, f := range LintFrames("TUI.md", doc, dir) {
+		if f.Rule == "S-REGION" {
+			got = append(got, f)
+		}
+	}
+	if len(got) != 1 || got[0].Sev != "P2" || got[0].Where != "5" || !strings.Contains(got[0].Msg, "`status 0,20 80×2`") || !strings.Contains(got[0].Msg, "list-80x24.ansi") {
+		t.Errorf("a blank status region: %+v, want one P2 S-REGION on line 5 naming `status 0,20 80×2` and the frame", got)
+	}
+	if fs := Lint("TUI.md", doc); rules(fs)["S-REGION"] != 0 {
+		t.Errorf("without --frames: %v", rules(fs))
 	}
 }

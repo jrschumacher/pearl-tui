@@ -1,0 +1,80 @@
+name: Bug (the skill, kit or a tool got it wrong)
+description: A miss from building a TUI with the skill, the kit or its tools
+labels: ["feedback", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One miss per issue, or several that share one cause. An agent drafts this with
+        `feedback draft --kind bug` (`references/cmd-feedback.md`) and files it only on
+        your yes. Leave out code, app names and data you haven't cleared to publish.
+  - type: textarea
+    id: asked
+    attributes:
+      label: What was asked
+      description: The prompt or command (`/bubbletea-tui craft`), and what was being built, in general terms.
+    validations:
+      required: true
+  - type: input
+    id: skill-version
+    attributes:
+      label: Skill version
+      description: "`git -C <skill dir> rev-parse --short HEAD`, or `computedHash` from `skills-lock.json`. `feedback` fills it."
+    validations:
+      required: true
+  - type: input
+    id: area
+    attributes:
+      label: Where
+      description: "The file, component, tool or rule: `references/color.md`, `kit/ui/dialog.go`, `tuilint frames` F-CONTRAST, `palette check`."
+    validations:
+      required: true
+  - type: input
+    id: variant
+    attributes:
+      label: Variant
+      description: "Where relevant: dark or light, profile (truecolor, ansi256, ansi, NO_COLOR), `-ascii`, size W×H, tmux or SSH."
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: Cite the state, size and cells if visual; the key and state if behavioural; the rule ID if a lint.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should have happened
+    validations:
+      required: true
+  - type: dropdown
+    id: miss-class
+    attributes:
+      label: Kind of miss
+      description: AGENTS.md § How the skill improves. Most (b)s mean the skill is too long.
+      options:
+        - (a) the skill never says it
+        - (b) the skill says it and the agent ignored it
+        - (c) prose can't express it
+        - not sure
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Frames, sheets or a minimal repro
+      description: "`cellshot frames/*.ansi --sheet sheet.png`, the .ansi frames, a golden, the smallest code that shows it, or a TUI.md diff for an `init` miss."
+  - type: dropdown
+    id: loop
+    attributes:
+      label: Did the agent run the loop?
+      description: Rendered PNGs, tuilint, a critic (`references/verify.md`).
+      options:
+        - "yes"
+        - partly
+        - "no"
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: "`go version`, the OS, and the build of each tool involved. `feedback` fills it."
