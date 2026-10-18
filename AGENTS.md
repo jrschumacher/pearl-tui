@@ -114,12 +114,13 @@ The skill gets better from observed misses, not from adding prose.
 - **Libraries go through the kit's theme.** Huh forms are built with `ui.NewForm` and
   spinners with `ui.HuhSpinner` / `ui.BubblesSpinner`; `tuilint code` fails a bare
   `huh.NewForm` or an unstyled spinner [C-HUHTHEME]. Huh v2.0.3's quirks and the kit's
-  workarounds are in `references/architecture.md`; each has a test, so don't undo one.
+  workarounds are in `references/bubbletea-architecture.md`; each has a test, so don't
+  undo one.
 - **Pinned versions.** `charm.land/bubbletea/v2 v2.1.0`, `lipgloss/v2 v2.0.6`,
   `bubbles/v2 v2.2.1`, `huh/v2 v2.0.3`, Ultraviolet `v0.0.0-20261008173134-6b8d4baf91b4`.
   To bump: update `kit/go.mod`, run everything above, and update
-  `references/architecture.md`, whose API claims are verified against these versions,
-  the `go get` line in `kit/README.md`'s copy block, and the stack line in
+  `references/bubbletea-architecture.md`, whose API claims are verified against these
+  versions, the `go get` line in `kit/README.md`'s copy block, and the stack line in
   `references/cmd-init.md`'s TUI.md template.
 - **Fictional brands only** in `kit/themes/`. No real companies' marks or palettes, apart
   from the clearly labelled Charmtone study (`charm.json`).

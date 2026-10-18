@@ -1,5 +1,8 @@
 # Layout: column budgets, breakpoints, rectangles
 
+*Bubble Tea: § Draw Into Rectangles names Ultraviolet's layout, which Bubble Tea v2 draws
+with; the rest holds for any framework.*
+
 ## Write The Budget Before Any Code
 
 For every screen, at 80×24 (the floor) and 120×40 (comfortable), write down:

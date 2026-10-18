@@ -1,5 +1,8 @@
 # Colour: roles, ramps, and the four palettes you are really designing
 
+*Bubble Tea: the detection in § Light Mode Is Not An Inversion and the `tea.View` field
+in § Painting The Background are Bubble Tea v2's; the rest holds for any framework.*
+
 ## Roles, Never Hex
 
 A screen asks for `t.S.Muted` or `t.P.Error`, never `"#8A93A3"`. The theme file owns

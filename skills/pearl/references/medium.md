@@ -4,6 +4,10 @@ Everything you know from the web is about a continuous canvas. A terminal is a g
 cells, and every bug and every ugly screen you will produce comes from forgetting that.
 Read this before your first layout.
 
+*Bubble Tea: the measuring calls in § Width Is Cells and the profile and background
+detection in § Colour Profiles are Lip Gloss's and Bubble Tea v2's; the rules hold for any
+framework.*
+
 ## The Cell Is The Pixel
 
 One cell holds one glyph, one foreground, one background, and a few attributes (bold,

@@ -4,6 +4,9 @@ Motion in a terminal means "something is happening". If nothing is happening, no
 moves. Every frame is bytes through a pty, and over SSH at 60 fps a full-screen shimmer
 costs a megabyte a minute.
 
+*Bubble Tea: the code in § One Shared Clock and the `tea.*` names in § Budget and § DO /
+DON'T are Bubble Tea v2's; the rules hold for any framework.*
+
 ## One Shared Clock
 
 ```go

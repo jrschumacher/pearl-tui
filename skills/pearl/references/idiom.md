@@ -143,7 +143,8 @@ re-arms it.
 
 Crush's root model builds an Ultraviolet screen buffer and each region paints into its own
 rectangle. Clipping is structural, so a long line can never wrap and tear the frame. Draw
-order is z-order (dialogs last). The kit's `ui.Canvas` is this pattern (`architecture.md`).
+order is z-order (dialogs last). The kit's `ui.Canvas` is this pattern
+(`bubbletea-architecture.md`).
 
 ## Other apps worth reading for one idea each
 

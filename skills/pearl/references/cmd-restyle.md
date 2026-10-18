@@ -1,5 +1,8 @@
 # restyle — bring an existing Bubble Tea app onto the system
 
+*Bubble Tea: steps 2 and 3 (the kit's harness, the v1 → v2 migration) are Bubble Tea's;
+the rest holds for any framework.*
+
 For an app that works but looks like every other one (or like five different ones). The
 goal is the same behaviour **at the idiom's richness**: a theme, a harness, and the moves
 that make the kit's own screens look designed, landed in small steps that each keep it
@@ -22,8 +25,8 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
    `showcase_test.go`, `overlay_test.go`, `behaviour_test.go` and `ansi16_test.go`
    whole. Written by hand, the harness loses the kit's tests (`TestHelpIsHandled`,
    footprint, contrast). Fix footprint failures before anything visual.
-3. **Migrate to v2** if it's on v1 (`architecture.md`): import paths, `View() tea.View`,
-   `tea.KeyPressMsg`, the AltScreen/mouse view fields, Lip Gloss colours, Bubbles style
+3. **Migrate to v2** if it's on v1 (`bubbletea-architecture.md`): import paths,
+   `View() tea.View`, `tea.KeyPressMsg`, the AltScreen/mouse view fields, Lip Gloss colours, Bubbles style
    setters. Use the official upgrade guides for the mechanics. The renders must match
    before and after.
 4. **Pull every colour and glyph into a theme.** `tuilint code` lists the hex literals

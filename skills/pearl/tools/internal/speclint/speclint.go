@@ -551,8 +551,8 @@ func normAction(a string) string {
 
 // keyDup checks one cell at a time: each state's own keys, and Global's keys together.
 // A state that binds a Global key to its own action overrides it, because dispatch
-// runs overlay, then focused region, then globals (architecture.md), so the row's hint
-// is the true one and that is not a finding.
+// runs overlay, then focused region, then globals (bubbletea-architecture.md), so the
+// row's hint is the true one and that is not a finding.
 func (s *spec) keyDup(add func(string, int, string, ...any)) {
 	check := func(r row, bs []binding) {
 		actions := map[string][]string{}

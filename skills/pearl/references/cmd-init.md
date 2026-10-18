@@ -4,6 +4,10 @@ Run this first in a project with no `TUI.md`, or when the product, the brand or 
 has changed. `teach` is an alias. It writes `TUI.md` at the project root, and every
 command that changes UI reads it before doing anything.
 
+*Bubble Tea: the Forms and slow-work defaults in §2 and the Architecture half of §3's
+template name Bubble Tea v2's libraries; the interview and the design half hold for any
+framework.*
+
 **One file, two halves.** Design (what it looks like and why) and architecture (how it's
 built) both go in `TUI.md`. Every command reads that file first; a second file gets
 skipped, and then the screens drift from the model that draws them. Never split it into
@@ -43,8 +47,8 @@ first:
   it (`cmd-critique.md` §1).
 
 When a TUI exists, the architecture half describes the code as it is. Infer it; don't ask
-it. Write each departure from `architecture.md` (v1 imports, nested models, no harness,
-Huh on its default theme) as a `gap:` line, which `restyle` then closes.
+it. Write each departure from `bubbletea-architecture.md` (v1 imports, nested models, no
+harness, Huh on its default theme) as a `gap:` line, which `restyle` then closes.
 
 ## 2. Interview In Short Rounds
 

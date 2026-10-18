@@ -21,6 +21,17 @@ product, provably not the default), and **eyes** (a harness that renders every s
 renderer that turns ANSI into honest PNGs, a linter, and an adversarial critic). Commit
 to all three. A half-applied idiom reads as noise.
 
+## Frameworks: Bubble Tea First
+
+The laws, the brand read, colour, layout, the confirm ladder and the verify loop are
+framework-neutral: they judge cells, and `cellshot`, `tuilint frames`, `palette` and
+`diversity` read `.ansi` frames and theme files whatever drew them. Bubble Tea v2 (Go,
+with Lip Gloss, Bubbles and Huh) is the one framework the kit (`kit/theme/bubbletea`,
+`kit/ui/bubbletea`, `kit/cmd/showcase`) and `tuilint code` support today. Its references:
+`bubbletea-architecture.md` whole, and the sections a mixed reference names in its
+italic *Bubble Tea:* line (`components.md`, `cmd-init.md`, `cmd-craft.md`,
+`cmd-restyle.md`, `medium.md`, `motion.md`, `color.md`, `layout.md`, `verify.md`).
+
 ## Setup (Every Time, Before Any UI Code)
 
 1. **Read `TUI.md`.** If it exists at the project root, read it: the design half holds
@@ -147,7 +158,7 @@ measure the source, and keep keyframes as code.
 **DON'T** use figlet's "standard", `░` on dark-on-dark, or splashes that outlive the
 work.
 
-### Architecture → *Consult `references/architecture.md`*
+### Architecture (Bubble Tea) → *Consult `references/bubbletea-architecture.md`*
 **DO** use Bubble Tea v2 (`charm.land/*/v2`, pinned), one root model, `View() tea.View`
 with declarative fields, a canvas, caches, and the harness flags from the first commit.
 **DON'T** write v1 imports, nested `tea.Model` trees for every region, or `fmt.Print`

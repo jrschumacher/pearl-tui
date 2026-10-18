@@ -1,5 +1,8 @@
 # Components: anatomy and rules
 
+*Bubble Tea: the `ui.*` calls in the headings and the code are the Bubble Tea kit's; each
+component's anatomy and rules hold for any framework.*
+
 Every component here exists in `kit/ui/bubbletea`. Copy it and change what the task needs. Each
 entry gives the anatomy, the rules that a cold rebuild got wrong, and the kit function.
 

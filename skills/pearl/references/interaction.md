@@ -3,8 +3,8 @@
 ## Keys Are A Contract
 
 - Define every key once, in a per-state **action table** (binding + handler), which
-  both the dispatcher and the footer read (`architecture.md` § Keys). A key in the help
-  that doesn't work is a bug [C-KEYS], and `TestHelpIsHandled` makes it a failing test.
+  both the dispatcher and the footer read (`bubbletea-architecture.md` § Keys). A key in
+  the help that doesn't work is a bug [C-KEYS], and `TestHelpIsHandled` makes it a failing test.
 - Actions act on **the selection**, not on the first item of the fixture. Test it:
   select the fifth row, press the key, and check the dialog names the fifth item.
 - **Conventions users already have:** `↑/↓` and `j/k` move, `enter` selects/submits,
@@ -142,8 +142,8 @@ and that action needed the confirm.
 ## States Every Screen Designs
 
 Populated, empty, loading, error, partial (some items failed), offline/disconnected,
-too small, and the first run. Each is a named harness state (`architecture.md`), so each
-gets rendered and reviewed.
+too small, and the first run. Each is a named harness state
+(`bubbletea-architecture.md`), so each gets rendered and reviewed.
 
 ## Terminal Citizenship
 
@@ -175,7 +175,7 @@ included) covers terminals yet, so hold yourself to these:
 - **In the canvas UI**: the real cursor (`View.Cursor`) sits where input goes and stays
   there, and is nil when there's no input. Animate only while something is happening, and
   keep animations small (`motion.md`). Don't re-render a long history on every keystroke:
-  cache finished items (`architecture.md`).
+  cache finished items (`bubbletea-architecture.md`).
 - **Offer the non-interactive path** (`--json`, plain output when stdout isn't a TTY).
   For many screen-reader users that is the accessible interface.
 - **Test it**: run the accessible mode with a screen reader once per release (Orca,
