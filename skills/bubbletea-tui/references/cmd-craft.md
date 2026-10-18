@@ -61,12 +61,13 @@ fixed chrome, then the body into rectangles from its § Screens block at both si
 (`layout.md` § Use The Room); use the components it names; add the states; wire the keys
 and the help. Name in its § Screens block the frame its identity shows on; the main
 screen's default frame (nothing pressed) draws the read's move and signature (`brand.md`
-§6, question 2), and every other screen words its question, buttons and footer labels
-(the action table's help text) as its `brand:` line says. Read its render against the
-line: where they disagree, change one, since the critic marks the mismatch. After each
-screen, run the loop below on that screen before starting the next. The slice is the
-order because it is the main loop the design gets judged on; the integrations wait
-behind it.
+§6, question 2), and once it renders, the read's `skeleton:` line says what that frame
+shows, axis by axis: fix the frame where it misses the move, and the line where it
+guessed. Every other screen words its question, buttons and footer labels (the action
+table's help text) as its `brand:` line says. Read its render against the line: where
+they disagree, change one, since the critic marks the mismatch. After each screen, run
+the loop below on that screen before starting the next. The slice is the order because
+it is the main loop the design gets judged on; the integrations wait behind it.
 
 ## 4. The Loop (`verify.md`)
 

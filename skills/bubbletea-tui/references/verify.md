@@ -90,7 +90,11 @@ Rubric (score each 0–4, cite rows/cells, not impressions; 0 = a default or a b
 2 = works but surprises, 4 = designed):
   1. Identity: with colour stripped, is it recognisably this brand? Does the main
      screen's default frame show the read's move (a region placed where the kit
-     doesn't) and its signature (an element the kit doesn't draw)? Then read each
+     doesn't) and its signature (an element the kit doesn't draw)? Read § Brand
+     read's `skeleton:` line against that frame, axis by axis (order, verdict,
+     status, head, foot, chart): a value the frame contradicts is a P1, since the
+     line declares the frame as built and `diversity` trusts it; words edited to
+     pass the lint, with the frame unchanged, are that P1. Then read each
      secondary screen (the dialogs, the detail) against its § Screens `brand:` line:
      do its question, buttons and footer carry the line, or are they the kit's and
      the spec's words, which another brand on the same spec would match? A line
