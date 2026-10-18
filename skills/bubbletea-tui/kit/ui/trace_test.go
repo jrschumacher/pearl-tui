@@ -331,3 +331,17 @@ func TestSparklineShowsASmallStep(t *testing.T) {
 		}
 	}
 }
+
+// Rows: 3 draws 21 bar heights above the floor, not the 24 the docs said: the floor takes
+// the idle band under 1/8 (3 of 24 steps) and the top row stops at 7/8 (▇), so the docs'
+// count (TraceOpts.Rows, components.md) follows both.
+func TestTraceHeightsFollowTheCap(t *testing.T) {
+	th := testTheme(t, false)
+	shapes := map[string]bool{}
+	for v := 0.0; v <= 100; v += 0.25 {
+		shapes[ansi.Strip(strings.Join(Trace(th, []float64{v}, 1, TraceOpts{Rows: 3}), "|"))] = true
+	}
+	if got := len(shapes) - 1; got != 21 { // less the floor
+		t.Errorf("Rows: 3 draws %d heights above the floor, want 21", got)
+	}
+}

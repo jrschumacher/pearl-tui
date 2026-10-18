@@ -21,7 +21,9 @@ type TraceOpts struct {
 	// Per is how many samples a cell holds, drawn as their maximum, so a one-sample spike
 	// survives the downsample: 60 samples at Per 4 fill 15 cells. Default 1.
 	Per int
-	// Rows is the height, top row first: Rows×8 heights. The bottom row holds the floor;
+	// Rows is the height, top row first: Rows×8 steps, of which the floor takes the idle
+	// band under 1/8 and the top row stops at 7/8 (Rows 3 draws 21 bar heights). The
+	// bottom row holds the floor;
 	// the rows above hold only what rises into them. Default 1.
 	Rows int
 	// Warn and Fail are levels on the scale: a cell at or over Warn draws in the warning's

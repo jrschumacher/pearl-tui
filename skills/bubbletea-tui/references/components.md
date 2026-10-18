@@ -313,7 +313,7 @@ says the state in words.
   zero; a cell at or over `Warn` takes the warning's ink and over `Fail` the error's,
   or `Ink` decides every cell above `Min` (a cell at `Min` is the floor in fgSubtle
   whatever `Ink` says, so mark a down state beside the trace, not in it);
-  `Rows: 3` is 24 heights, the floor on the bottom row. A bar's top row stops at `▇`
+  `Rows: 3` draws 21 bar heights above the floor on the bottom row. A bar's top row stops at `▇`
   (7/8), in a Sparkline too: a `█` sits flush on the row above, and under NO_COLOR the
   two rows fuse into one shape.
 - Idle is dots, never a line. A sample under 1/8 of the scale draws the floor `⣀` (`⠤`
