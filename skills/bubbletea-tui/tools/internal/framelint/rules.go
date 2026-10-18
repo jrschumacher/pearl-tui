@@ -351,7 +351,7 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 			tls = append(tls, c)
 		}
 	}
-	dialog := findDialog(name, f, cornersSeen)
+	dialog := findDialog(f, cornersSeen)
 	if overlayName.MatchString(name) && dialog == nil && (len(lowc) > 0 || len(offCells) > 0) {
 		// a borderless dialog over a scrim: we can't find its edges, so don't judge the scrim
 		add("F-CONTRAST", "P2", "frame", "overlay frame without a bordered or ruled dialog: contrast and palette checked only by eye here")
@@ -952,10 +952,11 @@ func LintASCIIQuestion(name string, asc, uni Frame) []Finding {
 }
 
 // findDialog is the one dialog over a scrim: a bordered box (the frame's only top-left
-// corner), or on an overlay frame without one, an ASCII +--+ box or a rules dialog (two
-// rule rows of one span bounding a filled panel). nil when there is none to find, as
-// under a borderless dialog.
-func findDialog(name string, f Frame, cornersSeen []corner) *region {
+// corner), or on a frame without one, an ASCII +--+ box or a rules dialog (two rule rows
+// of one span bounding a filled panel). It goes by the dialog's shape, not the frame's
+// name, so a dialog's states named for what they show (sending, send-error) are found
+// too. nil when there is none to find, as under a borderless dialog.
+func findDialog(f Frame, cornersSeen []corner) *region {
 	var tls []corner
 	for _, c := range cornersSeen {
 		if strings.ContainsRune(topLeft, c.ch) {
@@ -982,7 +983,7 @@ func findDialog(name string, f Frame, cornersSeen []corner) *region {
 			}
 		}
 		dialog = &region{y0, x0, y1, x1}
-	} else if len(tls) == 0 && overlayName.MatchString(name) {
+	} else if len(tls) == 0 {
 		if r, ok := asciiBox(grid); ok {
 			dialog = &r
 		} else if r, ok := rulesDialog(grid, f.Basic || f.Indexed); ok {
@@ -1104,7 +1105,8 @@ const truncMax = 3
 // column with the most. A table's last column headed path, file, command or url is
 // skipped (unboundedColumn): no budget fits a path, so cutting it is the design.
 //
-// On an overlay frame an ellipsis the kit's Overlay put where the dialog cut a word is
+// On an overlay frame (named as one, or with a ruled or ASCII dialog whatever its name)
+// an ellipsis the kit's Overlay put where the dialog cut a word is
 // skipped (rows a dialog cuts all end near its edge); the dialog's own rows are judged
 // like any column. The dialog is found by its border (with two or more boxes, the one
 // filled off the page's background, else the largest) or, when it has no edge the
@@ -1123,9 +1125,14 @@ func lintTrunc(name string, f Frame, ellipses []string, spec *Spec) []Finding {
 	overlay := overlayName.MatchString(name)
 	var dialog *region
 	page, fill := pageBG(f)
-	if overlay {
-		cs := frameCorners(f)
-		if dialog = findDialog(name, f, cs); dialog == nil {
+	cs := frameCorners(f)
+	if !overlay && len(cs) == 0 { // a ruled or ASCII dialog on a frame named for its state
+		if dialog = findDialog(f, cs); dialog != nil {
+			overlay = true
+		}
+	}
+	if overlay && dialog == nil {
+		if dialog = findDialog(f, cs); dialog == nil {
 			dialog = pickBox(f, cs, page)
 		}
 	}

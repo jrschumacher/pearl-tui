@@ -1000,6 +1000,29 @@ func TestOverlayDialogsAreFound(t *testing.T) {
 			t.Errorf("%s: %+v, want no F-CONTRAST", c.file, hits)
 		}
 	}
+	// a dialog is found by its shape, not its harness name: the same frames named for a
+	// state of the dialog that says no overlay word (a confirm's sending and send-error
+	// states) are judged the same
+	for _, c := range []struct {
+		file, as string
+		ascii    bool
+	}{{"rules-confirm-80x24.ansi", "sending-80x24.ansi", false}, {"rules-ascii-help-80x24.ansi", "send-error-80x24.ansi", true}, {"box-ascii-confirm-80x24.ansi", "refused-80x24.ansi", true}} {
+		data, err := os.ReadFile("testdata/overlays/" + c.file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := filepath.Join(dir, c.as)
+		if err := os.WriteFile(p, data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		args := []string{p, "--theme", "testdata/themes/quire.json"}
+		if c.ascii {
+			args = append(args, "--ascii")
+		}
+		if hits := contrastHits(t, args...); len(hits) != 0 {
+			t.Errorf("%s as %s: %+v, want no F-CONTRAST", c.file, c.as, hits)
+		}
+	}
 	if hits := contrastHits(t, "testdata/overlays/none-palette-80x24.ansi"); len(hits) != 1 || hits[0].Sev != "P2" || !strings.Contains(hits[0].Msg, "checked only by eye") {
 		t.Errorf("a dialog: none palette: %+v, want the P2 note", hits)
 	}

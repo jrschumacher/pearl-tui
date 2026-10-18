@@ -15,11 +15,13 @@
 //	F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1. Box drawing and blocks (U+2500–259F),
 //	                 braille, legacy blocks and rule runs (────, ----, ====, ····, and the
 //	                 "--" a titled rule leads with) are decoration; status
-//	                 marks (● ◆ ▶ ○ ◐ •) are text. On an overlay frame (named dialog, palette,
-//	                 confirm, modal, overlay, popup, help or keys) only the dialog and the footer
-//	                 are judged: a bordered box, an ASCII +--+ box, or a "dialog": "rules" panel
-//	                 (two rule rows of one span around a filled panel); with none found, a P2
-//	                 note instead ("dialog": "none" has no edge to find).
+//	                 marks (● ◆ ▶ ○ ◐ •) are text. On a frame with a dialog, only the dialog
+//	                 and the footer are judged: a bordered box, an ASCII +--+ box, or a
+//	                 "dialog": "rules" panel (two rule rows of one span around a filled panel),
+//	                 found by its shape whatever the frame's name (a confirm's sending state
+//	                 too). On an overlay frame (named dialog, palette, confirm, modal, overlay,
+//	                 popup, help or keys) with none found, a P2 note instead ("dialog": "none"
+//	                 has no edge to find).
 //	                 In a 16-colour frame: text in the same slot as its background
 //	F-BOXES     [P1] more than one bordered box (nested or side by side noted)
 //	F-RAINBOW   [P2] more than 7 distinct foreground hues (not judged on a 256-colour frame, where
@@ -89,10 +91,11 @@ else is a rune the ASCII sweep had no twin for, which reads as a question.
                    (a 16-colour frame, -profile ansi, is not judged: the terminal owns those slots)
   F-CONTRAST  [P1] text whose fg/bg contrast is < 2.3:1; box drawing, blocks, braille and
                    rule runs (their ASCII twins too: ----, ====, and a titled rule's "--" lead)
-                   are decoration, status marks (● ◆ ▶ ○ •) are text. On an overlay
-                   frame (named dialog|palette|confirm|modal|overlay|popup|help|keys) only the
-                   dialog is judged: a bordered box, an ASCII +--+ box or a "dialog": "rules"
-                   panel (two rule rows of one span around a filled panel); none found is a
+                   are decoration, status marks (● ◆ ▶ ○ •) are text. Where a frame has a
+                   dialog, found by its shape whatever the frame's name (a bordered box, an
+                   ASCII +--+ box or a "dialog": "rules" panel: two rule rows of one span
+                   around a filled panel), only the dialog is judged; an overlay frame (named
+                   dialog|palette|confirm|modal|overlay|popup|help|keys) with none found is a
                    P2 note. In a 16-colour frame, text in the same slot as its background
   F-BOXES     [P1] more than one bordered box
   F-RAINBOW   [P2] more than 7 distinct foreground hues (not on a 256-colour frame)
