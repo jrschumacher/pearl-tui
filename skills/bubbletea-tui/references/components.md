@@ -94,11 +94,13 @@ the keys; hue stays for state (color.md).
   page under it unfocused (`focused=false` to its lists, tables and fields, a subtle
   prompt and no caret in its input): one focus per frame, and a list keeps its
   selection under the blurred mark.
-  `Canvas.Overlay` (and `Popover`) clears what would still read as live beside it: a
-  one-cell halo, a word the dialog cuts, whole, with an ellipsis where its phrase was
-  cut (`▲ notifications-…`, not `igh` or `1s` at the edge), a page rule on the dialog's
-  edge rows, and, where no scrim is drawn (16 colours, NO_COLOR, ASCII, `scrim: none`),
-  the rows the dialog spans.
+  `Canvas.Overlay` (and `Popover`) clears the rows the dialog spans, across, at every
+  size and in every profile: a page cut at the dialog's margin left `…to show it` beside
+  a confirm on its own rows, reading as its text. Where no scrim is drawn (16 colours,
+  NO_COLOR, ASCII, `scrim: none`) it hides the page's body too, since at full ink a page
+  under a confirm showed the reply's tail a second time: set `c.Body` to the rows
+  between your header and footer so the header stays (unset, everything goes but the
+  dialog and the footer you redraw).
 - Max ~64–70 cols wide; fullscreen below the minimum size.
 
 ## Confirm — destructive actions

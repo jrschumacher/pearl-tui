@@ -146,6 +146,9 @@ whole. They read your tables and these from your app:
   as `show`;
 - the fields `t`, `profile`, `ov`, `last`, `ovRect`, `body` and `footY`, and the
   overlay values `ovNone` and `ovHelp`;
+- the canvas's `Body`, set in `render` to the rows between your header and footer:
+  where the page can't be dimmed a dialog hides it and keeps the header (unset, the
+  header goes too);
 - help's shape: one row per binding, the key then what it does (a key name holds no
   space), and `esc` closing help back to whatever it was opened over;
 - focus drawn in the theme's marks: the focus bar, cursor, caret or prompt glyph in its

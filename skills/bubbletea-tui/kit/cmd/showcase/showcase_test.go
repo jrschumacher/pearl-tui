@@ -207,11 +207,12 @@ func TestNoUnstyledText(t *testing.T) {
 // Every theme's overlay states render under 16 colours and NO_COLOR as the harness
 // writes them (-profile ansi, NO_COLOR=1): exactly W×H, with the theme resolved for
 // that profile (a borderless dialog's edge depends on it, ui TestEveryDialog…). No scrim
-// is drawn there, so the rows the dialog spans are cleared across: a help dialog sat
-// between live list rows ("● acme/w ── keys · inbox ── mitri · 5h"), read as a collage.
-// A cleared cell takes the page's background, not the one it had: a red 502s strip or
-// a FAILING chip emptied by the clear stayed a solid block beside the dialog, and a
-// selection band left a grey stub at its left.
+// is drawn there, so the rows the dialog spans are cleared across and the page's body
+// (Canvas.Body) is hidden: a help dialog sat between live list rows ("● acme/w ── keys
+// · inbox ── mitri · 5h"), read as a collage, and a confirm over a composer showed the
+// reply's tail under its edge at full ink. A cleared cell takes the page's background,
+// not the one it had: a red 502s strip or a FAILING chip emptied by the clear stayed a
+// solid block beside the dialog, and a selection band left a grey stub at its left.
 func TestOverlaysInReducedProfiles(t *testing.T) {
 	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)
@@ -245,11 +246,19 @@ func TestOverlaysInReducedProfiles(t *testing.T) {
 					if x, y, ok := pageBeside(c, m.ovRect, 80); ok {
 						t.Errorf("%s %s %s dark=%v: no scrim, and the page shows %q at %d,%d beside the dialog", filepath.Base(f), s, pr.name, dark, c.CellAt(x, y).Content, x, y)
 					}
-					r := m.ovRect
+					r, body := m.ovRect, hiddenBody(c)
 				rows:
-					for y := r.Min.Y; y < r.Max.Y; y++ {
+					for y := range m.footY {
 						for x := range 80 {
-							if cell := c.CellAt(x, y); cell != nil && !uv.Pos(x, y).In(r) && !sameRGB(cell.Style.Bg, m.t.P.Bg) {
+							if !(y >= r.Min.Y && y < r.Max.Y) && !uv.Pos(x, y).In(body) || uv.Pos(x, y).In(r) {
+								continue
+							}
+							cell := c.CellAt(x, y)
+							if cell != nil && strings.TrimSpace(cell.Content) != "" {
+								t.Errorf("%s %s %s dark=%v: no scrim, and the page's body shows %q at %d,%d beside the dialog", filepath.Base(f), s, pr.name, dark, cell.Content, x, y)
+								break rows
+							}
+							if cell != nil && !sameRGB(cell.Style.Bg, m.t.P.Bg) {
 								t.Errorf("%s %s %s dark=%v: a cleared cell at %d,%d keeps a background %v, not the page's %v", filepath.Base(f), s, pr.name, dark, x, y, cell.Style.Bg, m.t.P.Bg)
 								break rows
 							}

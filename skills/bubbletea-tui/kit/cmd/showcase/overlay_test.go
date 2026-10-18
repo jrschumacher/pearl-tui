@@ -60,16 +60,25 @@ func rowText(c *ui.Canvas, y int) string {
 	return b.String()
 }
 
-// An overlay leaves the page's rows it doesn't span as the page drew them: the page
-// under a dialog is drawn unfocused (its screens take focused=false), so nothing has
-// to be scanned off it afterwards. A scan for focus marks by glyph and ink erased
-// cartridge's wordmark (its focus bar is █ in the primary ink, as is the banner) and
-// ferrous's header separators under ASCII (its focus bar and its separator are both
-// "|"). Every theme, every profile, every overlay over every page that draws a
-// selection, at 80×24 and 120×40: each cell above and below the dialog's rows and
-// above the footer holds the glyph it held with no overlay, except where the page
-// drew its own focus mark (the focused field's bar, the focused button's cursor, a
-// caret, in the body), which drawing it unfocused takes away or turns blurred.
+// An overlay's rows are its own, and where the page can be dimmed the rows it doesn't
+// span are the page's: the page under a dialog is drawn unfocused (its screens take
+// focused=false), so nothing has to be scanned off it afterwards. A scan for focus
+// marks by glyph and ink erased cartridge's wordmark (its focus bar is █ in the primary
+// ink, as is the banner) and ferrous's header separators under ASCII (its focus bar
+// and its separator are both "|"). Every theme, every profile, every overlay over every
+// page that draws a selection, at 80×24 and 120×40, against the same page with no
+// overlay, above the footer:
+//
+//   - on the rows the dialog spans, nothing of the page is left beside it, at every
+//     size (at 120 columns a column of "…to show it" stood beside a confirm, re-cut at
+//     its margin);
+//   - under a scrim, each cell off those rows holds the glyph it held, except where the
+//     page drew its own focus mark (the focused field's bar, the focused button's
+//     cursor, a caret), which drawing it unfocused takes away or turns blurred;
+//   - with no scrim (16 colours, NO_COLOR, ASCII, scrim: none), the page's body
+//     (Canvas.Body, everything when unset) is blank outside the dialog, and the rest,
+//     the header, holds its glyphs: at full ink a confirm over a composer showed the
+//     reply's last lines under its edge, a second copy of what it would send.
 func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)
@@ -89,18 +98,32 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 						m.openOverlay(s)
 						c := m.render(sz[0], sz[1])
 						name := fmt.Sprintf("%s %s %s over %s %dx%d", filepath.Base(f), v.name, s, page, sz[0], sz[1])
+						scrim := scrims(m.t)
+						hidden := hiddenBody(c)
+					rows:
 						for y := range m.footY {
-							if y >= m.ovRect.Min.Y && y < m.ovRect.Max.Y {
-								besideTheDialog(t, name, m, base, c, y, focusCells)
-								continue
-							}
+							band := y >= m.ovRect.Min.Y && y < m.ovRect.Max.Y
 							for x := range sz[0] {
+								if uv.Pos(x, y).In(m.ovRect) {
+									continue
+								}
 								want, got := cellText(base, x, y), cellText(c, x, y)
-								if got == want || slices.Contains(focusCells, uv.Pos(x, y)) {
+								switch {
+								case band || (!scrim && uv.Pos(x, y).In(hidden)):
+									if got == " " {
+										continue
+									}
+									if band {
+										t.Errorf("%s: the page shows %q at %d,%d beside the dialog, on a row it spans: %q", name, got, x, y, rowText(c, y))
+									} else {
+										t.Errorf("%s: no scrim, and the page's body shows %q at %d,%d at full ink beside the dialog: %q", name, got, x, y, rowText(c, y))
+									}
+									continue rows
+								case got == want || slices.Contains(focusCells, uv.Pos(x, y)):
 									continue
 								}
 								t.Errorf("%s: %q at %d,%d is %q with the overlay up; the page's row was %q", name, want, x, y, got, rowText(base, y))
-								break
+								continue rows
 							}
 						}
 					}
@@ -111,7 +134,8 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 	// the two the glyph scan broke, by name: cartridge's wordmark rows (its focus bar is
 	// the banner's █) and ferrous's header under ASCII (its bar and separator are both
 	// "|"): every row above the page's body (the header, none in an app without one)
-	// reads as it did. In a copied project testTheme gives the project's theme.
+	// reads as it did, with a scrim or without. In a copied project testTheme gives the
+	// project's theme.
 	for _, k := range []struct {
 		theme string
 		ascii bool
@@ -131,7 +155,7 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 				c := m.render(sz[0], sz[1])
 				for y := range min(head, m.ovRect.Min.Y) {
 					if got, want := rowText(c, y), rowText(base, y); got != want {
-						t.Errorf("%s ascii=%v %s %dx%d: row %d reads %q under the overlay, want %q", k.theme, k.ascii, s, sz[0], sz[1], y, got, want)
+						t.Errorf("%s ascii=%v %s %dx%d: row %d reads %q under the overlay, want %q (with no scrim a dialog hides Canvas.Body: set it to the page's body, under the header)", k.theme, k.ascii, s, sz[0], sz[1], y, got, want)
 					}
 				}
 			}
@@ -139,47 +163,19 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 	}
 }
 
-// besideTheDialog judges row y of an overlay frame c outside the dialog against the
-// same page with no overlay (base): where no scrim is drawn the row is cleared across
-// (the band); under a scrim each side changes only in one run out from the dialog's
-// edge, blanks with at most one ellipsis at its far end (the cut word), and on the
-// dialog's edge rows a page rule may go too. A focus mark of the page's may change
-// anywhere: the page is drawn unfocused.
-func besideTheDialog(t *testing.T, name string, m *app, base, c *ui.Canvas, y int, focusCells []uv.Position) {
-	t.Helper()
-	r, w := m.ovRect, c.Bounds().Dx()
-	th := m.t
-	scrim := th.X.Scrim == "dim" && !th.ASCII && th.Profile != colorprofile.ANSI && th.Profile != colorprofile.Ascii && th.Profile != colorprofile.NoTTY
-	if !scrim {
-		for x := range w {
-			if !uv.Pos(x, y).In(r) && cellText(c, x, y) != " " {
-				t.Errorf("%s: no scrim, and the page shows %q at %d,%d beside the dialog", name, cellText(c, x, y), x, y)
-				return
-			}
-		}
-		return
+// scrims reports whether the kit dims the page under a dialog for th (ui's Canvas
+// scrims): the theme asks for it and the profile can show it.
+func scrims(th *theme.Theme) bool {
+	return th.X.Scrim == "dim" && !th.ASCII && th.Profile != colorprofile.ANSI && th.Profile != colorprofile.Ascii && th.Profile != colorprofile.NoTTY
+}
+
+// hiddenBody is what an overlay hides where it can't dim: the canvas's Body, or the
+// whole canvas when the app set none.
+func hiddenBody(c *ui.Canvas) uv.Rectangle {
+	if c.Body.Empty() {
+		return c.Bounds()
 	}
-	edge := y <= r.Min.Y+1 || y >= r.Max.Y-2 // a rules dialog's rule sits a margin row in
-	for _, side := range []struct{ halo, dx int }{{r.Min.X - 1, -1}, {r.Max.X, 1}} {
-		run, ells := true, 0
-		for x := side.halo; x >= 0 && x < w; x += side.dx {
-			want, got := cellText(base, x, y), cellText(c, x, y)
-			switch {
-			case got == want:
-				run = false
-			case slices.Contains(focusCells, uv.Pos(x, y)):
-				// the page's own focus mark, drawn unfocused
-			case edge && got == " " && (want == th.G.Rule || want == th.G.HeaderRule):
-				// a page rule beside the dialog's edge row
-			case run && got == " " && ells == 0:
-			case run && got == th.G.Ellipsis && ells == 0:
-				ells++
-			default:
-				t.Errorf("%s: %q at %d,%d is %q beside the dialog, outside the word it cuts: %q", name, want, x, y, got, rowText(c, y))
-				return
-			}
-		}
-	}
+	return c.Body
 }
 
 // An overlay frame has one focus, the dialog's, and nothing of the page touches the

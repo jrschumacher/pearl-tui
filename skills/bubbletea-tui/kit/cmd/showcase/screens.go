@@ -70,6 +70,8 @@ func (m *app) draw(w, h int) *ui.Canvas {
 	}
 	body := uv.Rect(g, y, w-2*g, max(0, fy-y-t.Gap()))
 	m.body, m.footY = body, fy
+	// what a dialog hides where the page can't be dimmed: every row under the tabs
+	c.Body = uv.Rect(0, y, w, fy-y)
 	switch m.screen {
 	case scrServices:
 		m.services(c, body)
