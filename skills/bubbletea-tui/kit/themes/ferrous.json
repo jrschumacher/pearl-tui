@@ -11,6 +11,7 @@
   "light": {
    "primary": 0,
    "secondary": 0,
+   "tertiary": 0,
    "warning": 3
   }
  },

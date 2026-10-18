@@ -177,7 +177,8 @@ and look at the PNGs. What usually breaks:
   error to 9/1, a status role to its own slot (warning 3/11, success 2/10, info 4/12 or
   6/14), never a grey but for the brand on a light page, when it is warm (below) or its
   slot reads under 3:1 there (green 2, cyan 6: `check` fails such a brand pinned or not,
-  and `derive` pins it to 0); the user's terminal
+  and `derive` pins it to 0; a step there takes 0 too, or a bright slot's normal twin
+  when that reads and is no state's: pink 13 to magenta 5); the user's terminal
   palette decides the exact colour. A pin that moves a role more than 60° of hue while
   a nearer slot is free (a rose brand on blue 12, with magenta 13 free) warns with the
   hex, the slot and the nearer pin: the brand reads as info there.
@@ -191,7 +192,8 @@ and look at the PNGs. What usually breaks:
   faint); on a light page it has no hue (`primary` pinned to 0, fg's grey: yellow
   3 is 1.35:1 on white) and the kit draws focus as fg and bold. Its secondary, tertiary
   and accent follow it off red and magenta. The warning never leaves yellow: `palette
-  check` fails it on green, and a pinned brand under 3:1 as text. Where yellow 3 is faint
+  check` fails it on green, and the brand or a step of it (`secondary`, `tertiary`,
+  `accent`) under 3:1 as text, pinned or not. Where yellow 3 is faint
   on the page (1.35:1 on white), the kit draws the warning as a fill: a yellow cell with
   a dark ink. At 16 colours the kit re-inks each on-colour that reads under its floor on
   its fill's slot (white on yellow 11 is 1.17:1) with fg or bg; an ink the theme pins

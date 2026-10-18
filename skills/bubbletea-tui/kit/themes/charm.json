@@ -8,8 +8,11 @@
    "warning": 11
   },
   "light": {
+   "accent": 0,
    "error": 1,
    "info": 4,
+   "secondary": 5,
+   "tertiary": 0,
    "warning": 3
   }
  },

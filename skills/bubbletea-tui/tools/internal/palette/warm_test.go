@@ -258,3 +258,45 @@ func TestFaintLightBrandHasNoHue(t *testing.T) {
 		}
 	}
 }
+
+// A brand step drawn as text (accent's section titles, a secondary button) reads under
+// 3:1 on a light page at 16 colours wherever the brand would: lumen greyed its teal
+// primary off cyan 6 and kept its teal accent there, 2.80:1 on white, for every section
+// title, and charm's accent drew them on yellow 3, 1.35:1. check fails a step under 3:1
+// pinned or not, and names the pin: fg's grey, or a bright slot's normal twin when that
+// reads and is no state's (pink 13, 2.94:1, to magenta 5, 4.59:1).
+func TestFaintStepsHaveNoHue(t *testing.T) {
+	for _, c := range []struct {
+		accent, secondary string
+		pins              map[string]int
+	}{
+		{"#1C5F58", "#2F6F68", map[string]int{"accent": 0, "secondary": 0}}, // teal steps on cyan 6
+		{"#646400", "#D63AD6", map[string]int{"accent": 0, "secondary": 5}}, // yellow 3, pink 13
+		{"#2E3192", "#7A1F7A", nil},                                         // blue 4, magenta 5: both read
+	} {
+		roles := `{"light": {"bg": "#FFFFFF", "fg": "#1C1C1C", "primary": "#2E3192", "secondary": "` + c.secondary + `", "accent": "` + c.accent + `", "warning": "#8C6800", "error": "#A13E40", "success": "#007835", "info": "#006A9D"}}`
+		path := filepath.Join(t.TempDir(), "theme.json")
+		if err := os.WriteFile(path, []byte(`{"roles": `+roles+`, "ansi16": {"light": {"warning": 3}}}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		code := Main([]string{"check", path}, "", &out, &errb)
+		if (code == 1) != (c.pins != nil) {
+			t.Errorf("accent %s secondary %s: check exit %d\n%s", c.accent, c.secondary, code, errb.String())
+		}
+		f, err := theme.Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := Pins16(f)["light"]
+		for role, want := range c.pins {
+			if got[role] != want {
+				t.Errorf("accent %s secondary %s: %s pinned %d, want %d (pins %v)", c.accent, c.secondary, role, got[role], want, got)
+			}
+		}
+		f.ANSI16 = Pins16(f)
+		if x := Inks16(f); len(x) != 0 {
+			t.Errorf("accent %s secondary %s: the pins leave %v", c.accent, c.secondary, x)
+		}
+	}
+}

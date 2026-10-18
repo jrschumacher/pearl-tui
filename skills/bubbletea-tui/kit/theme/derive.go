@@ -29,7 +29,7 @@ func Default() File {
 		Brand: "app",
 		Read: "The fallback: monochrome ink with one cold accent, plain rule header, nothing to remember it by. " +
 			"It exists so a partial theme renders. Never ship it; derive a theme from the product's own brand.",
-		ANSI16: map[string]map[string]int{"dark": {"warning": 11}, "light": {"warning": 3}},
+		ANSI16: map[string]map[string]int{"dark": {"warning": 11}, "light": {"tertiary": 0, "warning": 3}},
 		Glyphs: Glyphs{Pending: "◌"}, // waiting is not now: the default current is ●
 		Expressions: Expressions{Header: "rule", Wordmark: "solid", SectionTitle: "fg", Selection: "bar", Button: "pill",
 			Tag: "filled", Dialog: "rounded", DialogTitle: "plain", Tabs: "underline", Footer: "keys", Density: "airy"},

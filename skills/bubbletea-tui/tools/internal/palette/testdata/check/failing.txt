@@ -33,4 +33,4 @@
     ACCEPT onWarning    on warning    1.56  (want ≥4.5)  #ffffff / #EBCB8B  — True
     ok   onSuccess    on success   10.06  (want ≥3.5)  #15171c / #8FD19E
     ok   fgSelected   on primary    8.61  (want ≥3.5)  #15171c / #8fb8de
-FAIL (9 contrast problems)
+FAIL (9 contrast problems, 3 problems at 16 colours)
