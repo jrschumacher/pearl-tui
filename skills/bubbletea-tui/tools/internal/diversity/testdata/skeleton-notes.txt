@@ -1,0 +1,43 @@
+axis         odd         bare        
+header       rule        stamp       
+wordmark     plain       -           
+sectionTitle fg          primary     
+titleCase    sentence    sentence    
+selection    bar         caret       
+button       underline   pill        
+tag          bold        filled      
+dialog       rules       double      
+dialogTitle  -           rule        
+tabs         underline   bracket     
+footer       rule        keys        
+keys         boxed       inline      
+density      airy        airy        
+backdrop     none        none        
+scrim        none        dim         
+paintBg      True        False       
+headerRule   ═           -           
+rule         ┄           ┈           
+focusBar     ▎           ▐           
+cursor       ▸           »           
+done         ◆           ▪           
+
+skeleton     kit         odd         bare        
+head         bar         ribbon      ?           
+status       header      footer      ?           
+order        main-first  ?           ?           
+foot         keys-statu  ?           ?           
+verdict      bottom      ?           ?           
+chart        sparkline   -           ?           
+chartGlyphs  blocks      -           ?           
+turnEnd      rule        ?           ?           
+
+nearest to odd: bare (shares 3/18 axes)
+nearest to bare: odd (shares 3/18 axes)
+[P2] testdata/apps/odd/TUI.md: skeleton head "ribbon" is not in its vocabulary (bar | sentence | none | folio, or - where the screen has none); it counts as written, so it matches only itself
+[P2] testdata/apps/odd/TUI.md: skeleton status is declared twice; the first (footer) counts
+[P2] testdata/apps/odd/TUI.md: skeleton names "layout", which is no axis (head, status, order, foot, verdict, chart, chartGlyphs, turnEnd)
+[P2] testdata/apps/odd/TUI.md: skeleton verdict has no value (none | top | bottom | header | pane), so it doesn't count
+[P2] testdata/apps/odd/TUI.md: skeleton declares no order, foot, turnEnd, so they don't count (write - where the screen has none)
+[P2] testdata/apps/bare/TUI.md: no skeleton line in § Brand read, so its composition isn't counted; add one, the main screen as planned at brand and corrected once the default frame renders:
+       skeleton: head <bar|sentence|none|folio> · status <header|top-row|bottom-row|footer|pane|none> · order <main-first|summary-first|input-first|sidebar-left|sidebar-right|single> · foot <keys|keys-status|status|none> · verdict <none|top|bottom|header|pane> · chart <sparkline|trace|bars|gauge|grid|art|other|-> · chartGlyphs <blocks|braille|shade|line|dots|ascii|-> · turnEnd <rule|marker|space|->
+OK

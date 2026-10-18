@@ -1,0 +1,4 @@
+{"name": "godwit", "expressions": {"header": "bar", "wordmark": "tracked", "sectionTitle": "muted-upper", "titleCase": "upper",
+ "selection": "inverse", "button": "inverse", "tag": "filled", "dialog": "heavy", "dialogTitle": "bar", "tabs": "pill",
+ "footer": "bar", "keys": "boxed", "density": "compact", "backdrop": "field", "scrim": "dim", "paintBg": true},
+ "glyphs": {"rule": "━", "focusBar": "┃", "cursor": "▶", "done": "■"}}

@@ -1,0 +1,4 @@
+{"name": "stray", "expressions": {"header": "stamp", "wordmark": "upper", "sectionTitle": "primary", "titleCase": "sentence",
+ "selection": "caret", "button": "pill", "tag": "filled", "dialog": "double", "dialogTitle": "rule", "tabs": "bracket",
+ "footer": "keys", "keys": "inline", "density": "airy", "backdrop": "none", "scrim": "dim", "paintBg": false},
+ "glyphs": {"rule": "┈", "focusBar": "▐", "cursor": "»", "done": "▪"}}
