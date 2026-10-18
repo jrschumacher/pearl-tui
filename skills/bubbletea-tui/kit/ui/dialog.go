@@ -235,11 +235,12 @@ func dialogRules(t *theme.Theme, title string, w int, fill color.Color) (string,
 // dimming what is under it when the theme asks for a scrim. Draw it last:
 // draw order is z-order. The rows the dialog spans are cleared across, in every
 // profile and at every size: no page fragment stands on the dialog's own rows. There is
-// no scrim under ASCII, at 16 colours or with no colour (with the page on ANSI 0 or 15,
-// dimming toward it sends every text level to the page's own slot and the scrim's text
-// vanishes instead of fading); there, and under scrim: none, the page's body
-// (Canvas.Body) is hidden whole, since at full ink it reads as live as the dialog, and
-// the header outside it stays (overlay.go).
+// no scrim at 16 colours or with no colour (with the page on ANSI 0 or 15, dimming
+// toward it sends every text level to the page's own slot and the scrim's text
+// vanishes instead of fading); there, and under scrim: none, a dialog centred across
+// (anchor nil, or anchor.X < 0) hides the rows of the page's body (Canvas.Body), since
+// at full ink it reads as live as the dialog, and the header outside it stays. A
+// popover anchored to its trigger (anchor.X ≥ 0) clears only its own rows (overlay.go).
 //
 // Draw the page under a dialog unfocused: pass focused=false to its lists, tables and
 // fields while the dialog is up. The dialog has the focus, and a focused list's bar
@@ -252,8 +253,8 @@ func (c *Canvas) Overlay(dialog string, anchor *uv.Position) uv.Rectangle {
 }
 
 // Popover is Overlay for a Popover: its cells fill with bgOverlay. It prepares the
-// page as Overlay does (the band, and the body where no scrim is drawn), so the page
-// under a palette is drawn unfocused too.
+// page as Overlay does (the band, and for a centred one the body where no scrim is
+// drawn), so the page under a palette is drawn unfocused too.
 func (c *Canvas) Popover(dialog string, anchor *uv.Position) uv.Rectangle {
 	return c.overlay(dialog, anchor, c.T.P.BgOverlay)
 }
@@ -274,7 +275,7 @@ func (c *Canvas) overlay(dialog string, anchor *uv.Position, fill color.Color) u
 	}
 	r := uv.Rect(x, y, dw, dh)
 	scrim := c.scrims()
-	c.clearPage(r, scrim)
+	c.clearPage(r, scrim, anchor == nil || anchor.X < 0)
 	if scrim {
 		c.Scrim(0.55)
 	}

@@ -66,7 +66,7 @@ func cellText(c *Canvas, x, y int) string {
 // (a scrim at truecolour or 256 colours), the rows the dialog doesn't span are the
 // page's, cell for cell (dimmed), a focus bar's glyph among them: Overlay doesn't look
 // for focus marks (the app draws the page unfocused), so a wordmark or a separator
-// drawn in the same glyph survives. Where it can't (16 colours, NO_COLOR, ASCII,
+// drawn in the same glyph survives. Where it can't (16 colours, NO_COLOR,
 // scrim: none) the page's body is hidden whole (TestOverlayHidesTheBodyWhereItCantDim).
 func TestOverlayClearsItsBand(t *testing.T) {
 	const W, H = 70, 20
@@ -82,6 +82,8 @@ func TestOverlayClearsItsBand(t *testing.T) {
 			{"ansi", false, colorprofile.ANSI, "dim"},
 			{"NO_COLOR", false, colorprofile.Ascii, "dim"},
 			{"ascii", true, colorprofile.TrueColor, "dim"},
+			{"ascii ansi", true, colorprofile.ANSI, "dim"},
+			{"ascii NO_COLOR", true, colorprofile.Ascii, "dim"},
 			{"scrim none", false, colorprofile.TrueColor, "none"},
 			{"rules in ·", false, colorprofile.TrueColor, "dim"},
 		} {
@@ -91,7 +93,7 @@ func TestOverlayClearsItsBand(t *testing.T) {
 				f.Glyphs.Rule = "·"
 			}
 			th := theme.ResolveProfile(f, true, mode.ascii, mode.p)
-			scrimmed := mode.scrim == "dim" && !mode.ascii && mode.p != colorprofile.ANSI && mode.p != colorprofile.Ascii
+			scrimmed := mode.scrim == "dim" && mode.p != colorprofile.ANSI && mode.p != colorprofile.Ascii
 			d := Dialog(th, 44, 0, "Roll back checkout-api?", []string{"It goes back to v2.3.0.", "", "3 pods restart."}, "", "")
 			for y0 := 1; y0+len(strings.Split(d, "\n")) < H; y0++ {
 				c := NewCanvas(th, W, H)
@@ -127,14 +129,15 @@ func TestOverlayClearsItsBand(t *testing.T) {
 	}
 }
 
-// Where the page can't be dimmed (16 colours, NO_COLOR, ASCII, scrim: none) it would
-// stand at full ink above and below the dialog, as live as the dialog itself: a
-// confirm over a composer showed the reply's last two lines under its bottom edge, a
-// second copy of the body on the screen that shows exactly what will be sent. There
-// the page's body (Canvas.Body) is hidden whole and what is outside it, the app's
-// header, is kept; with no Body set, everything outside the dialog is cleared (the app
-// draws its footer over the dialog afterwards, as it already does). Under a scrim the
-// body stays, dimmed.
+// Where the page can't be dimmed (16 colours, NO_COLOR, scrim: none, whatever the glyph
+// set) it would stand at full ink above and below the dialog, as live as the dialog
+// itself: a confirm over a composer showed the reply's last two lines under its bottom
+// edge, a second copy of the body on the screen that shows exactly what will be sent.
+// There the rows of the page's body (Canvas.Body) are hidden across, and the rows
+// outside it, the app's header, are kept; with no Body set, everything outside the
+// dialog is cleared (the app draws its footer over the dialog afterwards, as it
+// already does). Under a scrim the body stays, dimmed, ASCII glyphs at truecolour or
+// 256 colours included: the glyph set is not the terminal's colour.
 func TestOverlayHidesTheBodyWhereItCantDim(t *testing.T) {
 	const W, H = 70, 20
 	for _, mode := range []struct {
@@ -148,22 +151,23 @@ func TestOverlayHidesTheBodyWhereItCantDim(t *testing.T) {
 		{"ansi256", false, colorprofile.ANSI256, "dim", true},
 		{"ansi", false, colorprofile.ANSI, "dim", false},
 		{"NO_COLOR", false, colorprofile.Ascii, "dim", false},
-		{"ascii", true, colorprofile.TrueColor, "dim", false},
+		{"ascii", true, colorprofile.TrueColor, "dim", true},
+		{"ascii ansi256", true, colorprofile.ANSI256, "dim", true},
+		{"ascii ansi", true, colorprofile.ANSI, "dim", false},
+		{"ascii NO_COLOR", true, colorprofile.Ascii, "dim", false},
 		{"scrim none", false, colorprofile.TrueColor, "none", false},
 	} {
 		f := theme.Default()
 		f.Expressions.Scrim = mode.scrim
 		th := theme.ResolveProfile(f, true, mode.ascii, mode.p)
 		d := Dialog(th, 44, 0, "Send this reply?", []string{"when the caller gave up first", "errors.Is."}, "", "")
+		// Body is rows: an inset rectangle hides the same rows across as a full-width one
 		for _, body := range []uv.Rectangle{{}, uv.Rect(0, 3, W, H-5), uv.Rect(2, 3, W-4, H-5)} {
 			c := NewCanvas(th, W, H)
 			page := overlayPage(th, c)
 			c.Body = body
 			r := c.Overlay(d, &uv.Position{X: -1, Y: 6})
-			hidden := body
-			if hidden.Empty() {
-				hidden = c.Bounds()
-			}
+			hidden := func(y int) bool { return body.Empty() || y >= body.Min.Y && y < body.Max.Y }
 			name := fmt.Sprintf("%s body=%v", mode.name, body)
 			for y := range H {
 				if y >= r.Min.Y && y < r.Max.Y {
@@ -173,7 +177,7 @@ func TestOverlayHidesTheBodyWhereItCantDim(t *testing.T) {
 				for x := range W {
 					got, was := cellText(c, x, y), string([]rune(page[y])[x])
 					switch {
-					case mode.dims || !uv.Pos(x, y).In(hidden):
+					case mode.dims || !hidden(y):
 						if got != was {
 							t.Errorf("%s: %q at %d,%d is %q; the page outside its body (or under a scrim) is kept: %q", name, was, x, y, got, rowText(c, y))
 							break cols
@@ -182,6 +186,52 @@ func TestOverlayHidesTheBodyWhereItCantDim(t *testing.T) {
 						t.Errorf("%s: no scrim, and the page's body shows %q at %d,%d at full ink beside the dialog: %q", name, got, x, y, rowText(c, y))
 						break cols
 					}
+				}
+			}
+		}
+	}
+}
+
+// A popover anchored to its trigger (a completion list above the line being typed,
+// anchor.X ≥ 0) is not a modal: it clears the rows it spans and nothing else, in every
+// profile, so the line it completes stays on screen where the page can't be dimmed.
+// Hiding the body under it blanked the very input the list completes.
+func TestAnchoredPopoverKeepsItsTrigger(t *testing.T) {
+	const W, H = 70, 20
+	for _, mode := range []struct {
+		name  string
+		ascii bool
+		p     colorprofile.Profile
+		scrim string
+	}{
+		{"truecolor", false, colorprofile.TrueColor, "dim"},
+		{"ansi", false, colorprofile.ANSI, "dim"},
+		{"NO_COLOR", false, colorprofile.Ascii, "dim"},
+		{"ascii ansi", true, colorprofile.ANSI, "dim"},
+		{"scrim none", false, colorprofile.TrueColor, "none"},
+	} {
+		f := theme.Default()
+		f.Expressions.Scrim = mode.scrim
+		th := theme.ResolveProfile(f, true, mode.ascii, mode.p)
+		d := Popover(th, 30, 0, "", []string{"retry budget", "retry deadline"}, "", "")
+		c := NewCanvas(th, W, H)
+		page := overlayPage(th, c)
+		c.Body = uv.Rect(0, 1, W, H-2)
+		trigger := 12 // the line typed in, under the list
+		r := c.Popover(d, &uv.Position{X: 4, Y: trigger - lipgloss.Height(d)})
+		for y := range H {
+			if y >= r.Min.Y && y < r.Max.Y {
+				continue
+			}
+			if got := rowText(c, y); got != page[y] {
+				t.Errorf("%s: row %d (the trigger is %d) reads %q under an anchored popover, want the page's %q", mode.name, y, trigger, got, page[y])
+			}
+		}
+		for y := r.Min.Y; y < r.Max.Y; y++ {
+			for x := range W {
+				if !uv.Pos(x, y).In(r) && cellText(c, x, y) != " " {
+					t.Errorf("%s: the page shows %q at %d,%d on a row the popover spans", mode.name, cellText(c, x, y), x, y)
+					break
 				}
 			}
 		}

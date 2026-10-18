@@ -207,8 +207,9 @@ func TestNoUnstyledText(t *testing.T) {
 	}
 }
 
-// Every theme's overlay states render under 16 colours and NO_COLOR as the harness
-// writes them (-profile ansi, NO_COLOR=1): exactly W×H, with the theme resolved for
+// Every theme's overlay states render under 16 colours, NO_COLOR and ASCII at 16
+// colours as the harness writes them (-profile ansi, NO_COLOR=1, -ascii -profile
+// ansi): exactly W×H, with the theme resolved for
 // that profile (a borderless dialog's edge depends on it, ui TestEveryDialog…). No scrim
 // is drawn there, so the rows the dialog spans are cleared across and the page's body
 // (Canvas.Body) is hidden: a help dialog sat between live list rows ("● acme/w ── keys
@@ -228,7 +229,7 @@ func TestOverlaysInReducedProfiles(t *testing.T) {
 			p                   colorprofile.Profile
 			ascii               bool
 		}{{"-profile ansi", "ansi", "", true, colorprofile.ANSI, false}, {"NO_COLOR=1", "truecolor", "1", false, colorprofile.Ascii, false},
-			{"-ascii", "truecolor", "", false, colorprofile.TrueColor, true}} {
+			{"-ascii -profile ansi", "ansi", "", true, colorprofile.ANSI, true}} {
 			prof, err := renderProfile(pr.flag, pr.explicit, pr.noColor)
 			if err != nil || prof != pr.p {
 				t.Fatalf("%s: renderProfile = %v %v, want %v", pr.name, prof, err, pr.p)

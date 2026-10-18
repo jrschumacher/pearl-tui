@@ -22,11 +22,11 @@ import (
 type Canvas struct {
 	uv.ScreenBuffer
 	T *theme.Theme
-	// Body is the page's body as the app laid it out: the rows between its header and
-	// its footer. Where the page can't be dimmed (16 colours, NO_COLOR, ASCII, scrim:
-	// none) Overlay hides it whole behind a dialog and keeps what is outside it, the
-	// header; unset, Overlay clears everything outside the dialog there. Set it when
-	// you lay out the body: c.Body = uv.Rect(0, y, w, fy-y).
+	// Body is the page's body as the app laid it out (the rect it draws the body in,
+	// m.body in the showcase): only its rows count. Where the page can't be dimmed (16
+	// colours, NO_COLOR, scrim: none) Overlay hides those rows across behind a centred
+	// dialog and keeps the rest, the header; unset, Overlay clears everything outside
+	// the dialog there. Set it where you lay out the body: c.Body = body.
 	Body uv.Rectangle
 }
 

@@ -36,13 +36,15 @@ func pageBeside(c *ui.Canvas, r uv.Rectangle, reach int) (int, int, bool) {
 }
 
 // overlayVariants are the profiles the harness renders an overlay in: the scrim's
-// (truecolour, 256 colours) and the band's (16 colours, NO_COLOR, ASCII).
+// (truecolour, 256 colours, ASCII glyphs at truecolour) and the hidden body's (16
+// colours, NO_COLOR, ASCII glyphs at 16 colours).
 var overlayVariants = []struct {
 	name  string
 	ascii bool
 	p     colorprofile.Profile
 }{{"truecolor", false, colorprofile.TrueColor}, {"ansi256", false, colorprofile.ANSI256},
-	{"ansi", false, colorprofile.ANSI}, {"NO_COLOR", false, colorprofile.Ascii}, {"ascii", true, colorprofile.TrueColor}}
+	{"ansi", false, colorprofile.ANSI}, {"NO_COLOR", false, colorprofile.Ascii}, {"ascii", true, colorprofile.TrueColor},
+	{"ascii ansi", true, colorprofile.ANSI}}
 
 // cellText is a cell's glyph, a blank for an empty cell.
 func cellText(c *ui.Canvas, x, y int) string {
@@ -75,9 +77,9 @@ func rowText(c *ui.Canvas, y int) string {
 //   - under a scrim, each cell off those rows holds the glyph it held, except where the
 //     page drew its own focus mark (the focused field's bar, the focused button's
 //     cursor, a caret), which drawing it unfocused takes away or turns blurred;
-//   - with no scrim (16 colours, NO_COLOR, ASCII, scrim: none), the page's body
-//     (Canvas.Body, everything when unset) is blank outside the dialog, and the rest,
-//     the header, holds its glyphs: at full ink a confirm over a composer showed the
+//   - with no scrim (16 colours, NO_COLOR, scrim: none, whatever the glyphs), the rows
+//     of the page's body (Canvas.Body, everything when unset) are blank outside the
+//     dialog, and the rest, the header, holds its glyphs: at full ink a confirm over a composer showed the
 //     reply's last lines under its edge, a second copy of what it would send.
 func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 	for _, f := range testThemes(t) {
@@ -98,6 +100,9 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 						m.openOverlay(s)
 						c := m.render(sz[0], sz[1])
 						name := fmt.Sprintf("%s %s %s over %s %dx%d", filepath.Base(f), v.name, s, page, sz[0], sz[1])
+						if why := bodyIsThePage(c, m.body, m.footY); why != "" {
+							t.Errorf("%s: %s", name, why)
+						}
 						scrim := scrims(m.t)
 						hidden := hiddenBody(c)
 					rows:
@@ -134,8 +139,9 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 	// the two the glyph scan broke, by name: cartridge's wordmark rows (its focus bar is
 	// the banner's █) and ferrous's header under ASCII (its bar and separator are both
 	// "|"): every row above the page's body (the header, none in an app without one)
-	// reads as it did, with a scrim or without. In a copied project testTheme gives the
-	// project's theme.
+	// reads as it did, under a scrim and where the body is hidden (NO_COLOR), which
+	// keeps the header only when Canvas.Body is set. In a copied project testTheme
+	// gives the project's theme, and the failure names it.
 	for _, k := range []struct {
 		theme string
 		ascii bool
@@ -144,18 +150,22 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 		{"ferrous.json", true},
 	} {
 		tf := testTheme(t, k.theme)
-		for _, s := range overlays {
-			for _, sz := range [][2]int{{80, 24}, {120, 40}} {
-				m := newApp(tf, true, k.ascii)
-				m.setState(overlayPages[0])
-				base := m.render(sz[0], sz[1])
-				head := m.body.Min.Y
-				m.setState(overlayPages[0])
-				m.openOverlay(s)
-				c := m.render(sz[0], sz[1])
-				for y := range min(head, m.ovRect.Min.Y) {
-					if got, want := rowText(c, y), rowText(base, y); got != want {
-						t.Errorf("%s ascii=%v %s %dx%d: row %d reads %q under the overlay, want %q (with no scrim a dialog hides Canvas.Body: set it to the page's body, under the header)", k.theme, k.ascii, s, sz[0], sz[1], y, got, want)
+		for _, p := range []colorprofile.Profile{colorprofile.TrueColor, colorprofile.Ascii} {
+			pname := map[colorprofile.Profile]string{colorprofile.TrueColor: "truecolor", colorprofile.Ascii: "NO_COLOR"}[p]
+			for _, s := range overlays {
+				for _, sz := range [][2]int{{80, 24}, {120, 40}} {
+					m := newApp(tf, true, k.ascii)
+					m.profile = p
+					m.setState(overlayPages[0])
+					base := m.render(sz[0], sz[1])
+					head := m.body.Min.Y
+					m.setState(overlayPages[0])
+					m.openOverlay(s)
+					c := m.render(sz[0], sz[1])
+					for y := range min(head, m.ovRect.Min.Y) {
+						if got, want := rowText(c, y), rowText(base, y); got != want {
+							t.Errorf("theme %q ascii=%v %s %s %dx%d: header row %d reads %q under the overlay, want %q (where the page can't be dimmed a dialog hides Canvas.Body, all of the page when unset: set c.Body = body, the rect you draw the body in)", tf.Name, k.ascii, pname, s, sz[0], sz[1], y, got, want)
+						}
 					}
 				}
 			}
@@ -166,16 +176,33 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 // scrims reports whether the kit dims the page under a dialog for th (ui's Canvas
 // scrims): the theme asks for it and the profile can show it.
 func scrims(th *theme.Theme) bool {
-	return th.X.Scrim == "dim" && !th.ASCII && th.Profile != colorprofile.ANSI && th.Profile != colorprofile.Ascii && th.Profile != colorprofile.NoTTY
+	return th.X.Scrim == "dim" && th.Profile != colorprofile.ANSI && th.Profile != colorprofile.Ascii && th.Profile != colorprofile.NoTTY
 }
 
-// hiddenBody is what an overlay hides where it can't dim: the canvas's Body, or the
-// whole canvas when the app set none.
+// hiddenBody is what a centred overlay hides where it can't dim: the rows of the
+// canvas's Body, across, or the whole canvas when the app set none.
 func hiddenBody(c *ui.Canvas) uv.Rectangle {
+	b := c.Bounds()
 	if c.Body.Empty() {
-		return c.Bounds()
+		return b
 	}
-	return c.Body
+	return uv.Rect(b.Min.X, c.Body.Min.Y, b.Dx(), c.Body.Dy())
+}
+
+// bodyIsThePage reports what is wrong with the Canvas.Body an app set, or "": unset is
+// allowed (everything but the dialog is hidden), and a set one must span every row of
+// the body the app laid out (m.body) and end at or above the footer. A Body of one row
+// passed every overlay test while a NO_COLOR confirm stood over the list at full ink.
+func bodyIsThePage(c *ui.Canvas, body uv.Rectangle, footY int) string {
+	switch b := c.Body; {
+	case b.Empty():
+		return ""
+	case b.Min.Y > body.Min.Y || b.Max.Y < body.Max.Y:
+		return fmt.Sprintf("Canvas.Body %v doesn't span the body's rows %d–%d (m.body %v): a dialog leaves the rest at full ink where the page can't be dimmed; set c.Body = body", b, body.Min.Y, body.Max.Y-1, body)
+	case b.Max.Y > footY:
+		return fmt.Sprintf("Canvas.Body %v runs into the footer at row %d", b, footY)
+	}
+	return ""
 }
 
 // An overlay frame has one focus, the dialog's, and nothing of the page touches the

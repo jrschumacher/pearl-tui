@@ -15,7 +15,7 @@ ui/             canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                 dialog.go   DialogTitle, Dialog (on bgPanel, at most h rows), DialogScrolled, DialogStatus (a
                             status in the bottom edge), Popover (on bgOverlay), Clip (a scrolled body with
                             its "more" rows), Canvas.Overlay/Popover
-                overlay.go  what Overlay clears of the page: cut words, edge-row rules, rows with no scrim
+                overlay.go  what Overlay clears of the page: the band a dialog spans, and the body with no scrim
                 chat.go     Gutter, Transcript, UserMessage, AssistantMessage, ToolCall, Thinking, TurnFooter, Tree
                 anim.go     FrameInterval, Anim (brand spinner or the Crush scramble), Spinner,
                             Busy (the one-cell working mark for a status column)
@@ -152,9 +152,10 @@ whole. They read your tables and these from your app:
   as `show`;
 - the fields `t`, `profile`, `ov`, `last`, `ovRect`, `body` and `footY`, and the
   overlay values `ovNone` and `ovHelp`;
-- the canvas's `Body`, set in `render` to the rows between your header and footer:
-  where the page can't be dimmed a dialog hides it and keeps the header (unset, the
-  header goes too);
+- the canvas's `Body`, set in `render` to the body's rect (`c.Body = body`, the same
+  rect as `m.body`): where the page can't be dimmed a centred dialog hides its rows and
+  keeps the header (unset, the header goes too), and the tests fail a `Body` that
+  doesn't span `m.body`'s rows;
 - help's shape: one row per binding, the key then what it does (a key name holds no
   space), and `esc` closing help back to whatever it was opened over;
 - focus drawn in the theme's marks: the focus bar, cursor, caret or prompt glyph in its

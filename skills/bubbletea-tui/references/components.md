@@ -101,10 +101,12 @@ the keys; hue stays for state (color.md).
   `Canvas.Overlay` (and `Popover`) clears the rows the dialog spans, across, at every
   size and in every profile: a page cut at the dialog's margin left `…to show it` beside
   a confirm on its own rows, reading as its text. Where no scrim is drawn (16 colours,
-  NO_COLOR, ASCII, `scrim: none`) it hides the page's body too, since at full ink a page
-  under a confirm showed the reply's tail a second time: set `c.Body` to the rows
-  between your header and footer so the header stays (unset, everything goes but the
-  dialog and the footer you redraw).
+  NO_COLOR, `scrim: none`; ASCII glyphs at truecolour still dim) a centred dialog hides
+  the rows of the page's body too, since at full ink a page under a confirm showed the
+  reply's tail a second time: set `c.Body = body`, the rect you draw the body in, so the
+  header stays (unset, everything goes but the dialog and the footer you redraw). A
+  popover anchored to its trigger (`anchor.X ≥ 0`, a completion list) clears only its
+  own rows, so the line it completes stays.
 - Max ~64–70 cols wide; fullscreen below the minimum size.
 
 ## Confirm — destructive actions
