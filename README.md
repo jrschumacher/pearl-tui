@@ -65,9 +65,10 @@ skim prose; they can't skim a failing check. The first Go edit builds the tools 
 
 The hook acts only in projects built with the skill, so your other Bubble Tea repos are
 left alone: a `TUI.md` (which `init` writes) in the module root or above it up to the
-repository root, or a copy of the kit's theme package (`theme/` or `internal/theme/`). It
-runs the go command offline and read-only, so it never downloads modules or writes
-`go.mod` or `go.sum`. If it can't lint at all (no Go on `PATH`, Go too old, a failed
+repository root, or a copy of the kit's theme package (`theme/` or `internal/theme/`, or
+one framework's under either, as the kit's own `theme/bubbletea/`). It runs the go
+command offline and read-only, so it never downloads modules or writes `go.mod` or
+`go.sum`. If it can't lint at all (no Go on `PATH`, Go too old, a failed
 build), it lets the edit through and shows you a one-line warning saying why, once per
 cause; a failed build isn't retried until the plugin's sources change.
 

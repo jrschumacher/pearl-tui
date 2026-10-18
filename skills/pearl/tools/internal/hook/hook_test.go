@@ -129,6 +129,41 @@ func TestHook(t *testing.T) {
 	}
 }
 
+// The kit itself opts in through its theme package at theme/bubbletea: no TUI.md, the
+// framework's layout, and a hex in ui/bubbletea is the edit's finding.
+func TestHookKitLayout(t *testing.T) {
+	kit := filepath.Join(t.TempDir(), "kit")
+	src := filepath.Join("..", "..", "..", "kit")
+	err := filepath.WalkDir(src, func(p string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(src, p)
+		if d.IsDir() {
+			return os.MkdirAll(filepath.Join(kit, rel), 0o755)
+		}
+		b, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(kit, rel), b, 0o644)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(kit, Marker)); err == nil {
+		t.Fatal("the kit holds a TUI.md: this test is about the theme-package opt-in")
+	}
+	leak := filepath.Join(kit, "ui", "bubbletea", "leak.go")
+	if err := os.WriteFile(leak, []byte("package ui\n\nimport \"charm.land/lipgloss/v2\"\n\nvar hexLeak = lipgloss.Color(\"#ff0000\")\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	code, stderr := runHook(t, post("Write", kit, leak))
+	if code != 2 || !strings.Contains(stderr, "C-HEX ui/bubbletea/leak.go:5") {
+		t.Errorf("hex in the kit's ui/bubbletea: exit %d, want 2 with C-HEX; stderr:\n%s", code, stderr)
+	}
+}
+
 // A panic in the hook is the hook's failure, not the edit's: a note for the user on
 // stdout, exit 0, nothing for the model.
 func TestHookPanic(t *testing.T) {
@@ -279,6 +314,9 @@ func TestOptedIn(t *testing.T) {
 		{"TUI.md in a package, not the module root", map[string]string{"ui/TUI.md": ""}, ".", false},
 		{"kit theme at internal/theme", map[string]string{"internal/theme/theme.go": kit}, ".", true},
 		{"kit theme at theme", map[string]string{"theme/theme.go": kit}, ".", true},
+		{"kit theme at theme/bubbletea (the kit's own layout)", map[string]string{"theme/bubbletea/theme.go": kit}, ".", true},
+		{"kit theme at internal/theme/bubbletea", map[string]string{"internal/theme/bubbletea/theme.go": kit}, ".", true},
+		{"kit theme two levels down", map[string]string{"theme/a/b/theme.go": kit}, ".", false},
 		{"a theme package that isn't the kit's", map[string]string{"internal/theme/theme.go": "package theme\n\nfunc Load() {}\n"}, ".", false},
 		{"nothing", map[string]string{"main.go": "package main\n"}, ".", false},
 	}

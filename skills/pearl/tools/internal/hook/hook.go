@@ -11,8 +11,9 @@
 //   - a TUI.md (the file the skill's init command writes) in the module root or in any
 //     directory above it, up to the repository root (the first directory holding .git);
 //     outside a repository, only the module root counts
-//   - a copy of the kit's theme package at theme/ or internal/theme/ in the module: a
-//     package that declares type Roles and func Load or func Resolve
+//   - a copy of the kit's theme package at theme/ or internal/theme/ in the module, or
+//     one framework's under them (theme/<framework>/, the kit's own theme/bubbletea/):
+//     a package that declares type Roles and func Load or func Resolve
 //
 // It lints the whole module, so the program-wide rules (C-SIZE, C-NOCOLOR) see every
 // package, and reports only the P0/P1 findings located in the edited file: problems
@@ -220,44 +221,60 @@ func hasMarker(modDir string) bool {
 }
 
 // hasKitTheme reports whether the module holds a copy of the kit's theme package where
-// the skill puts it (theme/ or internal/theme/): a package declaring type Roles and func
-// Load or func Resolve. It parses declarations only, without bodies.
+// the skill puts it (theme/ or internal/theme/), or one framework's theme package one
+// level under either (theme/<framework>/, as in the kit itself): a package declaring
+// type Roles and func Load or func Resolve. It parses declarations only, without bodies.
 func hasKitTheme(modDir string) bool {
 	for _, dir := range []string{"theme", filepath.Join("internal", "theme")} {
 		ents, err := os.ReadDir(filepath.Join(modDir, dir))
 		if err != nil {
 			continue
 		}
-		roles, api := false, false
+		if isKitTheme(filepath.Join(modDir, dir), ents) {
+			return true
+		}
 		for _, e := range ents {
-			n := e.Name()
-			if e.IsDir() || !strings.HasSuffix(n, ".go") || strings.HasSuffix(n, "_test.go") {
+			if !e.IsDir() || e.Name() == "testdata" {
 				continue
 			}
-			f, _ := parser.ParseFile(token.NewFileSet(), filepath.Join(modDir, dir, n), nil, parser.SkipObjectResolution)
-			if f == nil {
-				continue
+			sub := filepath.Join(modDir, dir, e.Name())
+			if subEnts, err := os.ReadDir(sub); err == nil && isKitTheme(sub, subEnts) {
+				return true
 			}
-			for _, d := range f.Decls {
-				switch d := d.(type) {
-				case *ast.FuncDecl:
-					if d.Recv == nil && (d.Name.Name == "Load" || d.Name.Name == "Resolve") {
-						api = true
-					}
-				case *ast.GenDecl:
-					for _, s := range d.Specs {
-						if ts, ok := s.(*ast.TypeSpec); ok && ts.Name.Name == "Roles" {
-							roles = true
-						}
+		}
+	}
+	return false
+}
+
+// isKitTheme reports whether the package in dir (whose entries are ents) declares type
+// Roles and func Load or func Resolve.
+func isKitTheme(dir string, ents []os.DirEntry) bool {
+	roles, api := false, false
+	for _, e := range ents {
+		n := e.Name()
+		if e.IsDir() || !strings.HasSuffix(n, ".go") || strings.HasSuffix(n, "_test.go") {
+			continue
+		}
+		f, _ := parser.ParseFile(token.NewFileSet(), filepath.Join(dir, n), nil, parser.SkipObjectResolution)
+		if f == nil {
+			continue
+		}
+		for _, d := range f.Decls {
+			switch d := d.(type) {
+			case *ast.FuncDecl:
+				if d.Recv == nil && (d.Name.Name == "Load" || d.Name.Name == "Resolve") {
+					api = true
+				}
+			case *ast.GenDecl:
+				for _, s := range d.Specs {
+					if ts, ok := s.(*ast.TypeSpec); ok && ts.Name.Name == "Roles" {
+						roles = true
 					}
 				}
 			}
 		}
-		if roles && api {
-			return true
-		}
 	}
-	return false
+	return roles && api
 }
 
 func exists(p string) bool {
