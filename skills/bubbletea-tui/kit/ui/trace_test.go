@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"unicode"
@@ -90,6 +91,17 @@ func TestTraceInksByLevel(t *testing.T) {
 	ink := Trace(th, []float64{10}, 1, TraceOpts{Ink: func(float64) lipgloss.Style { return th.S.Accent }})[0]
 	if !strings.Contains(ink, th.S.Accent.Render(ansi.Strip(ink))) {
 		t.Errorf("Ink %q is not the caller's", ink)
+	}
+	// TraceOpts.Ink's doc: a cell at or below Min is never asked about and draws the
+	// floor in fgSubtle, whatever the caller's Ink would have said
+	var asked []float64
+	low := Trace(th, []float64{0, 50}, 2, TraceOpts{Ink: func(v float64) lipgloss.Style { asked = append(asked, v); return th.S.Err }})[0]
+	if slices.Contains(asked, 0) {
+		t.Errorf("Ink was asked about a cell at Min: %v", asked)
+	}
+	floor, _ := th.TraceGlyphs()
+	if c := cellAt(low, floor); c == nil || !same8(c.Style.Fg, th.P.FgSubtle) {
+		t.Errorf("a cell at Min with an Ink set is not the floor in fgSubtle: %v in %q", c, ansi.Strip(low))
 	}
 }
 

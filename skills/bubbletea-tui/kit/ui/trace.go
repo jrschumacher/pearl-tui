@@ -30,9 +30,11 @@ type TraceOpts struct {
 	// (yellow 3 on a white page at 16 colours) the bars stay quiet; the mark beside the
 	// value carries it (ui.Mark).
 	Warn, Fail float64
-	// Ink, when set, is the ink of a cell by its value, in place of fgMuted and the levels.
-	// It is not asked for a cell at or below Min: that one draws the floor in fgSubtle
-	// whatever Ink says (and a history with nothing above Min draws blank).
+	// Ink, when set, is the ink of a cell by its value, in place of fgMuted and the levels,
+	// for every cell above Min. It is never called for a cell at or below Min: that cell
+	// draws the floor in fgSubtle whatever Ink would say, so an Ink that inks zeros (a red
+	// "down" at 0) has no effect there; mark that state beside the trace instead. A
+	// history with nothing above Min draws blank.
 	Ink func(v float64) lipgloss.Style
 }
 
@@ -76,9 +78,10 @@ func Trace(t *theme.Theme, vals []float64, w int, o TraceOpts) []string {
 		if frac*8 >= 1 {
 			levels[i] = min(steps-1, max(1, int(math.Round(frac*float64(steps))))) // the top row stops at 7/8
 		}
-		inks[i] = ink(v)
 		if v <= lo {
 			inks[i] = t.S.Subtle // nothing at all: the floor a step quieter than a low reading
+		} else {
+			inks[i] = ink(v) // never asked about a cell at or below Min (TraceOpts.Ink)
 		}
 	}
 	return traceRows(t, levels, inks, rows)

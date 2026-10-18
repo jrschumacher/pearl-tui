@@ -309,7 +309,9 @@ says the state in words.
   idle 3 % full height. The zero `Min, Max` is 0..100; set `Max` for bytes or a rate.
   Newest sample at the right; a cell holds `Per` samples drawn as their max (60 s at Per
   4 is 15 cells, and a 1 s spike survives); cells before the first sample are blank, not
-  zero; a cell at or over `Warn` takes the warning's ink and over `Fail` the error's;
+  zero; a cell at or over `Warn` takes the warning's ink and over `Fail` the error's,
+  or `Ink` decides every cell above `Min` (a cell at `Min` is the floor in fgSubtle
+  whatever `Ink` says, so mark a down state beside the trace, not in it);
   `Rows: 3` is 24 heights, the floor on the bottom row. A bar's top row stops at `▇`
   (7/8), in a Sparkline too: a `█` sits flush on the row above, and under NO_COLOR the
   two rows fuse into one shape.
