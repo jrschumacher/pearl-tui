@@ -82,13 +82,17 @@ explicit send), a confirm adds nothing. Put every action on the first rung that 
 2. **Composed, then sent: the send is the confirmation.** A comment, reply, message or
    page the user wrote and sent with an explicit send key (`enter`, `ctrl+s`) goes
    without a dialog. They read it while writing it; "Post this comment?" only asks them
-   to read it again. This holds when the send can't be recalled (a page, an email, a
-   post): composing and sending was the judgement. Where the system can hold it, give
-   a grace window instead of a confirm: the send waits ~5 s under an undo toast
-   ("Paging payments on-call in 5 s · u undo", as mail apps offer undo send), then
-   goes. Where the service allows, offer edit or delete on the sent item. A failing
-   signal still moves a send to rung 4: paging a rotation that's off duty, or an
-   incident already open for the same thing.
+   to read it again. The same holds for a send to people that one labelled key starts
+   (`n declare incident` pages on-call): the label is the judgement. This rung is for
+   sends to people only; a one-key delete or ship stays on rung 3. It holds when the
+   send can't be recalled (a page, an email, a post): sending was the judgement.
+   Such a send gets a grace window by default, since the TUI can almost always hold
+   it: it waits ~5 s under an undo toast ("Paging payments on-call in 5 s · u undo",
+   as mail apps offer undo send), then goes. Skip the window only when holding defeats
+   the point (an emergency page where seconds matter): then it goes at once, still with
+   no confirm. Where the service allows, offer edit or delete on the sent item. A
+   failing signal still moves a send to rung 4: paging a rotation that's off duty, or
+   an incident already open for the same thing.
 3. **Can't be taken back, so nothing vouches for it: confirm.** Deleting, purging,
    force-pushing, and shipping to production (a release, a deploy, a rollback: a
    rollback is a deploy) even with green checks: traffic meets it the moment it lands,
@@ -101,7 +105,8 @@ explicit send), a confirm adds nothing. Put every action on the first rung that 
 4. **Normally safe, but a signal says no: confirm only in that state.** The signal is
    one the user should weigh: red checks, a blocking review, an unsaved draft, a stale
    view of what they're acting on. On a code host, merging with green checks takes no
-   confirm: the checks already judged it, and a revert undoes it. Merging with red
+   confirm: the checks already judged it, and a revert undoes it. That holds where
+   main deploys on merge: the pipeline's gate judges that ship. Merging with red
    checks asks, and the question names the signal ("2 checks failing: lint, e2e. Merge
    anyway?"), so the user judges the failure, not "are you sure?". A failing signal
    escalates; a passing one stands in for the confirm only on an action a revert takes

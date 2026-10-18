@@ -207,8 +207,8 @@ undo`), stays the longer ~8 s so the hand can reach the key, and that key is bou
 the state's action table while it shows. Never for something that can't be undone:
 that one had a confirm, and an undo that can't is a lie.
 
-A grace window is the undo toast for a send that can't be recalled once it goes (a
-page, an email): the action is pending until the toast ends, the undo key cancels it,
+A grace window is the default undo toast for a send that can't be recalled once it
+goes (a page, an email), skipped only where seconds matter: the action is pending until the toast ends, the undo key cancels it,
 and the toast says what will happen and when (`Paging payments on-call in 5 s · u
 undo`, counting down). When it ends the send goes, and a plain toast says it went.
 
