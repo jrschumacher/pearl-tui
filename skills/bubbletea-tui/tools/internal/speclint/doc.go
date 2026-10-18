@@ -17,7 +17,7 @@
 //	| services             | services         | **↑↓ move** · **enter open** · **d deploy** · **q quit** · **? help** · l logs · c copy id |
 //	| services-empty       | services         | r refresh · ? help · q quit |
 //	| deploy               | overlay          | ←→ choose · enter confirm · esc cancel ‖ y copy id · o open dashboard |
-//	| confirm              | overlay          | enter send · shift+enter/ctrl+j newline · esc cancel |
+//	| reply                | overlay          | enter send · shift+enter/ctrl+j newline · esc cancel |
 //	Global: ctrl+c quit
 //
 // The footer shows a state's keys in table order. A cell marks which ones in one of two
