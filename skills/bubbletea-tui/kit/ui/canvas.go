@@ -28,11 +28,6 @@ type Canvas struct {
 	// dialog and keeps the rest, the header; unset, Overlay clears everything outside
 	// the dialog there. Set it where you lay out the body: c.Body = body.
 	Body uv.Rectangle
-	// Keep names what stays of the body's rows where they are hidden: a pane's header
-	// beside a sidebar (c.Keep = []uv.Rectangle{prHeader}), whose rows Body can't keep
-	// without keeping the sidebar's. Only chrome that names where the user is, never the
-	// page's content or a focus mark: a dialog's own rows are cleared whatever it says.
-	Keep []uv.Rectangle
 }
 
 // NewCanvas makes a cleared canvas.
