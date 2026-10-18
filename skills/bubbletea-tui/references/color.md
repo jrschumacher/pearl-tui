@@ -156,7 +156,10 @@ and look at the PNGs. What usually breaks:
   ```
 
   `palette check` names each clash and the pin that fixes it (stderr): it fails error
-  off red, under `focus: fg` primary on red or on another state's colour, and a neutral
+  off red, under `focus: fg` primary on red or on another state's colour (a green brand
+  on success's green only warns: its pin moves the brand to cyan on a dark page and to
+  fg's grey on a light one, so pin it when the app draws success, and keep the green,
+  said in the read, when it never does), and a neutral
   (`bg`, `fg`, `fgMuted`, `fgSubtle`, their steps, `border`, `borderFocus`) pinned onto
   red; it warns
   on the rest, two of `fg`/`fgMuted`/`fgSubtle` pinned onto one grey included

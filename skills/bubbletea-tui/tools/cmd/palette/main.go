@@ -114,8 +114,9 @@
 // On a mid-tone fill where neither ink clears its floor, derive deepens the ink toward
 // black or white along its hue (the engine does the same), so the brand keeps its hex.
 //
-// Exit status: 0 OK, 1 contrast problems, error off red, a state clash under focus "fg",
-// a neutral on red, a warning on green or a pinned primary under its floors at 16
+// Exit status: 0 OK, 1 contrast problems, error off red, a state clash under focus "fg"
+// (a green brand on success's own slot warns: moving it costs the brand its hue), a
+// neutral on red, a warning on green or a pinned primary under its floors at 16
 // colours; 2 usage or input errors.
 package main
 

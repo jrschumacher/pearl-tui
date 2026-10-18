@@ -809,6 +809,50 @@ func TestCheckFailsDialogRolesOnRedAt16Colours(t *testing.T) {
 	}
 }
 
+// A green brand sits on success's own slot at 16 colours (a cold monitor's #3FA37A
+// and its success #56AE6C, both ANSI 2 on a dark page). Under focus "fg" that clash
+// failed check, so the brand was pinned to cyan 14 and every trace drew cyan, in an
+// app that never draws success. Moving it off green is a trade only the app can make:
+// check warns and names it, derive still pins it (the safe default), and a clash of
+// primary with another state under focus "fg" still fails.
+func TestGreenBrandOnSuccessIsATrade(t *testing.T) {
+	roles := `{"dark": {"bg": "#101814", "fg": "#C4CDC8", "primary": "#3FA37A", "error": "#DD7573", "warning": "#F1C45E", "success": "#56AE6C", "info": "#3CA2E0"}}`
+	path := filepath.Join(t.TempDir(), "theme.json")
+	if err := os.WriteFile(path, []byte(`{"roles": `+roles+`, "expressions": {"focus": "fg"}, "ansi16": {"dark": {"warning": 11}}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out, errb bytes.Buffer
+	if code := Main([]string{"check", path}, "", &out, &errb); code != 0 {
+		t.Errorf("a green brand on success's slot: exit %d, want 0 (a warning)\n%s%s", code, out.String(), errb.String())
+	}
+	for _, want := range []string{
+		`warning: `,
+		`dark: primary #3FA37A draws as ANSI 2 at 16 colours (-profile ansi), as success #56AE6C does; under focus "fg" primary is a state, so where the app draws success the two read as one`,
+		`"ansi16": {"dark": {"primary": 14}} separates them and draws the brand off green at 16 colours; an app that never draws success can keep its green and say so in the theme's read`,
+	} {
+		if !strings.Contains(errb.String(), want) {
+			t.Errorf("stderr %q, want %q", errb.String(), want)
+		}
+	}
+	f, err := theme.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := Pins16(f)["dark"]["primary"]; got != 14 {
+		t.Errorf("derive's pins put the green brand on %d, want cyan 14 (the safe default)", got)
+	}
+	// the same brand on info's slot is no trade: a clash with primary under focus "fg" fails
+	pinned := filepath.Join(t.TempDir(), "theme.json")
+	if err := os.WriteFile(pinned, []byte(`{"roles": `+roles+`, "expressions": {"focus": "fg"}, "ansi16": {"dark": {"warning": 11, "primary": 12, "info": 12}}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out.Reset()
+	errb.Reset()
+	if code := Main([]string{"check", pinned}, "", &out, &errb); code != 1 {
+		t.Errorf("primary on info's slot under focus fg: exit %d, want 1\n%s", code, errb.String())
+	}
+}
+
 // An amber brand and its warning both land on red at 16 colours. derive pins primary
 // first, never to green 10 or magenta 5 with warning on the yellow (the brand amber drew
 // as bright green on a dark page and magenta on a light one, beside success's green):
