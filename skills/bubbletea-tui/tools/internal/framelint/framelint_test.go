@@ -904,13 +904,49 @@ func TestTruncatedColumn(t *testing.T) {
 	if got := truncs(titles, "--spec", byHeader); len(got) != 0 {
 		t.Errorf("`cuts: title` in § Decisions: %+v, want none", got)
 	}
-	byRegion := spec("region.md", "# x TUI\n\n### Screens\n#### services — what runs\n51×6: list 0,0 51×6\n\n## Decisions\n- cuts: list (no longest command)\n")
+	byRegion := spec("region.md", "# x TUI\n\n### Screens\n#### procs — what runs\n51×6: list 0,0 51×6\n\n## Decisions\n- cuts: list (no longest command)\n")
 	if got := truncs(titles, "--spec", byRegion); len(got) != 0 {
 		t.Errorf("`cuts: list`, the budget's region holding the cut: %+v, want none", got)
 	}
 	elsewhere := spec("elsewhere.md", "# x TUI\n\n### Screens\n#### procs — what runs\n51×6: list 0,0 51×1 · trace 0,1 30×5\n\n## Decisions\n- cuts: list, program\n\n## Assumed\n- cuts: title\n")
 	if got := truncs(titles, "--spec", elsewhere); len(got) != 1 || !strings.Contains(got[0].Msg, "`cuts: title`") {
 		t.Errorf("cuts naming another region and column, and a cuts line outside § Decisions: %+v, want one", got)
+	}
+	// a cuts: line holds for the frame's own screen: a region of another screen's budget
+	// doesn't, and a header cut scoped to a screen (`cuts: detail: title`) holds only there
+	t6 := filepath.Join(dir, "detail-80x24.ansi")
+	var b6 strings.Builder
+	for y := range 24 {
+		row := ""
+		switch {
+		case y == 0:
+			row = "  app  detail"
+		case y == 10:
+			row = "  name                  owner     size"
+		case y > 10 && y < 17:
+			row = fmt.Sprintf("  quarterly-report-%d…  alice     12K", y-11)
+		case y == 23:
+			row = "  q quit"
+		}
+		b6.WriteString(fmt.Sprintf("%-80s\n", row))
+	}
+	if err := os.WriteFile(t6, []byte(b6.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	budgets := "# x TUI\n\n### Screens\n#### overview — every job\n80×24:  header 0,0 80×1 · list 1,10 78×13\n#### detail — one file\n80×24:  header 0,0 80×1 · files 1,10 78×13\n\n## Decisions\n"
+	for _, c := range []struct {
+		cuts string
+		want int
+	}{
+		{"- 2026-10-18 cuts: list because a command line has no longest\n", 1},
+		{"- cuts: files because a file name has no longest\n", 0},
+		{"- cuts: overview: name\n", 1},
+		{"- cuts: detail: name\n", 0},
+		{"- cuts: name\n", 0},
+	} {
+		if got := truncs(t6, "--spec", spec("t6.md", budgets+c.cuts)); len(got) != c.want {
+			t.Errorf("a detail frame's name column cut, with %q: %+v, want %d", c.cuts, got, c.want)
+		}
 	}
 	var stdout, stderr bytes.Buffer
 	if code := Main([]string{titles, "--spec", filepath.Join(dir, "missing.md")}, &stdout, &stderr); code != 2 {

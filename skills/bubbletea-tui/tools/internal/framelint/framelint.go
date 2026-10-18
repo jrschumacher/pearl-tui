@@ -49,9 +49,11 @@
 //	                 dialog, nor page rows on an overlay frame whose column header the dialog
 //	                 hides: the page's own frame shows it and is judged there). With --spec
 //	                 TUI.md, a column that cuts by decision isn't either: a `cuts:` line in
-//	                 § Decisions names its header (`- cuts: command, title — no longest`) or a
-//	                 region of a budget line at the frame's size (`80×24: … list 1,10 78×13`)
-//	                 that holds every cut row (`cuts: list`)
+//	                 § Decisions names its header (`- 2026-10-18 cuts: command, title — no
+//	                 longest`) or a region of its screen's budget line at the frame's size that
+//	                 holds every cut row (`cuts: list`). A line holds on every screen, or on one
+//	                 it names (`cuts: detail: name`); a frame's screen is its state, or the
+//	                 state's prefix before a dash (detail-gone is detail)
 //	F-ASCII     [P1] (with --ascii) a cell outside ASCII in a frame rendered for ASCII; with
 //	                 --unicode, also a "?" where the unicode frame of the same state draws
 //	                 something else (a rune the sweep had no twin for)
@@ -87,7 +89,7 @@ every cell must be ASCII: a glyph that leaks through is tofu on a console font.
 name, or one frame): a "?" in the ASCII frame where the unicode frame draws something
 else is a rune the ASCII sweep had no twin for, which reads as a question.
 --spec names the TUI.md whose § Decisions "cuts:" lines say which columns cut on purpose
-(F-TRUNC).
+(F-TRUNC): "cuts: command" on every screen, "cuts: detail: name" on one.
 
   F-WIDTH     [P0] a row is not exactly W cells / frame is not H rows
   F-EMOJI     [P1] emoji glyphs

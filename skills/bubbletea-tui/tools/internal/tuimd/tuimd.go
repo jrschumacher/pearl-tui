@@ -30,23 +30,27 @@ type Budget struct {
 }
 
 // Cut is one `cuts:` line of § Decisions: the column headers or region names whose
-// content is cut on purpose (paths, URLs, commands: no longest to budget from).
+// content is cut on purpose (paths, URLs, commands: no longest to budget from), on one
+// screen (`cuts: detail: name`) or, with no screen named, on every screen.
 type Cut struct {
-	Names []string // lowercased, as written
-	Line  int
+	Screen string   // lowercased; "" for every screen
+	Names  []string // lowercased, as written
+	Line   int
 }
 
 var (
 	headingRe = regexp.MustCompile(`^(#{1,6})\s+(.*)$`)
 	// a block's heading names its job after a dash or a colon: "detail — one job"
-	jobRe     = regexp.MustCompile(`\s[—–-]\s|:`)
-	budgetRe  = regexp.MustCompile(`^(\d+)\s*[×x]\s*(\d+)\s*:\s*(.*)$`)
-	regionRe  = regexp.MustCompile(`^(.*?\S)\s+(\d+)\s*,\s*(\d+)\s+(\d+)\s*[×x]\s*(\d+)\b`)
-	listMark  = regexp.MustCompile(`^(?:[-*+]|\d+\.)\s+`)
-	dateLead  = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}\s+`)
-	cutsRe    = regexp.MustCompile(`(?i)^cuts\s*:\s*(.*)$`)
+	jobRe    = regexp.MustCompile(`\s[—–-]\s|:`)
+	budgetRe = regexp.MustCompile(`^(\d+)\s*[×x]\s*(\d+)\s*:\s*(.*)$`)
+	regionRe = regexp.MustCompile(`^(.*?\S)\s+(\d+)\s*,\s*(\d+)\s+(\d+)\s*[×x]\s*(\d+)\b`)
+	listMark = regexp.MustCompile(`^(?:[-*+]|\d+\.)\s+`)
+	// a decision's lead: a date as `2026-10-18`, `2026-10-18:`, `2026-10-18 —` or
+	// `[2026-10-18]`, then at most one `word:` tag (`shape:`)
+	cutsRe    = regexp.MustCompile(`(?i)^(?:\[?\d{4}-\d{2}-\d{2}\]?\s*[:—–-]?\s*)?(?:\w+:\s*)?cuts\s*:\s*(.*)$`)
+	scopeRe   = regexp.MustCompile(`^\s*([\w-]+)\s*:\s*(.*)$`)
 	reasonCut = regexp.MustCompile(`\s[—–-]\s|;|\s+because\s|\(`)
-	decisions = regexp.MustCompile(`(?i)\bdecisions\b`)
+	decisions = regexp.MustCompile(`(?i)^(?:\d+[.)]?\s+)?decisions$`)
 )
 
 func clean(s string) string {
@@ -114,17 +118,17 @@ func Budgets(src string) []Budget {
 	return out
 }
 
-// Cuts reads the `cuts:` lines of § Decisions (a heading that says Decisions, to the
-// next heading at its level or above): `- 2026-10-18 cuts: command, program — a command
-// line has no longest; the detail shows it whole`. The names end at the reason (a dash,
-// a ";", "because" or a "("), and are split on commas.
+// Cuts reads the `cuts:` lines of § Decisions (a heading `Decisions`, to the next heading
+// at its level or above): `- 2026-10-18 cuts: command, program — a command line has no
+// longest; the detail shows it whole`, or for one screen `- cuts: detail: name — …`. The
+// names end at the reason (a dash, a ";", "because" or a "("), and are split on commas.
 func Cuts(src string) []Cut {
 	var out []Cut
 	level := 0
 	lines(src, func(n int, t string) {
 		if m := headingRe.FindStringSubmatch(t); m != nil {
 			switch {
-			case decisions.MatchString(m[2]):
+			case decisions.MatchString(clean(m[2])):
 				level = len(m[1])
 			case level > 0 && len(m[1]) <= level:
 				level = 0
@@ -134,12 +138,15 @@ func Cuts(src string) []Cut {
 		if level == 0 {
 			return
 		}
-		m := cutsRe.FindStringSubmatch(dateLead.ReplaceAllString(listMark.ReplaceAllString(clean(t), ""), ""))
+		m := cutsRe.FindStringSubmatch(listMark.ReplaceAllString(clean(t), ""))
 		if m == nil {
 			return
 		}
 		names := reasonCut.Split(m[1], 2)[0]
 		c := Cut{Line: n}
+		if sc := scopeRe.FindStringSubmatch(names); sc != nil {
+			c.Screen, names = strings.ToLower(sc[1]), sc[2]
+		}
 		for _, nm := range strings.Split(names, ",") {
 			if nm = strings.ToLower(strings.TrimSpace(nm)); nm != "" {
 				c.Names = append(c.Names, nm)

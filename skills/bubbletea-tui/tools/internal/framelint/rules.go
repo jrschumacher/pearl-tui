@@ -1305,9 +1305,9 @@ func lintTrunc(name string, f Frame, ellipses []string, spec *Spec, bg RGB) []Fi
 		if top < 0 || y < top {
 			header, top = strings.ToLower(strings.Join(words, " ")), y
 		}
-		return spec.cuts(words)
+		return spec.cuts(name, words)
 	})
-	if decided || spec.cutsRegion(f, best, ys) {
+	if decided || spec.cutsRegion(name, f, best, ys) {
 		return nil
 	}
 	if slices.ContainsFunc(ys, func(y int) bool { return unsureRows[y] }) {
@@ -1318,18 +1318,18 @@ func lintTrunc(name string, f Frame, ellipses []string, spec *Spec, bg RGB) []Fi
 	if header != "" {
 		cut = header
 	}
-	record := fmt.Sprintf("record the cut in TUI.md § Decisions as `cuts: %s` (a column header, or a region of the screen's budget line) and lint with --spec TUI.md", cut)
+	record := fmt.Sprintf("record the cut in TUI.md § Decisions as `cuts: %s` (a column header, or a region of the screen's budget line; `cuts: <screen>: …` for one screen) and lint with --spec TUI.md", cut)
 	if spec != nil {
-		record = fmt.Sprintf("add `cuts: %s` to TUI.md § Decisions (a column header, or a region of the screen's budget line): no cuts: line there names this column or its region", cut)
+		record = fmt.Sprintf("add `cuts: %s` to TUI.md § Decisions (a column header, or a region of the screen's budget line; `cuts: <screen>: …` for one screen): no cuts: line there names this column or its region", cut)
 	}
 	return []Finding{{"F-TRUNC", "P2", name, fmt.Sprintf("r%dc%d", ys[0], best),
 		fmt.Sprintf("%d rows end in an ellipsis at column %d: widen the column from the longest fixture (layout.md), or, when its content has no bound (paths, URLs, code), %s", len(ys), best, record)}}
 }
 
-// Spec is what --spec TUI.md gives F-TRUNC: the names on § Decisions' `cuts:` lines and
-// the screens' region budgets (tuimd).
+// Spec is what --spec TUI.md gives F-TRUNC: § Decisions' `cuts:` lines and the
+// screens' region budgets (tuimd).
 type Spec struct {
-	Cuts    map[string]bool
+	Cuts    []tuimd.Cut
 	Budgets []tuimd.Budget
 }
 
@@ -1339,38 +1339,57 @@ func LoadSpec(path string) (*Spec, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Spec{Cuts: map[string]bool{}, Budgets: tuimd.Budgets(string(b))}
-	for _, c := range tuimd.Cuts(string(b)) {
-		for _, n := range c.Names {
-			s.Cuts[strings.TrimSuffix(n, "s")] = true
+	return &Spec{Cuts: tuimd.Cuts(string(b)), Budgets: tuimd.Budgets(string(b))}, nil
+}
+
+// onScreen reports a frame of screen: its state (the file name before -<W>x<H>.ansi) is
+// the screen's name, or starts with it and a dash (detail-gone is detail).
+func onScreen(name, screen string) bool {
+	state := strings.TrimSuffix(sizeSuffix.ReplaceAllString(name, ""), ".ansi")
+	return state == screen || strings.HasPrefix(state, screen+"-")
+}
+
+// names are the cut names that hold on the frame named name: a line naming no screen
+// holds on every one, a scoped line (`cuts: detail: name`) on its own.
+func (s *Spec) names(name string) map[string]bool {
+	out := map[string]bool{}
+	if s == nil {
+		return out
+	}
+	for _, c := range s.Cuts {
+		if c.Screen == "" || onScreen(name, c.Screen) {
+			for _, n := range c.Names {
+				out[strings.TrimSuffix(n, "s")] = true
+			}
 		}
 	}
-	return s, nil
+	return out
 }
 
 // cuts reports a header cell a cuts: line names: the whole cell or its first word.
-func (s *Spec) cuts(words []string) bool {
-	if s == nil || len(words) == 0 {
+func (s *Spec) cuts(name string, words []string) bool {
+	if len(words) == 0 {
 		return false
 	}
 	norm := func(w string) string { return strings.TrimSuffix(strings.ToLower(w), "s") }
-	return s.Cuts[norm(strings.Join(words, " "))] || s.Cuts[norm(words[0])]
+	ns := s.names(name)
+	return ns[norm(strings.Join(words, " "))] || ns[norm(words[0])]
 }
 
-// cutsRegion reports a cut whose rows all lie in a region a cuts: line names, in a
-// budget line at the frame's size (any screen's: a sidebar budgeted once runs beside
-// several screens).
-func (s *Spec) cutsRegion(f Frame, x int, ys []int) bool {
+// cutsRegion reports a cut whose rows all lie in a region a cuts: line names, in the
+// budget line at the frame's size of the frame's own screen: a region is its screen's.
+func (s *Spec) cutsRegion(name string, f Frame, x int, ys []int) bool {
 	if s == nil || len(f.Rows) == 0 {
 		return false
 	}
+	ns := s.names(name)
 	w, h := len(f.Rows[0]), len(f.Rows)
 	for _, b := range s.Budgets {
-		if b.W != w || b.H != h {
+		if b.W != w || b.H != h || !onScreen(name, b.Screen) {
 			continue
 		}
 		for _, r := range b.Regions {
-			if !s.Cuts[strings.TrimSuffix(r.Name, "s")] {
+			if !ns[strings.TrimSuffix(r.Name, "s")] {
 				continue
 			}
 			if !slices.ContainsFunc(ys, func(y int) bool { return !r.Contains(x, y) }) {
