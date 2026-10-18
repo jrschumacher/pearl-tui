@@ -211,7 +211,7 @@ Then: <the rest of v1, in order>
 
 ## Decisions
 - <date> <decision> because <reason>
-- <date> cuts: <column header or budget region>, … — <why it has no longest>   (e.g. `- 2026-10-18 cuts: command, title — no longest; the detail shows it whole`; `tuilint frames --spec TUI.md` reads it [F-TRUNC])
+- <date> cuts: [<screen>:] <column header or budget region>, … — <why it has no longest>   (e.g. `- 2026-10-18 cuts: detail: command — no longest; the pager shows it whole`; with no screen it holds on every screen; `tuilint frames --spec TUI.md` reads it under this exact `## Decisions` heading [F-TRUNC])
 
 ## Assumed
 - <default the user didn't confirm>   (confirm it, then move it to Decisions)
