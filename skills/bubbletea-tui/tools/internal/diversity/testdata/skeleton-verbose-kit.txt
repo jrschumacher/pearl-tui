@@ -1,0 +1,75 @@
+axis         cartridge   charm       ferrous     halyard     ink         lumen       moss        
+header       banner      rule        stamp       bar         rule        minimal     rule        
+wordmark     -           gradient    -           tracked     solid       solid       solid       
+sectionTitle accent      accent      muted-uppe  primary     fg          accent      fg          
+titleCase    upper       sentence    upper       sentence    sentence    sentence    lower       
+selection    inverse     bar         fill        fill        bar         caret       bar         
+button       pill        pill        inverse     bracket     pill        underline   underline   
+tag          filled      filled      bracket     filled      filled      bold        bold        
+dialog       double      rounded     heavy       square      rounded     rounded     none        
+dialogTitle  rule        rule        bar         bar         plain       plain       plain       
+tabs         pill        underline   bracket     slash       underline   pill        underline   
+footer       bar         keys        bar         rule        keys        keys        rule        
+keys         boxed       inline      inline      boxed       inline      inline      inline      
+density      compact     airy        compact     compact     airy        airy        airy        
+backdrop     field       field       none        field       none        none        none        
+scrim        dim         dim         none        dim         dim         dim         dim         
+paintBg      True        True        True        False       False       False       False       
+headerRule   ▚           ╱           -           -                       -           ·           
+rule         ─           ─           ━           ┄           ─           ╌           ·           
+focusBar     █           ▌           ┃           ▎           ▌           ▎           │           
+cursor       ▶           >           >           ▸           ›           ›           →           
+done         ■           ✓           ■           ◆           ✓           •           ✓           
+
+seating: every value of every axis, and who holds it
+header       banner: cartridge · rule: charm, ink, moss · stamp: ferrous · bar: halyard · minimal: lumen
+wordmark     -: cartridge, ferrous · gradient: charm · tracked: halyard · solid: ink, lumen, moss
+sectionTitle accent: cartridge, charm, lumen · muted-upper: ferrous · primary: halyard · fg: ink, moss
+titleCase    upper: cartridge, ferrous · sentence: charm, halyard, ink, lumen · lower: moss
+selection    inverse: cartridge · bar: charm, ink, moss · fill: ferrous, halyard · caret: lumen
+button       pill: cartridge, charm, ink · inverse: ferrous · bracket: halyard · underline: lumen, moss
+tag          filled: cartridge, charm, halyard, ink · bracket: ferrous · bold: lumen, moss
+dialog       double: cartridge · rounded: charm, ink, lumen · heavy: ferrous · square: halyard · none: moss
+dialogTitle  rule: cartridge, charm · bar: ferrous, halyard · plain: ink, lumen, moss
+tabs         pill: cartridge, lumen · underline: charm, ink, moss · bracket: ferrous · slash: halyard
+footer       bar: cartridge, ferrous · keys: charm, ink, lumen · rule: halyard, moss
+keys         boxed: cartridge, halyard · inline: charm, ferrous, ink, lumen, moss
+density      compact: cartridge, ferrous, halyard · airy: charm, ink, lumen, moss
+backdrop     field: cartridge, charm, halyard · none: ferrous, ink, lumen, moss
+scrim        dim: cartridge, charm, halyard, ink, lumen, moss · none: ferrous
+paintBg      True: cartridge, charm, ferrous · False: halyard, ink, lumen, moss
+headerRule   ▚: cartridge · ╱: charm · -: ferrous, halyard, lumen · "": ink · ·: moss
+rule         ─: cartridge, charm, ink · ━: ferrous · ┄: halyard · ╌: lumen · ·: moss
+focusBar     █: cartridge · ▌: charm, ink · ┃: ferrous · ▎: halyard, lumen · │: moss
+cursor       ▶: cartridge · >: charm, ferrous · ▸: halyard · ›: ink, lumen · →: moss
+done         ■: cartridge, ferrous · ✓: charm, ink, moss · ◆: halyard · •: lumen
+
+pairs: the axes each pair shares
+cartridge · charm: 8/20 axes (sectionTitle, button, tag, dialogTitle, backdrop, scrim, paintBg, rule)
+cartridge · ferrous: 5/19 axes (titleCase, footer, density, paintBg, done)
+cartridge · halyard: 5/19 axes (tag, keys, density, backdrop, scrim)
+cartridge · ink: 4/20 axes (button, tag, scrim, rule)
+cartridge · lumen: 3/19 axes (sectionTitle, tabs, scrim)
+cartridge · moss: 1/20 axes (scrim)
+charm · ferrous: 3/19 axes (keys, paintBg, cursor)
+charm · halyard: 4/20 axes (titleCase, tag, backdrop, scrim)
+charm · ink: 14/21 axes (header, titleCase, selection, button, tag, dialog, tabs, footer, keys, density, scrim, rule, focusBar, done)
+charm · lumen: 7/20 axes (sectionTitle, titleCase, dialog, footer, keys, density, scrim)
+charm · moss: 7/21 axes (header, selection, tabs, keys, density, scrim, done)
+ferrous · halyard: 3/19 axes (selection, dialogTitle, density)
+ferrous · ink: 2/19 axes (keys, backdrop)
+ferrous · lumen: 2/19 axes (keys, backdrop)
+ferrous · moss: 2/19 axes (keys, backdrop)
+halyard · ink: 4/20 axes (titleCase, tag, scrim, paintBg)
+halyard · lumen: 4/20 axes (titleCase, scrim, paintBg, focusBar)
+halyard · moss: 3/20 axes (footer, scrim, paintBg)
+ink · lumen: 11/20 axes (wordmark, titleCase, dialog, dialogTitle, footer, keys, density, backdrop, scrim, paintBg, cursor)
+ink · moss: 12/21 axes (header, wordmark, sectionTitle, selection, dialogTitle, tabs, keys, density, backdrop, scrim, paintBg, done)
+lumen · moss: 9/20 axes (wordmark, button, tag, dialogTitle, keys, density, backdrop, scrim, paintBg)
+
+nearest to cartridge: ferrous (shares 5/19 axes)
+nearest to ferrous: cartridge (shares 5/19 axes)
+nearest to halyard: cartridge (shares 5/19 axes)
+nearest to lumen: moss (shares 9/20 axes)
+nearest to moss: lumen (shares 9/20 axes)
+OK

@@ -74,6 +74,15 @@ func specs(t *testing.T) map[string]cmddoc.Spec {
 				"frames": free(frames), "code": free(code), "spec": free(spec), "hook": free(""), "help": free(""),
 			},
 		},
+		"feedback": func() cmddoc.Spec {
+			fb := free(cmddoc.Text(read(t, "tools/cmd/feedback/main.go")))
+			fb["--kind"] = []string{"bug", "perf", "performance", "eval", "eval-suggestion", "feature", "enhancement"}
+			return cmddoc.Spec{
+				Modes:     []string{"draft", "similar", "submit"},
+				Flags:     fb,
+				ModeFlags: map[string]map[string][]string{"draft": fb, "submit": fb, "similar": {"--title": nil, "--repo": nil, "--redact": nil, "--no-redact": nil, "-h": nil, "--help": nil}},
+			}
+		}(),
 		"tuivet":        {Flags: vet},
 		"wordmark.py":   {Flags: cmddoc.ArgparseFlags(read(t, "scripts/wordmark.py"))},
 		"logo2cells.py": {Flags: cmddoc.ArgparseFlags(read(t, "scripts/logo2cells.py"))},
@@ -134,7 +143,7 @@ func TestSpecsAreReal(t *testing.T) {
 	s := specs(t)
 	want := map[string][]string{
 		"cellshot":  {"--sheet", "--gif", "--ms", "--cell", "--bg", "--light", "--fg", "--cols", "--rows", "--grid", "--scale", "--label"},
-		"diversity": {"--max-shared", "--max-popular", "--baseline", "--min-distance"},
+		"diversity": {"--max-shared", "--max-popular", "--baseline", "--min-distance", "--max-shared-skeleton", "--verbose", "-v"},
 		"palette":   {"--accent", "--bg", "--light-bg", "--tint", "--name", "--out", "--swatch"},
 		"tuivet":    {"-tuihex", "-tuihex.theme-pkg", "-tuiblocking", "-tuihuhtheme"},
 	}

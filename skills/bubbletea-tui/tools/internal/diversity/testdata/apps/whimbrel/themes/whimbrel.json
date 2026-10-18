@@ -1,0 +1,4 @@
+{"name": "whimbrel", "expressions": {"header": "banner", "sectionTitle": "muted-upper", "titleCase": "sentence",
+ "selection": "inverse", "button": "pill", "tag": "filled", "dialog": "heavy", "dialogTitle": "bar", "tabs": "bracket",
+ "footer": "keys", "keys": "inline", "density": "airy", "backdrop": "none", "scrim": "none", "paintBg": false},
+ "glyphs": {"rule": "╍", "focusBar": "┃", "cursor": "»", "done": "▣"}}

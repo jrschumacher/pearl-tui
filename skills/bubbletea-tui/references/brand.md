@@ -24,6 +24,7 @@ type      <case, tracking, weight; what the wordmark looks like>
 motif     <the one shape the brand repeats: a slash, a diamond, a sail, a dot>
 move      <one region placed where the kit doesn't put it, and the word it follows from>
 signature <one element the kit doesn't draw, on the main screen's default frame>
+skeleton  <the main screen as planned at brand, corrected after craft renders it: § 5>
 
 <one line per expression below, tying the choice to a product trait>
 ```
@@ -237,6 +238,20 @@ the default with a new palette), when two brand themes share more than 9 axes, o
 one value is used by more than half the brands. It is a floor, not a target. A plain
 brand stays plain and spends its differences on the two or three moves it owns; never
 move an axis just to pass.
+
+**Pass `TUI.md` too: the skeleton.** A theme holds paint, and two brands built from one
+spec came out one skeleton in two paints. So § Brand read carries a `skeleton:` line, the
+main screen's composition on eight axes: `skeleton: head <…> · status <…> · order <…> ·
+foot <…> · verdict <…> · chart <…> · chartGlyphs <…> · turnEnd <…>`, the words in
+`diversity -h`, `-` for one the screen doesn't have. Write it at brand as planned and
+correct it once craft renders the default frame. `diversity TUI.md
+kit/themes/ink.json kit/themes/charm.json` reads it with the theme § Theme names, notes a
+missing line as P2, and names the axes still the kit's: the move should be among the
+others. Given two apps (a pair eval) it fails a pair sharing more than 3 skeleton axes
+and flags a departure both took; `-v` prints the seating plan. A family that shares its
+chrome on purpose raises `--max-shared-skeleton`. **DO** declare the frame as built: a
+line the frame contradicts is the critic's P1. **DON'T** move an axis to pass: move one
+only where the read's `move:` or `signature:` gives the reason, and write it there.
 
 **Many brands at once** (a theme gallery, a design-system rollout across products):
 parallel agents converge on the newest options. Six of nine picked the same new header
