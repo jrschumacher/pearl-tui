@@ -54,6 +54,9 @@ palette check theme.json   # on any existing theme
   within 25° of the slot's hue) yields it
 - warns when `warning` sits beside `primary` in hue and chroma (an amber brand's warning
   a shade brighter than its amber): a warning row then reads as a focused one
+- `check` names `warning` and `error` written as one colour: a Trace's 75 % and 90 %
+  cells, a meter and the status marks then differ by glyph alone. Merge them only when
+  the app never draws a warning, and record it in TUI.md § Decisions
 
 Then tune by hand. The tool gets you a correct palette; the brand read decides whether
 the tertiary should be a complement or a quiet tint, and what an amber brand's warning is.

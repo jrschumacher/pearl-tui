@@ -176,6 +176,9 @@ func check(path string, stdout, stderr io.Writer) int {
 		if d, near := NearPrimary(r); near {
 			fmt.Fprintf(stderr, "palette: warning: %s: %s\n", path, nearPrimaryText(mode, r, d))
 		}
+		if MergedStates(r) {
+			fmt.Fprintf(stderr, "palette: warning: %s: %s: warning %s and error %s are one colour, so the kit's Trace, Meter and status marks tell a warning from an error by glyph and word alone; keep it only as a decision (an app that never draws a warning), recorded in TUI.md § Decisions\n", path, mode, r["warning"], r["error"])
+		}
 	}
 	clashes := Clashes16(tf, path, stderr)
 	for _, x := range Inks16(tf) {

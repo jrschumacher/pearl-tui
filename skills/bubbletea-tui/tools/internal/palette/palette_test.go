@@ -612,6 +612,47 @@ func TestCheckWarnsWarningBesidePrimary(t *testing.T) {
 	}
 }
 
+// A theme may make warning and error one colour by decision (an app that never draws a
+// warning), but the kit's graded components then tell them apart by glyph alone, and the
+// kit's TestTraceInksByLevel once failed such a theme with nothing in check to say why
+// (#64): check names the merge, exit unchanged. Two written roles only: a warning left
+// to the kit's default is no decision, and no kit theme merges them.
+func TestCheckNamesAMergedWarning(t *testing.T) {
+	for _, c := range []struct {
+		roles string
+		want  string
+	}{
+		{`{"dark": {"bg": "#17140F", "fg": "#E8E2D6", "primary": "#D99A3B", "error": "#E0605A", "warning": "#E0605A"}}`,
+			`dark: warning #E0605A and error #E0605A are one colour`},
+		{`{"dark": {"bg": "#17140F", "fg": "#E8E2D6", "primary": "#D99A3B", "error": "#E0605A", "warning": "#e1605b"}}`,
+			`dark: warning #e1605b and error #E0605A are one colour`},
+		{`{"dark": {"bg": "#17140F", "fg": "#E8E2D6", "primary": "#D99A3B", "error": "#E0605A", "warning": "#C8C46A"}}`, ""},
+		{`{"dark": {"bg": "#17140F", "fg": "#E8E2D6", "primary": "#D99A3B", "error": "#E0605A"}}`, ""},
+	} {
+		path := filepath.Join(t.TempDir(), "theme.json")
+		if err := os.WriteFile(path, []byte(`{"roles": `+c.roles+`}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var out, errb bytes.Buffer
+		Main([]string{"check", path}, "", &out, &errb)
+		if got := errb.String(); strings.Contains(got, "are one colour") != (c.want != "") || !strings.Contains(got, c.want) {
+			t.Errorf("%s: stderr %q, want %q", c.roles, got, c.want)
+		}
+	}
+	kit, _ := filepath.Glob(kitThemes + "/*.json")
+	for _, path := range kit {
+		f, err := theme.Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for mode, r := range f.Roles {
+			if MergedStates(map[string]string{"warning": r.Warning, "error": r.Error}) {
+				t.Errorf("%s %s: warning %s and error %s merge", filepath.Base(path), mode, r.Warning, r.Error)
+			}
+		}
+	}
+}
+
 // A role, glyph or wordmark key the kit doesn't read is dropped by theme.Load, and the
 // role it meant falls back to the derived colour with nothing to say why: check exits 2
 // naming it, as it does for an expressions key.

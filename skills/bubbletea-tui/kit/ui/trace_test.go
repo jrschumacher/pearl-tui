@@ -78,13 +78,20 @@ func TestTraceHoldsItsScale(t *testing.T) {
 }
 
 // A cell at or over Warn takes the warning's ink and at or over Fail the error's, so a
-// spike keeps its colour after it scrolls left.
+// spike keeps its colour after it scrolls left. Each level is drawn alone and compared
+// with its ink: a theme that makes warning and error one colour by decision (palette
+// check names the merge) draws the 80 and 95 cells as one run, which a whole-row
+// match took for a wrong ink (#64).
 func TestTraceInksByLevel(t *testing.T) {
 	th := testTheme(t, false)
-	out := Trace(th, []float64{10, 80, 95}, 3, TraceOpts{Warn: 75, Fail: 90})[0]
-	for i, want := range []lipgloss.Style{th.S.Muted, th.S.Warn, th.S.Err} {
-		if !strings.Contains(out, want.Render(string([]rune(ansi.Strip(out))[i]))) {
-			t.Errorf("cell %d of %q is not drawn in its level's ink", i, out)
+	for _, c := range []struct {
+		v    float64
+		want lipgloss.Style
+		ink  string
+	}{{10, th.S.Muted, "fgMuted"}, {80, th.S.Warn, "warning"}, {95, th.S.Err, "error"}} {
+		out := Trace(th, []float64{c.v}, 1, TraceOpts{Warn: 75, Fail: 90})[0]
+		if want := c.want.Render(ansi.Strip(out)); out != want {
+			t.Errorf("a %v cell draws %q, want the %s ink %q", c.v, out, c.ink, want)
 		}
 	}
 	ink := Trace(th, []float64{10}, 1, TraceOpts{Ink: func(float64) lipgloss.Style { return th.S.Accent }})[0]

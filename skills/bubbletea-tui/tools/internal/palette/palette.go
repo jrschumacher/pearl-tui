@@ -105,6 +105,25 @@ func NearPrimary(r map[string]string) (float64, bool) {
 	return d, cw >= 0.04 && cp >= 0.04 && d < nearPrimaryMax
 }
 
+// mergedMax is how near, in OKLab, a role set's warning and error may sit before check
+// names them one colour (MergedStates): under a just-noticeable step.
+const mergedMax = 0.02
+
+// MergedStates reports whether a role set writes warning and error as one colour (the
+// same hex, or under mergedMax apart in OKLab): a theme may merge them by decision (an
+// app that never draws a warning), but every kit component that grades by level (Trace,
+// Meter, the status marks) then tells a warning from an error by glyph and word alone.
+// Both must be written: a role left to the kit's default is not a decision.
+func MergedStates(r map[string]string) bool {
+	w, e := r["warning"], r["error"]
+	if w == "" || e == "" || !oklch.Valid(w) || !oklch.Valid(e) {
+		return false
+	}
+	l1, a1, b1 := oklch.ToOKLab(oklch.MustRGB(w))
+	l2, a2, b2 := oklch.ToOKLab(oklch.MustRGB(e))
+	return math.Sqrt((l1-l2)*(l1-l2)+(a1-a2)*(a1-a2)+(b1-b2)*(b1-b2)) < mergedMax
+}
+
 var statusHues = []struct {
 	role string
 	hue  float64
