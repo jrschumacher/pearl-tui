@@ -20,8 +20,10 @@
 //	                 "dialog": "rules" panel (two rule rows of one span around a filled panel),
 //	                 found by its shape whatever the frame's name (a confirm's sending state
 //	                 too; on a frame not named as an overlay, a ruled or ASCII one counts only
-//	                 with a scrim: a blank row above and below it, and the page's other rows
-//	                 dimmed under 2.3:1 or hidden, so a sectioned page is judged whole). On an
+//	                 with a scrim: a blank row above and below it, and the page's other rows,
+//	                 3 or more, each two-thirds under 2.3:1, or the page hidden but a header of
+//	                 3 rows at most with none under it; a sectioned page, or a sparse one with
+//	                 a faint header, is judged whole). On an
 //	                 overlay frame (named dialog, palette, confirm, modal, overlay,
 //	                 popup, help or keys) with none found, a P2 note instead ("dialog": "none"
 //	                 has no edge to find).

@@ -955,8 +955,7 @@ func LintASCIIQuestion(name string, asc, uni Frame) []Finding {
 // as an overlay, or for a bordered box, it is what findDialog finds. A ruled or ASCII
 // dialog on a frame named for its state (a confirm's sending, send-error) counts only
 // when ui.Overlay's marks are around it: a blank row above and below it (margined), and
-// every other text row of the page dimmed under 2.3:1, or the page hidden but for 3
-// rows at most (the header; 16 colours, NO_COLOR). A sectioned page, a titled section
+// the rest of the page dimmed under 2.3:1 or hidden but its header (scrimmed). A sectioned page, a titled section
 // rule over a later rule of one span, has the shape and neither mark, and is judged whole.
 func frameDialog(name string, f Frame, cs []corner, bg RGB) *region {
 	d := findDialog(f, cs)
@@ -970,10 +969,14 @@ func frameDialog(name string, f Frame, cs []corner, bg RGB) *region {
 }
 
 // scrimmed reports a page around r that ui.Overlay dimmed or hid: outside r's rows and
-// the blank row on each side, and above the footer (the last row), every row with text
-// has 4 in 5 of its text cells under 2.3:1, or 3 rows at most hold text.
+// the blank row on each side, and above the footer (the last row), 3 rows or more hold
+// text and every one has 2 in 3 of its text cells under 2.3:1 (dimmed: a scrim leaves a
+// wordmark or an accent readable, the kit's quire 3 cells in 10); or 3 rows at
+// most hold text, none of it under 2.3:1 (hidden but its header). One or two faint rows
+// say nothing: a scrim over a sparse page and a page's faint header look the same, so
+// that page is judged whole.
 func scrimmed(f Frame, r region, bg RGB) bool {
-	rows, dim := 0, 0
+	rows, dim, lows := 0, 0, 0
 	for y, row := range f.Rows {
 		if (y >= r.y0-1 && y <= r.y1+1) || y == len(f.Rows)-1 {
 			continue
@@ -1001,12 +1004,13 @@ func scrimmed(f Frame, r region, bg RGB) bool {
 		}
 		if text > 0 {
 			rows++
-			if 5*low >= 4*text {
+			lows += low
+			if 3*low >= 2*text {
 				dim++
 			}
 		}
 	}
-	return rows <= 3 || dim == rows
+	return (rows >= 3 && dim == rows) || (rows <= 3 && lows == 0)
 }
 
 // findDialog is the one dialog over a scrim: a bordered box (the frame's only top-left

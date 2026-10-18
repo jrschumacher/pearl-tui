@@ -1012,9 +1012,68 @@ func TestSectionedPagesAreNotDialogs(t *testing.T) {
 		{"sections-256-list-80x24.ansi", "F-CONTRAST", "P1", 1},
 		{"sections-list-80x24.ansi", "F-CONTRAST", "P1", 1},
 		{"sections-nocolor-list-80x24.ansi", "F-TRUNC", "P2", 1},
+		// one text row outside the section, a faint header: the page isn't hidden, it is
+		// sparse, so the rows the gate lets through are still judged
+		{"sections-sparse-256-80x24.ansi", "F-CONTRAST", "P1", 1},
 	} {
 		if n := count("testdata/pages/"+c.file, c.rule, c.sev); n != c.want {
 			t.Errorf("%s: %d %s %s, want %d", c.file, n, c.sev, c.rule, c.want)
+		}
+	}
+}
+
+// The scrim gate's two marks each hold: a ruled panel with no blank row around it over
+// an all-faint page is a section, and so is one over a page whose rows are only partly
+// faint (a muted column on bright rows); both pages' faint text is judged.
+func TestScrimGateMarks(t *testing.T) {
+	faint, bright, off := "\x1b[38;2;48;48;52m", "\x1b[38;2;230;230;230m", "\x1b[0m"
+	frame := func(name string, row func(y int) string) string {
+		var b strings.Builder
+		for y := range 11 {
+			b.WriteString(row(y) + off + "\n")
+		}
+		b.WriteString(bright + fmt.Sprintf("  %-46s  ", "enter open  q quit") + off + "\n") // the footer, judged either way
+		p := filepath.Join(t.TempDir(), name)
+		if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	section := func(y int) (string, bool) {
+		switch y {
+		case 3:
+			return bright + "  ── Recent " + strings.Repeat("─", 36) + "  ", true
+		case 6:
+			return bright + "  " + strings.Repeat("─", 46) + "  ", true
+		case 4, 5:
+			return bright + fmt.Sprintf("  %-46s  ", "a recent item"), true
+		}
+		return "", false
+	}
+	unmargined := frame("list-50x12.ansi", func(y int) string {
+		if s, ok := section(y); ok {
+			return s
+		}
+		return faint + fmt.Sprintf("  %-46s  ", "a faint row of the page, every cell")
+	})
+	margined := frame("feed-50x12.ansi", func(y int) string {
+		if s, ok := section(y); ok {
+			return s
+		}
+		if y == 2 || y == 7 {
+			return strings.Repeat(" ", 50)
+		}
+		return bright + "  a bright row of the page   " + faint + fmt.Sprintf("%-19s", "2h ago · muted") + " "
+	})
+	for _, p := range []string{unmargined, margined} {
+		n := 0
+		for _, h := range contrastHits(t, p) {
+			if h.Sev == "P1" {
+				n++
+			}
+		}
+		if n != 1 {
+			t.Errorf("%s: %d P1 F-CONTRAST, want 1 (a section, not a dialog)", filepath.Base(p), n)
 		}
 	}
 }
@@ -1027,6 +1086,12 @@ func TestScrimmedDialogByShape(t *testing.T) {
 	var b strings.Builder
 	for y := range 10 {
 		page := fmt.Sprintf("  %-24s", "a long page row that runs on")[:26] + "…"
+		if y == 0 {
+			// the page's header and two more rows above the dialog, dimmed with the rest
+			for _, h := range []string{"  app · header", "  a page row above it", ""} {
+				b.WriteString(dim + fmt.Sprintf("%-60s", h) + off + "\n")
+			}
+		}
 		var dialog string
 		switch y {
 		case 1, 8:
@@ -1047,7 +1112,7 @@ func TestScrimmedDialogByShape(t *testing.T) {
 			b.WriteString(dim + page + off + "   " + dialog + "    \n")
 		}
 	}
-	p := filepath.Join(t.TempDir(), "sending-60x10.ansi")
+	p := filepath.Join(t.TempDir(), "sending-60x13.ansi")
 	if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
 		t.Fatal(err)
 	}
