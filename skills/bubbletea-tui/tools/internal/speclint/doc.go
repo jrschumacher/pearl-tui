@@ -111,8 +111,10 @@
 //	                  the footer shows a hint whose keys neither the row nor Global binds (row
 //	                  keys over an empty table), or lacks a key the row puts in the footer while
 //	                  nothing is dropped behind …. A hint is a key drawn in another style than its
-//	                  action, as ui.Help draws it, so status text on the row is not one; ASCII
-//	                  twins (^v, <>) read as arrows; a row "as list; x cancel" is list's keys and
+//	                  action, as ui.Help draws it, so status text on the row is not one; with no
+//	                  style (NO_COLOR), a prompt or badge one blank before the first hint ("/yes▏
+//	                  enter keep") is not part of it; ASCII twins (^v, <>, ^v<>) read as arrows,
+//	                  and a lone v as v or ↓; a row "as list; x cancel" is list's keys and
 //	                  these; a badge one blank before the first hint ("[PROD] enter next") is not
 //	                  part of it, nor is ui.Footer's right status (what follows the help hint
 //	                  ui.Help pins last, and a count such as `4 of 101` or `1/9` anywhere); a

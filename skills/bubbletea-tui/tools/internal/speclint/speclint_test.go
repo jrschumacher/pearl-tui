@@ -647,6 +647,9 @@ func TestGoldenFooters(t *testing.T) {
 		"| form | form | enter next field · esc back ‖ tab/shift+tab field |",
 		"| list-selected | list | **↑↓/jk move** · **enter open** · **? help** · d delete |",
 		"| list-picked | list | **↑↓/jk move** · **enter open** |",
+		"| grid | overlay | **↑↓←→ pick** · **enter send** · **esc back** |",
+		"| list-top | list | **↓ select** · **/ filter** · **? help** |",
+		"| list-filter | list | **enter keep** · **esc drop** · **ctrl+g help** · backspace erase |",
 	}, "\n"), "ctrl+c quit")
 	cases := []struct {
 		name, frame string
@@ -663,6 +666,11 @@ func TestGoldenFooters(t *testing.T) {
 		// the key's ink) is status, not a hint; so is an "N of M" count with no help hint
 		{"list-selected", footer("↑↓/jk move", "enter open", "? help") + "  " + key + "4" + off + desc + " of 101" + off, nil},
 		{"list-picked", footer("↑↓/jk move", "enter open") + "  " + key + "1" + off + desc + " of 9" + off, nil},
+		// ASCII draws the four arrows as ^v<>; NO_COLOR draws a prompt one blank before
+		// the first hint with no style to tell them apart
+		{"grid", footer("^v<> pick", "enter send", "esc back"), nil},
+		{"list-top", footer("v select", "/ filter", "? help"), nil},
+		{"list-filter", "  /yes| enter keep  esc drop        ctrl+g help  9 rows", nil},
 	}
 	dir := t.TempDir()
 	for _, c := range cases {

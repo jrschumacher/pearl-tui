@@ -5,7 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
+	"unicode"
 
 	"tuitools/internal/framelint"
 )
@@ -14,7 +16,12 @@ import (
 type frameHint struct {
 	text string
 	keys []key
+	twin []key // the keys again with a lone ASCII arrow read as its arrow: "v" is ↓
 }
+
+// asciiLone are ASCII arrow twins that are also keys of their own ("v select" is v, or ↓
+// under -ascii): a hint matches the row by either reading.
+var asciiLone = map[string]string{"v": "↓"}
 
 // frameFooter reads the footer of a golden frame: its last non-blank row, split where
 // two or more blank cells fall, as ui.Help joins hints. A chunk is a hint when its first
@@ -63,7 +70,7 @@ func frameFooter(text string) (hints []frameHint, cut bool) {
 		blanks = 0
 		cur = append(cur, c)
 	}
-	for _, ch := range chunks {
+	for i, ch := range chunks {
 		var sb strings.Builder
 		for _, c := range ch {
 			sb.WriteString(c.Ch)
@@ -73,6 +80,21 @@ func frameFooter(text string) (hints []frameHint, cut bool) {
 			continue
 		}
 		h, ok := chunkHint(ch, styled)
+		if !ok && !styled && i == 0 && !startsWord(ch) {
+			// NO_COLOR: a prompt or badge one blank before the first hint ("/yes▏ enter
+			// keep", "[PROD] enter next"), with no style to tell them apart: the hint
+			// starts at the next word
+			at := 0
+			for at < len(ch) && strings.TrimSpace(ch[at].Ch) != "" {
+				at++
+			}
+			for at < len(ch) && strings.TrimSpace(ch[at].Ch) == "" {
+				at++
+			}
+			if at < len(ch) {
+				h, ok = chunkHint(ch[at:], styled)
+			}
+		}
 		if !ok && styled {
 			// a badge one blank before the first hint ("[PROD] enter next field"): the
 			// hint starts at the next word when that is drawn in another style
@@ -109,9 +131,22 @@ func pinsHelp(h frameHint) bool {
 	return len(h.keys) == 1 && (h.keys[0].String() == "?" || h.keys[0].String() == "ctrl+g")
 }
 
+// startsWord reports a chunk whose first cell is a letter or digit: a status word, not
+// a prompt (/, >, ›) or a badge ([PROD]).
+func startsWord(ch []framelint.Cell) bool {
+	for _, c := range ch {
+		if strings.TrimSpace(c.Ch) == "" {
+			continue
+		}
+		r := []rune(c.Ch)[0]
+		return unicode.IsLetter(r) || unicode.IsDigit(r)
+	}
+	return false
+}
+
 // asciiArrows are the arrow keys as an ASCII frame draws them (theme.ASCIITwin): "^v"
 // would read as ctrl+v.
-var asciiArrows = map[string]string{"^v": "↑↓", "<>": "←→", "^": "↑", "<-": "←", "->": "→"}
+var asciiArrows = map[string]string{"^v": "↑↓", "<>": "←→", "^v<>": "↑↓←→", "<>^v": "←→↑↓", "^": "↑", "<-": "←", "->": "→"}
 
 // unASCII turns a key token's ASCII arrow twins back into arrows, alternative by
 // alternative ("^v/jk" is ↑↓/jk).
@@ -156,7 +191,16 @@ func chunkHint(ch []framelint.Cell, styled bool) (frameHint, bool) {
 			return frameHint{}, false
 		}
 	}
-	return frameHint{text: s, keys: b.keys}, true
+	h := frameHint{text: s, keys: b.keys}
+	if alts := splitAlts(words[0]); slices.ContainsFunc(alts, func(a string) bool { return asciiLone[a] != "" }) {
+		for i, a := range alts {
+			if r, ok := asciiLone[a]; ok {
+				alts[i] = r
+			}
+		}
+		h.twin = readItem(append([]string{strings.Join(alts, "/")}, words[1:]...)).keys
+	}
+	return h, true
 }
 
 // sameAs is a keys cell that borrows another state's: "as chat", "same as chat",
@@ -221,7 +265,7 @@ func (s *spec) goldenFooters(dir string, add func(string, int, string, ...any)) 
 		var extra []string
 		for _, h := range hints {
 			any := false
-			for _, k := range h.keys {
+			for _, k := range append(append([]key{}, h.keys...), h.twin...) {
 				shown[k] = true
 				any = any || bound[k]
 			}
