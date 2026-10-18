@@ -272,10 +272,15 @@ func (m *app) focusMarks(c *ui.Canvas) []uv.Position {
 				out = append(out, uv.Pos(x, y))
 				continue
 			}
-			if cell == nil || next == nil || strings.TrimSpace(next.Content) != "" {
+			if cell == nil || next == nil {
 				continue
 			}
+			// a mark stands before a blank, or, the cursor, before a bracket button's "["
+			blank := strings.TrimSpace(next.Content) == ""
 			for _, mk := range marks {
+				if !blank && (mk.g != t.G.Cursor || next.Content != "[") {
+					continue
+				}
 				if mk.g != "" && cell.Content == mk.g && sameRGB(cell.Style.Fg, mk.st.GetForeground()) {
 					out = append(out, uv.Pos(x, y))
 				}

@@ -312,11 +312,33 @@ func TestDeployReviewIsTheConfirm(t *testing.T) {
 	if m.screen == scrDeploy || m.svcs[m.sel].State == "deploying" {
 		t.Fatalf("enter alone shipped to prod or never left the form (screen %d)", m.screen)
 	}
-	m = fixture(t, "deploy")
-	m.focus = 4
-	m.armDeploy()
+	m = fixture(t, "deploy-review")
+	if m.focus != 4 || m.formBtn != 1 {
+		t.Fatal("deploy-review must render the prod review step with Cancel focused")
+	}
 	if out := strings.ToLower(ansi.Strip(m.render(120, 40).String())); !strings.Contains(out, strings.ToLower("Deploy "+m.version+" to prod")) {
 		t.Fatal("the deploy button must name the act and where it lands")
+	}
+	// the act is drawn in danger ink while Cancel holds the focus, as a confirm's is
+	c, found := m.render(120, 40), false
+	for y, line := range strings.Split(strings.ToLower(ansi.Strip(c.String())), "\n") {
+		x := strings.Index(line, "deploy "+m.version)
+		if x < 0 {
+			continue
+		}
+		found = true
+		cell := c.CellAt(len([]rune(line[:x])), y)
+		if cell == nil || cell.Style.Fg == nil {
+			t.Fatal("a prod deploy's act button must be drawn in danger ink, not the default")
+		}
+		r1, g1, b1, _ := cell.Style.Fg.RGBA()
+		r2, g2, b2, _ := m.t.P.Error.RGBA()
+		if r1 != r2 || g1 != g2 || b1 != b2 {
+			t.Fatal("a prod deploy's act button must be drawn in danger ink")
+		}
+	}
+	if !found {
+		t.Fatal("no act button on the deploy review step")
 	}
 	m.env, m.focus = 1, 3
 	m.key(press("tab"))

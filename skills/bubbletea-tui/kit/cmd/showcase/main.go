@@ -35,7 +35,7 @@ import (
 
 // states are every screen the app can show. A state you can't render here is
 // a state nobody reviewed.
-var states = []string{"services", "services-toast", "deploys", "palette", "confirm", "help", "deploy",
+var states = []string{"services", "services-toast", "deploys", "palette", "confirm", "help", "deploy", "deploy-review",
 	"incidents", "ladder", "assistant", "assistant-busy", "splash", "toosmall",
 	"setup-target", "setup-namespace", "setup-invalid", "setup-auth", "setup-alerts", "setup-review", "setup-signin", "setup-failed", "setup-done"}
 
@@ -56,7 +56,7 @@ var scrolls = []string{"help"}
 // that draws a selection, a focused field or a caret. (Not the setup wizard: a Huh
 // form has no way to draw its focused field blurred short of Field.Blur, which
 // validates it.)
-var overlayPages = []string{"services", "deploys", "assistant", "deploy", "services-toast"}
+var overlayPages = []string{"services", "deploys", "assistant", "deploy", "deploy-review", "services-toast"}
 
 // unjudgedPages are the states that draw a focus mark that an overlay can't blur, kept
 // out of overlayPages, each with its reason (repeat it in TUI.md § Decisions). Only a
@@ -109,6 +109,10 @@ func (m *app) setState(s string) {
 		m.openOverlay(s)
 	case "deploy":
 		m.openDeploy()
+	case "deploy-review": // the prod deploy's last step, its confirmation: focus on Cancel
+		m.openDeploy()
+		m.focus = 4
+		m.armDeploy()
 	case "incidents":
 		m.screen = scrIncidents
 	case "ladder":
