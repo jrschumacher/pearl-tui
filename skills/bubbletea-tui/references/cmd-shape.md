@@ -26,8 +26,10 @@ to the user. No Go yet.
    gets a done state with its undo toast instead (`closed-undo`), and a sent message its
    `sent`. A ship started from a form has no `confirm-*` state: its review step is it.
 4. **Keys**: the bindings, the help order, what `esc` does, and where focus starts and
-   moves. A footer key shown only sometimes ends with its condition (`(if a filter is
-   applied)`, `(while the body overflows)`) or `(later)`, as in `cmd-init.md`'s template.
+   moves. A footer key shown only sometimes ends with its condition, `(if …)`, `(when …)`
+   or `(while …)` (`(if a filter is applied)`), and one whose screen comes later in the
+   slice with `(later)` or `(later: <screen>)`, as in `cmd-init.md`'s template, so
+   `tuilint spec` neither counts the mark's width nor asks the golden to show the key.
 5. **Content**: realistic fixture data, including the longest name, the failing row and
    the empty list. No lorem ipsum. Each column's budget fits its longest fixture: more
    than 3 rows cut to `…` in one column is a budget too narrow [F-TRUNC]. A column of
