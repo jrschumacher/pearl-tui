@@ -195,5 +195,5 @@ real data, including the long name, the failing row and the empty list.
 5. Resize to 80×24 and 200×60. Same design, more or less room, nothing torn.
 6. Read every word aloud. Would a person who works here write it?
 7. Look for anything pink-purple, any emoji, any `Loading...`. Remove it.
-8. Name the one thing a user will remember about this screen. If you can't, it has no
-   identity yet. Go back to the brand read.
+8. Point at the read's move and signature on the main screen, and the brand's marks on
+   this one. If you can't, it has no identity yet. Go back to the brand read.

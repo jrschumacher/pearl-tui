@@ -21,7 +21,8 @@ Run after the screens work and the critique's P0/P1s are fixed. Go through every
 
 ## Identity
 
-- [ ] The brand's signature is visible on this screen (motif, selection style, header).
+- [ ] The brand's marks (motif, selection style, header) are visible on this screen,
+      and the main screen shows the read's move and signature.
 - [ ] Glyphs come from the theme. One glyph per meaning across the app.
 - [ ] Copy is in the brand's voice (`interaction.md` § Copy). No "Loading...", no
       "Successfully", no "An error occurred".

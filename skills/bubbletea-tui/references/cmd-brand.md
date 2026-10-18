@@ -22,11 +22,9 @@ drifts), contact sheets in both modes, a passing diversity lint. Read
    geometry, density, type, motif, move, signature, then one line per expression tying
    it to a trait. Use the translation table in `brand.md` §2 as a starting point, not an
    answer.
-4. **Choose the move and the signature** (`brand.md` § Move A Region): one region the
-   kit places differently, from one of the three words, and one element the kit doesn't
-   draw, both on the main screen's default frame, because paint alone reads as one
-   product under two themes. They are two of the two or three moves this brand owns (a
-   stamp header, `▲ △` sails, lowercase titles); everything else may stay quiet.
+4. **Choose the move and the signature** (`brand.md` § Move A Region). With the motif
+   (`▲ △` sails, lowercase titles), they are the moves this brand owns; everything else
+   may stay quiet.
 5. **Convert the assets.** Wordmark: `scripts/wordmark.py "<name>" --font <brand.ttf>
    --style …`. Logo, if the splash needs it: `scripts/logo2cells.py` and then
    `cell-art.md`. Motif glyph and its ASCII fallback.
@@ -43,9 +41,9 @@ drifts), contact sheets in both modes, a passing diversity lint. Read
 8. **Lint.** `diversity themes/*.json kit/themes/ink.json kit/themes/charm.json
    --baseline ink,charm --min-distance 8` must pass (`kit/` is in the skill directory;
    without the baseline files it exits 2). If it fails on distance from `ink`, identity
-   is only in the palette, so go back to step 4. Each axis moved after the lint gets its
-   product reason in the read and in `TUI.md` § Decisions; an axis whose only reason is
-   the count moves back, because a scrim dropped or a dialog edge changed to reach 8 is
+   is only in the palette, so go back to the read's expression lines (step 3, `brand.md`
+   §2). Each axis moved after the lint gets its product reason in the read and in
+   `TUI.md` § Decisions; an axis whose only reason is the count moves back, because a scrim dropped or a dialog edge changed to reach 8 is
    the lint designing the product. Also `palette check` (every role is `#RGB` or
    `#RRGGBB`), `tuilint frames frames/<brand> --theme themes/<brand>.json --bg <bg>` and
    the light frames with `--bg <light bg>`, and the footprint: `go test` once the kit is
@@ -66,5 +64,7 @@ Next: `shape` (no screen spec yet) | `craft` (§ Screens is filled).
   `palette check` is OK.
 - The diversity lint passes against the baselines.
 - With colour stripped (`-profile ascii`), the screen is still recognisably this brand.
-- The main screen's default frame shows the read's move and signature.
+- `TUI.md` § Brand read names the move and the signature, and the main screen's sketch
+  in § Screens draws them (or `shape` will); `craft` renders them on the app's default
+  frame. The kit's showcase can't show either.
 - The read explains every choice in one line.
