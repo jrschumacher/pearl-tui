@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"runtime"
 	"runtime/debug"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -206,21 +207,39 @@ func within(path, dir string) bool {
 	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel)
 }
 
+// realPath resolves p's symlinks, or returns p cleaned when it can't.
+func realPath(p string) string {
+	if r, err := filepath.EvalSymlinks(p); err == nil {
+		return r
+	}
+	return filepath.Clean(p)
+}
+
 // ProjectRoot is the project the user is working in, wherever under it the tool runs:
 // the git toplevel, else the nearest directory up from Cwd holding a TUI.md or a go.mod,
-// else Cwd. It is "" when that is the home directory or holds it (a dotfiles repository,
-// a go.mod in ~): the home is redacted as ~, and its name is the user's, not a project's.
+// else Cwd, with symlinks resolved. It is "" when that is the home directory or holds it
+// (a dotfiles repository, a go.mod in ~): the home is redacted as ~, and its name is the
+// user's, not a project's.
 func (e Env) ProjectRoot() string {
+	root, _ := e.projectRoots()
+	return root
+}
+
+// projectRoots is ProjectRoot, and alias, the root as Cwd reaches it when that is through
+// a symlink (~/acme/internal/ui, with ~/acme a link to ~/src/acme-billing), else "".
+func (e Env) projectRoots() (root, alias string) {
 	if e.Cwd == "" {
-		return ""
+		return "", ""
 	}
-	root := filepath.Clean(e.Cwd)
-	if top := run("git", "-C", e.Cwd, "rev-parse", "--show-toplevel"); top != "" {
-		root = filepath.Clean(top)
+	cwd := filepath.Clean(e.Cwd)
+	real := realPath(cwd)
+	root = real
+	if top := run("git", "-C", real, "rev-parse", "--show-toplevel"); top != "" {
+		root = realPath(top)
 	} else {
 	markers:
 		for _, marker := range []string{"TUI.md", "go.mod"} {
-			for d := filepath.Clean(e.Cwd); ; d = filepath.Dir(d) {
+			for d := real; ; d = filepath.Dir(d) {
 				if _, err := os.Stat(filepath.Join(d, marker)); err == nil {
 					root = d
 					break markers
@@ -231,38 +250,116 @@ func (e Env) ProjectRoot() string {
 			}
 		}
 	}
-	if len(root) <= 1 || (len(e.Home) > 1 && within(filepath.Clean(e.Home), root)) {
-		return ""
+	home := ""
+	if len(e.Home) > 1 {
+		home = filepath.Clean(e.Home)
 	}
-	return root
+	holdsHome := func(dir string) bool {
+		return home != "" && (within(home, dir) || within(realPath(home), dir))
+	}
+	if len(root) <= 1 || holdsHome(root) {
+		return "", ""
+	}
+	if real != cwd && within(real, root) {
+		rel, _ := filepath.Rel(root, real)
+		alias = cwd
+		for _, part := range strings.Split(rel, string(filepath.Separator)) {
+			if part != "." {
+				alias = filepath.Dir(alias)
+			}
+		}
+		if alias == root || len(alias) <= 1 || holdsHome(alias) {
+			alias = ""
+		}
+	}
+	return root, alias
 }
 
 var moduleRe = regexp.MustCompile(`(?m)^module\s+"?([^"\s]+)"?`)
 
-// modulePaths reads the module path of each go.mod from Cwd up to the project root.
-func modulePaths(cwd, root string) []string {
-	if root == "" || !within(filepath.Clean(cwd), root) {
+// modulePaths reads the module path of every go.mod under root (vendor, testdata and
+// dot-directories aside) and of every module a go.work there uses, in or out of root.
+func modulePaths(root string) []string {
+	if root == "" {
 		return nil
 	}
+	seen := map[string]bool{}
 	var out []string
-	for d := filepath.Clean(cwd); ; d = filepath.Dir(d) {
-		if b, err := os.ReadFile(filepath.Join(d, "go.mod")); err == nil {
-			if m := moduleRe.FindSubmatch(b); m != nil {
-				out = append(out, string(m[1]))
+	read := func(dir string) {
+		b, err := os.ReadFile(filepath.Join(dir, "go.mod"))
+		if err != nil {
+			return
+		}
+		if m := moduleRe.FindSubmatch(b); m != nil && !seen[string(m[1])] {
+			seen[string(m[1])] = true
+			out = append(out, string(m[1]))
+		}
+	}
+	visited := 0
+	filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
+		if visited++; err != nil || visited > 20000 {
+			return filepath.SkipDir // unreadable, or a tree too big to walk on every draft
+		}
+		if d.IsDir() {
+			if n := d.Name(); p != root && (strings.HasPrefix(n, ".") || n == "vendor" || n == "testdata" || n == "node_modules") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		switch d.Name() {
+		case "go.mod":
+			read(filepath.Dir(p))
+		case "go.work":
+			b, _ := os.ReadFile(p)
+			for _, u := range goWorkUses(string(b)) {
+				read(filepath.Join(filepath.Dir(p), u))
 			}
 		}
-		if d == root || filepath.Dir(d) == d {
-			break
+		return nil
+	})
+	return out
+}
+
+// goWorkUses lists the directories a go.work's use directives name, in either form
+// ("use ./a" or a "use ( … )" block).
+func goWorkUses(work string) []string {
+	var out []string
+	block := false
+	for _, line := range strings.Split(work, "\n") {
+		line, _, _ = strings.Cut(line, "//")
+		f := strings.Fields(line)
+		switch {
+		case len(f) == 0:
+		case block && f[0] == ")":
+			block = false
+		case block:
+			out = append(out, strings.Trim(f[0], `"`))
+		case f[0] == "use" && len(f) > 1 && f[1] == "(":
+			block = true
+		case f[0] == "use" && len(f) > 1:
+			out = append(out, strings.Trim(f[1], `"`))
 		}
 	}
 	return out
 }
 
+// moduleOwner is a module path's host and owner ("github.com/acme-corp" for
+// github.com/acme-corp/acme-billing), or "" when it has no host.
+func moduleOwner(m string) string {
+	parts := strings.Split(m, "/")
+	if len(parts) < 3 || !strings.Contains(parts[0], ".") {
+		return ""
+	}
+	return parts[0] + "/" + parts[1]
+}
+
 // Redactor replaces what identifies the user or their project with placeholders before
-// anything is shown or sent: the project root's path, its directory name and its Go
-// module path; the home directory; the user name where it is a path segment
-// (/home/<user>, /Users/<user>); and words the agent names (the app's name, a customer's),
-// in any case and anywhere, inside a longer word too ("AcmeModel").
+// anything is shown or sent: the project root's path and directory name (and the
+// symlink's, when the tool runs through one); the path of every Go module in it or in
+// its go.work, and each one's host and owner (github.com/acme-corp); the home directory;
+// the user name where it is a path segment (/home/<user>, /Users/<user>); and words the
+// agent names (the app's name, a customer's), in any case and anywhere, inside a longer
+// word too ("AcmeModel").
 type Redactor struct {
 	rules  []rule
 	counts map[string]int
@@ -294,12 +391,11 @@ func isPathRune(r rune) bool { return isWordRune(r) || strings.ContainsRune(".-~
 // NewRedactor builds the rules for e, plus one per extra word.
 func NewRedactor(e Env, extra []string) *Redactor {
 	r := &Redactor{counts: map[string]int{}, extra: map[string]int{}}
-	root := e.ProjectRoot()
+	root, alias := e.projectRoots()
 	var paths []rule
-	if root != "" {
-		paths = append(paths, rule{needle: root, with: "<project>", kind: byPath})
-		if c := filepath.Clean(e.Cwd); !within(c, root) && len(c) > 1 && !within(filepath.Clean(e.Home), c) {
-			paths = append(paths, rule{needle: c, with: "<project>", kind: byPath}) // a symlinked checkout
+	for _, p := range []string{root, alias} {
+		if p != "" {
+			paths = append(paths, rule{needle: p, with: "<project>", kind: byPath})
 		}
 	}
 	if len(e.Home) > 1 {
@@ -308,18 +404,28 @@ func NewRedactor(e Env, extra []string) *Redactor {
 	// longest first, so the project path wins over the home that holds it
 	sort.SliceStable(paths, func(i, j int) bool { return len(paths[i].needle) > len(paths[j].needle) })
 	r.rules = append(r.rules, paths...)
-	mods := modulePaths(e.Cwd, root)
+	// every module path, longest first, then what is left of each: its host and owner
+	mods := modulePaths(root)
 	sort.SliceStable(mods, func(i, j int) bool { return len(mods[i]) > len(mods[j]) })
+	var owners []string
 	for _, m := range mods {
 		if strings.Contains(m, "/") {
 			r.rules = append(r.rules, rule{needle: m, with: "<module>", kind: byPath})
 		} else if len([]rune(m)) >= 4 {
 			r.rules = append(r.rules, rule{needle: m, with: "<module>", kind: byWord, fold: true})
 		}
+		if o := moduleOwner(m); o != "" && !slices.Contains(owners, o) {
+			owners = append(owners, o)
+		}
 	}
-	// the directory name, unless it is too short to be a name or is the user's
-	if base := filepath.Base(root); root != "" && len([]rune(base)) >= 4 && !strings.EqualFold(base, e.User) {
-		r.rules = append(r.rules, rule{needle: base, with: "<project>", kind: byWord, fold: true})
+	for _, o := range owners {
+		r.rules = append(r.rules, rule{needle: o, with: "<owner>", kind: byPath})
+	}
+	// the directory names, whole words only, unless too short to be a name or the user's
+	for _, p := range []string{root, alias} {
+		if base := filepath.Base(p); p != "" && len([]rune(base)) >= 4 && !strings.EqualFold(base, e.User) {
+			r.rules = append(r.rules, rule{needle: base, with: "<project>", kind: byWord, fold: true})
+		}
 	}
 	if e.User != "" {
 		r.rules = append(r.rules, rule{needle: e.User, with: "<user>", kind: byPath,
@@ -361,7 +467,7 @@ func (ru rule) bounded(s string, i, j int) bool {
 
 // placeholderRe finds what an earlier rule wrote, so a later one can't match inside it
 // (--redact project would otherwise turn <project> into <<redacted>>).
-var placeholderRe = regexp.MustCompile(`<(?:project|module|user|redacted)>`)
+var placeholderRe = regexp.MustCompile(`<(?:project|module|owner|user|redacted)>`)
 
 // Apply redacts s and counts each replacement by its placeholder.
 func (r *Redactor) Apply(s string) string {
@@ -433,7 +539,7 @@ func (r *Redactor) Report() string {
 		return ""
 	}
 	var parts []string
-	for _, with := range []string{"<project>", "<module>", "~", "<user>", "<redacted>"} {
+	for _, with := range []string{"<project>", "<module>", "<owner>", "~", "<user>", "<redacted>"} {
 		if n := r.counts[with]; n > 0 {
 			parts = append(parts, fmt.Sprintf("%d × %s", n, with))
 		}

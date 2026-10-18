@@ -44,7 +44,7 @@
 //	--redact WORD     also replace WORD (the app's name, a customer's) with <redacted>,
 //	                  repeatable, in any case and script, inside longer words too
 //	                  (WORDModel); a WORD that matched nothing is named on stderr
-//	--no-redact       keep paths, the module and the user name as written
+//	--no-redact       keep paths, modules, owners and the user name as written
 //	--out FILE        where submit writes the body when the link can't carry it
 //	--open            submit without gh: open the link in the browser
 //
@@ -63,11 +63,14 @@
 //
 // Every field and the title, and similar's search words, are redacted before they are
 // printed or sent, wherever under the project the tool runs: the project root's path (the
-// git toplevel, else the nearest directory holding TUI.md or go.mod) and its directory
-// name become <project>, its Go module path <module>, the home directory ~, and the user
-// name <user> where it is a path segment (/home/<user>, /Users/<user>), never as a bare
-// word. A project root that is the home directory is not a project. draft and submit say
-// on stderr what they replaced; tell the user.
+// git toplevel, else the nearest directory holding TUI.md or go.mod, symlinks resolved)
+// and its directory name become <project>, as do the symlink's when the tool runs through
+// one; the path of every Go module in it (vendor and testdata aside) or in its go.work
+// becomes <module>, and each one's host and owner (github.com/acme-corp) <owner>; the
+// home directory becomes ~, and the user name <user> where it is a path segment
+// (/home/<user>, /Users/<user>), never as a bare word. A project root that is the home
+// directory is not a project. draft and submit say on stderr what they replaced; tell
+// the user.
 //
 // Exit status: 0 drafted, filed, or searched; 1 gh failed, or a draft lacks a required
 // field (it prints anyway, the missing ids on stderr); 2 a usage error (bad flag, kind,

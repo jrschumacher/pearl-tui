@@ -390,6 +390,66 @@ func TestRedactorFromASubdirectory(t *testing.T) {
 	})
 }
 
+// Every module of the project is redacted, not only the one on the path up from the
+// working directory: nested modules, a go.work's modules (in the project or beside it),
+// and what is left of any other path under the same owner. A symlinked working directory
+// finds the same project, and the symlink's own path and name are redacted too.
+func TestRedactorModulesAndSymlinks(t *testing.T) {
+	home := t.TempDir()
+	root := filepath.Join(home, "src", "acme-billing")
+	write := func(path, text string) {
+		os.MkdirAll(filepath.Dir(path), 0o755)
+		os.WriteFile(path, []byte(text), 0o644)
+	}
+	write(filepath.Join(root, "go.mod"), "module github.com/acme-corp/acme-billing\n")
+	write(filepath.Join(root, "tools", "gen", "go.mod"), "module github.com/acme-corp/acme-gen\n")
+	write(filepath.Join(root, "vendor", "x", "go.mod"), "module github.com/vendored/x\n")
+	write(filepath.Join(root, "go.work"), "go 1.26\n\nuse (\n\t.\n\t./tools/gen\n\t../acme-lib // the shared lib\n)\n")
+	write(filepath.Join(home, "src", "acme-lib", "go.mod"), "module \"github.com/acme-corp/acme-lib\"\n")
+	os.MkdirAll(filepath.Join(root, "internal", "ui"), 0o755)
+	link := filepath.Join(home, "acme")
+	if err := os.Symlink(root, link); err != nil {
+		t.Skip("no symlinks:", err)
+	}
+	text := "panic: github.com/acme-corp/acme-billing/internal/ui.(*List).View; github.com/acme-corp/acme-gen/cmd; " +
+		"github.com/acme-corp/acme-lib/pkg; github.com/acme-corp/other; github.com/vendored/x; " +
+		"file://" + link + "/main.go and " + root + "/main.go; acme crashed"
+	want := "panic: <module>/internal/ui.(*List).View; <module>/cmd; <module>/pkg; <owner>/other; github.com/vendored/x; " +
+		"file://<project>/main.go and <project>/main.go; <project> crashed"
+	check := func(t *testing.T) {
+		// from the real root nothing names the link, so only the modules are checked there
+		for cwd, want := range map[string]string{
+			filepath.Join(link, "internal", "ui"): want,
+			root:                                  strings.Replace(strings.Replace(want, "file://<project>", "file://~/acme", 1), "<project> crashed", "acme crashed", 1),
+		} {
+			r := NewRedactor(Env{Cwd: cwd, Home: home}, nil)
+			if got := r.Apply(text); got != want {
+				t.Errorf("from %s: Apply =\n %s\nwant\n %s", cwd, got, want)
+			}
+		}
+	}
+	t.Run("go.mod", func(t *testing.T) {
+		t.Setenv("PATH", "")
+		check(t)
+	})
+	t.Run("git", func(t *testing.T) {
+		if _, err := exec.LookPath("git"); err != nil {
+			t.Skip("no git")
+		}
+		if out, err := exec.Command("git", "init", "-q", root).CombinedOutput(); err != nil {
+			t.Fatalf("git init: %v %s", err, out)
+		}
+		check(t)
+	})
+}
+
+func TestGoWorkUses(t *testing.T) {
+	got := goWorkUses("go 1.26\n\nuse ./a // one\nuse \"../b\"\nuse (\n\t./c\n\n\t\"./d\" // four\n)\n")
+	if want := []string{"./a", "../b", "./c", "./d"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("goWorkUses = %q, want %q", got, want)
+	}
+}
+
 // ---- the command, against stubs on PATH ---------------------------------------------
 
 type rig struct {
