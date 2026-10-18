@@ -42,24 +42,6 @@ var overlayVariants = []struct {
 }{{"truecolor", false, colorprofile.TrueColor}, {"ansi256", false, colorprofile.ANSI256},
 	{"ansi", false, colorprofile.ANSI}, {"NO_COLOR", false, colorprofile.Ascii}, {"ascii", true, colorprofile.TrueColor}}
 
-// overlayPages are the states an overlay is opened over in the tests: every screen
-// that draws a selection, a focused field or a caret. (Not the setup wizard: a Huh
-// form has no way to draw its focused field blurred short of Field.Blur, which
-// validates it.)
-var overlayPages = []string{"services", "deploys", "assistant", "deploy"}
-
-// openOverlay opens the overlay s over whatever page m shows, as its key would.
-func openOverlay(m *app, s string) {
-	switch s {
-	case "palette":
-		m.ov, m.query, m.palSel = ovPalette, "ro", 0
-	case "confirm":
-		m.ov, m.btn = ovConfirm, 1
-	case "help":
-		m.helpFrom, m.ov = ovNone, ovHelp
-	}
-}
-
 // cellText is a cell's glyph, a blank for an empty cell.
 func cellText(c *ui.Canvas, x, y int) string {
 	if cell := c.CellAt(x, y); cell != nil && cell.Content != "" {
@@ -100,9 +82,9 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 					m.setState(page)
 					base := m.render(sz[0], sz[1])
 					focusCells := m.focusMarks(base)
-					for _, s := range []string{"palette", "confirm", "help"} {
+					for _, s := range overlays {
 						m.setState(page)
-						openOverlay(m, s)
+						m.openOverlay(s)
 						c := m.render(sz[0], sz[1])
 						name := fmt.Sprintf("%s %s %s over %s %dx%d", filepath.Base(f), v.name, s, page, sz[0], sz[1])
 						for y := range m.footY {
@@ -126,27 +108,26 @@ func TestOverlayKeepsThePageOffItsRows(t *testing.T) {
 	}
 	// the two the glyph scan broke, by name: cartridge's wordmark rows (its focus bar is
 	// the banner's █) and ferrous's header under ASCII (its bar and separator are both
-	// "|"). In a copied project testTheme gives the project's theme: the rows still hold.
+	// "|"): every row above the page's body (the header, none in an app without one)
+	// reads as it did. In a copied project testTheme gives the project's theme.
 	for _, k := range []struct {
 		theme string
 		ascii bool
-		rows  []int
 	}{
-		{"cartridge.json", false, []int{0, 1, 2}},
-		{"ferrous.json", true, []int{0}},
+		{"cartridge.json", false},
+		{"ferrous.json", true},
 	} {
 		tf := testTheme(t, k.theme)
-		for _, s := range []string{"palette", "confirm", "help"} {
+		for _, s := range overlays {
 			for _, sz := range [][2]int{{80, 24}, {120, 40}} {
 				m := newApp(tf, true, k.ascii)
-				m.setState("services")
+				m.setState(overlayPages[0])
 				base := m.render(sz[0], sz[1])
-				m.setState(s)
+				head := m.body.Min.Y
+				m.setState(overlayPages[0])
+				m.openOverlay(s)
 				c := m.render(sz[0], sz[1])
-				for _, y := range k.rows {
-					if y >= m.ovRect.Min.Y {
-						continue
-					}
+				for y := range min(head, m.ovRect.Min.Y) {
 					if got, want := rowText(c, y), rowText(base, y); got != want {
 						t.Errorf("%s ascii=%v %s %dx%d: row %d reads %q under the overlay, want %q", k.theme, k.ascii, s, sz[0], sz[1], y, got, want)
 					}
@@ -216,12 +197,12 @@ func TestOverlayFrameHasOneFocus(t *testing.T) {
 		for _, v := range overlayVariants {
 			for _, sz := range [][2]int{{80, 24}, {120, 40}} {
 				for _, page := range overlayPages {
-					for _, s := range []string{"palette", "confirm", "help"} {
+					for _, s := range overlays {
 						m := newApp(tf, true, v.ascii)
 						m.profile = v.p
 						m.setState(page)
 						seen += len(m.focusMarks(m.render(sz[0], sz[1])))
-						openOverlay(m, s)
+						m.openOverlay(s)
 						name := fmt.Sprintf("%s %s %s over %s %dx%d", filepath.Base(f), v.name, s, page, sz[0], sz[1])
 						c := m.render(sz[0], sz[1])
 						if x, y, ok := pageBeside(c, m.ovRect, 1); ok {
@@ -283,9 +264,14 @@ func sameRGB(a, b color.Color) bool {
 // Help opened over an overlay names that overlay's keys, not the screen's under it
 // (a recreation's help listed the conversation's keys over its permission dialog), and
 // closing it goes back to the overlay. Every overlay's help key opens it, the body holds
-// each of the overlay's bindings and none of the screen's, and esc returns.
+// each of the overlay's bindings and none of the screen's, and esc returns. The help key
+// is whichever of the overlay's keys opens help, and the screen's keys are the page's
+// own action table, so the test reads the app's tables, not the showcase's words.
 func TestHelpOverAnOverlayNamesItsKeys(t *testing.T) {
-	for _, s := range []string{"palette", "confirm"} {
+	for _, s := range overlays {
+		if s == "help" {
+			continue
+		}
 		m := fixture(t, s)
 		from := m.ov
 		var own []string
@@ -294,12 +280,28 @@ func TestHelpOverAnOverlayNamesItsKeys(t *testing.T) {
 		}
 		var helpKey string
 		for _, a := range m.actions() {
-			if a.b.Help().Desc == "keys" {
-				helpKey = a.b.Keys()[0]
+			for _, k := range a.b.Keys() {
+				if helpKey != "" {
+					break
+				}
+				p := fixture(t, s)
+				p.key(press(k))
+				if p.ov == ovHelp {
+					helpKey = k
+				}
 			}
 		}
 		if helpKey == "" {
-			t.Fatalf("%s: no help key in the overlay's action table", s)
+			t.Fatalf("%s: no key in the overlay's action table opens help", s)
+		}
+		// the screen's keys: the page under the overlay, with the overlay closed
+		page := *fixture(t, s)
+		page.ov = ovNone
+		var screenKeys []string
+		for _, a := range page.actions() {
+			if d := a.b.Help().Desc; !slices.Contains(own, d) {
+				screenKeys = append(screenKeys, d)
+			}
 		}
 		m.key(press(helpKey))
 		if m.ov != ovHelp {
@@ -315,8 +317,8 @@ func TestHelpOverAnOverlayNamesItsKeys(t *testing.T) {
 				t.Errorf("%s: help over the overlay doesn't name its %q key: %q", s, d, named)
 			}
 		}
-		for _, d := range []string{"deploy", "roll back", "next view"} {
-			if !slices.Contains(own, d) && slices.Contains(named, d) {
+		for _, d := range screenKeys {
+			if slices.Contains(named, d) {
 				t.Errorf("%s: help over the overlay names the screen's %q key: %q", s, d, named)
 			}
 		}

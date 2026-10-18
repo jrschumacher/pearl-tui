@@ -30,7 +30,11 @@ Before any real screen:
   a generation number), and `main.go`'s package doc rewritten for this product
 - the theme from `themes/` (`themes.Default`, `theme.Parse`), `-theme` only overriding it
 - `render(w, h) *ui.Canvas` shared by `View` and the harness
-- `setState(name)` for every state in the spec, using fixtures
+- `setState(name)` for every state in the spec, using fixtures, and beside it in
+  `main.go` the tables the kept harness tests read: `overlays` (the states that open a
+  dialog, `help` among them), `overlayPages` (the pages they open over) and
+  `openOverlay`. The tests then judge every overlay over every page with no edit; one
+  rewritten to skip an overlay hides the bug it was written for
 - flags: `-golden -w -h`, `-state`, `-out -sizes`, `-theme`, `-light`, `-ascii`,
   `-profile`, `-frame`
 - `_test.go` asserting the footprint at the floor `TUI.md` § Size floor names (60×18 in

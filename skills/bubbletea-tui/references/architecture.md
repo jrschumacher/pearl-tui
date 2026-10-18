@@ -205,12 +205,16 @@ go run ./cmd/<app> -out frames -sizes 80x24,120x40  every state × size into fra
 
 The `states` list names every screen and overlay the app can show (including empty,
 loading, error, too-small). `setState(name)` builds each from scratch with fixture data.
+`overlays` names the states that open a dialog and `overlayPages` the pages they open
+over; `openOverlay` opens one over the page shown. The harness tests read these tables
+and name no state of the showcase's but `help` and `toosmall`, so a copied app keeps
+them whole (`kit/README.md`).
 `View` and the harness share one `render(w, h)`, so the PNG is the program. See
 `kit/cmd/showcase/main.go`. A `_test.go` renders every state at the floor (60×18 in
 the kit, still a full layout; `TUI.md` § Size floor may raise it), 80×24, 100×30,
 120×40 and 200×60 in every theme and mode and asserts the footprint
-(`showcase_test.go`); `toosmall` is skipped there and checked by `-golden`/`-out` one
-size below the floor (50×14 in the kit).
+(`showcase_test.go`, the floor read from `minW`/`minH`); `toosmall` is skipped there
+and checked by `-golden`/`-out` one size below the floor (50×14 in the kit).
 
 ## Project Layout
 

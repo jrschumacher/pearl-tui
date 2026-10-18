@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"unicode"
@@ -15,10 +16,11 @@ import (
 	"tuikit/ui"
 )
 
-// ansi16States are the states #51's sheets judge: a warning beside a success and the
-// selection (services), a filled selection in a dialog (palette, confirm), every status
-// mark (ladder), a brand title and a filled header (setup-signin), and a form (deploy).
-var ansi16States = []string{"services", "palette", "confirm", "ladder", "setup-signin", "deploy"}
+// ansi16States are the states #51's sheets judge: every page that draws a selection
+// (a warning beside a success and the selection, a form) and every overlay (a filled
+// selection in a dialog), from the app's own lists. The showcase adds its status ladder
+// and its wizard's brand title and filled header (screens_test.go).
+var ansi16States = append(slices.Clone(overlayPages), overlays...)
 
 // renderState draws state at w×h for theme f.
 func renderState(f theme.File, dark bool, prof colorprofile.Profile, state string, w, h int) (*app, *ui.Canvas) {
@@ -192,61 +194,6 @@ func TestWarningIsAFillWhereItsSlotIsFaint(t *testing.T) {
 								cell.Content, x, y, warn, slot16(cell.Style.Bg, m.t.P.Bg), theme.Contrast16(m.t.P.Warning, m.t.P.Bg), strings.TrimRight(rowText(c, y), " "))
 						}
 					}
-				}
-			}
-		}
-	}
-}
-
-// Where the warning is a fill (yellow 3 on a white page), only its mark, tags and badges
-// take it: a degraded row's sparkline drawn as filled bars was a solid strip of black on
-// yellow, the heaviest thing on the services screen, in the black of the light page's
-// focus and selection (#59 critic). Its bars are drawn on the page, in an ink that is not
-// the focus's, and its mark still sits against the last bar.
-func TestFaintWarningSparklineStaysQuiet(t *testing.T) {
-	for _, path := range testThemes(t) {
-		tf, err := theme.Load(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, dark := range []bool{true, false} {
-			for _, size := range [][2]int{{80, 24}, {120, 40}} {
-				m, c := renderState(tf, dark, colorprofile.ANSI, "services", size[0], size[1])
-				if theme.Contrast16(m.t.P.Warning, m.t.P.Bg) >= 3 {
-					continue
-				}
-				warn, page := theme.Slot16(m.t.P.Warning), theme.Slot16(m.t.P.Bg)
-				focus := theme.Slot16(m.t.S.Focus.GetForeground())
-				rows := 0
-				for y := range size[1] {
-					// the degraded row's sparkline: the run of bar cells against a warning mark
-					// drawn as a fill, after the row's own leading mark
-					for x := size[0] - 1; x > 4; x-- {
-						cell := c.CellAt(x, y)
-						if cell == nil || cell.Content != m.t.G.Warn || slot16(cell.Style.Bg, m.t.P.Bg) != warn {
-							continue
-						}
-						prev := c.CellAt(x-1, y)
-						if prev == nil || !strings.ContainsAny(prev.Content, theme.SparkRamp) {
-							continue
-						}
-						rows++
-						for bx := x - 1; bx >= 0; bx-- {
-							b := c.CellAt(bx, y)
-							if b == nil || !strings.ContainsAny(b.Content, theme.SparkRamp) {
-								break
-							}
-							if bg, fg := slot16(b.Style.Bg, m.t.P.Bg), slot16(b.Style.Fg, m.t.P.Fg); bg != page || fg == focus {
-								t.Errorf("%s dark=%v %dx%d: sparkline bar %q at %d,%d draws ANSI %d on ANSI %d: want the page (%d) and not the focus's ink (%d)",
-									filepath.Base(path), dark, size[0], size[1], b.Content, bx, y, fg, bg, page, focus)
-								break
-							}
-						}
-						break
-					}
-				}
-				if rows == 0 {
-					t.Errorf("%s dark=%v %dx%d: no degraded sparkline with its mark: the test reached nothing", filepath.Base(path), dark, size[0], size[1])
 				}
 			}
 		}

@@ -16,11 +16,12 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
 1. **Get eyes on it first** (`cmd-critique.md` §1) and save the "before" sheets.
 2. **Add the harness from the kit.** Copy `theme/` and `ui/` with the README block
    (`cmd-craft.md` §1; skip `cmd/showcase`, the app exists), then lift `main.go`'s
-   harness (`render(w, h)`, `setState`, the `-golden`/`-out` flags) into the app's
-   package and adapt `showcase_test.go`/`behaviour_test.go` (their fixture and states
-   helpers) to the app's model. Written by hand, the harness loses the kit's tests
-   (`TestHelpIsHandled`, footprint, contrast). Fix footprint failures before anything
-   visual.
+   harness (`render(w, h)`, `setState`, `states`, `overlays`, `overlayPages`,
+   `openOverlay`, the `-golden`/`-out` flags) into the app's package and give the app's
+   model the names the harness tests read (`kit/README.md`), then copy
+   `showcase_test.go`, `overlay_test.go`, `behaviour_test.go` and `ansi16_test.go`
+   whole. Written by hand, the harness loses the kit's tests (`TestHelpIsHandled`,
+   footprint, contrast). Fix footprint failures before anything visual.
 3. **Migrate to v2** if it's on v1 (`architecture.md`): import paths, `View() tea.View`,
    `tea.KeyPressMsg`, the AltScreen/mouse view fields, Lip Gloss colours, Bubbles style
    setters. Use the official upgrade guides for the mechanics. The renders must match
