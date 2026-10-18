@@ -358,6 +358,7 @@ type dialogPos struct {
 	up, below          int
 	lines              bool
 	first, last, total int
+	shown              int // body rows between Clip's two markers, when both are drawn (else -1)
 }
 
 // hides reports rows of the body not on screen.
@@ -374,23 +375,38 @@ func (p dialogPos) String() string {
 
 var dialogLinesRe = regexp.MustCompile(`lines (\d+)[–-](\d+) of (\d+)`)
 
-// readPos reads a dialog's position (dialogPos) off the canvas.
+// readPos reads a dialog's position (dialogPos) off the canvas: Clip's markers as rows
+// of their own anywhere in the dialog, and "lines a–b of n" only in its bottom edge
+// (its last row with anything on it, where DialogStatus sets it), so a verbatim body
+// quoting "see lines 12-20 of 300" is no position.
 func readPos(th *theme.Theme, c *ui.Canvas, r uv.Rectangle) dialogPos {
 	marker := func(g string) *regexp.Regexp {
 		// the row is the marker alone, between the dialog's side edges if it has any
 		return regexp.MustCompile(`^\S?\s*` + regexp.QuoteMeta(g) + ` (\d+) more\s*\S?$`)
 	}
 	upRe, belowRe := marker(th.G.More), marker(th.G.Ellipsis)
-	var p dialogPos
-	for _, row := range rectRows(c, r) {
+	p := dialogPos{shown: -1}
+	rows := rectRows(c, r)
+	upAt, belowAt, edge := -1, -1, -1
+	for i, row := range rows {
 		row = strings.TrimSpace(row)
+		if row != "" {
+			edge = i
+		}
 		if m := upRe.FindStringSubmatch(row); m != nil {
 			p.up, _ = strconv.Atoi(m[1])
+			upAt = i
 		}
 		if m := belowRe.FindStringSubmatch(row); m != nil {
 			p.below, _ = strconv.Atoi(m[1])
+			belowAt = i
 		}
-		if m := dialogLinesRe.FindStringSubmatch(row); m != nil {
+	}
+	if upAt >= 0 && belowAt > upAt {
+		p.shown = belowAt - upAt - 1
+	}
+	if edge >= 0 {
+		if m := dialogLinesRe.FindStringSubmatch(rows[edge]); m != nil {
 			p.lines = true
 			p.first, _ = strconv.Atoi(m[1])
 			p.last, _ = strconv.Atoi(m[2])
@@ -520,11 +536,16 @@ func scrollKey(m *app) string {
 
 // scrollsToItsEnd presses down (press) on a dialog that scrolls (render draws it) until
 // it stops changing, and says what is wrong: rows went by with no position drawn
-// (nothing unsent is hidden without one), the position jumped past rows or went back,
-// or the end of the body was never reached. A dialog that fits passes.
+// (nothing unsent is hidden without one), the position jumped past a line not yet
+// shown or went back, or the end of the body was never reached. A dialog that fits
+// passes. It reads the position the dialog draws, not its body: a label that advances
+// while the body stays put can't be told from a body that scrolls. Under Clip the
+// rows shown are known from a frame with both markers (the body's length is then
+// up + shown + below in every frame); with no such frame a skip goes unseen.
 func scrollsToItsEnd(th *theme.Theme, render func() (*ui.Canvas, uv.Rectangle), press func()) error {
 	c, r := render()
 	p, text := readPos(th, c, r), strings.Join(rectRows(c, r), "\n")
+	seen := []dialogPos{p}
 	for range 2000 {
 		press()
 		c2, r2 := render()
@@ -543,11 +564,45 @@ func scrollsToItsEnd(th *theme.Theme, render func() (*ui.Canvas, uv.Rectangle), 
 			return fmt.Errorf("scrolling down went from %v to %v: the rows above grow by each step", p, p2)
 		}
 		p, text = p2, text2
+		seen = append(seen, p)
 	}
 	if p.below > 0 || (p.lines && p.last < p.total) {
 		return fmt.Errorf("scrolling down stops at %v, before the body's end", p)
 	}
+	// Clip: each step's first row is at most one past the last row the step before showed
+	total := -1
+	for _, q := range seen {
+		if !q.lines && q.shown >= 0 {
+			total = q.up + q.shown + q.below
+		}
+	}
+	if total >= 0 {
+		for i := 1; i < len(seen); i++ {
+			prev, next := seen[i-1], seen[i]
+			if lastShown := total - prev.below; next.up > lastShown {
+				return fmt.Errorf("scrolling down went from %v to %v: rows %d–%d of %d were never shown", prev, next, lastShown+1, next.up, total)
+			}
+		}
+	}
 	return nil
+}
+
+// A position is read where the kit draws it: Clip's markers as rows of their own, and
+// "lines a–b of n" only in the bottom edge. A verbatim body that quotes "see lines
+// 12-20 of 300 in budget.go", or says "one more line", hides nothing.
+func TestDialogPositionIsReadFromItsEdge(t *testing.T) {
+	th := theme.ResolveProfile(testTheme(t, "charm.json"), true, false, colorprofile.TrueColor)
+	body := []string{"see lines 12-20 of 300 in budget.go", "and one more line", th.G.Ellipsis + " 2 more apples"}
+	cv := ui.NewCanvas(th, 80, 24)
+	r := cv.Overlay(ui.Dialog(th, 60, 0, "Send reply?", body, "", ""), nil)
+	if p := readPos(th, cv, r); p.hides() {
+		t.Errorf("a body's own words read as a position: %v", p)
+	}
+	cv = ui.NewCanvas(th, 80, 24)
+	r = cv.Overlay(ui.DialogStatus(th, 60, 0, "Send reply?", ui.DialogLines(th, 0, 3, 40), body, 0, "", ""), nil)
+	if p := readPos(th, cv, r); !p.lines || p.first != 1 || p.last != 3 || p.total != 40 {
+		t.Errorf("the bottom edge's position read as %v, want lines 1–3 of 40", p)
+	}
 }
 
 // The scroll allowance is checked, not trusted: a dialog that scrolls with
@@ -580,6 +635,10 @@ func TestScrollAllowanceIsChecked(t *testing.T) {
 		{"stops short", func(off int) string {
 			return ui.DialogStatus(th, 60, 0, "Send reply?", ui.DialogLines(th, off, shown, len(body)), body[off:off+shown], 0, "", "")
 		}, 10, false},
+		{"Clip, skipping rows", func(off int) string {
+			frame := 100 - ui.DialogBodyRows(th, 100, "Send reply?", "", "")
+			return ui.DialogScrolled(th, 60, shown+frame, "Send reply?", body, off*10, "", "")
+		}, len(body), false},
 	} {
 		off := 0
 		render := func() (*ui.Canvas, uv.Rectangle) {
