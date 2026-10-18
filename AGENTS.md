@@ -14,7 +14,8 @@ Tea v2 TUIs at Crush quality with a per-brand identity.
 skills/bubbletea-tui/
   SKILL.md        router: stance, laws, domain DO/DON'T, slop test, command table (keep < 500 lines)
   references/     domain references + cmd-<command>.md, one level deep, loaded on demand
-  tools/          Go module `tuitools`: cellshot, tuilint, tuivet, palette, diversity (the build loop)
+  tools/          Go module `tuitools`: cellshot, tuilint, tuivet, palette, diversity (the build loop),
+                  feedback (files an issue here from a user's agent)
   scripts/        wordmark, logo2cells (Python 3 + Pillow/numpy; brand-asset conversion only)
   kit/            Go module `tuikit`: theme/, ui/, themes/*.json, cmd/showcase (reference app + harness)
 .claude-plugin/   plugin.json + marketplace.json: the repo root is a Claude Code plugin that
@@ -42,7 +43,7 @@ version pins them to the cached copy until someone bumps it, and nothing here do
 cd skills/bubbletea-tui/kit && go vet ./... && go test ./...      # footprint, contrast, behaviour
 cd skills/bubbletea-tui/kit && go run ./cmd/showcase               # the reference app, live
 cd skills/bubbletea-tui/tools && go vet ./... && go test ./...    # the tools, held to Python-era goldens
-go -C skills/bubbletea-tui/tools build -o "$PWD/.tuitools/" ./cmd/... && export PATH="$PWD/.tuitools:$PATH"   # per checkout, gitignored
+go -C skills/bubbletea-tui/tools build -o "$PWD/.tuitools/" ./cmd/... && export PATH="$PWD/.tuitools:$PATH"   # per checkout, gitignored; all six tools, feedback included
 tuilint code skills/bubbletea-tui/kit
 tuilint spec skills/bubbletea-tui/tools/internal/speclint/testdata/template-example.md   # init's template, filled in (CI: covered by the tools tests on the template)
 diversity skills/bubbletea-tui/kit/themes/*.json
@@ -80,7 +81,11 @@ checks the PR title and commit subjects (§ Commits).
 The skill gets better from observed misses, not from adding prose.
 
 1. **A miss** comes from dogfooding (someone built an app with the skill and something
-   was wrong) or from a cold eval run. File it with the skill-feedback issue template.
+   was wrong) or from a cold eval run. File it with an issue form (`bug`, `performance`,
+   `eval-suggestion`, `feature` in `.github/ISSUE_TEMPLATE/`); a user's agent files the
+   same forms with the `feedback` tool (`references/cmd-feedback.md`), so its reports
+   arrive labelled `feedback` with the version and the miss class filled in. Keep
+   `tools/internal/feedback`'s `Kinds` and the forms in step: a test holds them together.
 2. **Write the miss as an assertion** in `evals/evals.json` before changing anything.
 3. **Classify it**:
    - (a) the skill never says it → add one line to the right reference

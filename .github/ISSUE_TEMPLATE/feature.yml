@@ -1,0 +1,61 @@
+name: Feature (something the skill or kit should ship)
+description: A component, rule, flag or reference the agent had to invent for itself
+labels: ["feedback", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        What the agent wrote by hand is the best evidence: the kit is what agents copy.
+        An agent drafts this with `feedback draft --kind feature`
+        (`references/cmd-feedback.md`) and files it only on your yes.
+  - type: textarea
+    id: asked
+    attributes:
+      label: What was asked
+      description: The prompt or command, and what was being built, in general terms.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - skill (SKILL.md, references)
+        - kit (theme, ui, showcase)
+        - themes
+        - tools
+        - scripts
+        - evals
+    validations:
+      required: true
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What the agent did instead
+      description: The component it wrote, the workaround, the steps it repeated, and how long it took.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: "What should ship: the API (`ui.Stepper(...)`), the flag, the lint rule, the reference line."
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Example or repro
+      description: A sheet, a sketch in cells, or the hand-written code, cut to what shows the need.
+  - type: input
+    id: skill-version
+    attributes:
+      label: Skill version
+      description: "`git -C <skill dir> rev-parse --short HEAD`, or `computedHash` from `skills-lock.json`. `feedback` fills it."
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: "`go version`, the OS, and the build of each tool involved. `feedback` fills it."
