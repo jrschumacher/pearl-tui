@@ -856,3 +856,31 @@ func TestMotifStaysOffItsFills(t *testing.T) {
 		}
 	}
 }
+
+// A theme pins info at 16 colours to keep it apart from the brand: charm's primary and
+// info both drew as bright blue 12, so its NEW and SETUP chips were one chip, black on
+// blue, told apart by the word alone (#60). Every kit theme that pins info, both modes:
+// an info tag and a primary tag draw differently at 16 colours.
+func TestPinnedInfoTagIsNotThePrimaryTag(t *testing.T) {
+	var files []string
+	for _, dir := range []string{"../themes", "../../themes"} {
+		if files, _ = filepath.Glob(filepath.Join(dir, "*.json")); len(files) > 0 {
+			break
+		}
+	}
+	for _, path := range files {
+		f, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, mode := range []string{"dark", "light"} {
+			if _, ok := f.ANSI16[mode]["info"]; !ok {
+				continue
+			}
+			th := Resolve16(f, mode != "light")
+			if a, b := th.S.TagInfo.Render("TAG"), th.S.TagPrimary.Render("TAG"); a == b {
+				t.Errorf("%s %s: info pinned, but its tag draws as the primary tag at 16 colours: %q", filepath.Base(path), mode, a)
+			}
+		}
+	}
+}
