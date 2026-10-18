@@ -32,6 +32,12 @@
 // an item may list more tokens before its action: `j/k, ↑/↓ move`, `h/l or ←/→ switch`,
 // `q / ctrl+c quit`, `[ ] back`. A trailing ":" ends the keys (`enter: open`).
 //
+// An item the footer shows only under a condition ends with it in parentheses, after
+// `if`, `when` or `while`: `**esc clear filter (if a filter is applied)**`, `**↑↓ scroll
+// (while the body overflows)**`. An item whose screen comes later in the slice ends with
+// `(later)` or `(later: <screen>)`. The rules read the item without the mark (it takes no
+// footer width), and S-GOLDEN doesn't ask a golden to show it.
+//
 //	S-TABLE      [P1] no States-and-keys table in the template's format: nothing else can be checked
 //	             [P2] a key token it can't read as a key: the key rules skip it
 //	             [P2] a keys cell with both footer markers, bold and ‖: pick one (the ‖ is read)
@@ -114,7 +120,7 @@
 //	S-GOLDEN     [P2] (with --frames) a state's footer in <state>-80x24.ansi and its row disagree:
 //	                  the footer shows a hint whose keys neither the row nor Global binds (row
 //	                  keys over an empty table), or lacks a key the row puts in the footer while
-//	                  nothing is dropped behind …. A hint is a key drawn in another style than its
+//	                  nothing is dropped behind … (not one marked `(if …)` or `(later)`). A hint is a key drawn in another style than its
 //	                  action, as ui.Help draws it, so status text on the row is not one; with no
 //	                  style (NO_COLOR), a prompt or badge one blank before the first hint ("/yes▏
 //	                  enter keep") is not part of it; ASCII twins (^v, <>, ^v<>) read as arrows,

@@ -85,6 +85,7 @@ func hints(part string) []string {
 	}
 	var out []string
 	for _, it := range splitItems(part) {
+		it, _ = cutCond(it)
 		if f := strings.Fields(it); len(f) > 0 {
 			out = append(out, strings.Join(f, " "))
 		}

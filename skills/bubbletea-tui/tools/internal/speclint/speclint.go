@@ -134,6 +134,23 @@ type binding struct {
 	keys   []key
 	action string // lowercased
 	bad    string // the first alternative that names no key, as written
+	cond   string // "if …", "when …", "while …" or "later": the footer shows it only then
+}
+
+// condMark ends an item the footer shows only under a condition, `(if a filter is
+// applied)`, `(when …)`, `(while the body overflows)`, or once a screen later in the
+// slice lands, `(later)`, `(later: palette)`. The rules read the item without it, and
+// S-GOLDEN doesn't ask a golden to show it.
+var condMark = regexp.MustCompile(`(?i)\s*\(\s*((?:if|when|while|later)\b[^)]*)\)\s*$`)
+
+// cutCond splits an item's condition mark off: the item as the other rules read it, and
+// the condition ("" for none).
+func cutCond(item string) (string, string) {
+	m := condMark.FindStringSubmatchIndex(item)
+	if m == nil {
+		return item, ""
+	}
+	return item[:m[0]], strings.ToLower(strings.TrimSpace(item[m[2]:m[3]]))
 }
 
 // row is one state of the table, or a Global line.
@@ -360,15 +377,18 @@ func parseKeys(cell string) []binding {
 	}
 	var out []binding
 	for _, item := range splitItems(cell) {
+		item, cond := cutCond(item)
 		f := strings.Fields(item)
 		if len(f) == 0 {
 			continue
 		}
 		if proseLead[strings.ToLower(strings.Trim(f[0], "(),:"))] {
-			out = append(out, binding{action: actionText(f)})
+			out = append(out, binding{action: actionText(f), cond: cond})
 			continue
 		}
-		out = append(out, readItem(f))
+		b := readItem(f)
+		b.cond = cond
+		out = append(out, b)
 	}
 	return out
 }

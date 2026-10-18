@@ -162,6 +162,8 @@ func TestRules(t *testing.T) {
 		{"a badge's row fits without it", table("| chat | chat | **enter send** · **ctrl+s sessions** · **ctrl+t toggle tools** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), nil},
 		{"a badge takes its share of the footer", table("| chat-plan | chat | [plan] · **enter send** · **ctrl+s sessions** · **ctrl+t toggle tools** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), map[string]int{"S-FOOTER": 1}},
 		{"a badge is no key", table("| chat-plan | chat | `[plan]` · **enter send** · **esc cancel** · **ctrl+g help** · ctrl+r history |", ""), nil},
+		{"a key's condition takes no footer width", table("| a | a | **a "+strings.Repeat("x", 28)+"** · **b "+strings.Repeat("y", 42)+" (if the list is long)** |", ""), nil},
+		{"nor does a later key's marker", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 42)+" (later: the y screen) |", ""), nil},
 		{"77 columns don't", table("| a | a | a "+strings.Repeat("x", 28)+" · b "+strings.Repeat("y", 43)+" |", ""), map[string]int{"S-FOOTER": 1}},
 		{"Global keys are not in the footer", table("| list | list | ↑↓ move · enter open · ? help |", "ctrl+c quit · ctrl+p palette · ctrl+o switch · ctrl+s save · ctrl+r reload · ctrl+t theme · f1 manual"), nil},
 		{"an empty cell has no footer", table("| splash | splash | — |", ""), nil},
@@ -659,6 +661,9 @@ func TestGoldenFooters(t *testing.T) {
 		"| grid | overlay | **↑↓←→ pick** · **enter send** · **esc back** |",
 		"| list-top | list | **↓ select** · **/ filter** · **? help** |",
 		"| list-filter | list | **enter keep** · **esc drop** · **ctrl+g help** · backspace erase |",
+		"| inbox | inbox | **↑↓ move** · **esc clear filter (if a filter is applied)** · **ctrl+p palette** (later) · **? help** |",
+		"| reply | overlay | **enter send** · **↑↓/jk scroll (while the body overflows)** · **esc cancel** · **a ask (later: ask)** |",
+		"| inbox-stale | inbox | **↑↓ move** · **d done (if read)** · **? help** |",
 	}, "\n"), "ctrl+c quit")
 	cases := []struct {
 		name, frame string
@@ -680,6 +685,12 @@ func TestGoldenFooters(t *testing.T) {
 		{"grid", footer("^v<> pick", "enter send", "esc back"), nil},
 		{"list-top", footer("v select", "/ filter", "? help"), nil},
 		{"list-filter", "  /yes| enter keep  esc drop        ctrl+g help  9 rows", nil},
+		// a key the footer shows only under a condition, `(if …)`, `(when …)` or `(while
+		// …)`, or whose screen comes later in the slice, `(later)`, may be missing from a
+		// golden; a key the row doesn't bind at all is still one the footer offers falsely
+		{"inbox", footer("↑↓ move", "? help"), nil},
+		{"reply", footer("enter send", "esc cancel"), nil},
+		{"inbox-stale", footer("↑↓ move", "x close", "? help"), []string{"shows `x close`, which the row doesn't bind"}},
 	}
 	dir := t.TempDir()
 	for _, c := range cases {

@@ -252,13 +252,14 @@ func (s *spec) goldenFooters(dir string, add func(string, int, string, ...any)) 
 		if len(hints) == 0 {
 			continue // a toast or a prompt holds the row: no footer to compare
 		}
-		bound := map[key]bool{}
+		bound, maybe := map[key]bool{}, map[key]bool{}
 		for _, k := range global {
 			bound[k] = true
 		}
 		for _, b := range keysOf.bindings {
 			for _, k := range b.keys {
 				bound[k] = true
+				maybe[k] = maybe[k] || b.cond != ""
 			}
 		}
 		shown := map[key]bool{}
@@ -282,7 +283,7 @@ func (s *spec) goldenFooters(dir string, add func(string, int, string, ...any)) 
 				}
 				any := false
 				for _, k := range b.keys {
-					any = any || shown[k]
+					any = any || shown[k] || maybe[k] // shown only under a condition, or later
 				}
 				if !any {
 					missing = append(missing, "`"+item+"`")
