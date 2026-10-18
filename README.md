@@ -73,7 +73,9 @@ build), it lets the edit through and shows you a one-line warning saying why, on
 cause; a failed build isn't retried until the plugin's sources change.
 
 Install one or the other, not both, or the skill loads twice. Plugin skills are
-namespaced, so the commands become `/pearl:pearl init` and so on.
+namespaced, so the commands become `/pearl:pearl init` and so on. They also update
+differently: a plugin install moves per release (its `version`, in `CHANGELOG.md`),
+while a skills.sh install tracks `main`.
 
 Requirements: Go ≥ 1.26.7 (Bubble Tea v2.1, Lip Gloss v2.0.6, Bubbles v2.2, Huh v2.0).
 The skill's tools are Go and build in one step on first use. Only the wordmark and logo
