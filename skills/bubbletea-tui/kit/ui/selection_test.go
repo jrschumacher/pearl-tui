@@ -19,7 +19,8 @@ import (
 // most themes is the page's own colour: at 16 colours halyard's ▆▇█ were black on a black
 // page, holes punched through the bar (a cold monitor's hist column had the same). Every
 // cell of a selected row carries the fill, and a bar on it never reads as the page; under
-// NO_COLOR, where the only ink on the fill is the page's, the row draws no bars.
+// NO_COLOR, where the only ink on the fill is the page's, every cell is reversed and the
+// bars stay as marks on the fill.
 func TestSelectionFillRunsThroughATrace(t *testing.T) {
 	vals := []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 	for _, path := range testThemes(t) {
@@ -41,15 +42,21 @@ func TestSelectionFillRunsThroughATrace(t *testing.T) {
 						out := Table(th, []string{"name", "p99", "cpu"}, rows, []int{10, 10, 6}, "lll", 0, 34, focused)
 						row := cellsOf(downsample(out[2], p))
 						if p == colorprofile.Ascii {
-							// NO_COLOR: the fill is reverse video, whose one ink is the page, so
-							// every cell is reversed and no bar glyph is drawn on it (a hole); a
-							// blurred row (bgSubtle, which NO_COLOR has not) draws none either, so
-							// the row reads the same under an overlay
+							// NO_COLOR: the fill is reverse video, whose one ink is the page's. Every
+							// cell of a focused row is reversed, so the fill is unbroken, and the bars
+							// stay as marks on it: the selected row's history is the one being read
+							bars := 0
 							for x, c := range row {
-								if focused && c.Style.Attrs&uv.AttrReverse == 0 || strings.ContainsAny(c.Content, theme.SparkRamp+theme.TraceFloor) {
-									t.Errorf("%s: cell %d %q: under NO_COLOR every cell is reversed and none is a bar", name, x, c.Content)
+								if focused && c.Style.Attrs&uv.AttrReverse == 0 {
+									t.Errorf("%s: cell %d %q is not reversed: a hole in the NO_COLOR fill", name, x, c.Content)
 									break
 								}
+								if strings.ContainsAny(c.Content, theme.SparkRamp+theme.TraceFloor) {
+									bars++
+								}
+							}
+							if bars < 10 {
+								t.Errorf("%s focused=%v: %d bar cells under NO_COLOR, want the history kept", name, focused, bars)
 							}
 							continue
 						}
@@ -102,4 +109,41 @@ func cellsOf(s string) []*uv.Cell {
 		}
 	}
 	return out
+}
+
+// A filled row shades every block and braille cell, the app's own history glyphs too
+// (▀ ▓ ⣿), so none is a hole; the theme's own marks among them (cartridge's ▖ spinner
+// frame) are the row's text and keep its ink.
+func TestSelectionShadesBarsNotMarks(t *testing.T) {
+	var f theme.File
+	for _, path := range testThemes(t) {
+		if filepath.Base(path) == "cartridge.json" {
+			var err error
+			if f, err = theme.Load(path); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if f.Name == "" {
+		t.Skip("cartridge.json is the kit's theme with a block spinner; a copied kit may not have it")
+	}
+	f.Expressions.Selection = "fill"
+	th := theme.Resolve(f, true, false)
+	spin := th.G.Spinner[0]
+	rows := [][]string{{spin + " deploying", "▀▓⣿" + Sparkline(th, []float64{1, 5, 9}, 3, th.S.Muted)}}
+	row := cellsOf(Table(th, []string{"name", "hist"}, rows, []int{12, 0}, "ll", 0, 30, true)[2])
+	ink := func(c *uv.Cell) color.Color { return c.Style.Bg } // reverse video: the attribute bg is the glyph's ink
+	rowInk := th.S.SelRow.GetBackground()
+	for _, c := range row {
+		switch {
+		case c.Content == spin:
+			if !same8(ink(c), rowInk) {
+				t.Errorf("the spinner frame %q takes %v, want the row's ink %v", spin, ink(c), rowInk)
+			}
+		case strings.ContainsAny(c.Content, "▀▓⣿"+theme.SparkRamp):
+			if same8(ink(c), rowInk) {
+				t.Errorf("the bar %q is in the row's ink, a hole to the page: want the selection's shade", c.Content)
+			}
+		}
+	}
 }

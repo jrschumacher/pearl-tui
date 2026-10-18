@@ -49,11 +49,13 @@ rest stays subtle. Don't rebuild Section for it. This is how regions separate.
 Borderless. The header row in subtle UPPERCASE (or the theme's case), one rule under it,
 2-cell column gaps (a last argument of 1 for a dense table: 10 columns at 80 cells),
 numbers right-aligned, the first column taking the rest. The selected row is marked like
-a list row. On a filled selection a trace or sparkline in a cell draws its bars in a shade
-of the fill (`Styles.SelBars`): in the row's ink they are blocks of the page punched
-through the bar. Under NO_COLOR the fill's only ink is the page's, so a selected row
-draws no bars at all, focused or blurred, and its figure carries the reading. Color a cell only when its value is
-abnormal (a red error rate), never a whole column.
+a list row. On a filled selection every block or braille cell (a trace, a sparkline, or a
+history the app draws itself) takes a shade of the fill (`Styles.SelBars`): in the row's
+ink they are blocks of the page punched through the bar. The theme's own marks among them
+(a `▖` spinner frame, a status mark) stay in the row's ink. Under NO_COLOR the bars stay,
+reversed with the rest of the row, so the fill is unbroken and the selected history
+still reads, as marks in the page's ink. Color a cell only when its value is abnormal (a
+red error rate), never a whole column.
 
 ## Detail Pane
 

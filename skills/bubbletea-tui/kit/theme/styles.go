@@ -369,8 +369,8 @@ func (t *Theme) Gap() int {
 }
 
 // selShade is the ink of a trace's bars on a filled selection (Styles.SelBars): the fill
-// mixed toward the row's ink until the bars read on the fill (1.3:1) and not as the page
-// (1.5:1). At 16 colours, where a mix lands on the fill's slot or the ink's, it is the
+// mixed 70 % of the way to the row's ink (a crisp dark or light shade, not a muddy half),
+// nearer or further until the bars read on the fill (1.3:1) and not as the page (1.5:1). At 16 colours, where a mix lands on the fill's slot or the ink's, it is the
 // grey that reads best on the fill and is not the page. Under NO_COLOR it is the ink:
 // reverse video is all there is.
 func (t *Theme) selShade(fill, ink color.Color) color.Color {
@@ -391,8 +391,8 @@ func (t *Theme) selShade(fill, ink color.Color) color.Color {
 	case colorprofile.Ascii, colorprofile.NoTTY:
 		return ink
 	}
-	for _, m := range []float64{0.5, 0.6, 0.4, 0.7, 0.3, 0.8} {
-		c := Mix(fill, ink, m)
+	for _, m := range []float64{0.7, 0.6, 0.8, 0.5, 0.4, 0.3} {
+		c := color.Color(rgb8(Mix(fill, ink, m))) // judged as the terminal gets it, 8 bits a channel
 		if Contrast(c, page) >= 1.5 && Contrast(c, fill) >= 1.3 && t.Distinct(c, page) && t.Distinct(c, fill) {
 			return c
 		}
