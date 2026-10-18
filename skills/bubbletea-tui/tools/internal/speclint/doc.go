@@ -96,6 +96,13 @@
 //	                  screen's order than the kit's (or gone, or added) and one element the
 //	                  kit doesn't draw, as references/brand.md § Move A Region says; brand,
 //	                  craft and the critic look for those two.
+//	             [P2] in a Screens section, a block (a heading under it) after the first, which
+//	                  is the main screen, with no `brand:` line: a secondary screen or overlay
+//	                  that doesn't say what the brand's three words change on it (copy voice,
+//	                  dialog form, footer phrasing). `brand: nothing, because …` counts; an
+//	                  empty value, a line in a fence (the sketch) or in backticks doesn't. Two
+//	                  brands on one spec otherwise share every screen behind the main one word
+//	                  for word (references/cmd-shape.md § Behind The Main Screen).
 //	S-GOLDEN     [P2] (with --frames) a state's footer in <state>-80x24.ansi and its row disagree:
 //	                  the footer shows a hint whose keys neither the row nor Global binds (row
 //	                  keys over an empty table), or lacks a key the row puts in the footer while

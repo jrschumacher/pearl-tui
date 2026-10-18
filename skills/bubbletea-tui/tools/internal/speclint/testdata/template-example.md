@@ -27,9 +27,14 @@ signature: a 12-cell strip of the last hour's deploys and roll-backs beside the 
 themes/halyard.json   (palette derive from #12355B #FF7A1A, measured from the logo SVG)
 
 ### Screens
-services — health of every service, pick one to act on
-deploy — ship a version to an environment
-confirm — the one dialog: roll back, with the version named
+#### services — health of every service, pick one to act on; the eye lands on the failing service
+the move and the signature: § Brand read
+
+#### deploy — ship a version to an environment
+brand: terse: the fields are nouns (`service`, `version`, `to`) with no helper sentences, and the last step's button says `ship v2.4.1`, not `submit`
+
+#### confirm — the one dialog: roll back, with the version named
+brand: calm under pressure: the question names both versions and what changes (`roll checkout-api back to v2.3.9? v2.4.0 stops taking traffic`); the buttons are `roll back` and `keep v2.4.0`, the safe one focused
 
 ### Never
 pink-purple, emoji, rounded boxes around regions, "Loading..."

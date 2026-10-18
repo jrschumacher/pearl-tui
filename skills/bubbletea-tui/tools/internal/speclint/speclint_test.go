@@ -176,6 +176,20 @@ func TestRules(t *testing.T) {
 		{"remember outside the brand read", "### Brand read\ntone: calm\n\n## Decisions\n- Remember: q quits from every screen\n" + table("| list | list | enter open |", ""), nil},
 		{"a move outside the brand read", "### Brand read\nremember: the orange row\n\n### Keys\n- move: up and down\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
 
+		// S-SLOTS: every § Screens block after the main screen's says what the brand
+		// changes there, so two brands on one spec don't share the screens behind it
+		{"a secondary screen with no brand line", "### Screens\n#### list — every job\n80×24: list 0,1 80×22\n#### detail — one job\ncomponents: ui.KV\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
+		{"two secondary blocks with none", "### Screens\n#### list — every job\n#### detail — one job\n#### confirm — stop it\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 2}},
+		{"secondary blocks with brand lines", "### Screens\n#### list — every job\n#### detail — one job\nbrand: terse: labels without verbs, one footer verb per key\n#### confirm — stop it\n- **brand:** the question is the verb and its object\n" + table("| list | list | enter open |", ""), nil},
+		{"nothing, because counts", "### Screens\n#### list — every job\n#### help — every key\nbrand: nothing, because help lists the action tables as written\n" + table("| list | list | enter open |", ""), nil},
+		{"the main screen needs none", "### Screens\n#### list — every job\n80×24: list 0,1 80×22\n" + table("| list | list | enter open |", ""), nil},
+		{"a screen list of one-liners has no blocks", "### Screens\nlist — every job\ndetail — one job\n" + table("| list | list | enter open |", ""), nil},
+		{"a brand line in the sketch is not one", "### Screens\n#### list — every job\n#### detail — one job\n```\nbrand: terse\n# 4120 indexer\n```\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
+		{"brand in backticks is prose", "### Screens\n#### list — every job\n#### detail — one job\n`brand:` comes later\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
+		{"an empty brand line", "### Screens\n#### list — every job\n#### detail — one job\nbrand:\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
+		{"a brand line under a sub-heading of its block", "### Screens\n#### list — every job\n#### detail — one job\n##### regions\nbrand: terse\n" + table("| list | list | enter open |", ""), nil},
+		{"blocks after § Screens are not screens", "### Screens\n#### list — every job\n### Motion\n#### hero\n#### rows\n" + table("| list | list | enter open |", ""), nil},
+
 		{"brand section ends at the next heading", "## Brand\n### Brand read\ntone: calm\n## Architecture\nregions ★ ★\n" + table("| list | list | enter open |", ""), nil},
 	}
 	for _, c := range cases {
@@ -367,6 +381,12 @@ func TestTemplatePasses(t *testing.T) {
 	}
 	if fs := Lint("template-example.md", string(ex)); len(fs) != 0 {
 		t.Errorf("template-example.md fails tuilint spec:\n%s", dump(fs))
+	}
+	// its secondary blocks pass because they say what the brand changes, not because
+	// the rule can't see them
+	bare := regexp.MustCompile(`(?m)^brand:.*$`).ReplaceAllString(string(ex), "")
+	if got := rules(Lint("template-example.md", bare))["S-SLOTS"]; got != 2 {
+		t.Errorf("template-example.md without its brand: lines: %d S-SLOTS, want 2 (deploy, confirm)", got)
 	}
 }
 
