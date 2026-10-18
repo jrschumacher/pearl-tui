@@ -41,11 +41,11 @@ Before any real screen:
   why, never the main screen) and `openOverlay`. The tests then judge every overlay
   over every page with no edit, and hold the tables to the states; a test rewritten to
   skip an overlay hides the bug it was written for
-- a help key in the action table of every overlay and every page that draws a focus
-  mark (each of `overlayPages`): `? help`, or `ctrl+g help` where a focused text box
-  types `?`. The kept tests open help from each of them and fail the one where no key
-  does; leaving a focused page out of `overlayPages` to dodge that fails
-  `TestOverlayTablesMatchTheStates` instead
+- a help key in the action table of every overlay but help itself and every page that
+  draws a focus mark (each of `overlayPages`): `? help`, or `ctrl+g help` where a
+  focused text box types `?`. The kept tests open help from each of them and fail the
+  one where no key does; leaving a focused page out of `overlayPages` to dodge that
+  fails `TestOverlayTablesMatchTheStates` instead
 - flags: `-golden -w -h`, `-state`, `-out -sizes`, `-theme`, `-light`, `-ascii`,
   `-profile`, `-frame`
 - `_test.go` asserting the footprint at the floor `TUI.md` § Size floor names (60×18 in

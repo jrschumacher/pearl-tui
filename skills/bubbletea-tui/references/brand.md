@@ -80,7 +80,7 @@ goes and what stays. Terse means fewer words, never fewer facts.
 
 | The brand is… | Terminal moves that say it |
 |---|---|
-| soft, calm, caring | `╌` dashed rules, `›` caret selection, `•` dots for steps, underline or pill buttons, a bold-word tag, minimal header, airy, sentence case, a quiet `dim` scrim, dots spinner |
+| soft, calm, caring | `╌` dashed rules, `›` caret selection, `•` dots for steps, underline or pill buttons, a bold-word tag, minimal header, airy, sentence case, `scrim: dim`, dots spinner |
 | industrial, blunt, exact | `━`/`═` heavy rules, a stamp header, `fill` selection, inverse block buttons, `[BRACKET]` tags, heavy dialog, UPPERCASE labels, compact, quadrant spinner, no gradients |
 | precise, technical, nautical | a bar header, `┄` chart rules, slash tabs, `[ bracket ]` buttons, boxed keys, `▲ △` motifs, compact |
 | playful, loud, retro | a half-block banner, `inverse` selection, double dialog, pill tabs, owned background, a gradient motif rule, field backdrop |
@@ -184,8 +184,10 @@ undimmed page beside a confirm reads as live as the confirm, so wherever no scri
 drawn a centred `Canvas.Overlay` clears the body rows (`c.Body`) and keeps the header
 and the footer (`components.md` § Dialog). Choose `none` only when nothing behind a
 dialog must stay readable. A brand that wants the list in view while a dialog is up (a
-watchful monitor choosing a signal) keeps `dim`: one brand chose `none` for calm and
-found at craft that its confirm hid the list it meant to keep.
+watchful monitor choosing a signal) keeps `dim`, which keeps it readable at truecolour
+and 256 colours; at 16 colours and NO_COLOR nothing dims, so the body hides under
+either value. One brand chose `none` for calm and found at craft that its confirm hid
+the list it meant to keep.
 
 **A state ladder takes the status slots, by meaning.** `● queued · ◐ running · ○ waiting ·
 ✓ done` is `current · partial · todo · done`: the app draws `t.G.Current`,
