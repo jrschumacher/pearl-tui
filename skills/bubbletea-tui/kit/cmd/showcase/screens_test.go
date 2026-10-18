@@ -301,6 +301,30 @@ func TestSelectionIsIdentity(t *testing.T) {
 	}
 }
 
+// The deploy form's review step is a ship's confirmation (interaction.md § Confirm By
+// Consequence, rung 3): the button names the act and the target, and on prod the
+// buttons start on Cancel, so enter, enter, enter… never ships. Staging starts on the act.
+func TestDeployReviewIsTheConfirm(t *testing.T) {
+	m := fixture(t, "deploy")
+	for i := 0; i < 10 && m.screen == scrDeploy; i++ {
+		m.key(press("enter"))
+	}
+	if m.screen == scrDeploy || m.svcs[m.sel].State == "deploying" {
+		t.Fatalf("enter alone shipped to prod or never left the form (screen %d)", m.screen)
+	}
+	m = fixture(t, "deploy")
+	m.focus = 4
+	m.armDeploy()
+	if out := strings.ToLower(ansi.Strip(m.render(120, 40).String())); !strings.Contains(out, strings.ToLower("Deploy "+m.version+" to prod")) {
+		t.Fatal("the deploy button must name the act and where it lands")
+	}
+	m.env, m.focus = 1, 3
+	m.key(press("tab"))
+	if m.focus != 4 || m.formBtn != 0 {
+		t.Fatal("a staging deploy's buttons start on the act, the forward choice")
+	}
+}
+
 // Enter in a field moves on; it never ships to prod. Deploys finish by message.
 func TestDeployLifecycle(t *testing.T) {
 	m := fixture(t, "deploy")
@@ -311,6 +335,11 @@ func TestDeployLifecycle(t *testing.T) {
 	for m.focus != 4 {
 		m.key(press("tab"))
 	}
+	// the review step is the confirmation: a prod deploy arrives on Cancel
+	if m.formBtn != 1 {
+		t.Fatal("a prod deploy's buttons must start on Cancel, so enter alone never ships")
+	}
+	m.key(press("right"))
 	cmd := m.key(press("enter"))
 	s := m.svcs[m.sel]
 	if s.State != "deploying" || cmd == nil {
