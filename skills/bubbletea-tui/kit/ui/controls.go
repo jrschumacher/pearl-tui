@@ -184,17 +184,20 @@ func Progress(t *theme.Theme, frac float64, w int) string {
 	return filled + t.S.Rule.Render(strings.Repeat(empty, max(0, rest)))
 }
 
-// StateSparkline is Sparkline for a row in a status state, over w cells: quiet (fgMuted)
-// unless the state is a warning, where the line takes the warning's ink and ends in its
-// glyph (" ▲", Dot), so the reading carries the warning's mark and never only its hue.
-// At 16 colours a warm brand draws in bright yellow and the warning in the other yellow
-// (references/color.md): a hue-only warning reads as the selection beside it. An error
-// stays quiet: its red lives on the row's dot and its number.
+// StateSparkline is Sparkline for a row in a status state, over w cells: the line over
+// the first w-2 and a two-cell mark column after it, so every row's newest value sits
+// in one column whatever its state. The line is quiet (fgMuted) unless the state is a
+// warning, where it takes the warning's ink and the mark column holds its glyph (" ▲",
+// Dot), so the reading carries the warning's mark and never only its hue: at 16 colours
+// a warm brand draws in bright yellow and the warning in the other yellow
+// (references/color.md), and a hue-only warning reads as the selection beside it. An
+// error stays quiet: its red lives on the row's dot and its number.
 func StateSparkline(t *theme.Theme, state string, vals []float64, w int) string {
+	n := max(1, w-2)
 	if state == "warning" || state == "degraded" {
-		return Sparkline(t, vals, max(1, w-2), t.S.Warn) + " " + Dot(t, state)
+		return Sparkline(t, vals, n, t.S.Warn) + " " + Dot(t, state)
 	}
-	return Sparkline(t, vals, w, t.S.Muted)
+	return Sparkline(t, vals, n, t.S.Muted) + strings.Repeat(" ", w-n)
 }
 
 // Sparkline draws values as ▁▂▃▄▅▆▇█ over w cells (the last w values).

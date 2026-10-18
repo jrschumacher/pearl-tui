@@ -4,7 +4,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"testing"
+
+	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme"
 )
@@ -46,4 +50,26 @@ func hex2(v int) string {
 		s = "0" + s
 	}
 	return s
+}
+
+// A warning's sparkline ends in its mark, and the mark takes a column every row keeps,
+// so the time axis stays aligned: the newest value of every row sits in one column, and
+// a warning row draws the same points as a quiet one (#51 review: it drew two fewer,
+// two columns left).
+func TestStateSparklineKeepsTheTimeAxis(t *testing.T) {
+	for _, ascii := range []bool{false, true} {
+		th := testTheme(t, ascii)
+		vals := []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}
+		quiet, warn := ansi.Strip(StateSparkline(th, "ok", vals, 12)), ansi.Strip(StateSparkline(th, "warning", vals, 12))
+		if lipgloss.Width(quiet) != 12 || lipgloss.Width(warn) != 12 {
+			t.Errorf("ascii=%v: widths %d and %d, want 12 for every state", ascii, lipgloss.Width(quiet), lipgloss.Width(warn))
+		}
+		qr, wr := []rune(quiet), []rune(warn)
+		if string(qr[:10]) != string(wr[:10]) {
+			t.Errorf("ascii=%v: the warning row draws %q where a quiet one draws %q: one time axis", ascii, string(wr[:10]), string(qr[:10]))
+		}
+		if !strings.HasSuffix(warn, th.G.Warn) || strings.TrimSpace(string(qr[10:])) != "" {
+			t.Errorf("ascii=%v: mark column %q (warning) and %q (quiet), want %q and blank", ascii, string(wr[10:]), string(qr[10:]), " "+th.G.Warn)
+		}
+	}
 }
