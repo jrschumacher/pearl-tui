@@ -96,11 +96,15 @@
 //	                  screen's order than the kit's (or gone, or added) and one element the
 //	                  kit doesn't draw, as references/brand.md § Move A Region says; brand,
 //	                  craft and the critic look for those two.
-//	             [P2] in a Screens section, a block (a heading under it) after the first, which
-//	                  is the main screen, with no `brand:` line: a secondary screen or overlay
-//	                  that doesn't say what the brand's three words change on it (copy voice,
-//	                  dialog form, footer phrasing). `brand: nothing, because …` counts; an
-//	                  empty value, a line in a fence (the sketch) or in backticks doesn't. Two
+//	             [P2] in § Screens (`Screens`, `4. Screens`, and a sibling right after it such
+//	                  as `Secondary screens` or `Overlays`), a block (a heading under it) after
+//	                  the first, which is read as the main screen (so its block comes first),
+//	                  with no `brand:` line: a secondary screen or overlay that doesn't say what
+//	                  the brand's three words change on it (copy voice, dialog form, footer
+//	                  phrasing). A heading with no job (no dash or colon) whose next heading is
+//	                  deeper groups blocks (`Main`, `Overlays`) and is not one. `brand: nothing,
+//	                  because …` counts; a bare `nothing`, `none`, `n/a` or `-`, an empty value,
+//	                  a line in a ``` or ~~~ fence (the sketch) or in backticks doesn't. Two
 //	                  brands on one spec otherwise share every screen behind the main one word
 //	                  for word (references/cmd-shape.md § Behind The Main Screen).
 //	S-GOLDEN     [P2] (with --frames) a state's footer in <state>-80x24.ansi and its row disagree:
