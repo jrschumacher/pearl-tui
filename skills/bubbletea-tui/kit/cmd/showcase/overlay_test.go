@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"maps"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -276,8 +277,9 @@ func sameRGB(a, b color.Color) bool {
 // in unjudgedPages with a reason. A cold build left its menu overlay out of the help
 // test, and its help over the menu named the screen's keys; leaving it out of overlays
 // would hide it as well, and so would moving a page into unjudgedPages: an entry needs
-// a reason, is never the main screen (states[0]), and must keep a focus mark beside
-// some overlay (else it blurs, and belongs in overlayPages).
+// a reason, is never the main screen (states[0]), is only allowed in an app that builds
+// a Huh form (ui.NewForm), and, unless its reason names Huh, must keep a focus mark
+// beside some overlay (else it blurs, and belongs in overlayPages).
 func TestOverlayTablesMatchTheStates(t *testing.T) {
 	for _, list := range [][]string{overlays, overlayPages, slices.Collect(maps.Keys(unjudgedPages))} {
 		for _, s := range list {
@@ -285,6 +287,11 @@ func TestOverlayTablesMatchTheStates(t *testing.T) {
 				t.Errorf("%q is in the harness tables but not in states", s)
 			}
 		}
+	}
+	// unjudgedPages is for a Huh form's pages, and every Huh form goes through ui.NewForm
+	// (tuilint code, C-HUHTHEME): an app that never builds one has nothing to leave out
+	if len(unjudgedPages) > 0 && !buildsAForm(t) {
+		t.Errorf("unjudgedPages lists %d pages, but no .go file here calls ui.NewForm: only a Huh form's page can't be drawn blurred; judge them in overlayPages", len(unjudgedPages))
 	}
 	for s, why := range unjudgedPages {
 		switch {
@@ -294,7 +301,9 @@ func TestOverlayTablesMatchTheStates(t *testing.T) {
 			t.Errorf("%s is in unjudgedPages with no reason: say why its focus can't be drawn blurred (and repeat it in TUI.md § Decisions)", s)
 		case slices.Contains(overlayPages, s):
 			t.Errorf("%s is in both overlayPages and unjudgedPages", s)
-		case !keepsFocusUnderAnOverlay(t, s):
+		// a Huh page needs no proof: whether a dialog happens to cover its focused field
+		// depends on sizes, not on the form, which can't draw it blurred either way
+		case !strings.Contains(why, "Huh") && !keepsFocusUnderAnOverlay(t, s):
 			t.Errorf("%s is in unjudgedPages, but every overlay over it draws it blurred: judge it in overlayPages", s)
 		}
 	}
@@ -315,6 +324,24 @@ func TestOverlayTablesMatchTheStates(t *testing.T) {
 			t.Errorf("%s draws a focus mark but is in neither overlayPages nor unjudgedPages, and renders as no page that is: no overlay is judged over it", s)
 		}
 	}
+}
+
+// buildsAForm reports whether a non-test .go file of the app calls ui.NewForm.
+func buildsAForm(t *testing.T) bool {
+	t.Helper()
+	files, err := filepath.Glob("*.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range files {
+		if strings.HasSuffix(f, "_test.go") {
+			continue
+		}
+		if b, err := os.ReadFile(f); err == nil && strings.Contains(string(b), "ui.NewForm(") {
+			return true
+		}
+	}
+	return false
 }
 
 // judgedTwin is the overlayPages state whose page body renders as state s's at 80×24

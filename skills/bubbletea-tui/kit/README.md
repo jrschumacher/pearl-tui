@@ -134,8 +134,9 @@ Once your screens are in, delete what is the showcase's alone:
   tables to your states: a state opens a dialog exactly when `overlays` names it, and a
   page that draws a focus mark is in `overlayPages` or renders as one that is.
   `unjudgedPages` (state → reason, repeated in TUI.md § Decisions) is only for a page
-  whose focus the kit can't draw blurred, such as a Huh form's field: the test fails
-  an empty reason, your main screen (`states[0]`), and a page whose focus does blur.
+  whose focus the kit can't draw blurred, a Huh form's field: the test fails any entry
+  in an app that never calls `ui.NewForm`, an empty reason, your main screen
+  (`states[0]`), and a page whose focus does blur (unless its reason names Huh).
 
 Keep `showcase_test.go`, `overlay_test.go`, `behaviour_test.go` and `ansi16_test.go`
 whole. They read your tables and these from your app:
