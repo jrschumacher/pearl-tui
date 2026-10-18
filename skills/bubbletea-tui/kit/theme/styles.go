@@ -6,6 +6,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/rivo/uniseg"
 )
 
@@ -31,6 +32,7 @@ type Styles struct {
 	Motif   lipgloss.Style // the header rule and dialog-title rule runs (primary, or the rule role)
 	// selection
 	SelRow   lipgloss.Style // a selected row (per expressions.selection)
+	SelBars  lipgloss.Style // a trace's or sparkline's bars on a filled selected row: the fill, bars in its shade (ui.Table)
 	FocusBar lipgloss.Style // ▌ beside the focused block
 	BlurBar  lipgloss.Style // the same column, unfocused
 	Match    lipgloss.Style // fuzzy-match characters
@@ -135,6 +137,13 @@ func build(t *Theme) Styles {
 		s.SelRow = s.Focus.Bold(true)
 	default: // bar: bold text beside a focus bar
 		s.SelRow = s.Bold
+	}
+	// a trace's bars on a filled row: in the row's ink, which is the page's own colour on
+	// most themes, ▆▇█ are blocks of the page punched through the fill, so they take a
+	// shade of the fill instead and the fill runs the whole row (ui.Table)
+	s.SelBars = s.SelRow
+	if x.Selection == "fill" || x.Selection == "inverse" {
+		s.SelBars = s.SelRow.Background(t.selShade(s.SelRow.GetForeground(), s.SelRow.GetBackground()))
 	}
 	s.FocusBar = lipgloss.NewStyle().Foreground(p.Primary)
 	if fgFocus {
@@ -307,4 +316,36 @@ func (t *Theme) Gap() int {
 		return 0
 	}
 	return 1
+}
+
+// selShade is the ink of a trace's bars on a filled selection (Styles.SelBars): the fill
+// mixed toward the row's ink until the bars read on the fill (1.3:1) and not as the page
+// (1.5:1). At 16 colours, where a mix lands on the fill's slot or the ink's, it is the
+// grey that reads best on the fill and is not the page. Under NO_COLOR it is the ink:
+// reverse video is all there is.
+func (t *Theme) selShade(fill, ink color.Color) color.Color {
+	page := t.P.Bg
+	switch t.Profile {
+	case colorprofile.ANSI:
+		best, cr := ink, 0.0
+		for _, n := range []int{8, 7, 0, 15} {
+			g := ansi.BasicColor(n)
+			if Slot16(g) == Slot16(page) || Slot16(g) == Slot16(fill) || Contrast16(g, page) < 1.5 {
+				continue
+			}
+			if c := Contrast16(g, fill); c > cr {
+				best, cr = g, c
+			}
+		}
+		return best
+	case colorprofile.Ascii, colorprofile.NoTTY:
+		return ink
+	}
+	for _, m := range []float64{0.5, 0.6, 0.4, 0.7, 0.3, 0.8} {
+		c := Mix(fill, ink, m)
+		if Contrast(c, page) >= 1.5 && Contrast(c, fill) >= 1.3 && t.Distinct(c, page) && t.Distinct(c, fill) {
+			return c
+		}
+	}
+	return ink
 }

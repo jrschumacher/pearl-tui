@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"image/color"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -205,6 +206,73 @@ func bolden(s string) string {
 	return b.String()
 }
 
+// selFilled draws plain text as a selected row on a filled bar: text in SelRow, and the
+// bars of a trace or sparkline (block elements, braille) in SelBars, the fill with the
+// bars in its shade. In the row's ink they were blocks of the page through the fill.
+func selFilled(t *theme.Theme, plain string) string {
+	var b, run strings.Builder
+	bars := false
+	flush := func() {
+		if run.Len() == 0 {
+			return
+		}
+		st := t.S.SelRow
+		if bars {
+			st = t.S.SelBars
+		}
+		b.WriteString(st.Render(run.String()))
+		run.Reset()
+	}
+	for _, r := range plain {
+		if isBar := r >= 0x2580 && r <= 0x259F || r >= 0x2800 && r <= 0x28FF; isBar != bars {
+			flush()
+			bars = isBar
+		}
+		run.WriteRune(r)
+	}
+	flush()
+	return b.String()
+}
+
+// underlay sets bg under every cell of a pre-styled line: each span's style ends in a
+// reset that drops the background, so it is set again after any SGR sequence that
+// clears it. A span with a background of its own (a tag) keeps it.
+func underlay(s string, bg color.Color) string {
+	on := ansi.Style{}.BackgroundColor(bg).String()
+	var b strings.Builder
+	b.WriteString(on)
+	var state byte
+	for len(s) > 0 {
+		seq, _, n, next := ansi.DecodeSequence(s, state, nil)
+		b.WriteString(seq)
+		if ansi.HasCsiPrefix(seq) && strings.HasSuffix(seq, "m") && clearsBg(seq) {
+			b.WriteString(on)
+		}
+		s, state = s[n:], next
+	}
+	b.WriteString(ansi.Style{}.DefaultBackgroundColor().String())
+	return b.String()
+}
+
+// clearsBg reports whether an SGR sequence resets the background: a full reset (none or
+// 0) or 49, read past the arguments of an extended colour (38/48/58;5;n and ;2;r;g;b).
+func clearsBg(seq string) bool {
+	params := strings.Split(strings.TrimSuffix(strings.TrimPrefix(seq, "\x1b["), "m"), ";")
+	for i := 0; i < len(params); i++ {
+		switch params[i] {
+		case "", "0", "49":
+			return true
+		case "38", "48", "58":
+			if i+1 < len(params) && params[i+1] == "5" {
+				i += 2
+			} else if i+1 < len(params) && params[i+1] == "2" {
+				i += 4
+			}
+		}
+	}
+	return false
+}
+
 // filledRow is a selected row on a filled bar. Every span, the padding
 // included, carries the bar's style: one bare space would punch a hole.
 func filledRow(t *theme.Theme, it Item, w int, c cols) string {
@@ -298,7 +366,7 @@ func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 		mode := t.X.Selection
 		switch {
 		case selected && focused && (mode == "fill" || mode == "inverse"):
-			out = append(out, t.S.SelRow.Render(Fit("  "+ansi.Strip(line), w)))
+			out = append(out, selFilled(t, Fit("  "+ansi.Strip(line), w)))
 		case selected && (mode == "bar"):
 			bar, glyph := t.S.FocusBar, t.G.FocusBar
 			if !focused {
@@ -312,7 +380,7 @@ func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 		case selected && mode == "caret":
 			out = append(out, Fit(t.S.BlurBar.Render(t.BlurBar())+" "+line, w))
 		case selected:
-			out = append(out, lipgloss.NewStyle().Background(t.P.BgSubtle).Render(Fit("  "+line, w)))
+			out = append(out, underlay(Fit("  "+line, w), t.P.BgSubtle))
 		default:
 			out = append(out, Fit("  "+line, w))
 		}
