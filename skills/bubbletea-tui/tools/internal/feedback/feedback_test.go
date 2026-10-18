@@ -3,8 +3,10 @@ package feedback
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -247,16 +249,120 @@ func TestTerms(t *testing.T) {
 }
 
 func TestRedactor(t *testing.T) {
-	e := Env{Cwd: "/home/ana/src/acme-ops", Home: "/home/ana", User: "ana"}
+	t.Setenv("PATH", "") // no git: the root is found by its markers
+	home := t.TempDir()
+	root := filepath.Join(home, "src", "acme-ops")
+	os.MkdirAll(filepath.Join(root, "internal", "ui"), 0o755)
+	e := Env{Cwd: root, Home: home, User: "ana"}
 	r := NewRedactor(e, []string{"AcmeOps"})
-	got := r.Apply("built /home/ana/src/acme-ops/cmd/acmeops; cache /home/ana/.cache; ana ran acmeops, banana /home/ana/src/acme-ops2")
-	want := "built <project>/cmd/<redacted>; cache ~/.cache; <user> ran <redacted>, banana ~/src/acme-ops2"
+	got := r.Apply("built " + root + "/cmd/acmeops; cache " + home + "/.cache; ana ran AcmeOps in /Users/ana/x, banana " + root + "2")
+	want := "built <project>/cmd/<redacted>; cache ~/.cache; ana ran <redacted> in /Users/<user>/x, banana ~/src/acme-ops2"
 	if got != want {
 		t.Errorf("Apply =\n %s\nwant\n %s", got, want)
 	}
 	if rep := r.Report(); rep != "redacted 1 × <project>, 2 × ~, 1 × <user>, 2 × <redacted>" {
 		t.Errorf("Report = %q", rep)
 	}
+}
+
+// Go's \b is ASCII-only: a name that starts or ends in é, ë or "." never matched it, and
+// leaked with no warning. A --redact word matches in any case and script, and inside a
+// longer word too (an identifier like "ZoëModel" names the app as much as "Zoë" does).
+func TestRedactorAnyScript(t *testing.T) {
+	t.Setenv("PATH", "")
+	words := []string{"Café", "Zoë", "Acme Inc.", "Ötzi", "Nowhere"}
+	r := NewRedactor(Env{Cwd: t.TempDir()}, words)
+	got := r.Apply("Café Zoë CAFÉ ZOË ships for Acme Inc. and ötzi; ZoëModel, cafés")
+	want := "<redacted> <redacted> <redacted> <redacted> ships for <redacted> and <redacted>; <redacted>Model, <redacted>s"
+	if got != want {
+		t.Errorf("Apply =\n %s\nwant\n %s", got, want)
+	}
+	if u := r.Unmatched(words); !reflect.DeepEqual(u, []string{"Nowhere"}) {
+		t.Errorf("Unmatched = %v, want [Nowhere]", u)
+	}
+	// a word inside an earlier placeholder is not a match: no <<redacted>>
+	r = NewRedactor(Env{Cwd: t.TempDir()}, []string{"red", "project"})
+	if got := r.Apply("<project> and <redacted> and a red project"); got != "<project> and <redacted> and a <redacted> <redacted>" {
+		t.Errorf("Apply over placeholders = %q", got)
+	}
+}
+
+// draft says which --redact word matched nothing, so the agent redacts the spelling the
+// text uses.
+func TestDraftWarnsAnUnmatchedRedact(t *testing.T) {
+	r := newRig(t, false)
+	r.run(r.bugArgs("draft", "--redact", "Café", "--redact", "Zoë", "--redact", "Acme Inc.", "--title", "Café and Zoë break for Acme Inc.")...)
+	out, errs := r.stdout.String(), r.stderr.String()
+	if strings.Contains(out, "Café") || strings.Contains(out, "Zoë") || strings.Contains(out, "Acme Inc.") || !strings.Contains(errs, "3 × <redacted>") {
+		t.Errorf("not redacted:\n%s\n%s", out, errs)
+	}
+	if strings.Contains(errs, "matched nothing") {
+		t.Errorf("warned about a word that matched: %s", errs)
+	}
+	r.run(r.bugArgs("draft", "--redact", "Kafe")...)
+	if !strings.Contains(r.stderr.String(), `--redact "Kafe" matched nothing`) {
+		t.Errorf("no warning for a word that matched nothing: %s", r.stderr.String())
+	}
+}
+
+// Agents often run as root, node or runner: the user name is redacted where it is a path
+// segment, never as a word ("the root model"), and a home directory is not a project
+// whose name is redacted.
+func TestRedactorUserOnlyInPaths(t *testing.T) {
+	t.Setenv("PATH", "")
+	const text = "--root model loses focus in kit/ui/root; root model"
+	r := NewRedactor(Env{Cwd: t.TempDir(), Home: "/root", User: "root"}, nil)
+	got := r.Apply(text + "; /root/.cache, file:///root/x and /home/root/x.")
+	want := text + "; ~/.cache, file://~/x and /home/<user>/x."
+	if got != want {
+		t.Errorf("Apply =\n %s\nwant\n %s", got, want)
+	}
+	home := filepath.Join(t.TempDir(), "root")
+	os.MkdirAll(home, 0o755)
+	os.WriteFile(filepath.Join(home, "go.mod"), []byte("module scratch\n"), 0o644)
+	for _, cwd := range []string{home, filepath.Join(home, "scratch")} {
+		os.MkdirAll(cwd, 0o755)
+		r = NewRedactor(Env{Cwd: cwd, Home: home, User: "root"}, nil)
+		if got := r.Apply(text + " in " + home + "/x"); got != text+" in ~/x" {
+			t.Errorf("run in %s: Apply = %q", cwd, got)
+		}
+	}
+}
+
+// From a subdirectory, the project is still the root: its path, its name and its module.
+func TestRedactorFromASubdirectory(t *testing.T) {
+	home := t.TempDir()
+	root := filepath.Join(home, "acme-billing")
+	sub := filepath.Join(root, "internal", "ui")
+	os.MkdirAll(sub, 0o755)
+	os.WriteFile(filepath.Join(root, "go.mod"), []byte("module github.com/acme-corp/acme-billing\n\ngo 1.26\n"), 0o644)
+	const text = "panic in %s/main.go: github.com/acme-corp/acme-billing/internal/ui.(*List).View; " +
+		"github.com/acme-corp/acme-billing.Run(); see https://github.com/acme-corp/acme-billing. acme-billing crashed"
+	const want = "panic in <project>/main.go: <module>/internal/ui.(*List).View; " +
+		"<module>.Run(); see https://<module>. <project> crashed"
+	check := func(name string) {
+		t.Helper()
+		r := NewRedactor(Env{Cwd: sub, Home: home}, nil)
+		if got := r.Apply(fmt.Sprintf(text, root)); got != want {
+			t.Errorf("%s: Apply =\n %s\nwant\n %s", name, got, want)
+		}
+	}
+	t.Run("go.mod", func(t *testing.T) {
+		t.Setenv("PATH", "") // no git: the root is found by its markers
+		check("go.mod")
+	})
+	t.Run("git", func(t *testing.T) {
+		if _, err := exec.LookPath("git"); err != nil {
+			t.Skip("no git")
+		}
+		// the go.mod is in a subdirectory; only git knows the root
+		os.Rename(filepath.Join(root, "go.mod"), filepath.Join(root, "internal", "go.mod"))
+		defer os.Rename(filepath.Join(root, "internal", "go.mod"), filepath.Join(root, "go.mod"))
+		if out, err := exec.Command("git", "init", "-q", root).CombinedOutput(); err != nil {
+			t.Fatalf("git init: %v %s", err, out)
+		}
+		check("git")
+	})
 }
 
 // ---- the command, against stubs on PATH ---------------------------------------------

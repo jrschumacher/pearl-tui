@@ -46,7 +46,9 @@ but not taken back, so it sits on rung 3 of the confirm ladder
    `feedback draft --kind bug --comment 40 --field evidence=@notes.md`.
 2. **Draft.** `feedback draft --kind bug --title "…" --field key=value …` with
    `--skill <dir holding SKILL.md>` (the version is then read from it) and a
-   `--redact` for each name in `TUI.md`: the product, the brand, customers, hosts.
+   `--redact` for each name in `TUI.md`: the product, the brand, customers, hosts. A
+   `--redact` the tool says matched nothing is spelled differently in the text: redact
+   that spelling too.
 3. **Show it whole.** Paste the draft verbatim in a code block, and say what was
    redacted (the tool reports it on stderr: "redacted 2 × <project>, 1 × <redacted>").
    An edit means a new draft, shown again: change the `--field` values and rerun.

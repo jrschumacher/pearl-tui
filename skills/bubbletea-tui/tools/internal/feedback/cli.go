@@ -100,6 +100,13 @@ func Main(args []string, usage string, env Env, stdout, stderr io.Writer) int {
 		return bad("%v", err)
 	}
 	missing := is.Missing()
+	if o.noRedact {
+		if len(o.redact) > 0 {
+			fmt.Fprintln(stderr, "feedback: --no-redact: the --redact words are kept as written")
+		}
+	} else {
+		unmatched(stderr, red, o.redact)
+	}
 	if mode == "draft" {
 		fmt.Fprint(stdout, is.Draft())
 		note(stderr, red, "nothing was sent")
@@ -171,6 +178,14 @@ func build(o opts, repo string, env Env) (Issue, *Redactor, error) {
 		}
 	}
 	return is, red, nil
+}
+
+// unmatched warns about each --redact word that matched nothing: spelled differently in
+// the text, it is still there.
+func unmatched(stderr io.Writer, red *Redactor, words []string) {
+	for _, w := range red.Unmatched(words) {
+		fmt.Fprintf(stderr, "feedback: --redact %q matched nothing; if the text spells it another way, redact that spelling\n", w)
+	}
 }
 
 func note(stderr io.Writer, red *Redactor, what string) {

@@ -32,8 +32,9 @@
 //	--skill DIR       the skill directory, for its version (default: the project's
 //	                  .claude/skills or .agents/skills copy, then ~/.claude/skills)
 //	--redact WORD     also replace WORD (the app's name, a customer's) with <redacted>,
-//	                  repeatable, whole words, any case
-//	--no-redact       keep the project path, home directory and user name as written
+//	                  repeatable, in any case and script, inside longer words too
+//	                  (WORDModel); a WORD that matched nothing is named on stderr
+//	--no-redact       keep paths, the module and the user name as written
 //	--out FILE        where submit writes the body when the link can't carry it
 //	--open            submit without gh: open the link in the browser
 //
@@ -50,9 +51,13 @@
 //	feature   asked*, area* (skill|kit|themes|tools|scripts|evals), workaround*,
 //	          proposal*, evidence, skill-version*, environment
 //
-// Every field and the title are redacted before they are printed or sent: the project's
-// absolute path becomes <project>, the home directory ~, the user name <user>. draft and
-// submit say on stderr what they replaced; tell the user.
+// Every field and the title are redacted before they are printed or sent, wherever under
+// the project the tool runs: the project root's path (the git toplevel, else the nearest
+// directory holding TUI.md or go.mod) and its directory name become <project>, its Go
+// module path <module>, the home directory ~, and the user name <user> where it is a
+// path segment (/home/<user>, /Users/<user>), never as a bare word. A project root that
+// is the home directory is not a project. draft and submit say on stderr what they
+// replaced; tell the user.
 //
 // Exit status: 0 drafted, filed, or searched; 1 gh failed, or a draft lacks a required
 // field (it prints anyway, the missing ids on stderr); 2 a usage error (bad flag, kind,
