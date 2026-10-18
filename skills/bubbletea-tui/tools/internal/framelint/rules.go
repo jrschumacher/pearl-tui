@@ -575,15 +575,22 @@ func ruleRuns(row []Cell) []ruleRun {
 // "1 of 2") and, above it with rows between, a top rule of the same glyph over the same
 // columns (±2) made of two runs closing around a title (one text segment whose spaces
 // come singly; a table header's columns don't, and two section rules of one width have
-// no title). The panel between must be filled (filled), except
-// in a 16- or 256-colour frame, where the panel's step can land on the page's colour:
-// the rules are the edge there, which is what "dialog": "rules" is for. The first such
-// pair, bottom rule first from the top, is the dialog.
+// no title). The panel between must be filled (filled), except in a 16- or 256-colour
+// frame, where the panel's step can land on the page's colour: the rules are the edge
+// there, which is what "dialog": "rules" is for. The first such pair, bottom rule first
+// from the top, is the dialog. In a downsampled frame two sections side by side over a
+// full-width one read as such a pair too, and the scrim on them was judged as the
+// dialog's inside (a cold monitor's confirm at 256 colours): there the first filled pair
+// is the dialog, else the first with the margin ui.Overlay clears round a rules dialog
+// (margined), else the first.
 func rulesDialog(grid [][]Cell, downsampled bool) (region, bool) {
 	runs := make([][]ruleRun, len(grid))
 	for y, row := range grid {
 		runs[y] = ruleRuns(row)
 	}
+	// a downsampled frame's first unfilled pair, and its first with a cleared margin
+	var first, cleared region
+	found, clear := false, false
 	for yb := 2; yb < len(grid); yb++ {
 		var edges []ruleRun // the bottom edge: a run, or two around a status
 		for j, rb := range runs[yb] {
@@ -608,15 +615,42 @@ func rulesDialog(grid [][]Cell, downsampled bool) (region, bool) {
 							continue
 						}
 						r := region{yt, min(r1.a, rb.a), yb, max(r2.b, rb.b)}
-						if downsampled || filled(grid, r) {
+						if filled(grid, r) {
 							return r, true
+						}
+						if downsampled && !clear && margined(grid, r) {
+							cleared, clear = r, true
+						}
+						if downsampled && !found {
+							first, found = r, true
 						}
 					}
 				}
 			}
 		}
 	}
-	return region{}, false
+	if clear {
+		return cleared, true
+	}
+	return first, found
+}
+
+// margined reports whether the rows just outside r, above its top rule and below its
+// bottom one, are blank across its columns: the margin ui.Overlay clears round a rules
+// dialog. Sections on a page have the page's own rows against them.
+func margined(grid [][]Cell, r region) bool {
+	if r.y0 == 0 || r.y1+1 >= len(grid) {
+		return false
+	}
+	for _, y := range []int{r.y0 - 1, r.y1 + 1} {
+		row := grid[y]
+		for x := r.x0; x <= r.x1 && x < len(row); x++ {
+			if !blank(row[x].Ch) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // title reports whether row[a..b] is a dialog title between two runs of the rule glyph

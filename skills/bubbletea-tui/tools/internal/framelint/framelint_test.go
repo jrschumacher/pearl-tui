@@ -954,6 +954,20 @@ func TestOverlayDialogsAreFound(t *testing.T) {
 	if hits := contrastHits(t, status, "--theme", "testdata/themes/quire.json"); len(hits) != 1 || hits[0].Sev != "P1" {
 		t.Errorf("low contrast inside a rules dialog with a status edge: %+v, want one P1", hits)
 	}
+	// at 256 colours the panel's fill isn't required (it can land on the page's colour),
+	// and a page of two sections side by side over a full-width one reads as a titled top
+	// rule over a bottom rule: the lint took those page rows for the dialog and judged the
+	// scrim on them (a cold monitor's confirm: 97 cells at 1.92:1). The kit's quire
+	// confirm over such a page, at -profile ansi256: the filled pair is the dialog, the
+	// scrim isn't judged, and a planted faint label inside the real dialog still fails
+	if hits := contrastHits(t, "testdata/overlays/rules-sections-256-confirm-80x24.ansi", "--theme", "testdata/themes/quire.json"); len(hits) != 0 {
+		t.Errorf("quire 256-colour confirm over sectioned rows: %+v, want no F-CONTRAST", hits)
+	}
+	sections := mutate("testdata/overlays/rules-sections-256-confirm-80x24.ansi", "confirm-sections-80x24.ansi",
+		"\x1b[48;5;234m \x1b[38;5;244masks it", "\x1b[48;5;234m \x1b[38;5;235masks it")
+	if hits := contrastHits(t, sections, "--theme", "testdata/themes/quire.json"); len(hits) != 1 || hits[0].Sev != "P1" || !strings.HasPrefix(hits[0].Where, "r10") {
+		t.Errorf("low contrast inside the 256-colour confirm: %+v, want one P1 on row 10", hits)
+	}
 	// the same inside an ASCII +--+ box (halyard ascii confirm: box bg #142030)
 	boxed := mutate("testdata/overlays/box-ascii-confirm-80x24.ansi", "confirm-box-80x24.ansi",
 		"prod returns to the last healthy version.", "\x1b[38;2;24;34;48mprod returns to the last healthy version.")
