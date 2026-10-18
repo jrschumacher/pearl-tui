@@ -14,10 +14,12 @@ import (
 // of the page reads as live beside it: the cell beside each edge is blank and a word the
 // dialog cuts is cleared whole, with an ellipsis where its phrase was cut (no "1s" or
 // "igh" fragment beside the edge), a page rule never runs on beside the dialog's edge
-// rows, and where no scrim is drawn the rows the dialog spans are cleared across. Rows the dialog doesn't span are left as the page drew them: the page has no
-// focus under a dialog because the app draws it unfocused, not because its marks are
-// looked for afterwards (a glyph is not a focus mark: cartridge's █ bar is its
-// wordmark's block, and ASCII's | bar is a header's separator).
+// rows, and where no scrim is drawn the rows the dialog spans are cleared across.
+//
+// Rows the dialog doesn't span are left as the page drew them: the page has no focus
+// under a dialog because the app draws it unfocused, not because its marks are looked
+// for afterwards (a glyph is not a focus mark: cartridge's █ bar is its wordmark's
+// block, and ASCII's | bar is a header's separator).
 
 // scrims reports whether Overlay dims the page: the theme asks for it and the terminal
 // can show it. There is no scrim under ASCII, at 16 colours (the page is ANSI 0 or 15
