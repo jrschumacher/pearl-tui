@@ -134,9 +134,9 @@ one hero animation (`ui.Anim`) with a subject.
 **DON'T** tick while idle, fake progress, or shimmer the screen.
 
 ### Brand → *Consult `references/brand.md`*
-**DO** write the brand read first, translate traits into expressions, convert real
-assets (`wordmark.py`, `logo2cells.py`), and prove distance from the default
-(`diversity`).
+**DO** write the brand read first, with one region moved from the kit's layout and one
+element the kit doesn't draw, translate traits into expressions, convert real assets
+(`wordmark.py`, `logo2cells.py`), and prove distance from the default (`diversity`).
 **DON'T** treat a new palette on the default layout as a brand, or move an axis just to
 pass the lint.
 

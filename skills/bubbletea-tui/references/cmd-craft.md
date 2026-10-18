@@ -44,8 +44,9 @@ Run `-golden` at both sizes. It must pass while the screens are still stubs.
 For each screen in `TUI.md` § First slice, in that order, then the `Then:` list: draw the
 fixed chrome, then the body into rectangles from its § Screens block at both sizes
 (`layout.md` § Use The Room); use the components it names; add the states; wire the keys
-and the help. Name in its § Screens block the frame its `remember` move shows on
-(`brand.md` §6, question 2). After each screen, run the loop below on that screen before
+and the help. Name in its § Screens block the frame its identity shows on; the main
+screen's default frame (nothing pressed) draws the read's move and signature (`brand.md`
+§6, question 2). After each screen, run the loop below on that screen before
 starting the next. The slice is the order because it is the main loop the design gets
 judged on; the integrations wait behind it.
 

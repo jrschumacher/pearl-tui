@@ -20,7 +20,8 @@ geometry: square, rules not boxes; ─ section rules (ascii -)
 density: compact
 type: tracked uppercase section titles
 motif: status in a 2-cell column, ● healthy, ▲ degraded, × down (ascii * ^ x)
-remember: the orange row is the one that needs you
+move: the failing service's detail leads, above the list, not under it (calm under pressure: what needs you comes first)
+signature: a 12-cell strip of the last hour's deploys and roll-backs beside the name in the header, on the services frame as it opens
 
 ### Theme
 themes/halyard.json   (palette derive from #12355B #FF7A1A, measured from the logo SVG)

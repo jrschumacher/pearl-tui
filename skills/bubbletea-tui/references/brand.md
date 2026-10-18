@@ -22,7 +22,8 @@ geometry  <round or square, light or heavy, soft or hard>
 density   <airy or compact, and why the users need that>
 type      <case, tracking, weight; what the wordmark looks like>
 motif     <the one shape the brand repeats: a slash, a diamond, a sail, a dot>
-remember  <the one move a user will remember, drawn on every screen: a glyph, a rule, a layout move>
+move      <one region placed where the kit doesn't put it, and the word it follows from>
+signature <one element the kit doesn't draw, on the main screen's default frame>
 
 <one line per expression below, tying the choice to a product trait>
 ```
@@ -30,6 +31,30 @@ remember  <the one move a user will remember, drawn on every screen: a glyph, a 
 A choice with no reason is a default in disguise. "Pill buttons because pills are nice"
 is not a reason. "Pill buttons: the rounded button, because the brief says 'rounded
 everything'" is.
+
+### Move A Region, Then Draw What The Kit Doesn't
+
+Two brands built from one spec on the kit came out as one skeleton to the cell: the same
+header row, body band, turn-end rule and footer. A blind critic matched each to its brief
+by its words and glyphs, then called them one product under two themes. Paint tells
+brands apart; composition is what a user remembers. So the read names two things the kit
+won't choose for you:
+
+- **move**: one region placed differently from the kit's default (a header row with the
+  name left and context right, the list or transcript leading, status in the header and
+  the footer, a rule over the input, keys on the last row), following from one of the
+  three words. Status as a sentence above the input ("unhurried": no bar in the chrome),
+  no header row at all, a turn that ends on a stamped marker instead of a rule
+  ("workmanlike"), the detail leading with the list as a rail ("investigative").
+- **signature**: one element the kit doesn't draw by default, visible on the main
+  screen's default frame (the state the app opens in, nothing pressed): a cell-art mark
+  beside the name (`art`, `cell-art.md`), a depth gauge in the header, a column of
+  stamps the kit doesn't ship.
+
+**DO** name the word each follows from: "move: status is a sentence above the input,
+because unhurried". **DON'T** count a glyph, a rule style or a hue as either: both brands
+in that pair chose `╌` as their motif, and the motif already has its line. A recoloured
+`ui.Header` is the kit's element, not a signature.
 
 ## 2. Translate Traits Into Terminal Moves
 
@@ -208,11 +233,11 @@ Put it beside the baseline (`ink`) and one other brand. Ask:
 
 1. With the colour stripped, can you still tell which brand it is? If not, identity is
    only in the palette. Move the expressions.
-2. Is the "remember" line from the read visible in the first second, on the main
-   screen's default frame (the state the app opens in, nothing pressed), not only on the
-   sketch, beside a sent turn or in a filled form? The showcase's `ladder` state draws
-   every status rung in its role, the spinner, a step row and the tags on one frame:
-   judge a signature that lives in the marks there, in every profile.
+2. Are the read's move and signature visible in the first second, on the main screen's
+   default frame (the state the app opens in, nothing pressed), not only on the sketch,
+   beside a sent turn or in a filled form? The showcase's `ladder` state draws every
+   status rung in its role, the spinner, a step row and the tags on one frame: judge
+   the brand's marks there, in every profile.
 3. Does every choice in the read trace to something on screen?
 4. Does the light set look like the same brand, not a different app?
 

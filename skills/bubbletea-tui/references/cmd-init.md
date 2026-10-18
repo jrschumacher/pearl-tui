@@ -112,7 +112,8 @@ dialogs and overlays: where the background step is gone (16 colours, NO_COLOR, a
 
 ### Brand read
 palette / tone / geometry / density / type / motif   (references/brand.md §1)
-remember: <a move every screen draws: a title motif, a header rule, a layout move>, not a quality of the content
+move: <one region placed where the kit doesn't put it, and the word it follows from>, e.g. status is a sentence above the input, not header details (unhurried)
+signature: <one element the kit doesn't draw, on the main screen's default frame>, e.g. a depth gauge beside the name; not a glyph, a rule style or a hue
 accents: <hue> = <its one meaning>, one line per hue; focus = <gutter, weight>, never a state hue ("focus": "fg" in the theme when the brand's hue is a state)
 glyphs: <glyph> <meaning> (ascii <twin>), one line each; twins the kit lacks go in the theme's glyphs.ascii; width-safe: <narrow glyph | 2-cell column>
 
@@ -214,10 +215,10 @@ Then: <the rest of v1, in order>
 A brief written before this skill (a spec, a PRD, an earlier TUI.md) gets these sections
 wrong. Write them this way:
 
-- **A `remember` line the TUI draws.** Name a move visible on every screen: a `╱` in
-  every title, a two-tone header rule, an accent `▌` gutter. Law 10 makes the brand two
-  or three such moves; "feels trustworthy and well made" describes a quality of the
-  product, and no later command can draw it, so the screens go generic.
+- **A move and a signature the TUI draws.** "Feels trustworthy and well made" is a
+  quality no later command can draw, and a motif alone (a `╱` in every title, a dashed
+  rule) recolours the kit's skeleton. Name one region placed where the kit doesn't put it
+  and one element the kit doesn't draw (`brand.md` § Move A Region).
 - **One meaning per accent hue.** One hue for "new" *and* for focus makes the cursor
   row and a new row look the same. Focus is the gutter and the weight (`interaction.md`
   § Focus); a hue is a state. The kit draws focus in primary unless the theme says
