@@ -17,12 +17,8 @@ import (
 type frameHint struct {
 	text string
 	keys []key
-	twin []key // the keys again with a lone ASCII arrow read as its arrow: "v" is ↓
+	twin []key // the keys again with a lone "v" read as ↓, its ASCII twin and a key of its own
 }
-
-// asciiLone are ASCII arrow twins that are also keys of their own ("v select" is v, or ↓
-// under -ascii): a hint matches the row by either reading.
-var asciiLone = map[string]string{"v": "↓"}
 
 // frameFooter reads the footer of a golden frame: its last non-blank row, split where
 // two or more blank cells fall, as ui.Help joins hints. A chunk is a hint when its first
@@ -145,8 +141,13 @@ func startsWord(ch []framelint.Cell) bool {
 }
 
 // asciiArrows are the arrow keys as an ASCII frame draws them (theme.ASCIITwin): "^v"
-// would read as ctrl+v.
-var asciiArrows = map[string]string{"^v": "↑↓", "<>": "←→", "^v<>": "↑↓←→", "<>^v": "←→↑↓", "^": "↑", "<-": "←", "->": "→"}
+// would read as ctrl+v. arrowPairs is an alternative made of the pairs alone ("^v",
+// "<>", "^v<>"), which arrowTwins turns back.
+var (
+	asciiArrows = map[string]string{"^": "↑", "<-": "←", "->": "→"}
+	arrowPairs  = regexp.MustCompile(`^(?:\^v|<>)+$`)
+	arrowTwins  = strings.NewReplacer("^v", "↑↓", "<>", "←→")
+)
 
 // unASCII turns a key token's ASCII arrow twins back into arrows, alternative by
 // alternative ("^v/jk" is ↑↓/jk).
@@ -155,6 +156,8 @@ func unASCII(tok string) string {
 	for i, a := range alts {
 		if r, ok := asciiArrows[a]; ok {
 			alts[i] = r
+		} else if arrowPairs.MatchString(a) {
+			alts[i] = arrowTwins.Replace(a)
 		}
 	}
 	return strings.Join(alts, "/")
@@ -192,10 +195,10 @@ func chunkHint(ch []framelint.Cell, styled bool) (frameHint, bool) {
 		}
 	}
 	h := frameHint{text: s, keys: b.keys}
-	if alts := splitAlts(words[0]); slices.ContainsFunc(alts, func(a string) bool { return asciiLone[a] != "" }) {
+	if alts := splitAlts(words[0]); slices.Contains(alts, "v") { // "v select": v, or ↓ under -ascii
 		for i, a := range alts {
-			if r, ok := asciiLone[a]; ok {
-				alts[i] = r
+			if a == "v" {
+				alts[i] = "↓"
 			}
 		}
 		h.twin = readItem(append([]string{strings.Join(alts, "/")}, words[1:]...)).keys
@@ -295,7 +298,7 @@ func (s *spec) goldenFooters(dir string, add func(string, int, string, ...any)) 
 			parts = append(parts, fmt.Sprintf("shows %s, which the row doesn't bind", strings.Join(extra, ", ")))
 		}
 		if len(missing) > 0 {
-			parts = append(parts, fmt.Sprintf("lacks %s, which the row puts in the footer", strings.Join(missing, ", ")))
+			parts = append(parts, fmt.Sprintf("lacks %s, which the row puts in the footer (end an item with `(if …)` when the footer shows it only then, or `(later)` when its screen comes later in the slice)", strings.Join(missing, ", ")))
 		}
 		if len(parts) > 0 {
 			add("S-GOLDEN", r.line, "%s: the footer of %s %s: the footer and the table disagree, so one of them lies. Make the state's actions() and this row the same keys, then re-render",

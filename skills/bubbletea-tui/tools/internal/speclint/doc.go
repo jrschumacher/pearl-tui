@@ -84,7 +84,8 @@
 //	                  apart with its fallback (`shift+enter/ctrl+j`) counts as its widest single
 //	                  alternative: ui.HelpKey draws only the one that works. A help item that
 //	                  lists aliases for the dispatcher (`?/h/f1 help`) counts as its first key,
-//	                  `? help`, the hint the footer draws and pins. A badge the cell
+//	                  `? help`, the hint the footer draws and pins when the binding's help label
+//	                  is that key alone (key.WithHelp("?", "help"), as the kit's are). A badge the cell
 //	                  names first (`[plan] · …`) takes its width and a space from the 76; status
 //	                  text on the row takes more. The message names what it drops and suggests a
 //	                  footer that fits, with the state's way out (esc, quit, back, close, cancel)

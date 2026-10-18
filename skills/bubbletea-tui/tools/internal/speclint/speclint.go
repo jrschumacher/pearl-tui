@@ -849,7 +849,7 @@ var (
 	brandLine      = regexp.MustCompile(`(?i)^(?:[-*+]\s+)?brand\s*:\s*(.*)$`)
 	// a value that skips the question: "nothing", "none", "n/a", "-" with no reason after
 	// it, or a placeholder: "TBD", "todo", "?", "nothing yet", the template's "<…>"
-	brandSkip = regexp.MustCompile(`(?i)^(?:nothing|none|n/?a|-+|—|–|tb[dac]|to-?\s?do|\?+|(?:nothing|not)\s+yet|later|pending|wip|fixme|x{3,}|<[^>]*>)[.!]?$`)
+	brandSkip = regexp.MustCompile(`(?i)^(?:nothing|none|n/?a|-+|—|–|tbd|todo|\?+|nothing\s+yet|<[^>]*>)[.!]?$`)
 	// a block's heading names its job after a dash or a colon: "detail — one job"
 	jobRe = regexp.MustCompile(`\s[—–-]\s|:`)
 )
