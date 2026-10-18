@@ -128,6 +128,10 @@ else is a rune the ASCII sweep had no twin for, which reads as a question.
 
 var sevOrder = map[string]int{"P0": 0, "P1": 1, "P2": 2}
 
+// DefaultBG is the terminal background a cell that sets none is judged on, unless --bg
+// names another: a dark terminal's.
+var DefaultBG = RGB{0x16, 0x16, 0x1a}
+
 // Main runs the mode with its arguments and returns the exit status.
 func Main(args []string, stdout, stderr io.Writer) int {
 	opts := map[string]string{}
@@ -187,7 +191,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		}
 		maxWarnings = n
 	}
-	bg := RGB{0x16, 0x16, 0x1a}
+	bg := DefaultBG
 	if v, ok := opts["bg"]; ok {
 		if !hexRe.MatchString("#" + strings.TrimLeft(v, "#")) {
 			fmt.Fprintf(stderr, "tuilint frames: --bg %q is not #rrggbb\n", v)

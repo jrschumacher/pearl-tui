@@ -1175,9 +1175,10 @@ const truncMax = 3
 // lint can find (a filled panel, a ruled dialog at 16 colours), by its fill: an
 // ellipsis on the page's background followed by blanks up to another background. With
 // neither, a column that would be reported with rows running on past the ellipsis is
-// reported as not run, to judge by eye.
-func LintTrunc(name string, f Frame, ellipses []string) []Finding {
-	return lintTrunc(name, f, ellipses, nil, RGB{0x16, 0x16, 0x1a})
+// reported as not run, to judge by eye. bg is the terminal background for cells that set
+// none (DefaultBG, or --bg), which the scrim test reads contrast against.
+func LintTrunc(name string, f Frame, ellipses []string, bg RGB) []Finding {
+	return lintTrunc(name, f, ellipses, nil, bg)
 }
 
 // lintTrunc is LintTrunc honouring spec's `cuts:` lines (nil: no --spec): a column whose
