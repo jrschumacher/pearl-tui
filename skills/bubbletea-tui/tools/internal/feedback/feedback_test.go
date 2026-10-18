@@ -386,7 +386,7 @@ func stub(t *testing.T, dir, name, script string) {
 	}
 }
 
-const ghStub = `echo "$@" >> "$STUB_LOG"
+const ghStub = `echo "[$GH_HOST] $@" >> "$STUB_LOG"
 case "$1 $2" in
 "auth status") [ "$STUB_AUTH" = 1 ] && exit 0; echo "You are not logged into any GitHub hosts." >&2; exit 1;;
 "issue create")
@@ -525,6 +525,7 @@ func TestUsageErrors(t *testing.T) {
 
 func TestSubmitWithGh(t *testing.T) {
 	r := newRig(t, true)
+	t.Setenv("GH_HOST", "ghe.example.com")
 	if code := r.run(r.bugArgs("submit")...); code != ExitOK {
 		t.Fatalf("submit exit %d: %s", code, r.stderr.String())
 	}
@@ -532,8 +533,10 @@ func TestSubmitWithGh(t *testing.T) {
 		t.Errorf("stdout = %q, want the new issue's URL alone", got)
 	}
 	calls := r.calls()
-	if !strings.Contains(calls, "auth status\n") || !strings.Contains(calls, "issue create --repo jrschumacher/skill-bubbletea-tui --title tuilint F-CONTRAST") || !strings.Contains(calls, "--label feedback --label bug") {
-		t.Errorf("gh calls:\n%s", calls)
+	if !strings.Contains(calls, "[github.com] auth status --hostname github.com\n") ||
+		!strings.Contains(calls, "[github.com] issue create --repo github.com/jrschumacher/skill-bubbletea-tui --title=tuilint F-CONTRAST") ||
+		!strings.Contains(calls, "--label feedback --label bug") || strings.Contains(calls, "ghe.example.com") {
+		t.Errorf("gh calls, each pinned to github.com:\n%s", calls)
 	}
 	body, _ := os.ReadFile(r.body)
 	golden, _ := os.ReadFile(filepath.Join("testdata", "draft-bug.golden"))
@@ -555,16 +558,20 @@ func TestSubmitForkWithoutLabels(t *testing.T) {
 	if code != ExitOK || !strings.Contains(r.stderr.String(), "filing without labels") {
 		t.Errorf("exit %d, stderr %q", code, r.stderr.String())
 	}
-	if !strings.Contains(r.calls(), "issue create --repo me/fork") {
+	if !strings.Contains(r.calls(), "issue create --repo github.com/me/fork") {
 		t.Errorf("FEEDBACK_REPO not used:\n%s", r.calls())
 	}
 }
 
 func TestSubmitComment(t *testing.T) {
 	r := newRig(t, true)
-	code := r.run("submit", "--kind", "bug", "--comment", "12", "--field", "evidence=also at 120x40")
-	if code != ExitOK || !strings.Contains(r.calls(), "issue comment 12 --repo jrschumacher/skill-bubbletea-tui --body-file") {
+	code := r.run("submit", "--kind", "bug", "--comment", "12", "--field", "evidence=@@media queries don't apply; also at 120x40")
+	if code != ExitOK || !strings.Contains(r.calls(), "issue comment 12 --repo github.com/jrschumacher/skill-bubbletea-tui --body-file") {
 		t.Errorf("exit %d, calls:\n%s", code, r.calls())
+	}
+	r.run("draft", "--kind", "bug", "--comment", "12", "--field", "evidence=@@media queries don't apply")
+	if !strings.Contains(r.stdout.String(), "### Frames, sheets or a minimal repro\n\n@media queries don't apply\n") {
+		t.Errorf("@@ is a literal @:\n%s", r.stdout.String())
 	}
 	if code := r.run("submit", "--kind", "bug", "--comment", "12"); code != ExitUsage {
 		t.Errorf("an empty comment: exit %d, want 2", code)
@@ -646,11 +653,11 @@ func TestSimilar(t *testing.T) {
 
 	os.WriteFile(results, []byte(`[]`), 0o644)
 	os.Remove(r.log)
-	r.run("similar", "--title", "wordmark tracked style drops the last letter")
+	r.run("similar", "--title", "acmeops: wordmark tracked style drops the last letter", "--redact", "AcmeOps")
 	calls := r.calls()
 	if !strings.Contains(r.stdout.String(), "no issues match") || !strings.Contains(calls, "-- wordmark tracked style letter\n") ||
-		strings.Count(calls, "search issues") != 1 {
-		t.Errorf("no hits: stdout %q; one search of the four longest words? calls:\n%s", r.stdout.String(), calls)
+		strings.Count(calls, "search issues") != 1 || strings.Contains(strings.ToLower(calls+r.stdout.String()), "acmeops") {
+		t.Errorf("no hits: stdout %q; one search of the four longest words, the name redacted? calls:\n%s", r.stdout.String(), calls)
 	}
 
 	t.Setenv("STUB_AUTH", "0")

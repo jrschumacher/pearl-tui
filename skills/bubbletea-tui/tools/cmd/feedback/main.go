@@ -5,26 +5,32 @@
 // the draft and file only on their yes (references/cmd-feedback.md).
 //
 //	feedback draft   --kind bug|perf|eval|feature --title "…" [--field key=value …]
-//	feedback similar --title "…"
+//	feedback similar --title "…" [--redact WORD …]
 //	feedback submit  --kind bug|perf|eval|feature --title "…" [--field key=value …] [--open]
 //
 // draft prints the exact issue (repo, template, labels, title, then the body as GitHub
-// renders the form) and sends nothing. similar lists existing issues, open and closed,
-// whose titles share the four longest words of --title (gh search issues), so a finding
-// can go on one of them instead of a duplicate; without gh it prints the search link.
-// submit files the issue with gh issue create when gh is installed and gh auth status
-// passes, and prints its URL. Otherwise it files nothing: it prints the new-issue link with the
-// template, title, labels and fields filled in, capped at 8000 bytes (fields that don't
-// fit are written to a file to paste, and dropdowns, which GitHub can't prefill, are
-// named to pick), and opens it in the browser only with --open (open, xdg-open, or the
-// URL handler on Windows). Ask the user before passing --open.
+// renders the form) and sends nothing.
 //
-// Options (the same for draft and submit; similar reads --title and --repo):
+// similar lists existing issues, open and closed, whose titles share the four longest
+// words of the redacted --title (gh search issues), so a finding can go on one of them
+// instead of a duplicate; without gh it prints the search link.
+//
+// submit files the issue with gh issue create when gh is installed and gh auth status
+// passes, and prints its URL. Otherwise it files nothing: it prints the new-issue link
+// with the template, title, labels and fields filled in, capped at 8000 bytes (fields
+// that don't fit are written to a file to paste, and dropdowns, which GitHub can't
+// prefill, are named to pick), and opens it in the browser only with --open (open,
+// xdg-open, or the URL handler on Windows). Ask the user before passing --open. Every
+// gh call goes to github.com, whatever GH_HOST says.
+//
+// Options (the same for draft and submit; similar reads --title, --repo, --redact and
+// --no-redact):
 //
 //	--kind K          bug, perf (performance), eval (eval-suggestion) or feature (enhancement)
 //	--title T         the issue title: the miss in one line, not the app
-//	--field key=value a field by its id, repeatable; key=@file reads the value from a file.
-//	                  A dropdown takes its option, its letter (miss-class=b) or a unique prefix
+//	--field key=value a field by its id, repeatable; key=@file reads the value from a file,
+//	                  key=@@text is the literal "@text". A dropdown takes its option, its
+//	                  letter (miss-class=b) or a unique prefix
 //	--comment N       post the fields that have values as a comment on issue N (more
 //	                  evidence for an open issue) instead of opening one
 //	--repo owner/name file on a fork; FEEDBACK_REPO does the same (default
@@ -51,13 +57,13 @@
 //	feature   asked*, area* (skill|kit|themes|tools|scripts|evals), workaround*,
 //	          proposal*, evidence, skill-version*, environment
 //
-// Every field and the title are redacted before they are printed or sent, wherever under
-// the project the tool runs: the project root's path (the git toplevel, else the nearest
-// directory holding TUI.md or go.mod) and its directory name become <project>, its Go
-// module path <module>, the home directory ~, and the user name <user> where it is a
-// path segment (/home/<user>, /Users/<user>), never as a bare word. A project root that
-// is the home directory is not a project. draft and submit say on stderr what they
-// replaced; tell the user.
+// Every field and the title, and similar's search words, are redacted before they are
+// printed or sent, wherever under the project the tool runs: the project root's path (the
+// git toplevel, else the nearest directory holding TUI.md or go.mod) and its directory
+// name become <project>, its Go module path <module>, the home directory ~, and the user
+// name <user> where it is a path segment (/home/<user>, /Users/<user>), never as a bare
+// word. A project root that is the home directory is not a project. draft and submit say
+// on stderr what they replaced; tell the user.
 //
 // Exit status: 0 drafted, filed, or searched; 1 gh failed, or a draft lacks a required
 // field (it prints anyway, the missing ids on stderr); 2 a usage error (bad flag, kind,

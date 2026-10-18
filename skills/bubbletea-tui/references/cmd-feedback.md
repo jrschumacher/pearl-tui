@@ -41,9 +41,11 @@ Filing publishes text on a public repository under the user's account. It can be
 but not taken back, so it sits on rung 3 of the confirm ladder
 (`interaction.md` § Confirm By Consequence): the user judges every issue, every time.
 
-1. **Dedupe.** `feedback similar --title "…"`. When an open issue matches and your
-   finding adds evidence, propose a comment on it instead of a new issue:
-   `feedback draft --kind bug --comment 40 --field evidence=@notes.md`.
+1. **Dedupe.** `feedback similar --title "…"`, with step 2's `--redact` words. When an
+   open issue matches and your finding adds evidence, propose a comment on it instead of
+   a new issue:
+   `feedback draft --kind bug --comment 40 --field evidence=@notes.md` (`@file` reads a
+   file; `@@` starts a value with a literal `@`).
 2. **Draft.** `feedback draft --kind bug --title "…" --field key=value …` with
    `--skill <dir holding SKILL.md>` (the version is then read from it) and a
    `--redact` for each name in `TUI.md`: the product, the brand, customers, hosts. A

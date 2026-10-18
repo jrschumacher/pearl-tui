@@ -92,7 +92,13 @@ func Main(args []string, usage string, env Env, stdout, stderr io.Writer) int {
 	}
 
 	if mode == "similar" {
-		return similar(repo, o.title, stdout, stderr, bad)
+		title := o.title
+		if !o.noRedact {
+			red := NewRedactor(env, o.redact)
+			title = red.Apply(title)
+			unmatched(stderr, red, o.redact)
+		}
+		return similar(repo, title, stdout, stderr, bad)
 	}
 
 	is, red, err := build(o, repo, env)
@@ -144,7 +150,9 @@ func build(o opts, repo string, env Env) (Issue, *Redactor, error) {
 		if !ok {
 			return Issue{}, nil, fmt.Errorf("--kind %s has no field %q (it has %s)", k.Name, key, k.fieldList())
 		}
-		if strings.HasPrefix(val, "@") {
+		if strings.HasPrefix(val, "@@") {
+			val = val[1:] // a literal leading @
+		} else if strings.HasPrefix(val, "@") {
 			b, err := os.ReadFile(val[1:])
 			if err != nil {
 				return Issue{}, nil, fmt.Errorf("--field %s: %v", key, err)
@@ -201,7 +209,7 @@ func ghReady() (ok bool, why string) {
 	if _, err := exec.LookPath("gh"); err != nil {
 		return false, "gh is not installed"
 	}
-	if err := exec.Command("gh", "auth", "status").Run(); err != nil {
+	if _, _, err := gh([]string{"auth", "status", "--hostname", "github.com"}); err != nil {
 		return false, "gh is not signed in (gh auth status failed; gh auth login fixes it)"
 	}
 	return true, ""
@@ -226,9 +234,9 @@ func submit(is Issue, o opts, red *Redactor, stdout, stderr io.Writer) int {
 	f.Close()
 	var args []string
 	if is.Comment > 0 {
-		args = []string{"issue", "comment", strconv.Itoa(is.Comment), "--repo", is.Repo, "--body-file", f.Name()}
+		args = []string{"issue", "comment", strconv.Itoa(is.Comment), "--repo", "github.com/" + is.Repo, "--body-file", f.Name()}
 	} else {
-		args = []string{"issue", "create", "--repo", is.Repo, "--title", is.Title, "--body-file", f.Name()}
+		args = []string{"issue", "create", "--repo", "github.com/" + is.Repo, "--title=" + is.Title, "--body-file", f.Name()}
 		for _, l := range is.Kind.Labels {
 			args = append(args, "--label", l)
 		}
@@ -237,7 +245,7 @@ func submit(is Issue, o opts, red *Redactor, stdout, stderr io.Writer) int {
 	if err != nil && is.Comment == 0 && strings.Contains(strings.ToLower(errOut), "label") {
 		// a fork without the labels: file it unlabelled rather than not at all
 		fmt.Fprintf(stderr, "feedback: %s has no %s label; filing without labels\n", is.Repo, strings.Join(is.Kind.Labels, "/"))
-		out, errOut, err = gh(args[:8]) // issue create --repo R --title T --body-file F
+		out, errOut, err = gh(args[:7]) // issue create --repo R --title=T --body-file F
 	}
 	if err != nil {
 		fmt.Fprintf(stderr, "feedback: gh %s failed: %s\n", args[1], strings.TrimSpace(errOut))
@@ -248,9 +256,12 @@ func submit(is Issue, o opts, red *Redactor, stdout, stderr io.Writer) int {
 	return ExitOK
 }
 
+// gh runs gh against github.com whatever GH_HOST says, so an enterprise default can't
+// send the user's report somewhere else.
 func gh(args []string) (stdout, stderr string, err error) {
 	var o, e bytes.Buffer
 	cmd := exec.Command("gh", args...)
+	cmd.Env = append(os.Environ(), "GH_HOST=github.com")
 	cmd.Stdout, cmd.Stderr = &o, &e
 	err = cmd.Run()
 	return o.String(), e.String(), err
@@ -347,7 +358,8 @@ type hit struct {
 }
 
 func similar(repo, title string, stdout, stderr io.Writer, bad func(string, ...any) int) int {
-	terms := Terms(title)
+	// a placeholder is not a word the issue would hold
+	terms := Terms(placeholderRe.ReplaceAllLiteralString(title, " "))
 	if len(terms) == 0 {
 		return bad("--title %q has no words to search for", title)
 	}

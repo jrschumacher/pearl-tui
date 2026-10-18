@@ -80,7 +80,7 @@ func specs(t *testing.T) map[string]cmddoc.Spec {
 			return cmddoc.Spec{
 				Modes:     []string{"draft", "similar", "submit"},
 				Flags:     fb,
-				ModeFlags: map[string]map[string][]string{"draft": fb, "submit": fb, "similar": {"--title": nil, "--repo": nil, "-h": nil, "--help": nil}},
+				ModeFlags: map[string]map[string][]string{"draft": fb, "submit": fb, "similar": {"--title": nil, "--repo": nil, "--redact": nil, "--no-redact": nil, "-h": nil, "--help": nil}},
 			}
 		}(),
 		"tuivet":        {Flags: vet},
