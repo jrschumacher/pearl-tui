@@ -52,10 +52,10 @@ func hex2(v int) string {
 	return s
 }
 
-// A warning's sparkline ends in its mark, and the mark takes a column every row keeps,
-// so the time axis stays aligned: the newest value of every row sits in one column, and
-// a warning row draws the same points as a quiet one (#51 review: it drew two fewer,
-// two columns left).
+// A warning's sparkline ends in its mark, against its last bar, and the mark takes a
+// column every row keeps, so the time axis stays aligned: the newest value of every
+// row sits in one column, and a warning row draws the same points as a quiet one (#51
+// review: it drew two fewer, two columns left).
 func TestStateSparklineKeepsTheTimeAxis(t *testing.T) {
 	for _, ascii := range []bool{false, true} {
 		th := testTheme(t, ascii)
@@ -68,8 +68,8 @@ func TestStateSparklineKeepsTheTimeAxis(t *testing.T) {
 		if string(qr[:10]) != string(wr[:10]) {
 			t.Errorf("ascii=%v: the warning row draws %q where a quiet one draws %q: one time axis", ascii, string(wr[:10]), string(qr[:10]))
 		}
-		if !strings.HasSuffix(warn, th.G.Warn) || strings.TrimSpace(string(qr[10:])) != "" {
-			t.Errorf("ascii=%v: mark column %q (warning) and %q (quiet), want %q and blank", ascii, string(wr[10:]), string(qr[10:]), " "+th.G.Warn)
+		if string(wr[10:]) != th.G.Warn+" " || strings.TrimSpace(string(qr[10:])) != "" {
+			t.Errorf("ascii=%v: mark column %q (warning) and %q (quiet), want %q, the mark against its last bar, and blank", ascii, string(wr[10:]), string(qr[10:]), th.G.Warn+" ")
 		}
 	}
 }

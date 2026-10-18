@@ -69,8 +69,9 @@ func build(t *Theme) Styles {
 	s.OK, s.Err, s.Warn, s.Info = s.Base.Foreground(p.Success), s.Base.Foreground(p.Error), s.Base.Foreground(p.Warning), s.Base.Foreground(p.Info)
 	// the warning keeps yellow at 16 colours (#51), and yellow 3 on a light page is 1.35:1:
 	// a yellow hairline vanishes on white where a yellow cell does not, so there the
-	// warning is a fill, its ink dark (OnWarning, re-inked to read on the slot), and every
-	// mark, word and sparkline drawn in it is a yellow block that carries its shape
+	// warning is a fill, its ink dark (OnWarning, re-inked to read on the slot): its mark,
+	// tags and badges are yellow cells that carry their shape (a sparkline keeps its bars
+	// quiet and its mark filled, ui.StateSparkline)
 	if t.Profile == colorprofile.ANSI && Contrast16(p.Warning, p.Bg) < warnFloor16 {
 		s.Warn = lipgloss.NewStyle().Background(p.Warning).Foreground(p.OnWarning)
 	}
