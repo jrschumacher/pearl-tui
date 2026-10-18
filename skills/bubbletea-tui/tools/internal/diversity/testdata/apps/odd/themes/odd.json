@@ -1,0 +1,4 @@
+{"name": "odd", "expressions": {"header": "rule", "wordmark": "plain", "sectionTitle": "fg", "titleCase": "sentence",
+ "selection": "bar", "button": "underline", "tag": "bold", "dialog": "rules", "tabs": "underline",
+ "footer": "rule", "keys": "boxed", "density": "airy", "backdrop": "none", "scrim": "none", "paintBg": true},
+ "glyphs": {"headerRule": "═", "rule": "┄", "focusBar": "▎", "cursor": "▸", "done": "◆"}}
