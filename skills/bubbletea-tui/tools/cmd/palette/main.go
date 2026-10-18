@@ -77,8 +77,9 @@
 // warning's, magenta the pink an orange is not. On a dark page it takes bright yellow 11
 // and the warning the other yellow, 3, told apart by the warning's glyph (▲ !); on a
 // light page it has no hue, pinned to fg's grey 0 (yellow 3 is 1.35:1 on white), and the
-// kit draws focus as fg and bold, as under "focus": "fg". A yellow brand has no hue on a
-// light page either. Each off its slot is a warning with the pin.
+// kit draws focus as fg and bold, as under "focus": "fg". A yellow brand (85°–135°: a
+// gold, a lime) is placed the same way in both modes: the hue past yellow, cyan 14, is
+// info's. Each off its slot is a warning with the pin.
 //
 // A primary the theme pins to a hue is checked there, in cellshot's palette (VS Code's
 // terminal, the one every sheet shows): primary as text on the page at 3:1, and
@@ -92,8 +93,8 @@
 // red and never the other brightness of a slot another state draws (10 beside success's
 // 2 reads as success). When the brand and a status role are both displaced (an amber and
 // its warning, both on red), the brand takes its slot first and the status role moves. A
-// brand that is a status role's own colour (a yellow on 3, or within 25° of yellow's
-// hue) yields the slot, each mode for itself. It warns on a pin, the theme's or
+// brand that is another status role's own colour (within 25° of green's or blue's hue)
+// yields the slot, each mode for itself. It warns on a pin, the theme's or
 // derive's, that moves a role more than 60° of OKLCH hue from its truecolour value while
 // the tool would pin it nearer (a rose pinned to blue 12 while magenta is free), naming
 // the hex, its hue, the slot and the nearer pin; a pin that is the nearest free hue,

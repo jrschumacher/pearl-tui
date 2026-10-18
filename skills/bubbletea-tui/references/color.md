@@ -49,9 +49,9 @@ palette check theme.json   # on any existing theme
   index in OKLab, the background ramp's steps on indices of their own), and the
   `ansi16` pins its own `check` would ask for (most brands' warning lands on error's red
   at 16 colours), so the first `palette check` of the theme prints no 16-colour pin and
-  exits 0. The warning keeps yellow; a warm brand takes 11 on a dark page and no hue on a
-  light one (§ The Four Palettes); a brand that is a status role's own colour (a yellow,
-  within 25° of the slot's hue) yields it
+  exits 0. The warning keeps yellow; a warm or yellow brand takes 11 on a dark page and
+  no hue on a light one (§ The Four Palettes); a brand that is another status role's own
+  colour (a green or blue within 25° of the slot's hue) yields it
 - warns when `warning` sits beside `primary` in hue and chroma (an amber brand's warning
   a shade brighter than its amber): a warning row then reads as a focused one
 - `check` names `warning` and `error` written as one colour: a Trace's 75 % and 90 %
@@ -182,6 +182,8 @@ and look at the PNGs. What usually breaks:
   hex, the slot and the nearer pin: the brand reads as info there.
 - a warm brand (OKLCH 25°–85°: coral, orange, copper, amber) has no slot of its own at
   16 colours: red is error's, yellow the warning's, magenta the pink an orange is not.
+  A yellow one (85°–135°: gold, lime) has none either, and is placed the same way: its
+  next hue, cyan 14, is info's, where it drew as an info mark.
   On a dark page it takes yellow 11 and the warning keeps yellow 3, so every warning mark
   carries `▲`/`!` (a `ladder` rung in `warning` too: give it `"glyph": "warn"`, which
   `palette check` asks for, and it draws as the kit's warn slot, a fill where yellow is

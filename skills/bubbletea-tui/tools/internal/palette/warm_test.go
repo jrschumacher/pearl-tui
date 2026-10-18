@@ -30,8 +30,8 @@ import (
 //   - a warm brand never draws on magenta, nor its steps (secondary, tertiary, accent)
 //     on error's red or magenta;
 //
-//   - the brand shares the warning's hue only as a warm brand on a dark page, on 11
-//     beside the warning's 3, where the warning's glyph tells them apart;
+//   - the brand shares the warning's hue only as a warm or yellow brand on a dark page,
+//     on 11 beside the warning's 3, where the warning's glyph tells them apart;
 //
 //   - a pinned primary reads as text (3:1) and under its inks (4.5:1) in cellshot's
 //     palette (Inks16), and every other pin reads as text at 3:1, but for the warning's
@@ -113,7 +113,7 @@ func sweepHue(t *testing.T, dir string, l, h float64, text func(n, bg int) float
 			shared := ""
 			if p%8 == w%8 {
 				shared = " shares the warning's hue"
-				if !(warm(hp) && mode == "dark" && p == 11 && w == 3) {
+				if !((warm(hp) || hueDiff(hp, yellowHue) <= ownHueMax) && mode == "dark" && p == 11 && w == 3) {
 					t.Errorf("%s: the brand (ANSI %d) shares the warning's hue (ANSI %d) outside a warm brand on a dark page", where, p, w)
 				}
 			}

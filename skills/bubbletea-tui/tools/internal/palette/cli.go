@@ -396,12 +396,15 @@ func Findings16(f theme.File) []Finding16 {
 		tc := theme.Resolve(f, mode != "light", false).P
 		_, _, h := oklch.LCH(hexOf(tc.Primary))
 		if at := theme.ANSI16Index(f, mode, "primary"); at != want {
+			kind := "warm"
+			if !warm(h) {
+				kind = "yellow"
+			}
 			what := fmt.Sprintf("%s: primary %s (hue %.0f°, warm) draws as ANSI %d at 16 colours (-profile ansi), %s; a warm brand has no slot of its own there (red is error's, magenta the pink an orange is not), so it takes bright yellow and the warning the other yellow, told apart by the warning's glyph", mode, hexOf(tc.Primary), h, at, slotName(at))
+			if kind == "yellow" {
+				what = fmt.Sprintf("%s: primary %s (hue %.0f°, yellow) draws as ANSI %d at 16 colours (-profile ansi), %s, another state's hue; a yellow brand shares its slot with the warning, so it takes bright yellow and the warning the other yellow, told apart by the warning's glyph", mode, hexOf(tc.Primary), h, at, slotName(at))
+			}
 			if mode == "light" {
-				kind := "warm"
-				if !warm(h) {
-					kind = "yellow"
-				}
 				what = fmt.Sprintf("%s: primary %s (hue %.0f°, %s) draws as ANSI %d at 16 colours (-profile ansi), %s; on a light page a %s brand has no slot (yellow 3 is the warning's and 1.35:1 on white, cyan and green under 3:1, magenta the pink an orange is not), so it draws as fg, and the kit's focus as fg and bold", mode, hexOf(tc.Primary), h, kind, at, slotName(at), kind)
 			}
 			if i := slices.IndexFunc(found, func(x Finding16) bool { return x.Mode == mode && x.Role == "primary" }); i >= 0 {
@@ -932,9 +935,11 @@ func warm(h float64) bool {
 // every warning mark carries one (ui.StateSparkline). On a light page it has no hue:
 // yellow 3 is 1.35:1 on white and magenta is pink, so it pins to fg's grey (0), and the
 // kit draws focus as fg and bold there (theme.ResolveProfile); its hue returns at 256
-// colours and truecolour. A yellow brand (within ownHueMax of yellow) has none on a light
-// page either: yellow is the warning's, and the slots it would move to, cyan 6 and green
-// 2, are under 3:1 on white. A brand of chroma under 0.04 has no hue to place.
+// colours and truecolour. A yellow brand (within ownHueMax of yellow, 85°–135°) is placed
+// the same way: its own slot is the warning's, and the slots it would move to are other
+// states' (cyan 14 is info's, drawing a lime brand as an info mark) on a dark page and
+// under 3:1 on white (cyan 6, green 2) on a light one. A brand of chroma under 0.04 has
+// no hue to place.
 func WarmPin16(f theme.File, mode string) (int, bool) {
 	if f.Roles[mode] == (theme.Roles{}) {
 		return 0, false
@@ -942,7 +947,7 @@ func WarmPin16(f theme.File, mode string) (int, bool) {
 	_, c, h := oklch.LCH(hexOf(theme.Resolve(f, mode != "light", false).P.Primary))
 	switch {
 	case c < 0.04:
-	case warm(h) && mode != "light":
+	case mode != "light" && (warm(h) || hueDiff(h, yellowHue) <= ownHueMax):
 		return 11, true
 	case mode == "light" && (warm(h) || hueDiff(h, yellowHue) <= ownHueMax):
 		return theme.GreySlot16("fg", false), true
