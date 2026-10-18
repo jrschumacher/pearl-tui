@@ -206,34 +206,50 @@ func Failures(themes []Theme, o Options) []string {
 			}
 		}
 	}
-	if len(others) >= 3 {
-		for _, a := range Axes {
-			if twoValued[a.Key] {
-				continue
-			}
-			var vals []string
-			count := map[string]int{}
-			for _, t := range others {
-				if v := t.Choices[a.Key]; v != Dead {
-					if count[v] == 0 {
-						vals = append(vals, v)
-					}
-					count[v]++
+	for _, h := range houseStyles(others, o) {
+		fails = append(fails, fmt.Sprintf("%s=%s used by %d/%d brand themes (> %d%%): a house style",
+			h.key, h.val, h.count, len(others), int(o.MaxPopular*100)))
+	}
+	return append(fails, SkeletonFailures(themes, o)...)
+}
+
+type houseStyle struct {
+	key, val string
+	count    int
+}
+
+// houseStyles are the values more than o.MaxPopular of the brand themes (others) use, on
+// the axes with more than two values, axis by axis in table order and values first-seen.
+func houseStyles(others []Theme, o Options) []houseStyle {
+	if len(others) < 3 {
+		return nil
+	}
+	var out []houseStyle
+	for _, a := range Axes {
+		if twoValued[a.Key] {
+			continue
+		}
+		var vals []string
+		count := map[string]int{}
+		for _, t := range others {
+			if v := t.Choices[a.Key]; v != Dead {
+				if count[v] == 0 {
+					vals = append(vals, v)
 				}
+				count[v]++
 			}
-			n := 0
-			for _, c := range count {
-				n += c
-			}
-			for _, v := range vals {
-				if float64(count[v])/float64(len(others)) > o.MaxPopular && n >= 3 {
-					fails = append(fails, fmt.Sprintf("%s=%s used by %d/%d brand themes (> %d%%): a house style",
-						a.Key, v, count[v], len(others), int(o.MaxPopular*100)))
-				}
+		}
+		n := 0
+		for _, c := range count {
+			n += c
+		}
+		for _, v := range vals {
+			if float64(count[v])/float64(len(others)) > o.MaxPopular && n >= 3 {
+				out = append(out, houseStyle{a.Key, v, count[v]})
 			}
 		}
 	}
-	return append(fails, SkeletonFailures(themes, o)...)
+	return out
 }
 
 // Nearest names, for each theme that isn't a baseline, the other non-baseline theme it

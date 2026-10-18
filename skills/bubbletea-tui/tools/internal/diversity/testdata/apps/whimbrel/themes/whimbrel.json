@@ -1,4 +1,4 @@
-{"name": "whimbrel", "expressions": {"header": "rule", "wordmark": "plain", "sectionTitle": "fg", "titleCase": "sentence",
- "selection": "bar", "button": "underline", "tag": "bold", "dialog": "rules", "tabs": "underline",
- "footer": "rule", "keys": "boxed", "density": "airy", "backdrop": "none", "scrim": "none", "paintBg": true},
- "glyphs": {"headerRule": "═", "rule": "┄", "focusBar": "▎", "cursor": "▸", "done": "◆"}}
+{"name": "whimbrel", "expressions": {"header": "banner", "sectionTitle": "muted-upper", "titleCase": "sentence",
+ "selection": "inverse", "button": "pill", "tag": "filled", "dialog": "heavy", "dialogTitle": "bar", "tabs": "bracket",
+ "footer": "keys", "keys": "inline", "density": "airy", "backdrop": "none", "scrim": "none", "paintBg": false},
+ "glyphs": {"rule": "╍", "focusBar": "┃", "cursor": "»", "done": "▣"}}

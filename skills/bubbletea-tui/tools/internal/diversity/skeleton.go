@@ -18,22 +18,36 @@ type SkelAxis struct {
 	Key    string
 	Values []string // the vocabulary; another word is counted as written, with a note
 	Kit    string   // the kit showcase's own value
+	// NoneIsDead: "none" here is the absence "-" names, not a choice, so one render
+	// gives one count (no chart, or no turns, shared by two apps is not a likeness).
+	NoneIsDead bool
 }
 
 // SkeletonAxes are the counted composition choices, in table order. Each is one that two
 // cold builds of one spec came out sharing while their paint differed (#45): the header
-// row, where the session facts sit, which region leads, what the last row holds, a
-// sentence naming the state at the top of the page, the kit's chart used as it ships, and
-// the rule that ends a chat turn.
+// row, where the session facts sit, which region leads, what the last row holds, where a
+// sentence naming the page's state sits, the kit's chart used as it ships, and what ends
+// a chat turn.
+//
+// The kit column is the showcase's services frame at 80×24: a one-row header with the
+// context right, the list leading, the failing service's sentence ("4.8% of checkout
+// requests failing since 14:02") below the list, keys with "synced 4s ago" at the right,
+// one-row sparklines whose values are blocks (the ⣀ of an idle row is a floor, and a
+// floor names no family), and the chat screen's turn-ending rule.
+//
+// Some axes move together (chart and chartGlyphs when an app keeps the kit's chart; head,
+// status and foot when it keeps ui.Header and ui.Footer), so a count over them is a
+// coarse measure: --max-shared-skeleton 3 is the one integer that separated the pair
+// evals, by a margin of 1 on each side, not a measured constant.
 var SkeletonAxes = []SkelAxis{
-	{"head", []string{"bar", "sentence", "none", "folio"}, "bar"},
-	{"status", []string{"header", "top-row", "bottom-row", "footer", "pane", "none"}, "header"},
-	{"order", []string{"main-first", "summary-first", "input-first", "sidebar-left", "sidebar-right", "single"}, "main-first"},
-	{"foot", []string{"keys", "keys-status", "status", "none"}, "keys-status"},
-	{"verdict", []string{"none", "top", "bottom", "header", "pane"}, "none"},
-	{"chart", []string{"none", "sparkline", "trace", "bars", "gauge", "grid", "art", "other"}, "sparkline"},
-	{"chartGlyphs", []string{"blocks", "braille", "shade", "line", "dots", "ascii"}, "blocks"},
-	{"turnEnd", []string{"rule", "marker", "none"}, "rule"},
+	{"head", []string{"bar", "sentence", "none", "folio"}, "bar", false},
+	{"status", []string{"header", "top-row", "bottom-row", "footer", "pane", "none"}, "header", false},
+	{"order", []string{"main-first", "summary-first", "input-first", "sidebar-left", "sidebar-right", "single"}, "main-first", false},
+	{"foot", []string{"keys", "keys-status", "status", "none"}, "keys-status", false},
+	{"verdict", []string{"none", "top", "bottom", "header", "pane"}, "bottom", false},
+	{"chart", []string{"sparkline", "trace", "bars", "gauge", "grid", "art", "other"}, "sparkline", true},
+	{"chartGlyphs", []string{"blocks", "braille", "shade", "line", "dots", "ascii"}, "blocks", true},
+	{"turnEnd", []string{"rule", "marker", "space"}, "rule", true},
 }
 
 // Unknown marks an axis the app's TUI.md doesn't declare. Like Dead, it never counts.
@@ -47,7 +61,7 @@ const KitName = "kit"
 func skeletonTemplate() string {
 	parts := make([]string, len(SkeletonAxes))
 	for i, a := range SkeletonAxes {
-		parts[i] = a.Key + " <" + strings.Join(a.Values, "|") + ">"
+		parts[i] = a.Key + " <" + strings.Join(a.Values, "|") + pick(a.NoneIsDead, "|-", "") + ">"
 	}
 	return "skeleton: " + strings.Join(parts, " · ")
 }
@@ -55,9 +69,10 @@ func skeletonTemplate() string {
 var (
 	skelLine    = regexp.MustCompile(`^\s*(?:[-*]\s+)?skeleton(?:\s*:\s*|\s+)(.*)$`)
 	themeHead   = regexp.MustCompile(`(?i)^#{1,6}\s+(?:\d+\.\s*)?theme\b`)
-	anyHead     = regexp.MustCompile(`^#{1,6}\s`)
+	brandHead   = regexp.MustCompile(`(?i)^#{1,6}\s+(?:\d+\.\s*)?brand\b`)
+	anyHead     = regexp.MustCompile(`^(#{1,6})\s`)
 	jsonToken   = regexp.MustCompile("[^\\s`'\"(]+\\.json")
-	itemSplit   = regexp.MustCompile(`\s*[·;,|]\s*`)
+	itemSplit   = regexp.MustCompile(`\s*[·;,]\s*`)
 	keyValSplit = regexp.MustCompile(`\s*[:=]\s*|\s+`)
 )
 
@@ -71,7 +86,8 @@ func LoadApp(path string) (Theme, []string, error) {
 	if err != nil {
 		return Theme{}, nil, err
 	}
-	themePath, skel, found := scanTUI(data)
+	sc := scanTUI(data)
+	themePath, skel, found := sc.themePath, sc.skel, sc.found
 	if themePath == "" {
 		return Theme{}, nil, fmt.Errorf("%s: § Theme names no theme file (want a line such as themes/<brand>.json under ### Theme)", path)
 	}
@@ -92,7 +108,14 @@ func LoadApp(path string) (Theme, []string, error) {
 		notes = append(notes, fmt.Sprintf("[P2] %s: ", path)+fmt.Sprintf(format, a...))
 	}
 	if !found {
-		note("no skeleton line, so its composition isn't counted; add one to § Brand read, each value as built on the main screen's default frame:\n       %s", skeletonTemplate())
+		switch {
+		case sc.stray > 0:
+			note("the skeleton line at line %d is outside § Brand read, so it isn't read; move it into § Brand read", sc.stray)
+		case !sc.brand:
+			note("no § Brand read heading, so no skeleton line is read; add the section with the line:\n       %s", skeletonTemplate())
+		default:
+			note("no skeleton line in § Brand read, so its composition isn't counted; add one, the main screen as planned at brand and corrected once the default frame renders:\n       %s", skeletonTemplate())
+		}
 		return t, notes, nil
 	}
 	known, valueless := map[string]SkelAxis{}, map[string]bool{}
@@ -115,7 +138,7 @@ func LoadApp(path string) (Theme, []string, error) {
 			continue
 		}
 		v := strings.ToLower(f[1])
-		if v == "n/a" {
+		if v == "n/a" || (v == "none" && a.NoneIsDead) {
 			v = Dead
 		}
 		if t.Skeleton[a.Key] != Unknown {
@@ -127,6 +150,7 @@ func LoadApp(path string) (Theme, []string, error) {
 		}
 		t.Skeleton[a.Key] = v
 	}
+	deadGlyphs(t.Skeleton) // no chart: its glyphs need no declaration
 	var missing []string
 	for _, a := range SkeletonAxes {
 		if t.Skeleton[a.Key] == Unknown && !valueless[a.Key] {
@@ -136,13 +160,12 @@ func LoadApp(path string) (Theme, []string, error) {
 	if len(missing) > 0 {
 		note("skeleton declares no %s, so %s (write - where the screen has none)", strings.Join(missing, ", "), pick(len(missing) == 1, "it doesn't count", "they don't count"))
 	}
-	deadGlyphs(t.Skeleton)
 	return t, notes, nil
 }
 
 // deadGlyphs: with no chart there is no chart glyph family to share.
 func deadGlyphs(s map[string]string) {
-	if c := s["chart"]; c == "none" || c == Dead {
+	if s["chart"] == Dead {
 		s["chartGlyphs"] = Dead
 	}
 }
@@ -157,37 +180,53 @@ func KitSkeleton() map[string]string {
 	return s
 }
 
+type tuiScan struct {
+	themePath, skel string
+	found           bool // a skeleton line in § Brand read
+	brand           bool // a § Brand read heading
+	stray           int  // the line of the first skeleton line outside § Brand read
+}
+
 // scanTUI returns the first .json path under the § Theme heading and the text after the
-// first `skeleton:` line, outside fenced blocks.
-func scanTUI(data []byte) (themePath, skel string, found bool) {
+// first `skeleton:` line in § Brand read (to the next heading as high as its own). In §
+// Brand read a fenced block is read too, since brand.md § 1 shows the read in a fence;
+// elsewhere a skeleton line is never read, only remembered, so the note can say where it is.
+func scanTUI(data []byte) tuiScan {
+	var r tuiScan
 	sc := bufio.NewScanner(bytes.NewReader(data))
 	sc.Buffer(make([]byte, 1<<20), 1<<20)
-	fence, inTheme := false, false
+	fence, inTheme, brandLevel, n := false, false, 0, 0
 	for sc.Scan() {
+		n++
 		line := sc.Text()
 		if strings.HasPrefix(strings.TrimSpace(line), "```") {
 			fence = !fence
 			continue
 		}
-		if fence {
-			continue
-		}
-		if anyHead.MatchString(line) {
+		if m := anyHead.FindStringSubmatch(line); m != nil && !fence {
 			inTheme = themeHead.MatchString(line)
+			if brandHead.MatchString(line) {
+				brandLevel, r.brand = len(m[1]), true
+			} else if len(m[1]) <= brandLevel {
+				brandLevel = 0
+			}
 			continue
 		}
-		if inTheme && themePath == "" {
+		if inTheme && !fence && r.themePath == "" {
 			if m := jsonToken.FindString(line); m != "" {
-				themePath = m
+				r.themePath = m
 			}
 		}
-		if !found {
-			if m := skelLine.FindStringSubmatch(line); m != nil {
-				skel, found = m[1], true
-			}
+		m := skelLine.FindStringSubmatch(line)
+		switch {
+		case m == nil || r.found:
+		case brandLevel > 0:
+			r.skel, r.found = m[1], true
+		case !fence && r.stray == 0:
+			r.stray = n
 		}
 	}
-	return themePath, skel, found
+	return r
 }
 
 func axisKeys() string {
@@ -269,15 +308,17 @@ func sharedSkeleton(s1, s2 map[string]string) (shared []string, both int) {
 
 // FromTheRead follows the skeleton failures and newcomer flags, once: they name the axis,
 // never a reason to move it, because in #37 an agent moved an axis only to pass, against
-// its own read.
-const FromTheRead = "skeleton failures and newcomer flags name an axis, not a reason to move it: move one only where your brand read " +
-	"(TUI.md § Brand read, its move: and signature: lines) gives a reason and write the reason there; " +
-	"a value two brands both have a reason for goes to one of them (brand.md § 5, seating plan); an axis moved only to pass moves back"
+// its own read; and editing a word is cheaper than moving a region.
+const FromTheRead = "skeleton failures and flags name an axis, not a reason to move it. Declare the frame as built: " +
+	"a line the frame contradicts is the critic's P1.\n" +
+	"Move an axis only where the brand read's move: or signature: gives the reason; a value two brands both have " +
+	"a reason for: the orchestrator seats it, a lone build keeps it. An axis moved only to pass moves back."
 
 // SkeletonFailures is the rule that needs two apps: two skeletons alike on more than
-// --max-shared-skeleton axes are one composition in two paints. Three of eight is the
-// line the pair evals drew: the pairs a blind critic called one product (5 shared) or
-// siblings from one shop (4) fail, the pair it called two products (2) passes.
+// --max-shared-skeleton axes are one composition in two paints. Three is the line the
+// pair evals drew, with a margin of 1 each side: the pairs a blind critic called one
+// product (5 shared) or siblings from one shop (4) fail, the pair it called two products
+// (2) passes. A family that shares its chrome on purpose raises it.
 func SkeletonFailures(themes []Theme, o Options) []string {
 	as := apps(themes)
 	var fails []string
@@ -335,6 +376,17 @@ func NewcomerFlags(themes []Theme, o Options) []string {
 		k := a.Key
 		axes = append(axes, axis{"skeleton " + k, "not the kit's " + kit[k], func(t Theme) string { return t.Skeleton[k] }, map[string]bool{kit[k]: true}})
 	}
+	// a value the house-style rule already fails is not flagged again
+	failed := map[string]bool{}
+	var others []Theme
+	for _, t := range themes {
+		if !o.Baseline[t.Name] {
+			others = append(others, t)
+		}
+	}
+	for _, h := range houseStyles(others, o) {
+		failed[h.key+"="+h.val] = true
+	}
 	for _, a := range axes {
 		var vals []string
 		holders := map[string][]string{}
@@ -350,7 +402,7 @@ func NewcomerFlags(themes []Theme, o Options) []string {
 		}
 		for _, v := range vals {
 			h := holders[v]
-			if len(h) < 2 || float64(len(h))/float64(len(as)) <= o.MaxPopular {
+			if failed[a.label+"="+v] || len(h) < 2 || float64(len(h))/float64(len(as)) <= o.MaxPopular {
 				continue
 			}
 			who := "every app"
@@ -375,7 +427,7 @@ func KitAdvice(themes []Theme) []string {
 		switch {
 		case both == 0 || len(shared) == 0:
 		case len(shared) == both:
-			out = append(out, fmt.Sprintf("skeleton of %s: the kit's on all %d declared axes, so its brand read's move doesn't show here: declare the axis the move changes, or build the move it names (brand.md § Move A Region)", t.Name, both))
+			out = append(out, fmt.Sprintf("skeleton of %s: the kit's on all %d declared axes, so its brand read's move doesn't show here: if the move is built, declare it as built; if not, build it (brand.md § Move A Region)", t.Name, both))
 		default:
 			out = append(out, fmt.Sprintf("skeleton of %s: the kit's on %s (%d/%d); its brand read's move should be among the others (advice, not a failure)", t.Name, strings.Join(shared, ", "), len(shared), both))
 		}

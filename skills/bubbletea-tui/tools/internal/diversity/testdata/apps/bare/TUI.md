@@ -1,15 +1,14 @@
 # Bare TUI
 
-## Design
-
 ### Brand read
-move: none yet
+(no skeleton line)
 
-A sketch that happens to start with the word, inside a fence, is not a declaration:
+### Theme
+themes/bare.json
+
+### Screens
+A fenced sketch outside § Brand read is never read:
 
 ```
 skeleton: head sentence · status pane
 ```
-
-### Theme
-themes/bare.json

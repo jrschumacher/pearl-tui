@@ -1,4 +1,4 @@
-{"name": "dunlin", "expressions": {"header": "minimal", "wordmark": "solid", "sectionTitle": "fg", "titleCase": "lower",
- "selection": "fill", "button": "bracket", "tag": "bracket", "dialog": "square", "dialogTitle": "plain", "tabs": "slash",
- "footer": "keys", "keys": "inline", "density": "compact", "backdrop": "none", "scrim": "dim", "paintBg": false},
- "glyphs": {"rule": "─", "focusBar": "▌", "cursor": "›", "done": "✓"}}
+{"name": "dunlin", "expressions": {"header": "bar", "wordmark": "inverse", "sectionTitle": "primary", "titleCase": "upper",
+ "selection": "caret", "button": "underline", "tag": "bold", "dialog": "double", "dialogTitle": "rule", "tabs": "pill",
+ "footer": "bar", "keys": "boxed", "density": "compact", "backdrop": "field", "scrim": "dim", "paintBg": true},
+ "glyphs": {"rule": "┅", "focusBar": "▐", "cursor": "❯", "done": "✔"}}

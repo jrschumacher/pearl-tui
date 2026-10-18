@@ -104,7 +104,8 @@ func TestSkeletonFailurePointsAtTheBrandRead(t *testing.T) {
 	if strings.Count(out, FromTheRead) != 1 {
 		t.Errorf("want the brand-read line exactly once:\n%s", out)
 	}
-	for _, want := range []string{"brand read", "move: and signature:", "moved only to pass moves back", "seating plan"} {
+	for _, want := range []string{"Declare the frame as built", "critic's P1", "brand read's move: or signature:",
+		"the orchestrator seats it, a lone build keeps it", "moved only to pass moves back"} {
 		if !strings.Contains(FromTheRead, want) {
 			t.Errorf("FromTheRead lacks %q", want)
 		}
@@ -128,7 +129,7 @@ func TestMissingSkeletonIsP2(t *testing.T) {
 	if code != 0 || errs != "" {
 		t.Fatalf("exit %d stderr %q, want 0 and nothing\n%s", code, errs, out)
 	}
-	if !strings.Contains(out, "[P2] "+appDir+"bare/TUI.md: no skeleton line") || !strings.Contains(out, skeletonTemplate()) {
+	if !strings.Contains(out, "[P2] "+appDir+"bare/TUI.md: no skeleton line in § Brand read") || !strings.Contains(out, skeletonTemplate()) {
 		t.Errorf("no P2 note with the template line:\n%s", out)
 	}
 	if strings.Contains(out, "skeleton of bare") || strings.Contains(out, "(bare, godwit") || strings.Contains(out, "(godwit, bare") {
@@ -147,14 +148,14 @@ func TestMissingSkeletonIsP2(t *testing.T) {
 
 // odd/TUI.md declares a word outside the vocabulary, an axis twice, an unknown key, a key
 // with no value, and leaves axes out: each is one P2 note, none fails, and a chart of
-// "none" kills the chart glyphs.
+// "none" is no chart ("-"), which kills the chart glyphs.
 func TestSkeletonNotes(t *testing.T) {
 	app, notes, err := LoadApp(appDir + "odd/TUI.md")
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := map[string]string{"head": "ribbon", "status": "footer", "order": Unknown, "foot": Unknown, "verdict": Unknown,
-		"chart": "none", "chartGlyphs": Dead, "turnEnd": Unknown}
+		"chart": Dead, "chartGlyphs": Dead, "turnEnd": Unknown}
 	for k, v := range want {
 		if app.Skeleton[k] != v {
 			t.Errorf("odd %s = %q, want %q", k, app.Skeleton[k], v)
@@ -278,5 +279,100 @@ func TestSkeletonArguments(t *testing.T) {
 		if _, errs, code := run(c.args...); code != c.exit {
 			t.Errorf("diversity %v: exit %d, want %d (stderr %q)", c.args, code, c.exit, errs)
 		}
+	}
+}
+
+// One render gives one count. pair 2 (the pair the blind critic called two products)
+// shares 2 axes declared with "-" for the turn end it doesn't have; written "turnEnd none"
+// (the word -h listed), it went to 3, at the threshold, with a flag that both apps
+// "converged" on having no chat. "none" on chart and turnEnd now reads as "-".
+func TestNoneIsAbsence(t *testing.T) {
+	dir := t.TempDir()
+	theme := func(name string) string {
+		p := filepath.Join(dir, name+".json")
+		os.WriteFile(p, []byte(`{"name": "`+name+`"}`), 0o644)
+		return p
+	}
+	app := func(name, skel string) string {
+		p := filepath.Join(dir, name+".md")
+		os.WriteFile(p, []byte("### Brand read\nskeleton: "+skel+"\n\n### Theme\n"+theme(name)+"\n"), 0o644)
+		return p
+	}
+	const (
+		a = "head bar · status header · order sidebar-left · foot keys · verdict top · chart trace · chartGlyphs blocks · "
+		b = "head folio · status bottom-row · order summary-first · foot keys · verdict none · chart trace · chartGlyphs braille · "
+	)
+	for _, end := range []string{"turnEnd -", "turnEnd n/a", "turnEnd none"} {
+		out, _, _ := run("-v", app("pa", a+end), app("pb", b+end), "--baseline", "", "--max-shared", "99")
+		if !strings.Contains(out, "pa · pb: ") || !strings.Contains(out, "; skeleton 2/7 (foot, chart)") {
+			t.Errorf("%s: want 2 of 7 live skeleton axes shared\n%s", end, out)
+		}
+		if strings.Contains(out, "turnEnd=") {
+			t.Errorf("%s: an absence flagged as a convergence\n%s", end, out)
+		}
+	}
+	for _, chart := range []string{"chart -", "chart none"} {
+		s1 := "head bar · status header · order main-first · foot keys · verdict top · " + chart + " · turnEnd rule"
+		s2 := "head folio · status pane · order single · foot keys · verdict none · " + chart + " · turnEnd marker"
+		out, _, _ := run("-v", app("ca", s1), app("cb", s2), "--baseline", "", "--max-shared", "99")
+		if !strings.Contains(out, "; skeleton 1/6 (foot)") {
+			t.Errorf("%s: want 1 of 6 shared, chart and chartGlyphs dead\n%s", chart, out)
+		}
+	}
+}
+
+// The line is read only in § Brand read (to the next heading as high as its own), fenced
+// or not, since brand.md § 1 shows the read in a fence. A skeleton line elsewhere is
+// never read, and the note says where it is rather than "no skeleton line".
+func TestSkeletonOnlyInBrandRead(t *testing.T) {
+	app, notes, err := LoadApp(appDir + "fenced/TUI.md")
+	if err != nil || len(notes) != 0 || app.Skeleton["head"] != "sentence" || app.Skeleton["turnEnd"] != "marker" {
+		t.Errorf("fenced brand read: %v notes %q skeleton %v", err, notes, app.Skeleton)
+	}
+	app, notes, _ = LoadApp(appDir + "stray/TUI.md")
+	if len(notes) != 1 || !strings.Contains(notes[0], "the skeleton line at line 10 is outside § Brand read, so it isn't read") || app.Skeleton["head"] != Unknown {
+		t.Errorf("stray: notes %q skeleton %v", notes, app.Skeleton)
+	}
+	app, notes, _ = LoadApp(godwit) // "## 2. Brand read", a deeper heading inside it, "none" as an absence
+	if len(notes) != 0 || app.Skeleton["order"] != "sidebar-left" || app.Skeleton["turnEnd"] != Dead {
+		t.Errorf("godwit: notes %q skeleton %v", notes, app.Skeleton)
+	}
+	// the template line pasted as is: "|" doesn't split items, so each axis is one note
+	p := filepath.Join(t.TempDir(), "TUI.md")
+	os.WriteFile(p, []byte("### Brand read\n"+skeletonTemplate()+"\n### Theme\n"+filepath.Join(wd(t), appDir, "bare/themes/bare.json")+"\n"), 0o644)
+	if _, notes, _ := LoadApp(p); len(notes) != len(SkeletonAxes) {
+		t.Errorf("the pasted template: %d notes, want one per axis: %q", len(notes), notes)
+	}
+}
+
+func wd(t *testing.T) string {
+	d, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return d
+}
+
+// A value held by one app is never a convergence, whatever --max-popular says: at 0.3
+// one of three apps is 33%, over the line, and still not flagged.
+func TestNewcomerNeedsTwo(t *testing.T) {
+	out, _, _ := run(dunlin, whimbrel, godwit, kitInk, kitCharm, "--max-popular", "0.3")
+	if strings.Contains(out, "order=sidebar-left held") || strings.Contains(out, "chartGlyphs=braille held") {
+		t.Errorf("a value one app holds was flagged:\n%s", out)
+	}
+	if !strings.Contains(out, "[P2] skeleton verdict=top held by 2/3 apps") {
+		t.Errorf("2 of 3 at 0.3 not flagged:\n%s", out)
+	}
+}
+
+// A value the house-style rule already fails over the brand themes is not flagged again
+// as a newcomer departure.
+func TestHouseStyleNotFlaggedTwice(t *testing.T) {
+	out, _, _ := run(dunlin, whimbrel, godwit, kitInk, "--baseline", "ink")
+	if !strings.Contains(out, "FAIL selection=inverse used by 2/3 brand themes") {
+		t.Fatalf("no house-style failure to dedupe against:\n%s", out)
+	}
+	if strings.Contains(out, "[P2] selection=inverse") {
+		t.Errorf("flagged twice:\n%s", out)
 	}
 }

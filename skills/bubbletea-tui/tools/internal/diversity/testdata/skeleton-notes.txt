@@ -26,8 +26,8 @@ head         bar         ribbon      ?
 status       header      footer      ?           
 order        main-first  ?           ?           
 foot         keys-statu  ?           ?           
-verdict      none        ?           ?           
-chart        sparkline   none        ?           
+verdict      bottom      ?           ?           
+chart        sparkline   -           ?           
 chartGlyphs  blocks      -           ?           
 turnEnd      rule        ?           ?           
 
@@ -38,6 +38,6 @@ nearest to bare: odd (shares 3/18 axes)
 [P2] testdata/apps/odd/TUI.md: skeleton names "layout", which is no axis (head, status, order, foot, verdict, chart, chartGlyphs, turnEnd)
 [P2] testdata/apps/odd/TUI.md: skeleton verdict has no value (none | top | bottom | header | pane), so it doesn't count
 [P2] testdata/apps/odd/TUI.md: skeleton declares no order, foot, turnEnd, so they don't count (write - where the screen has none)
-[P2] testdata/apps/bare/TUI.md: no skeleton line, so its composition isn't counted; add one to § Brand read, each value as built on the main screen's default frame:
-       skeleton: head <bar|sentence|none|folio> · status <header|top-row|bottom-row|footer|pane|none> · order <main-first|summary-first|input-first|sidebar-left|sidebar-right|single> · foot <keys|keys-status|status|none> · verdict <none|top|bottom|header|pane> · chart <none|sparkline|trace|bars|gauge|grid|art|other> · chartGlyphs <blocks|braille|shade|line|dots|ascii> · turnEnd <rule|marker|none>
+[P2] testdata/apps/bare/TUI.md: no skeleton line in § Brand read, so its composition isn't counted; add one, the main screen as planned at brand and corrected once the default frame renders:
+       skeleton: head <bar|sentence|none|folio> · status <header|top-row|bottom-row|footer|pane|none> · order <main-first|summary-first|input-first|sidebar-left|sidebar-right|single> · foot <keys|keys-status|status|none> · verdict <none|top|bottom|header|pane> · chart <sparkline|trace|bars|gauge|grid|art|other|-> · chartGlyphs <blocks|braille|shade|line|dots|ascii|-> · turnEnd <rule|marker|space|->
 OK

@@ -1,70 +1,70 @@
 axis         dunlin      ink         charm       
-header       minimal     rule        rule        
-wordmark     solid       solid       gradient    
-sectionTitle fg          fg          accent      
-titleCase    lower       sentence    sentence    
-selection    fill        bar         bar         
-button       bracket     pill        pill        
-tag          bracket     filled      filled      
-dialog       square      rounded     rounded     
-dialogTitle  plain       plain       rule        
-tabs         slash       underline   underline   
-footer       keys        keys        keys        
-keys         inline      inline      inline      
+header       bar         rule        rule        
+wordmark     inverse     solid       gradient    
+sectionTitle primary     fg          accent      
+titleCase    upper       sentence    sentence    
+selection    caret       bar         bar         
+button       underline   pill        pill        
+tag          bold        filled      filled      
+dialog       double      rounded     rounded     
+dialogTitle  rule        plain       rule        
+tabs         pill        underline   underline   
+footer       bar         keys        keys        
+keys         boxed       inline      inline      
 density      compact     airy        airy        
-backdrop     none        none        field       
+backdrop     field       none        field       
 scrim        dim         dim         dim         
-paintBg      False       False       True        
+paintBg      True        False       True        
 headerRule   -                       ╱           
-rule         ─           ─           ─           
-focusBar     ▌           ▌           ▌           
-cursor       ›           ›           >           
-done         ✓           ✓           ✓           
+rule         ┅           ─           ─           
+focusBar     ▐           ▌           ▌           
+cursor       ❯           ›           >           
+done         ✔           ✓           ✓           
 
 skeleton     kit         dunlin      
 head         bar         bar         
 status       header      header      
 order        main-first  summary-fi  
 foot         keys-statu  keys-statu  
-verdict      none        top         
+verdict      bottom      top         
 chart        sparkline   trace       
 chartGlyphs  blocks      blocks      
 turnEnd      rule        -           
 
 seating: every value of every axis, and who holds it
-header       minimal: dunlin · rule: ink, charm
-wordmark     solid: dunlin, ink · gradient: charm
-sectionTitle fg: dunlin, ink · accent: charm
-titleCase    lower: dunlin · sentence: ink, charm
-selection    fill: dunlin · bar: ink, charm
-button       bracket: dunlin · pill: ink, charm
-tag          bracket: dunlin · filled: ink, charm
-dialog       square: dunlin · rounded: ink, charm
-dialogTitle  plain: dunlin, ink · rule: charm
-tabs         slash: dunlin · underline: ink, charm
-footer       keys: dunlin, ink, charm
-keys         inline: dunlin, ink, charm
+header       bar: dunlin · rule: ink, charm
+wordmark     inverse: dunlin · solid: ink · gradient: charm
+sectionTitle primary: dunlin · fg: ink · accent: charm
+titleCase    upper: dunlin · sentence: ink, charm
+selection    caret: dunlin · bar: ink, charm
+button       underline: dunlin · pill: ink, charm
+tag          bold: dunlin · filled: ink, charm
+dialog       double: dunlin · rounded: ink, charm
+dialogTitle  rule: dunlin, charm · plain: ink
+tabs         pill: dunlin · underline: ink, charm
+footer       bar: dunlin · keys: ink, charm
+keys         boxed: dunlin · inline: ink, charm
 density      compact: dunlin · airy: ink, charm
-backdrop     none: dunlin, ink · field: charm
+backdrop     field: dunlin, charm · none: ink
 scrim        dim: dunlin, ink, charm
-paintBg      False: dunlin, ink · True: charm
+paintBg      True: dunlin, charm · False: ink
 headerRule   -: dunlin · "": ink · ╱: charm
-rule         ─: dunlin, ink, charm
-focusBar     ▌: dunlin, ink, charm
-cursor       ›: dunlin, ink · >: charm
-done         ✓: dunlin, ink, charm
+rule         ┅: dunlin · ─: ink, charm
+focusBar     ▐: dunlin · ▌: ink, charm
+cursor       ❯: dunlin · ›: ink · >: charm
+done         ✔: dunlin · ✓: ink, charm
 head         bar: kit, dunlin
 status       header: kit, dunlin
 order        main-first: kit · summary-first: dunlin
 foot         keys-status: kit, dunlin
-verdict      none: kit · top: dunlin
+verdict      bottom: kit · top: dunlin
 chart        sparkline: kit · trace: dunlin
 chartGlyphs  blocks: kit, dunlin
 turnEnd      rule: kit · -: dunlin
 
 pairs: the axes each pair shares
-dunlin · ink: 12/20 axes (wordmark, sectionTitle, dialogTitle, footer, keys, backdrop, scrim, paintBg, rule, focusBar, cursor, done)
-dunlin · charm: 6/20 axes (footer, keys, scrim, rule, focusBar, done)
+dunlin · ink: 1/20 axes (scrim)
+dunlin · charm: 4/20 axes (dialogTitle, backdrop, scrim, paintBg)
 ink · charm: 14/21 axes (header, titleCase, selection, button, tag, dialog, tabs, footer, keys, density, scrim, rule, focusBar, done)
 dunlin · kit: skeleton 4/7 (head, status, foot, chartGlyphs)
 
