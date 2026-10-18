@@ -239,5 +239,11 @@ func TestTableRuleIsOptional(t *testing.T) {
 		if got := TableWith(th, header, rows, []int{0, 6}, "lr", 1, 40, true, TableOpts{}); !slices.Equal(got, Table(th, header, rows, []int{0, 6}, "lr", 1, 40, true)) {
 			t.Errorf("ascii=%v: TableWith's zero options are not Table's defaults (gap 2, the rule)", ascii)
 		}
+		// a negative Gap is none, as Table(…, 0) is: an app moving to TableWith for NoRule
+		// keeps its 0-cell gap
+		if got, want := TableWith(th, header, rows, []int{0, 6}, "lr", 1, 40, true, TableOpts{Gap: -1, NoRule: true}),
+			Table(th, header, rows, []int{0, 6}, "lr", 1, 40, true, 0); !slices.Equal(got, append([]string{want[0]}, want[2:]...)) {
+			t.Errorf("ascii=%v: TableWith Gap -1 is not Table's gap 0:\n%q\n%q", ascii, got, want)
+		}
 	}
 }

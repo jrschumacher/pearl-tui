@@ -377,7 +377,7 @@ func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 
 // TableOpts are Table's settings past its arguments.
 type TableOpts struct {
-	Gap    int  // cells between columns: 2 when 0 (for none, Table(…, focused, 0))
+	Gap    int  // cells between columns: 0 is the default 2, and a negative Gap is none (0 cells)
 	NoRule bool // no rule under the header: the rows follow it, for an app that draws its own divider there or none
 }
 
@@ -385,7 +385,10 @@ type TableOpts struct {
 // leaves out the rule under the header. The zero TableOpts is Table's defaults.
 func TableWith(t *theme.Theme, header []string, rows [][]string, widths []int, align string, sel, w int, focused bool, o TableOpts) []string {
 	g := o.Gap
-	if g <= 0 {
+	switch {
+	case g < 0:
+		g = 0 // none: TableOpts' zero value is the default, so none is spelt -1
+	case g == 0:
 		g = 2
 	}
 	return table(t, header, rows, widths, align, sel, w, focused, g, !o.NoRule)

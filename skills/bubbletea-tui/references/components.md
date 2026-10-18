@@ -52,7 +52,8 @@ rest stays subtle. Don't rebuild Section for it. This is how regions separate.
 Borderless. The header row in subtle UPPERCASE (or the theme's case), one rule under it
 (`ui.TableWith(…, ui.TableOpts{NoRule: true})` leaves it out where the app draws its own
 divider there; don't slice the output),
-2-cell column gaps (a last argument of 1 for a dense table: 10 columns at 80 cells),
+2-cell column gaps (a last argument of 1 for a dense table: 10 columns at 80 cells;
+`TableOpts.Gap`, where 0 is the default 2 and -1 is none),
 numbers right-aligned, the first column taking the rest. The selected row is marked like
 a list row. On a filled selection every block or braille cell (a trace, a sparkline, or a
 history the app draws itself) takes a shade of the fill (`Styles.SelBars`): in the row's
