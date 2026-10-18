@@ -169,7 +169,11 @@ func TestRules(t *testing.T) {
 		{"remember alone", "### Brand read\ntone: calm\nremember: the orange row\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
 		{"remember beside a move", "### Brand read\nremember: the orange row\nmove: the detail leads\n" + table("| list | list | enter open |", ""), nil},
 		{"remember beside a signature", "### Brand read\n- remember: the orange row\n- **signature:** a tide strip\n" + table("| list | list | enter open |", ""), nil},
-		{"remember in a fence", "### Notes\n```\nremember: the orange row\n```\n" + table("| list | list | enter open |", ""), nil},
+		{"remember in a fence", "### Brand read\n```\nremember: the orange row\n```\n" + table("| list | list | enter open |", ""), nil},
+		{"remember in bold", "### Brand read\n**Remember:** the orange flag\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
+		{"remember in backticks", "### Brand read\n`remember:` lines are gone; see the move\n" + table("| list | list | enter open |", ""), nil},
+		{"remember outside the brand read", "### Brand read\ntone: calm\n\n## Decisions\n- Remember: q quits from every screen\n" + table("| list | list | enter open |", ""), nil},
+		{"a move outside the brand read", "### Brand read\nremember: the orange row\n\n### Keys\n- move: up and down\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
 
 		{"brand section ends at the next heading", "## Brand\n### Brand read\ntone: calm\n## Architecture\nregions ★ ★\n" + table("| list | list | enter open |", ""), nil},
 	}

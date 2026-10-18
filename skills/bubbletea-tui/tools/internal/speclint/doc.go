@@ -90,7 +90,8 @@
 //	                  refresh ramp), quoting both. A line that names a hue or a word of a meaning
 //	                  is the same meaning; "primary pane", "primary key" are not the hue. Table
 //	                  rows and fenced sketches are not read. A warning: the critic stays the judge.
-//	S-SLOTS      [P2] a `remember:` line with no `move:` or `signature:` line: a brand read
+//	S-SLOTS      [P2] in a brand section, a `remember:` line with no `move:` or `signature:`
+//	                  line (in backticks or a fence it is prose, not a slot): a brand read
 //	                  written before those two replaced it. Name one region placed in other rows
 //	                  than the kit's (or absent, or added) and one element the kit doesn't draw,
 //	                  as references/brand.md § Move A Region says; brand, craft and the critic

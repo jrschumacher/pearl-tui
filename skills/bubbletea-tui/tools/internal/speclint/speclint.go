@@ -779,18 +779,32 @@ var accentStop = map[string]bool{"the": true, "and": true, "for": true, "only": 
 
 var slotLine = regexp.MustCompile(`(?i)^(?:[-*+]\s+)?(remember|move|signature)\s*:`)
 
-// brandSlots is S-SLOTS: a `remember:` line outside a fence, and no `move:` or
-// `signature:` line anywhere, is a brand read from before those two replaced it.
+// brandSlots is S-SLOTS: in a brand section (brandHeading), a `remember:` line and no
+// `move:` or `signature:` line is a brand read from before those two replaced it. A
+// slot word in backticks is prose about the slot, and a fenced line is a sketch.
 func (s *spec) brandSlots(add func(string, int, string, ...any)) {
-	remember, slots, fenced := 0, false, false
+	remember, slots, fenced, level := 0, false, false, 0
 	for i, l := range s.lines {
 		t := strings.TrimSpace(l)
 		if strings.HasPrefix(t, "```") {
 			fenced = !fenced
 			continue
 		}
-		m := slotLine.FindStringSubmatch(clean(t))
-		if fenced || m == nil {
+		if m := headingRe.FindStringSubmatch(t); m != nil && !fenced {
+			n := len(m[1])
+			switch {
+			case brandHeading.MatchString(m[2]):
+				level = n
+			case level > 0 && n <= level:
+				level = 0
+			}
+			continue
+		}
+		if fenced || level == 0 {
+			continue
+		}
+		m := slotLine.FindStringSubmatch(strings.NewReplacer("**", "", "__", "").Replace(t))
+		if m == nil {
 			continue
 		}
 		if !strings.EqualFold(m[1], "remember") {
