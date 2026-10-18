@@ -10,6 +10,7 @@ import (
 	"unicode"
 
 	"tuitools/internal/framelint"
+	"tuitools/internal/tuimd"
 )
 
 // frameHint is one `key action` hint read off a golden frame's footer row.
@@ -300,6 +301,44 @@ func (s *spec) goldenFooters(dir string, add func(string, int, string, ...any)) 
 		if len(parts) > 0 {
 			add("S-GOLDEN", r.line, "%s: the footer of %s %s: the footer and the table disagree, so one of them lies. Make the state's actions() and this row the same keys, then re-render",
 				r.state, filepath.Join(filepath.Base(dir), name), strings.Join(parts, ", and "))
+		}
+	}
+}
+
+// blankRegion names a budget region that is blank by design: a gap between regions.
+var blankRegion = regexp.MustCompile(`(?i)^(?:gap|gutter|margin|spacer|padding|blank)s?\b`)
+
+// regionBudgets is S-REGION: each `<W>×<H>:` budget line of a screen block against that
+// screen's golden at that size (dir/<screen>-<W>x<H>.ansi). A region whose whole
+// rectangle is blank there is drawn somewhere else, or not at all: the layout moved and
+// the budget went stale. A region with any text in it is not reported, even when the
+// text is another region's (a status line under a transcript touches it on purpose), so
+// a budget whose region the body moved into passes.
+func (s *spec) regionBudgets(dir string, add func(string, int, string, ...any)) {
+	for _, b := range tuimd.Budgets(strings.Join(s.lines, "\n")) {
+		name := fmt.Sprintf("%s-%dx%d.ansi", b.Screen, b.W, b.H)
+		data, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			continue
+		}
+		f := framelint.Parse(strings.TrimSuffix(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n"))
+		for _, r := range b.Regions {
+			if blankRegion.MatchString(r.Name) {
+				continue
+			}
+			blank := true
+			for y := r.Y; y < r.Y+r.H && y < len(f.Rows) && blank; y++ {
+				for x := r.X; x < r.X+r.W && x < len(f.Rows[y]); x++ {
+					if strings.TrimSpace(f.Rows[y][x].Ch) != "" {
+						blank = false
+						break
+					}
+				}
+			}
+			if blank {
+				add("S-REGION", b.Line, "%s: `%s %d,%d %d×%d` is blank in %s: the region is drawn elsewhere or not at all, so the budget went stale. Measure the region in the golden and write its rectangle here (cmd-init.md: update TUI.md when a decision changes), or move the region back",
+					b.Screen, r.Name, r.X, r.Y, r.W, r.H, filepath.Join(filepath.Base(dir), name))
+			}
 		}
 	}
 }

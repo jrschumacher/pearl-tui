@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -738,5 +739,45 @@ func TestGoldenFooters(t *testing.T) {
 	out.Reset()
 	if code := Main([]string{tui, "--frames=" + dir}, &out, &errb); code != 0 || !strings.Contains(out.String(), "S-GOLDEN") {
 		t.Errorf("--frames=dir: exit %d\n%s", code, out.String())
+	}
+}
+
+// S-REGION: with --frames, a region of a screen's budget line whose whole rectangle is
+// blank in <screen>-<W>x<H>.ansi: the layout moved and the budget went stale (a recreate
+// run's response pane drawn 8 rows higher than TUI.md said). A gap is blank by design; a
+// region with any text is not reported, even when the text is another region's (a status
+// line under a transcript touches it legitimately).
+func TestRegionBudgets(t *testing.T) {
+	doc := "# x TUI\n\n### Screens\n#### list — every job\n" +
+		"80×24:  header 0,0 80×1 · gap 0,1 80×1 · list 0,2 80×10 · status 0,20 80×2 · footer 0,23 80×1\n" +
+		"120×40: header 0,0 120×1 · list 0,2 120×30 · footer 0,39 120×1\n" +
+		"#### detail — one item\nbrand: nothing, because it is the list's row whole\n" +
+		"80×24:  pane 40,0 40×23\n" +
+		table("| list | list | enter open |", "")
+	dir := t.TempDir()
+	rows := make([]string, 24)
+	for i := range rows {
+		rows[i] = strings.Repeat(" ", 80)
+	}
+	rows[0] = fmt.Sprintf("%-80s", "  app · list")
+	for i := 2; i < 12; i++ {
+		rows[i] = fmt.Sprintf("%-80s", fmt.Sprintf("  item %d", i))
+	}
+	rows[12] = fmt.Sprintf("%-80s", "  status: 10 items") // the status line drawn right under the list
+	rows[23] = fmt.Sprintf("%-80s", "  enter open")
+	if err := os.WriteFile(filepath.Join(dir, "list-80x24.ansi"), []byte(strings.Join(rows, "\n")+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var got []Finding
+	for _, f := range LintFrames("TUI.md", doc, dir) {
+		if f.Rule == "S-REGION" {
+			got = append(got, f)
+		}
+	}
+	if len(got) != 1 || got[0].Sev != "P2" || got[0].Where != "5" || !strings.Contains(got[0].Msg, "`status 0,20 80×2`") || !strings.Contains(got[0].Msg, "list-80x24.ansi") {
+		t.Errorf("a blank status region: %+v, want one P2 S-REGION on line 5 naming `status 0,20 80×2` and the frame", got)
+	}
+	if fs := Lint("TUI.md", doc); rules(fs)["S-REGION"] != 0 {
+		t.Errorf("without --frames: %v", rules(fs))
 	}
 }

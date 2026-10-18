@@ -28,7 +28,7 @@ func Usage() string { return cmddoc.Text(docSrc) + "\n" }
 // Severity maps each rule ID to P1 (fails the run) or P2 (warns).
 var Severity = map[string]string{
 	"S-TABLE": "P1", "S-KEYAMBIG": "P1", "S-KEYDUP": "P1",
-	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2", "S-FOOTER": "P2", "S-ACCENT": "P2", "S-SLOTS": "P2", "S-GOLDEN": "P2",
+	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2", "S-FOOTER": "P2", "S-ACCENT": "P2", "S-SLOTS": "P2", "S-GOLDEN": "P2", "S-REGION": "P2",
 }
 
 // Finding is one result, in the shape the other tuilint modes write to --json: Where
@@ -214,6 +214,7 @@ func LintFrames(file, src, frames string) []Finding {
 	s.screenBrand(add)
 	if frames != "" {
 		s.goldenFooters(frames, add)
+		s.regionBudgets(frames, add)
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		a, b := out[i], out[j]

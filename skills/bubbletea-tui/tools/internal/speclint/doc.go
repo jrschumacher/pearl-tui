@@ -6,7 +6,8 @@
 // line, as frames and code do). P0/P1 findings fail the run (exit 1); P2 are warnings to
 // fix or justify in one line. Exit 2 on usage errors, an unreadable file, or a --frames
 // that is not a directory. --frames names the golden frames (<state>-80x24.ansi, by
-// harness name) to hold the table to (S-GOLDEN).
+// harness name) to hold the table to (S-GOLDEN) and the screens' region budgets
+// (S-REGION).
 //
 // It reads the table in the template's format, keys as `key action · key action`, and
 // a `Global:` line (or a row whose state is "global") whose keys apply in every state.
@@ -129,4 +130,11 @@
 //	                  part of it, nor is ui.Footer's right status (what follows the help hint
 //	                  ui.Help pins last, and a count such as `4 of 101` or `1/9` anywhere); a
 //	                  frame whose last row holds no hint (a toast) is not compared.
+//	S-REGION     [P2] (with --frames) a region of a screen block's budget line (`80×24: header
+//	                  0,0 80×1 · list 1,2 78×20 · …`) whose whole rectangle is blank in the
+//	                  screen's golden at that size, <screen>-80x24.ansi or -120x40.ansi (the
+//	                  block's heading up to its job): the region is drawn elsewhere or not at
+//	                  all, so the budget went stale. A gap (gap, gutter, margin, spacer) is
+//	                  blank by design; a region with any text in it is not reported, even when
+//	                  the text is another region's that moved into it.
 package speclint
