@@ -17,12 +17,7 @@ func (m *app) render(w, h int) *ui.Canvas {
 	c := ui.NewCanvas(t, w, h)
 	if w < minW || h < minH {
 		// the app's own sentence, and the toosmall action table's keys under it
-		var keys []string
-		for _, b := range m.footerBindings() {
-			keys = append(keys, t.S.Key.Render(b.Help().Key)+" "+t.S.KeyDesc.Render(b.Help().Desc))
-		}
-		msg := lipgloss.JoinVertical(lipgloss.Center, t.S.Soft.Render("Make the window "+itoa(minW)+"×"+itoa(minH)+" or larger."), "", strings.Join(keys, "  "))
-		c.Draw(lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, msg), c.Bounds())
+		c.Draw(ui.TooSmallText(t, w, h, "Make the window "+itoa(minW)+"×"+itoa(minH)+" or larger.", m.footerBindings()), c.Bounds())
 	} else {
 		head := ui.Header(t, w, h, t.AppName(), ui.Details(t, "items", m.items[m.sel]))
 		c.Draw(strings.Join(head, "\n"), ui.Rect(0, 0, w, len(head)))
