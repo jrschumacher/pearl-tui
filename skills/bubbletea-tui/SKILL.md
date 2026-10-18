@@ -125,8 +125,9 @@ lose its selection.
 ### Interaction and copy → *Consult `references/interaction.md`*
 **DO** use `key.Binding`s, conventional keys, `esc` everywhere, a command palette, a
 Cmd for everything slow, cancel paths, and copy that names the thing and the next step.
-**DON'T** bind `q` while an input is focused, block in `Update`, or write "An error
-occurred" or "Successfully".
+**DON'T** bind `q` while an input is focused, block in `Update`, confirm what leaves the
+user no judgement to make (a toggle, a sent message, a merge the checks passed), or
+write "An error occurred" or "Successfully".
 
 ### Motion → *Consult `references/motion.md`*
 **DO** run one `gen`-stamped frame clock, render deterministic frames from `frame`, and keep

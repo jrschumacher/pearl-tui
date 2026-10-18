@@ -164,6 +164,15 @@ discards typed content without asking.
 **I7 Destructive default.** A "Delete" dialog with Delete focused. The safe option is
 the default; the destructive one is coloured and needs a deliberate move.
 
+**I12 The needless confirm.** "Resolve this thread?", "Post this comment?", "Merge
+#812?" with every check green, "Are you sure?": a dialog that asks for no judgement,
+in front of an action the same key undoes, a message the user just wrote and sent, or
+a change automation already passed. Each one trains `y` without reading, so the
+confirm in front of a delete gets the same reflex. *Instead:* do it at once, show it,
+and offer the undo in a toast; confirm only what destroys something no check can vouch
+for, or what a failing signal makes risky, and name that thing in the question
+(`interaction.md` § Confirm By Consequence).
+
 **I8 fmt.Print in a program** [C-PRINT]. Corrupts the frame. Use `tea.Println` (above the
 program), a log file (`tea.LogToFile`), or a status line.
 

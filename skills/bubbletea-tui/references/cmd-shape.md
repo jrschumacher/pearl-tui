@@ -17,8 +17,11 @@ to the user. No Go yet.
    with no tool call yet, and prose streaming in), plus every overlay (palette,
    confirm, help). Each becomes a harness state name; `toosmall` is one row for the app.
    An overlay's name carries `dialog`, `palette`, `confirm`, `modal`, `overlay`, `popup`,
-   `help` or `keys` (`confirm-sending`, not `sending`): `tuilint frames` finds a ruled,
+   `help` or `keys` (`confirm-discard`, not `discard`): `tuilint frames` finds a ruled,
    ASCII or borderless dialog only by that name, and otherwise lints its scrim [F-CONTRAST].
+   A write gets a `confirm-*` state only if it can't be undone or is risky in that state
+   (rungs 3 and 4, `interaction.md` § Confirm By Consequence); a reversible one gets a
+   done state with its undo toast instead (`closed-undo`), and a sent message its `sent`.
 4. **Keys**: the bindings, the help order, what `esc` does, and where focus starts and
    moves.
 5. **Content**: realistic fixture data, including the longest name, the failing row and
@@ -79,7 +82,7 @@ Where the spec gives the words, keep its facts (what is acted on, the number, th
 consequence) and word them in the brand's voice (`brand.md` § The Read Reaches Past The
 Main Screen).
 **DON'T** drop a fact to sound terse: terse means fewer words, never fewer facts, and a
-confirm still names the object and what changes (`interaction.md` § Destructive Actions).
+confirm still names the object and what changes (`interaction.md` § Confirm By Consequence).
 **DON'T** count what the theme already paints (`dialog: rules`, underline buttons, a
 hue) as a brand line, or write `brand: nothing` because the spec has copy. `nothing,
 because …` is for a screen whose words are not the brand's to choose: `brand: nothing,
