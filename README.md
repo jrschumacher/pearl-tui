@@ -35,8 +35,9 @@ tool. Every theme is derived with the skill's own tools.*
 npx skills add jrschumacher/pearl-tui
 ```
 
-or copy `skills/pearl` into `~/.claude/skills/` (or your agent's skills
-directory).
+`npx skills add` installs it for any agent skills.sh supports, not only Claude Code. Or
+copy `skills/pearl` into your agent's skills directory (`~/.claude/skills/` for Claude
+Code).
 
 **Fresh clones.** A cloud container clones your project without the skill. Commit what
 `npx skills add` wrote under `.claude/skills/pearl` (a copy, or a link into
@@ -45,9 +46,10 @@ directory).
 `npx skills experimental_install` after cloning (it restores `.agents/skills/` only);
 SKILL.md § Setup says which to pick and what each pins.
 
-### Install as a Claude Code plugin (adds the lint hook)
+### Claude Code: install as a plugin (adds the lint hook)
 
-In Claude Code:
+The skill works without this. In Claude Code, the plugin adds a hook that lints every Go
+edit:
 
 ```
 /plugin marketplace add jrschumacher/pearl-tui
