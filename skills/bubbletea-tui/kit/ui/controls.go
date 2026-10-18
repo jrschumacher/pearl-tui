@@ -164,7 +164,8 @@ func KV(t *theme.Theme, rows [][2]string, keyW int) []string {
 }
 
 // Progress is a bar of w cells in the theme's progress glyphs: ━━━━━━╌╌╌ (ASCII ======---).
-// frac 0..1. The filled part takes a gradient from secondary to primary.
+// frac 0..1. The filled part takes a gradient from secondary to primary; the empty part
+// is the rule's colour, or fgSubtle under ASCII, where its dashes are text.
 func Progress(t *theme.Theme, frac float64, w int) string {
 	frac = math.Max(0, math.Min(1, frac))
 	full := frac * float64(w)
@@ -181,7 +182,14 @@ func Progress(t *theme.Theme, frac float64, w int) string {
 		filled = t.S.Mark.Render(filled)
 	}
 	rest := w - n - lipgloss.Width(head)
-	return filled + t.S.Rule.Render(strings.Repeat(empty, max(0, rest)))
+	// under ASCII the empty part is "-", a character, not a rule glyph: a run shorter than
+	// a rule (a 1-cell remainder) reads as text, and in the border colour it is text at
+	// 1.5:1. fgSubtle is the quietest ink that clears the text floor
+	track := t.S.Rule
+	if t.ASCII {
+		track = t.S.Subtle
+	}
+	return filled + track.Render(strings.Repeat(empty, max(0, rest)))
 }
 
 // StateSparkline is Sparkline for a row in a status state, over w cells: the line over
