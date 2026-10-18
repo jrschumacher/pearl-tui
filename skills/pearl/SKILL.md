@@ -46,8 +46,9 @@ supports only Bubble Tea today; its design references still read as guidance the
    names. Load nothing else up front.
 3. **Start from the kit, never from prose.** `kit/` is a compiling Bubble Tea v2 module:
    `theme/bubbletea/` (engine), `ui/bubbletea/` (components), `cmd/showcase/` (a full
-   reference app with the harness), `themes/` (seven brand themes). Copy and adapt it. A cold rebuild from
-   descriptions loses half the idiom at once.
+   reference app with the harness), `themes/` (eight themes: ink, the default, and seven
+   brands). Copy and adapt it. A cold rebuild from descriptions loses half the idiom at
+   once.
 4. **Build the tools** once per project, into the project's own `.tuitools/`, from the
    project root: `go -C <dir holding this file>/tools build -o "$PWD/.tuitools/" ./cmd/...`
    (absolute, because `go -C` resolves a relative `-o` in the tools directory), then
@@ -240,7 +241,7 @@ a `TUI.md`: fix what it reports.
 
 ## The Kit
 
-`kit/` (module `tuikit`): `go test ./...` renders seven themes × dark/light/ASCII × every
+`kit/` (module `tuikit`): `go test ./...` renders eight themes × dark/light/ASCII × every
 state × five sizes and asserts the footprint and contrast. `go run ./cmd/showcase
 -theme themes/halyard.json` runs the reference app. Its `-out` flag writes every state
 for `cellshot`. Copy `theme/bubbletea` and `ui/bubbletea` into the project's

@@ -5,9 +5,9 @@ repository. Items move from here into issues when someone picks them up.
 
 ## Where it is (1.0.0-rc.1)
 
-- The skill: a stance, laws, domain references, 11 commands (`init` interviews the user and
+- The skill: a stance, laws, domain references, 12 commands (`init` interviews the user and
   writes design and architecture into `TUI.md`), and about 40 named anti-patterns.
-- A compiling Bubble Tea v2 kit with seven themes and a reference app with two faces: an
+- A compiling Bubble Tea v2 kit with eight themes and a reference app with two faces: an
   ops dashboard and a first-run setup wizard built on Huh, themed from the brand. Its tests
   cover footprint, contrast, unstyled text, ASCII, honest help, behaviour, button order and
   no library-default colours. CI renders and lints every theme in the variants
