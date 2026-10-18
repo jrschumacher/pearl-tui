@@ -101,7 +101,12 @@ explicit send), a confirm adds nothing. Put every action on the first rung that 
    lose, so the dialog names it and what can't be taken back ("Delete nightly-0412?
    41.2 GB, no undo"), focuses **Cancel**, colours the destructive button as danger,
    and accepts `y` for experts. For irreversible actions on production, make the user
-   type the object's name.
+   type the object's name. A ship started from a form is confirmed by the form's last
+   step when that step says exactly what ships where (version, target, what changes),
+   its button is named for the act (`Deploy v2.4.1 to prod`, not `Submit` or `OK`) and
+   drawn as danger, and focus arrives on Cancel so enter alone doesn't ship. No dialog
+   after it: it would repeat what the user just read. The dialog is for a ship one key
+   starts (`r roll back` from a list).
 4. **Normally safe, but a signal says no: confirm only in that state.** The signal is
    one the user should weigh: red checks, a blocking review, an unsaved draft, a stale
    view of what they're acting on. On a code host, merging with green checks takes no

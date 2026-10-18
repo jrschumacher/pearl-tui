@@ -22,7 +22,7 @@ to the user. No Go yet.
    A write gets a `confirm-*` state only if it can't be taken back or is risky in that
    state (rungs 3 and 4, `interaction.md` § Confirm By Consequence); a reversible one
    gets a done state with its undo toast instead (`closed-undo`), and a sent message its
-   `sent`.
+   `sent`. A ship started from a form has no `confirm-*` state: its review step is it.
 4. **Keys**: the bindings, the help order, what `esc` does, and where focus starts and
    moves.
 5. **Content**: realistic fixture data, including the longest name, the failing row and
