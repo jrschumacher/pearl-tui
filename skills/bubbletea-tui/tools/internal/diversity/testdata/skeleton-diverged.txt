@@ -1,0 +1,40 @@
+axis         dunlin      godwit      ink         charm       
+header       minimal     bar         rule        rule        
+wordmark     solid       tracked     solid       gradient    
+sectionTitle fg          muted-uppe  fg          accent      
+titleCase    lower       upper       sentence    sentence    
+selection    fill        inverse     bar         bar         
+button       bracket     inverse     pill        pill        
+tag          bracket     filled      filled      filled      
+dialog       square      heavy       rounded     rounded     
+dialogTitle  plain       bar         plain       rule        
+tabs         slash       pill        underline   underline   
+footer       keys        bar         keys        keys        
+keys         inline      boxed       inline      inline      
+density      compact     compact     airy        airy        
+backdrop     none        field       none        field       
+scrim        dim         dim         dim         dim         
+paintBg      False       True        False       True        
+headerRule   -           -                       ╱           
+rule         ─           ━           ─           ─           
+focusBar     ▌           ┃           ▌           ▌           
+cursor       ›           ▶           ›           >           
+done         ✓           ■           ✓           ✓           
+
+skeleton     kit         dunlin      godwit      
+head         bar         bar         bar         
+status       header      header      header      
+order        main-first  summary-fi  sidebar-le  
+foot         keys-statu  keys-statu  keys        
+verdict      none        top         none        
+chart        sparkline   trace       trace       
+chartGlyphs  blocks      blocks      braille     
+turnEnd      rule        -           -           
+
+nearest to dunlin: godwit (shares 2/20 axes)
+nearest to godwit: dunlin (shares 2/20 axes)
+[P2] skeleton chart=trace held by every app (dunlin, godwit; > 50%), not the kit's sparkline: newcomers converging on one departure
+skeleton of dunlin: the kit's on head, status, foot, chartGlyphs (4/7); its brand read's move should be among the others (advice, not a failure)
+skeleton of godwit: the kit's on head, status, verdict (3/7); its brand read's move should be among the others (advice, not a failure)
+skeleton failures and newcomer flags name an axis, not a reason to move it: move one only where your brand read (TUI.md § Brand read, its move: and signature: lines) gives a reason and write the reason there; a value two brands both have a reason for goes to one of them (brand.md § 5, seating plan); an axis moved only to pass moves back
+OK

@@ -1,0 +1,72 @@
+axis         dunlin      ink         charm       
+header       minimal     rule        rule        
+wordmark     solid       solid       gradient    
+sectionTitle fg          fg          accent      
+titleCase    lower       sentence    sentence    
+selection    fill        bar         bar         
+button       bracket     pill        pill        
+tag          bracket     filled      filled      
+dialog       square      rounded     rounded     
+dialogTitle  plain       plain       rule        
+tabs         slash       underline   underline   
+footer       keys        keys        keys        
+keys         inline      inline      inline      
+density      compact     airy        airy        
+backdrop     none        none        field       
+scrim        dim         dim         dim         
+paintBg      False       False       True        
+headerRule   -                       ╱           
+rule         ─           ─           ─           
+focusBar     ▌           ▌           ▌           
+cursor       ›           ›           >           
+done         ✓           ✓           ✓           
+
+skeleton     kit         dunlin      
+head         bar         bar         
+status       header      header      
+order        main-first  summary-fi  
+foot         keys-statu  keys-statu  
+verdict      none        top         
+chart        sparkline   trace       
+chartGlyphs  blocks      blocks      
+turnEnd      rule        -           
+
+seating: every value of every axis, and who holds it
+header       minimal: dunlin · rule: ink, charm
+wordmark     solid: dunlin, ink · gradient: charm
+sectionTitle fg: dunlin, ink · accent: charm
+titleCase    lower: dunlin · sentence: ink, charm
+selection    fill: dunlin · bar: ink, charm
+button       bracket: dunlin · pill: ink, charm
+tag          bracket: dunlin · filled: ink, charm
+dialog       square: dunlin · rounded: ink, charm
+dialogTitle  plain: dunlin, ink · rule: charm
+tabs         slash: dunlin · underline: ink, charm
+footer       keys: dunlin, ink, charm
+keys         inline: dunlin, ink, charm
+density      compact: dunlin · airy: ink, charm
+backdrop     none: dunlin, ink · field: charm
+scrim        dim: dunlin, ink, charm
+paintBg      False: dunlin, ink · True: charm
+headerRule   -: dunlin · "": ink · ╱: charm
+rule         ─: dunlin, ink, charm
+focusBar     ▌: dunlin, ink, charm
+cursor       ›: dunlin, ink · >: charm
+done         ✓: dunlin, ink, charm
+head         bar: kit, dunlin
+status       header: kit, dunlin
+order        main-first: kit · summary-first: dunlin
+foot         keys-status: kit, dunlin
+verdict      none: kit · top: dunlin
+chart        sparkline: kit · trace: dunlin
+chartGlyphs  blocks: kit, dunlin
+turnEnd      rule: kit · -: dunlin
+
+pairs: the axes each pair shares
+dunlin · ink: 12/20 axes (wordmark, sectionTitle, dialogTitle, footer, keys, backdrop, scrim, paintBg, rule, focusBar, cursor, done)
+dunlin · charm: 6/20 axes (footer, keys, scrim, rule, focusBar, done)
+ink · charm: 14/21 axes (header, titleCase, selection, button, tag, dialog, tabs, footer, keys, density, scrim, rule, focusBar, done)
+dunlin · kit: skeleton 4/7 (head, status, foot, chartGlyphs)
+
+skeleton of dunlin: the kit's on head, status, foot, chartGlyphs (4/7); its brand read's move should be among the others (advice, not a failure)
+OK

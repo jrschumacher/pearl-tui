@@ -2,6 +2,9 @@
 //
 //	diversity themes/*.json kit/themes/ink.json kit/themes/charm.json [--max-shared 9] [--max-popular 0.5]
 //	          [--baseline ink,charm --min-distance 8]
+//	diversity TUI.md kit/themes/ink.json kit/themes/charm.json          # an app: its theme and its skeleton
+//	diversity ../a/TUI.md ../b/TUI.md kit/themes/ink.json kit/themes/charm.json [--max-shared-skeleton 3]
+//	diversity -v ...                                                    # --verbose: the whole seating plan
 //
 // A baseline is matched by theme name, so its file must be among the themes: an explicit
 // --baseline name that matches none exits 2 (the default ink,charm only notes it on
@@ -20,6 +23,48 @@
 // Dead axes (choices nothing renders) are shown as "-" and never count: headerRule under a
 // bar/stamp/minimal header, wordmark under a banner/stamp header, dialogTitle under a rules
 // dialog.
+//
+// Apps: the skeleton. A theme file holds paint; where the regions go is composition, and
+// two brands built from one spec came out one skeleton in two paints. A TUI.md among the
+// inputs is an app: the theme its § Theme names (relative to the TUI.md; that file passed
+// again is not a second column) and the main screen's composition, declared on one line
+// in § Brand read, each value as the default frame is built:
+//
+//	skeleton: head folio · status bottom-row · order summary-first · foot keys · verdict top · chart trace · chartGlyphs blocks · turnEnd -
+//
+//	head         bar | sentence | none | folio (the name and facts close the page instead)
+//	status       header | top-row | bottom-row | footer | pane | none: where session facts sit
+//	order        main-first | summary-first | input-first | sidebar-left | sidebar-right | single
+//	foot         keys | keys-status | status | none: what the last row holds
+//	verdict      none | top | bottom | header | pane: a sentence naming the state or trouble
+//	chart        none | sparkline | trace | bars | gauge | grid | art | other: the dominant one
+//	chartGlyphs  blocks | braille | shade | line | dots | ascii (dead under chart none)
+//	turnEnd      rule | marker | none: what ends a chat turn
+//
+// Items split on "·", ";" or ","; "key value", "key: value" and "key=value" all read; "-"
+// (or n/a) is an axis the screen doesn't have, and never counts. The kit's own values
+// (bar, header, main-first, keys-status, none, sparkline, blocks, rule) are the "kit"
+// column of the skeleton table. A missing line, a missing axis, an unknown key or a word
+// outside the vocabulary is a [P2] note, never a failure; the axis shows "?" and doesn't
+// count. Then, with apps among the inputs:
+//
+//   - FAIL when two apps share more than --max-shared-skeleton (3) live skeleton axes: one
+//     composition in two paints. The pair evals drew the line: pairs a blind critic called
+//     one product (5 shared) or siblings (4) fail; the pair it called two products (2) passes
+//   - [P2] a value more than --max-popular of the apps hold (with two apps: both) that the
+//     kit doesn't (no baseline or default, for an expression): newcomers converging on one
+//     departure, counted over the apps alone so the kit's themes can't dilute it
+//   - advice: each app's skeleton axes that are still the kit's; its brand read's move
+//     should show among the others
+//
+// These name an axis, never a value to move to, and are followed by one line pointing
+// back to the brand read: move an axis only where TUI.md's move: or signature: gives a
+// reason, write the reason there, seat a value two brands both have a reason for with one
+// of them; an axis moved only to pass moves back.
+//
+// --verbose (-v) adds the seating plan under the tables: every axis (skeleton included)
+// with each value and who holds it, then every pair's shared axes (and an app pair's
+// shared skeleton axes), not only a failing pair's.
 //
 // Under the table, one advisory line per brand theme names the other brand theme it is
 // nearest to and how many of the axes live for both they share ("nearest to welp: moss

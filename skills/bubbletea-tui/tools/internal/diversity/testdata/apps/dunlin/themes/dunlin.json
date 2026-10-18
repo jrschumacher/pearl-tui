@@ -1,0 +1,4 @@
+{"name": "dunlin", "expressions": {"header": "minimal", "wordmark": "solid", "sectionTitle": "fg", "titleCase": "lower",
+ "selection": "fill", "button": "bracket", "tag": "bracket", "dialog": "square", "dialogTitle": "plain", "tabs": "slash",
+ "footer": "keys", "keys": "inline", "density": "compact", "backdrop": "none", "scrim": "dim", "paintBg": false},
+ "glyphs": {"rule": "─", "focusBar": "▌", "cursor": "›", "done": "✓"}}

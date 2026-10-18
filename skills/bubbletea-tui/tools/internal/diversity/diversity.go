@@ -12,6 +12,10 @@
 //     diversity.py skipped the min-distance rule silently (the default baseline, when
 //     missing, only adds a note on stderr);
 //   - -h prints the command's Go doc comment.
+//
+// It also reads apps, which diversity.py never did: a TUI.md among the inputs brings its
+// theme and the main screen's skeleton (skeleton.go), and --verbose prints the whole
+// seating plan. Without either, the output is diversity.py's, byte for byte.
 package diversity
 
 import (
@@ -46,9 +50,16 @@ var twoValued = map[string]bool{"titleCase": true, "density": true, "backdrop": 
 const Dead = "-"
 
 // Theme is one theme's name and its value on every axis, as Python's str() prints it.
+// An app (a TUI.md, LoadApp) is its theme plus the skeleton its TUI.md declares.
 type Theme struct {
 	Name    string
 	Choices map[string]string
+
+	App      bool              // read from a TUI.md: a newcomer, with a skeleton
+	Source   string            // the TUI.md, for an app
+	Skeleton map[string]string // SkeletonAxes → value, Unknown or Dead; nil for a bare theme
+
+	themeFile string // an app's theme, absolute, so the same file passed again is dropped
 }
 
 // Load reads a theme file's choices. Dead axes are "-": headerRule under a
@@ -113,7 +124,7 @@ func Load(path string) (Theme, error) {
 	if n, ok := t["name"]; ok {
 		name = pyfmt.Str(n)
 	}
-	return Theme{name, out}, nil
+	return Theme{Name: name, Choices: out}, nil
 }
 
 // Options are the thresholds.
@@ -122,6 +133,9 @@ type Options struct {
 	MaxPopular  float64         // one value may be used by at most this share of brand themes
 	Baseline    map[string]bool // theme names that are the defaults to move away from
 	MinDistance int             // a brand theme differs from each baseline on at least this many axes
+
+	MaxSharedSkeleton int  // two apps may agree on at most this many skeleton axes
+	Verbose           bool // print every axis's seating and every pair's shared axes
 }
 
 // Table renders the axis-by-theme table, names and values cut to 10 code points.
@@ -219,7 +233,7 @@ func Failures(themes []Theme, o Options) []string {
 			}
 		}
 	}
-	return fails
+	return append(fails, SkeletonFailures(themes, o)...)
 }
 
 // Nearest names, for each theme that isn't a baseline, the other non-baseline theme it
@@ -264,18 +278,41 @@ func Nearest(themes []Theme, o Options) []string {
 	return out
 }
 
-// Report is the full output: the table, a blank line, the nearest-theme notes, the
-// failures, and the verdict.
-func Report(themes []Theme, o Options) (string, int) {
+// Report is the full output: the table (and, with an app among the inputs, the skeleton
+// table), a blank line, with o.Verbose the seating and every pair, the nearest-theme
+// notes, the [P2] notes from loading the apps, the kit-skeleton advice, the failures, and
+// the verdict. Without an app or --verbose it is diversity.py's output, byte for byte.
+func Report(themes []Theme, notes []string, o Options) (string, int) {
 	fails := Failures(themes, o)
 	var b strings.Builder
 	b.WriteString(Table(themes))
+	if st := SkeletonTable(themes); st != "" {
+		b.WriteByte('\n')
+		b.WriteString(st)
+	}
 	b.WriteByte('\n')
+	if o.Verbose {
+		b.WriteString(Verbose(themes, o))
+		b.WriteByte('\n')
+	}
 	for _, n := range Nearest(themes, o) {
+		b.WriteString(n + "\n")
+	}
+	for _, n := range notes {
+		b.WriteString(n + "\n")
+	}
+	flags := NewcomerFlags(themes, o)
+	for _, n := range flags {
+		b.WriteString(n + "\n")
+	}
+	for _, n := range KitAdvice(themes) {
 		b.WriteString(n + "\n")
 	}
 	for _, f := range fails {
 		b.WriteString("FAIL " + f + "\n")
+	}
+	if len(flags) > 0 || len(SkeletonFailures(themes, o)) > 0 {
+		b.WriteString(FromTheRead + "\n")
 	}
 	if len(fails) == 0 {
 		b.WriteString("OK\n")
