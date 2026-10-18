@@ -157,16 +157,16 @@ and look at the PNGs. What usually breaks:
 
   `palette check` names each clash and the pin that fixes it (stderr): it fails error
   off red, under `focus: fg` primary on red or on another state's colour (a green brand
-  on success's green only warns: its pin moves the brand to cyan on a dark page and to
-  fg's grey on a light one, so pin it when the app draws success, and keep the green,
-  said in the read, when it never does), and a neutral
+  on success's green only warns: its pin moves the brand off green, so pin it when the
+  app draws success, and keep the green, said in the read, when it never does), and a neutral
   (`bg`, `fg`, `fgMuted`, `fgSubtle`, their steps, `border`, `borderFocus`) pinned onto
   red; it warns
   on the rest, two of `fg`/`fgMuted`/`fgSubtle` pinned onto one grey included
   (`palette -h` lists them). A warning is not a pass to ignore: pin it unless
   the brand accepts it in its read. Pin bright (9-14) on dark, normal (1-6) on light,
   error to 9/1, a status role to its own slot (warning 3/11, success 2/10, info 4/12 or
-  6/14), never a grey but for a warm brand on a light page (below); the user's terminal
+  6/14), never a grey but for the brand on a light page, when it is warm (below) or its
+  slot reads under 3:1 there (green 2, cyan 6); the user's terminal
   palette decides the exact colour. A pin that moves a role more than 60° of hue while
   a nearer slot is free (a rose brand on blue 12, with magenta 13 free) warns with the
   hex, the slot and the nearer pin: the brand reads as info there.

@@ -51,7 +51,9 @@
 //
 // Red (1 or 9) is error's. It exits 1 on error off red (a grey error beside a red
 // warning reads reversed), and under "focus": "fg", where primary is a state, on primary
-// on red or on another state role's colour (amber = new must not read as error). It warns
+// on red or on another state role's colour (amber = new must not read as error), but for
+// a green brand on success's own green (2 or 10), which it warns on and names the trade:
+// the pin moves the brand off green, which an app that never draws success needn't. It warns
 // on primary on red under "focus": "primary" (focus reads as an error), on warning,
 // success or info on red, and on two of those on one colour: their glyphs and words still
 // differ. The neutrals (bg, fg, fgMuted, fgSubtle, their steps, border, and borderFocus,

@@ -102,7 +102,8 @@ func TestLoadRejectsBadANSI16(t *testing.T) {
 
 // What palette check fails at 16 colours, every kit theme and test theme passes: error
 // on red (1 or 9), and under focus "fg", where the hue is a state, primary neither on
-// red nor on another state role's colour. And every neutral (NeutralRoles) on a grey,
+// red nor on another state role's colour, but for a green brand on success's own slot
+// (Clash.Trade), which check warns on: an app that never draws success keeps its green. And every neutral (NeutralRoles) on a grey,
 // with fg, fgMuted and fgSubtle three different greys on a dark page and two on a light
 // one (fgSubtle shares fgMuted's 8 there: ANSI 7 on a white page is below every floor):
 // before derive snapped them, a tinted neutral downsampled by distance to a hue
@@ -128,7 +129,7 @@ func TestThemesReadRightAt16Colours(t *testing.T) {
 			}
 		}
 		for _, c := range ANSI16Clashes(f) {
-			if fg && (c.A == "primary" || c.B == "primary") {
+			if fg && (c.A == "primary" || c.B == "primary") && !c.Trade() {
 				t.Errorf("%s: %s", filepath.Base(path), c)
 			}
 		}
@@ -221,6 +222,36 @@ func TestANSI16Red(t *testing.T) {
 	for _, want := range []string{"dark: primary draws as ANSI 9, error's red", "light: error draws as ANSI 8, not red (1 or 9)", "light: warning draws as ANSI 1, error's red"} {
 		if !slices.Contains(got, want) {
 			t.Errorf("ANSI16Red(quire without pins) = %q, want %q", got, want)
+		}
+	}
+}
+
+// A green brand under focus "fg" on success's own slot is a Trade (palette check warns,
+// and TestThemesReadRightAt16Colours lets a project keep its green); the same brand
+// pinned onto info's slot beside info is not. Both judge with Clash.Trade, so check and
+// a copied project's tests agree.
+func TestGreenBrandOnSuccessIsATrade(t *testing.T) {
+	f, err := Load(filepath.Join("testdata", "quire.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := f.Roles["dark"]
+	d.Primary, d.Success, d.Info = "#3FA37A", "#56AE6C", "#3CA2E0"
+	f.Roles = map[string]Roles{"dark": d}
+	f.ANSI16 = map[string]map[string]int{"dark": {"warning": 11}}
+	var withPrimary []Clash
+	for _, c := range ANSI16Clashes(f) {
+		if c.A == "primary" || c.B == "primary" {
+			withPrimary = append(withPrimary, c)
+		}
+	}
+	if len(withPrimary) != 1 || !withPrimary[0].Trade() || withPrimary[0].Index != 2 {
+		t.Errorf("green brand beside success: clashes %v, want one Trade on ANSI 2", withPrimary)
+	}
+	f.ANSI16 = map[string]map[string]int{"dark": {"warning": 11, "primary": 12, "info": 12}}
+	for _, c := range ANSI16Clashes(f) {
+		if (c.A == "primary" || c.B == "primary") && c.Trade() {
+			t.Errorf("primary beside info on 12 is a Trade: %v", c)
 		}
 	}
 }

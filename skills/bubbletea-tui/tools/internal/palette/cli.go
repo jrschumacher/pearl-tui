@@ -288,6 +288,7 @@ func Findings16(f theme.File) []Finding16 {
 		found = append(found, Finding16{Mode: r.Mode, Role: r.Role, Col: hexOf(r.Col), What: what, Fail: r.Role == "error" || (r.Role == "primary" && fg), kind: red16})
 	}
 	clash := map[key][]string{}
+	traded := map[key]bool{} // every clash of the role is a theme.Clash Trade
 	col := map[key]string{}
 	var order []key
 	for _, c := range theme.ANSI16Clashes(f) {
@@ -299,6 +300,10 @@ func Findings16(f theme.File) []Finding16 {
 		if covered[k] {
 			continue // its red finding's pin moves it off this colour too
 		}
+		if _, seen := traded[k]; !seen {
+			traded[k] = true
+		}
+		traded[k] = traded[k] && c.Trade()
 		if _, seen := clash[k]; !seen {
 			order = append(order, k)
 			col[k] = hexOf(colMove)
@@ -312,9 +317,10 @@ func Findings16(f theme.File) []Finding16 {
 		}
 		withPrimary := k.role == "primary" || slices.ContainsFunc(clash[k], func(o string) bool { return strings.HasPrefix(o, "primary ") })
 		at := theme.ANSI16Index(f, k.mode, k.role)
-		// a green brand on success's own slot: its pin sends the brand to cyan in every
-		// app, one that never draws success included, so the app owns the trade
-		trade := k.role == "primary" && (at == 2 || at == 10) && !slices.ContainsFunc(clash[k], func(o string) bool { return !strings.HasPrefix(o, "success ") })
+		// a green brand on success's own slot (theme.Clash.Trade): its pin moves the brand
+		// off green in every app, one that never draws success included, so the app owns
+		// the trade; the kit's TestThemesReadRightAt16Colours judges it the same way
+		trade := k.role == "primary" && traded[k]
 		what := fmt.Sprintf("%s: %s %s draws as ANSI %d at 16 colours (-profile ansi), as %s %s", k.mode, k.role, col[k], at, others, verb)
 		found = append(found, Finding16{Mode: k.mode, Role: k.role, Col: col[k], What: what, Fail: fg && withPrimary && !trade, kind: clash16, trade: fg && trade})
 	}
