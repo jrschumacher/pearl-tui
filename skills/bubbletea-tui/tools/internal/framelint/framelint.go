@@ -8,7 +8,8 @@
 //	                 and Huh's #F780E2 fuchsia and #7571F9 / #5A56E0 indigo)
 //	F-OFFPAL    [P1] (with --theme) a colour not in, or blended from, the theme's roles.
 //	                 A frame with only 256-colour SGR (-profile ansi256) is judged against the
-//	                 xterm colours the roles downsample to; there a role that lands on a
+//	                 xterm colours the roles downsample to, and the theme's "ansi256" pins
+//	                 (with their blends); there a role that lands on a
 //	                 default index (204) is the role, and its hex is judged in truecolour.
 //	                 A frame with only 16-colour SGR (-profile ansi) is not judged: its 16
 //	                 slots are the terminal's palette, and every role lands on one
