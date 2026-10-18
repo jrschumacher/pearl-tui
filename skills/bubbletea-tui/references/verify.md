@@ -19,13 +19,15 @@ screenshot.
 3. LINT     tuilint frames frames frames/256 frames/16 frames/nocolor --theme themes/<brand>.json --bg <bg> --spec TUI.md
             tuilint frames frames/ascii --ascii --unicode frames --theme themes/<brand>.json --bg <bg> --spec TUI.md
             tuilint frames frames/light --theme themes/<brand>.json --bg <light bg> --spec TUI.md
-            (--spec reads § Decisions' `cuts: <column header or region>` lines: a column
-            cut on purpose, paths, URLs, code, is not a budget too narrow [F-TRUNC])
+            (--spec reads § Decisions' `cuts: [<screen>:] <column header or region>` lines:
+            a column cut on purpose, paths, URLs, code, is not a budget too narrow [F-TRUNC])
             (lint every directory you rendered: light, 256, 16, no colour and ASCII break where dark
             truecolour passes, and LOOK at the overlays there: a dialog's edge is the first to go;
             --ascii fails any glyph that leaked into an ASCII frame, and --unicode a "?" where the
-            unicode frame of the state has a glyph or a letter [F-ASCII]; a ruled or borderless
-            overlay failing F-CONTRAST on its scrim may be misnamed: cmd-shape.md step 3)
+            unicode frame of the state has a glyph or a letter [F-ASCII]; an overlay
+            failing F-CONTRAST on its scrim may be misnamed: the lint finds a dialog by
+            shape only where its scrim dims or hides the page, so name every overlay frame
+            as cmd-shape.md step 3 says)
             tuilint code .                                                (tuivet ./... in go vet or an editor: same rules)
             tuilint spec TUI.md --frames frames                           (after any key-table change;
             each state's footer in its golden must be its row's keys [S-GOLDEN])
@@ -92,12 +94,18 @@ Rubric (score each 0–4, cite rows/cells, not impressions; 0 = a default or a b
 2 = works but surprises, 4 = designed):
   1. Identity: with colour stripped, is it recognisably this brand? Does the main
      screen's default frame show the read's move (a region placed where the kit
-     doesn't) and its signature (an element the kit doesn't draw)? Then read one
-     secondary screen (a dialog or the detail): do its question, buttons and footer
-     carry its § Screens `brand:` line, or are they the kit's and the spec's words,
-     which another brand on the same spec would match? Identity that stops at the
-     main screen scores at most 2. Any default (pink-purple, emoji, figlet,
-     Loading...)?
+     doesn't) and its signature (an element the kit doesn't draw)? Read § Brand
+     read's `skeleton:` line against that frame, axis by axis (order, verdict,
+     status, head, foot, chart): a value the frame contradicts is a P1, since the
+     line declares the frame as built and `diversity` trusts it; words edited to
+     pass the lint, with the frame unchanged, are that P1. Then read each
+     secondary screen (the dialogs, the detail) against its § Screens `brand:` line:
+     do its question, buttons and footer carry the line, or are they the kit's and
+     the spec's words, which another brand on the same spec would match? A line
+     that promises what its frame doesn't do ("no descriptions" over a picker that
+     draws one, a sentence worded otherwise in the dialog) is a defect: name the
+     line and the frame. Identity that stops at the main screen scores at most 2.
+     Any default (pink-purple, emoji, figlet, Loading...)?
   2. Hierarchy: 3–4 text levels used correctly; what the eye lands on first is what
      matters most; one alert at most.
   3. Focus and flow: exactly one visible focus; where am I, what can I do, how do I go

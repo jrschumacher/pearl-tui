@@ -24,7 +24,9 @@ drifts), contact sheets in both modes, a passing diversity lint. Read
    answer.
 4. **Choose the move and the signature** (`brand.md` § Move A Region). With the motif
    (`▲ △` sails, lowercase titles), they are the moves this brand owns; everything else
-   may stay quiet.
+   may stay quiet. Then write the read's `skeleton:` line (`brand.md` § 5, the words in
+   `diversity -h`): the main screen's default frame with the move in place. `craft`
+   corrects it to the frame as built, and the critic holds it to that frame.
 5. **Convert the assets.** Wordmark: `scripts/wordmark.py "<name>" --font <brand.ttf>
    --style …`. Logo, if the splash needs it: `scripts/logo2cells.py` and then
    `cell-art.md`. Motif glyph and its ASCII fallback.
@@ -38,13 +40,17 @@ drifts), contact sheets in both modes, a passing diversity lint. Read
    $PWD/frames/<brand> -sizes 80x24,120x40`, then the same with `-out
    $PWD/frames/<brand>-light -light` (`-C` runs it from the kit, so paths are
    absolute). Contact sheets via `cellshot --sheet`.
-8. **Lint.** `diversity themes/*.json kit/themes/ink.json kit/themes/charm.json
-   --baseline ink,charm --min-distance 8` must pass (`kit/` is in the skill directory;
-   without the baseline files it exits 2). If it fails on distance from `ink`, identity
-   is only in the palette, so go back to the read's expression lines (step 3, `brand.md`
-   §2). Each axis moved after the lint gets its product reason in the read and in
-   `TUI.md` § Decisions; an axis whose only reason is the count moves back, because a
-   scrim dropped or a dialog edge changed to reach 8 is the lint designing the product.
+8. **Lint.** `diversity TUI.md kit/themes/ink.json kit/themes/charm.json --baseline
+   ink,charm --min-distance 8` must pass (`kit/` is in the skill directory; without the
+   baseline files it exits 2). `TUI.md` is the app: `diversity` reads the theme
+   § Theme names and the `skeleton:` line, notes a missing line or axis as P2, and
+   names the skeleton axes still the kit's; the move belongs among the others. If it
+   fails on distance from `ink`, identity is only in the palette, so go back to the
+   read's expression lines (step 3, `brand.md` §2). Each axis moved after the lint gets
+   its product reason in the read and in `TUI.md` § Decisions; an axis whose only reason
+   is the count moves back, because a scrim dropped or a dialog edge changed to reach 8
+   is the lint designing the product. A skeleton word changed in the line without the
+   frame changing is the same fault, and the critic marks it.
    Also `palette check` (every role is `#RGB` or `#RRGGBB`),
    `tuilint frames frames/<brand> --theme themes/<brand>.json --bg <bg>` and the light
    frames with `--bg <light bg>`, and the footprint: `go test` once the kit is
