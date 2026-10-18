@@ -13,40 +13,42 @@ or fewer steps than the spec's default flow? Depth is how many steps a task take
 much shows before an act (a preview, a diff, a summary), what is one key away against a
 screen away, and whether an expert path exists (a command line, batch selection). Read
 the domain first (`SPEC.md` or the ask, § Product, § Users and terminals), then the
-read's three words and any `flow:` line `brand` wrote: the domain sets the range, and a
-word picks a place in it.
+read's three words: the domain sets the range, and a word picks a place in it.
 
 - **High consequence, many objects** (cluster ops, deploys, infrastructure, finance)
   earns what an act will change, and to what, shown before it runs (`3 replicas v2.4.0
   → v2.4.1 · 1 unchanged`): on the screen its key is pressed from, one key away, or in
   the confirm its rung already has, never as a screen in front of a rung-1 act, whose
-  key is the act. It also earns an expert path (`:` for a command line, `space`
-  to mark a batch): one wrong act reaches many objects, and its users run it all day.
+  key is the act. One wrong act there reaches many objects.
+- **Experts earn the expert path**: users who run it all day (§ Users and terminals:
+  operators, on-call) or a word such as "for operators" earn `:` for a command line and
+  `space` to mark a batch, because they act on many objects at speed.
 - **Personal, low consequence** (mail, notes, a todo list) earns fewer steps and fewer
   screens: the item opens in place and the act happens on its key, because an undo
-  covers a slip and every extra step is paid on every use.
-- **A word pushes within that range**: "for operators" earns dense rows, keyboard-first
-  and a batch path; "calm" earns one thing at a time, with the detail behind a key.
+  covers a slip and every extra step is paid on every use. A screen the ask or
+  `SPEC.md` names stays.
+- **A word places the flow within that range, and never adds a step to a flow the
+  domain keeps light**: "calm" earns one thing at a time on a deep flow, with the rarely
+  read fields behind a key, and on a todo list changes nothing. A restyle keeps the
+  original's flow unless the user asks.
 
 Write the answer on the main screen's block as a `flow:` line that names the domain
 fact (who acts, on how many objects, whether the act can be taken back) and any word
 that moves it: `flow: the spec's, because one person's own list: every act is one key
 and the same key undoes it`, never `the spec's, because the spec defines it`. Give every
-other block whose steps, preview or detail differ from the spec's its own line. The
-same apply step of a DNS zone editor, two brands:
+other block whose steps, preview or detail differ from the spec's its own line;
+`tuilint spec` flags one left as a placeholder [S-SLOTS]. The same apply step of a DNS
+zone editor, two brands:
 
 ```
-#### apply — publish the edited records              (exact · dense · for operators)
+#### apply — publish the edited records              (exact · fast · for operators)
 flow: space marks records and a applies the marked set, because for operators; the rung-3 confirm lists each record old → new, because resolvers cache the new answer for its TTL, so republishing the old one can't take it back
 ```
 
 ```
 #### apply — publish the edited records              (calm · plain · careful)
-flow: one record at a time, its history behind h, because calm; the rung-3 confirm lists the record old → new, because resolvers cache the new answer for its TTL, so republishing the old one can't take it back
+flow: the spec's, one record at a time and no batch path, because calm; the rung-3 confirm lists the record old → new, because resolvers cache the new answer for its TTL, so republishing the old one can't take it back
 ```
-
-Both show old → new, since the domain asks it of both; only the operators' brand has
-the batch path, since only its word asks for one.
 
 **DO** keep what the product does: `SPEC.md` decides which tasks exist and what each
 does, and depth changes only how a task is reached and what shows on the way.

@@ -132,7 +132,7 @@ collapse: < 110 cols <what becomes what>; < 30 rows <what goes>
 components: <ui.Table, ui.Dot, …>; new: <none | name, and why no kit component draws it>
 fixtures: <count, the longest name, the failing row, the empty list>
 brand: <every block after the main screen's: what the three words change here, copy voice, dialog form or footer phrasing, or nothing, because …>
-flow: <the main screen's: how deep the flow goes against the spec's, from the domain then a brand word; any other block's only where its steps, preview or detail differ, with the reason>
+flow: <main screen: how deep the flow goes against the spec's, the domain fact behind it (who acts, on how many objects, can the act be taken back) and any brand word; another block: only where its steps or preview differ, else delete the line>
 sketch (exactly 80 wide, real content):
 ```
 <row 0>
