@@ -964,7 +964,7 @@ func TestOverlayDialogsAreFound(t *testing.T) {
 		t.Errorf("quire 256-colour confirm over sectioned rows: %+v, want no F-CONTRAST", hits)
 	}
 	sections := mutate("testdata/overlays/rules-sections-256-confirm-80x24.ansi", "confirm-sections-80x24.ansi",
-		"\x1b[48;5;234m \x1b[38;5;244masks it", "\x1b[48;5;234m \x1b[38;5;235masks it")
+		"\x1b[48;5;234m \x1b[38;5;244mone row", "\x1b[48;5;234m \x1b[38;5;235mone row")
 	if hits := contrastHits(t, sections, "--theme", "testdata/themes/quire.json"); len(hits) != 1 || hits[0].Sev != "P1" || !strings.HasPrefix(hits[0].Where, "r10") {
 		t.Errorf("low contrast inside the 256-colour confirm: %+v, want one P1 on row 10", hits)
 	}
