@@ -110,7 +110,12 @@ Rubric (score each 0–4, cite rows/cells, not impressions; 0 = a default or a b
      matters most; one alert at most.
   3. Focus and flow: exactly one visible focus; where am I, what can I do, how do I go
      back; help keys match what the screen actually does in this state (read the code;
-     a toggle's label names the next state).
+     a toggle's label names the next state). Read each § Screens `flow:` line against
+     its frames: a step, preview or expert path that differs from the spec's flow with
+     no domain fact or brand word on its line is drift (P2), and a confirm added in
+     front of a rung-1 or rung-2 act, or dropped from a rung-3 one or a rung-4 one in
+     its signal's state, to make a flow deeper or lighter is a P1 (interaction.md
+     § Confirm By Consequence).
   4. Layout: budgets respected; 80×24, 120×40 and 200×60 are the same design; room
      used, not stretched (layout.md § Use The Room: a blank sidebar or unused columns
      beside the body at 120×40 is a stretch); nothing touching edges; no box soup.

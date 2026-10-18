@@ -2,9 +2,58 @@
 
 Input: `TUI.md` and the user's ask. Output: a screen spec the user agrees to, written
 into `TUI.md` § Screens (one block per screen, in the template's shape: job, regions at
-both sizes, collapse rule, components, fixtures, brand line, sketch) and § States and
-keys, and nowhere else: a second file gets skipped, and the project's own docs belong
-to the user. No Go yet.
+both sizes, collapse rule, components, fixtures, brand line, any flow line, sketch) and
+§ States and keys, and nowhere else: a second file gets skipped, and the project's own
+docs belong to the user. No Go yet.
+
+## Depth Follows The Domain, Then The Brand
+
+Before the first block, answer one question: does this domain, or this brand, earn more
+or fewer steps than the spec's default flow? Depth is how many steps a task takes, how
+much shows before an act (a preview, a diff, a summary), what is one key away against a
+screen away, and whether an expert path exists (a command line, batch selection). Read
+the domain first (`SPEC.md` or the ask, § Product, § Users and terminals), then the
+read's three words and any `flow:` line `brand` wrote: the domain sets the range, and a
+word picks a place in it.
+
+- **High consequence, many objects** (cluster ops, deploys, infrastructure, finance)
+  earns a step that shows what will change, and to what, before the act (`3 replicas
+  v2.4.0 → v2.4.1 · 1 unchanged`), and an expert path (`:` for a command line, `space`
+  to mark a batch): one wrong act reaches many objects, and its users run it all day.
+- **Personal, low consequence** (mail, notes, a todo list) earns fewer steps and fewer
+  screens: the item opens in place and the act happens on its key, because an undo
+  covers a slip and every extra step is paid on every use.
+- **A word pushes within that range**: "for operators" earns dense rows, keyboard-first
+  and a batch path; "calm" earns one thing at a time, with the detail behind a key.
+
+Write the answer on the main screen's block as a `flow:` line with its reason (`flow:
+the spec's, because a personal list: each act is one key and undo covers it`), and give
+every other block whose steps, preview or detail differ from the spec's its own. The
+same apply step of a DNS zone editor, two brands:
+
+```
+#### apply — publish the edited records              (exact · dense · for operators)
+flow: space marks records and a applies the marked set, because for operators; the confirm lists each record old → new, because a zone change reaches every resolver
+```
+
+```
+#### apply — publish the edited records              (calm · plain · careful)
+flow: one record at a time, its history behind h, because calm; the confirm lists the record old → new, because a zone change reaches every resolver
+```
+
+Both show old → new, since the domain asks it of both; only the operators' brand has
+the batch path, since only its word asks for one.
+
+**DO** keep what the product does: `SPEC.md` decides which tasks exist and what each
+does, and depth changes only how a task is reached and what shows on the way.
+**DON'T** add or drop a confirm to set the depth. The ladder (`interaction.md`
+§ Confirm By Consequence) puts each act on its rung by consequence, and no word moves
+it: a deep flow puts its diff in the confirm a rung-3 act already has, or on the screen
+the key is pressed from, never in a new dialog before a rung-1 or rung-2 act; a light
+flow never skips the confirm a rung-3 act needs.
+**DON'T** let a flow differ from the spec's where no domain fact or brand word on its
+`flow:` line asks for it: two brands of one spec then differ by chance, which is drift,
+not identity, and the critic marks it.
 
 ## For Each Screen
 
@@ -43,7 +92,8 @@ to the user. No Go yet.
 7. **Identity**: where the brand shows on this screen (header, motif, selection style,
    copy). On the main screen, whose block comes first, the sketch draws the read's move
    and signature. Every other screen and overlay block gets one `brand:` line (§ Behind
-   The Main Screen).
+   The Main Screen), and a `flow:` line where its flow differs from the spec's (§ Depth
+   Follows The Domain, Then The Brand).
 
 ## Behind The Main Screen
 
@@ -82,7 +132,8 @@ Same snapshot, same facts, same `ui.Dialog`, same theme slots, Keep focused in b
 what differs is the question's length and register, the button words and the footer's
 verbs and keys (the terse one leaves ←→ and enter to ? help). The detail behind it
 differs the same way: `r restore · d delete · esc back` against `r restore to a folder ·
-d delete snapshot · esc back to the list`.
+d delete snapshot · esc back to the list`. Both keep the spec's flow, one key to one
+confirm; a brand that changes it says why on a `flow:` line.
 
 **DO** write each line from one of the three words, as what the user reads: the
 question, the button labels, the footer's verbs (the action table's help text), the
