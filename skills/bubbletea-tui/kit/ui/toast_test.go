@@ -233,6 +233,31 @@ func TestASecondWindowIsRefused(t *testing.T) {
 	}
 }
 
+// Undo shows what waited behind the window, after the undo's own notice: a note raised
+// during a window isn't lost when the window is undone instead of ending.
+func TestUndoShowsWhatWaited(t *testing.T) {
+	var q Toasts
+	ran := 0
+	q.Raise(grace(&q, &ran))
+	q.Raise(Note{Label: "HISTORY", Msg: "No incidents in the last 30 days"})
+	q.Act()
+	if n, _ := q.Current(); n.Label != "CANCELED" {
+		t.Fatalf("after undo the row shows %q, want the undo's notice", n.Label)
+	}
+	tickN(&q, Frames(ToastTTL))
+	if n, ok := q.Current(); !ok || n.Msg != "No incidents in the last 30 days" {
+		t.Errorf("after the undo's notice the row shows %q, want the note that waited", n.Msg)
+	}
+	// with no notice of its own, what waited shows at once
+	var p Toasts
+	p.Raise(Note{Msg: "Paging", For: GraceTTL, Key: key.NewBinding(key.WithKeys("u")), Act: func() tea.Cmd { return nil }, Send: func() tea.Cmd { return nil }})
+	p.Raise(Note{Msg: "waited"})
+	p.Act()
+	if n, ok := p.Current(); !ok || n.Msg != "waited" {
+		t.Errorf("an undo with no notice shows %q, want what waited", n.Msg)
+	}
+}
+
 // While a dialog covers the row, a note that offers a key waits: a window never sends,
 // and an undo never lapses, while its key is out of reach (review of #76: help over the
 // window let it run out unseen). A plain note runs on.
