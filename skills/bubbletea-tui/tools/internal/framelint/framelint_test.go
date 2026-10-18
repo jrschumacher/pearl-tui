@@ -918,6 +918,79 @@ func TestTruncatedColumn(t *testing.T) {
 	}
 }
 
+// A sectioned page is not a dialog: a titled section rule over a later rule of the same
+// span has a rules dialog's shape, and on a frame not named as an overlay the lint takes
+// it for one only with a scrim around it (every other text row dimmed, or the page hidden
+// but a header). testdata/pages holds a cold monitor's 256-colour overview (as rendered,
+// and with two process rows redrawn in 235) and a list page under a titled section, in
+// NO_COLOR, 256 colours and truecolour; each must report what it would with no section.
+func TestSectionedPagesAreNotDialogs(t *testing.T) {
+	count := func(path, rule, sev string) int {
+		fs, _, _ := run(t, path)
+		n := 0
+		for _, f := range fs {
+			if f.Rule == rule && f.Sev == sev {
+				n++
+			}
+		}
+		return n
+	}
+	for _, c := range []struct {
+		file, rule, sev string
+		want            int
+	}{
+		{"sections-256-80x24.ansi", "F-CONTRAST", "P1", 0},
+		{"sections-256-dim-80x24.ansi", "F-CONTRAST", "P1", 1},
+		{"sections-256-list-80x24.ansi", "F-CONTRAST", "P1", 1},
+		{"sections-list-80x24.ansi", "F-CONTRAST", "P1", 1},
+		{"sections-nocolor-list-80x24.ansi", "F-TRUNC", "P2", 1},
+	} {
+		if n := count("testdata/pages/"+c.file, c.rule, c.sev); n != c.want {
+			t.Errorf("%s: %d %s %s, want %d", c.file, n, c.sev, c.rule, c.want)
+		}
+	}
+}
+
+// A ruled dialog over a dimmed page on a frame named for the dialog's state, not as an
+// overlay (a confirm's sending state): the page rows the dialog cut beside it are its
+// cut, as on a frame named confirm, and its scrim isn't judged.
+func TestScrimmedDialogByShape(t *testing.T) {
+	dim, bright, panel, off := "\x1b[38;2;48;48;52m", "\x1b[38;2;230;230;230m", "\x1b[48;2;40;40;48m", "\x1b[0m"
+	var b strings.Builder
+	for y := range 10 {
+		page := fmt.Sprintf("  %-24s", "a long page row that runs on")[:26] + "…"
+		var dialog string
+		switch y {
+		case 1, 8:
+			dialog = strings.Repeat(" ", 26)
+		case 2:
+			dialog = bright + "── send it? " + strings.Repeat("─", 14) + off
+		case 7:
+			dialog = bright + strings.Repeat("─", 26) + off
+		default:
+			dialog = panel + bright + fmt.Sprintf(" %-24s ", "body text") + off
+		}
+		switch y {
+		case 0:
+			b.WriteString(dim + fmt.Sprintf("%-60s", "  app · header") + off + "\n")
+		case 9:
+			b.WriteString(bright + fmt.Sprintf("%-60s", "  enter send  esc back") + off + "\n")
+		default:
+			b.WriteString(dim + page + off + "   " + dialog + "    \n")
+		}
+	}
+	p := filepath.Join(t.TempDir(), "sending-60x10.ansi")
+	if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	fs, _, _ := run(t, p)
+	for _, f := range fs {
+		if f.Rule == "F-TRUNC" || f.Rule == "F-CONTRAST" || f.Rule == "F-WIDTH" {
+			t.Errorf("a ruled dialog over a dimmed page, named sending: %+v, want no %s", f, f.Rule)
+		}
+	}
+}
+
 // F-LEVELS isn't judged on a frame with no colour (NO_COLOR): it has one text level by
 // construction, its levels are weight and glyphs. The same frame in colour still is.
 func TestLevelsSkipsColourlessFrames(t *testing.T) {

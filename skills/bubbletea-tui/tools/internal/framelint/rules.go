@@ -351,7 +351,7 @@ func LintFrame(name string, f Frame, cols, rows int, pal *Palette, bgDefault RGB
 			tls = append(tls, c)
 		}
 	}
-	dialog := findDialog(f, cornersSeen)
+	dialog := frameDialog(name, f, cornersSeen, bgDefault)
 	if overlayName.MatchString(name) && dialog == nil && (len(lowc) > 0 || len(offCells) > 0) {
 		// a borderless dialog over a scrim: we can't find its edges, so don't judge the scrim
 		add("F-CONTRAST", "P2", "frame", "overlay frame without a bordered or ruled dialog: contrast and palette checked only by eye here")
@@ -870,7 +870,7 @@ func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii boo
 		twin, _ := theme.ASCIITwin(theme.Ellipsis)
 		ellipses = append(ellipses, twin)
 	}
-	out = append(out, lintTrunc(filepath.Base(path), f, ellipses, spec)...)
+	out = append(out, lintTrunc(filepath.Base(path), f, ellipses, spec, bg)...)
 	return out
 }
 
@@ -949,6 +949,64 @@ func LintASCIIQuestion(name string, asc, uni Frame) []Finding {
 	return []Finding{{"F-ASCII", "P1", name, fmt.Sprintf("r%dc%d", at[0], at[1]),
 		fmt.Sprintf("%d cells draw \"?\" where the unicode frame does not (%s): the ASCII sweep has no one-cell twin for them; give a glyph a theme twin, or write the text in ASCII",
 			n, strings.Join(runes, ", "))}}
+}
+
+// frameDialog is findDialog, trusted by the frame's name or by a scrim. On a frame named
+// as an overlay, or for a bordered box, it is what findDialog finds. A ruled or ASCII
+// dialog on a frame named for its state (a confirm's sending, send-error) counts only
+// when ui.Overlay's marks are around it: a blank row above and below it (margined), and
+// every other text row of the page dimmed under 2.3:1, or the page hidden but for 3
+// rows at most (the header; 16 colours, NO_COLOR). A sectioned page, a titled section
+// rule over a later rule of one span, has the shape and neither mark, and is judged whole.
+func frameDialog(name string, f Frame, cs []corner, bg RGB) *region {
+	d := findDialog(f, cs)
+	if d == nil || overlayName.MatchString(name) || slices.ContainsFunc(cs, func(c corner) bool { return strings.ContainsRune(topLeft, c.ch) }) {
+		return d
+	}
+	if margined(f.Rows, *d) && scrimmed(f, *d, bg) {
+		return d
+	}
+	return nil
+}
+
+// scrimmed reports a page around r that ui.Overlay dimmed or hid: outside r's rows and
+// the blank row on each side, and above the footer (the last row), every row with text
+// has 4 in 5 of its text cells under 2.3:1, or 3 rows at most hold text.
+func scrimmed(f Frame, r region, bg RGB) bool {
+	rows, dim := 0, 0
+	for y, row := range f.Rows {
+		if (y >= r.y0-1 && y <= r.y1+1) || y == len(f.Rows)-1 {
+			continue
+		}
+		text, low := 0, 0
+		for _, c := range row {
+			ch := first(c.Ch)
+			if ch < 0 || isSpace(ch) || strings.ContainsRune(ruleChars, ch) || (0x2500 <= ch && ch <= 0x259F) || (0x2800 <= ch && ch <= 0x28FF) {
+				continue
+			}
+			text++
+			fg, b := defaultFG, bg
+			if c.FG != nil {
+				fg = *c.FG
+			}
+			if c.BG != nil {
+				b = *c.BG
+			}
+			if c.Reverse {
+				fg, b = b, fg
+			}
+			if contrast(fg, b) < 2.3 {
+				low++
+			}
+		}
+		if text > 0 {
+			rows++
+			if 5*low >= 4*text {
+				dim++
+			}
+		}
+	}
+	return rows <= 3 || dim == rows
 }
 
 // findDialog is the one dialog over a scrim: a bordered box (the frame's only top-left
@@ -1105,7 +1163,7 @@ const truncMax = 3
 // column with the most. A table's last column headed path, file, command or url is
 // skipped (unboundedColumn): no budget fits a path, so cutting it is the design.
 //
-// On an overlay frame (named as one, or with a ruled or ASCII dialog whatever its name)
+// On an overlay frame (named as one, or with a ruled or ASCII dialog over a scrim)
 // an ellipsis the kit's Overlay put where the dialog cut a word is
 // skipped (rows a dialog cuts all end near its edge); the dialog's own rows are judged
 // like any column. The dialog is found by its border (with two or more boxes, the one
@@ -1115,21 +1173,19 @@ const truncMax = 3
 // neither, a column that would be reported with rows running on past the ellipsis is
 // reported as not run, to judge by eye.
 func LintTrunc(name string, f Frame, ellipses []string) []Finding {
-	return lintTrunc(name, f, ellipses, nil)
+	return lintTrunc(name, f, ellipses, nil, RGB{0x16, 0x16, 0x1a})
 }
 
 // lintTrunc is LintTrunc honouring spec's `cuts:` lines (nil: no --spec): a column whose
 // header, or a region of a budget line at this size holding every cut row, is
 // named on one cuts by decision and is not reported.
-func lintTrunc(name string, f Frame, ellipses []string, spec *Spec) []Finding {
+func lintTrunc(name string, f Frame, ellipses []string, spec *Spec, bg RGB) []Finding {
 	overlay := overlayName.MatchString(name)
 	var dialog *region
 	page, fill := pageBG(f)
 	cs := frameCorners(f)
-	if !overlay && len(cs) == 0 { // a ruled or ASCII dialog on a frame named for its state
-		if dialog = findDialog(f, cs); dialog != nil {
-			overlay = true
-		}
+	if !overlay && len(cs) == 0 { // a ruled or ASCII dialog over a scrim, on a frame named for its state
+		dialog = frameDialog(name, f, cs, bg)
 	}
 	if overlay && dialog == nil {
 		if dialog = findDialog(f, cs); dialog == nil {

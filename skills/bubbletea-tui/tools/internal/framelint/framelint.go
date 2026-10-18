@@ -19,7 +19,10 @@
 //	                 and the footer are judged: a bordered box, an ASCII +--+ box, or a
 //	                 "dialog": "rules" panel (two rule rows of one span around a filled panel),
 //	                 found by its shape whatever the frame's name (a confirm's sending state
-//	                 too). On an overlay frame (named dialog, palette, confirm, modal, overlay,
+//	                 too; on a frame not named as an overlay, a ruled or ASCII one counts only
+//	                 with a scrim: a blank row above and below it, and the page's other rows
+//	                 dimmed under 2.3:1 or hidden, so a sectioned page is judged whole). On an
+//	                 overlay frame (named dialog, palette, confirm, modal, overlay,
 //	                 popup, help or keys) with none found, a P2 note instead ("dialog": "none"
 //	                 has no edge to find).
 //	                 In a 16-colour frame: text in the same slot as its background
@@ -97,7 +100,8 @@ else is a rune the ASCII sweep had no twin for, which reads as a question.
                    are decoration, status marks (● ◆ ▶ ○ •) are text. Where a frame has a
                    dialog, found by its shape whatever the frame's name (a bordered box, an
                    ASCII +--+ box or a "dialog": "rules" panel: two rule rows of one span
-                   around a filled panel), only the dialog is judged; an overlay frame (named
+                   around a filled panel; off an overlay-named frame, only over a scrim that
+                   dims or hides the rest of the page), only the dialog is judged; an overlay frame (named
                    dialog|palette|confirm|modal|overlay|popup|help|keys) with none found is a
                    P2 note. In a 16-colour frame, text in the same slot as its background
   F-BOXES     [P1] more than one bordered box
