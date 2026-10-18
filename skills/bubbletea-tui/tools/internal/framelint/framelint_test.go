@@ -968,6 +968,13 @@ func TestOverlayDialogsAreFound(t *testing.T) {
 	if hits := contrastHits(t, sections, "--theme", "testdata/themes/quire.json"); len(hits) != 1 || hits[0].Sev != "P1" || !strings.HasPrefix(hits[0].Where, "r10") {
 		t.Errorf("low contrast inside the 256-colour confirm: %+v, want one P1 on row 10", hits)
 	}
+	// a 2×2 grid of sections at 256 colours ("disk ···· 52%  network ····" under "cpu
+	// ···· 52%  memory ····") is not a dialog with a status in its edge: the status sits
+	// at the edge's right end, the run after it 3 cells at most. Read as one, the grid
+	// paired as the dialog and hid moss's "dialog": "none" help note behind a P1 on the page
+	if hits := contrastHits(t, "testdata/overlays/none-grid-256-help-120x40.ansi", "--theme", "testdata/themes/moss.json"); len(hits) != 1 || hits[0].Sev != "P2" || !strings.Contains(hits[0].Msg, "checked only by eye") {
+		t.Errorf("moss help over a grid of sections at 256 colours: %+v, want the P2 note", hits)
+	}
 	// the same inside an ASCII +--+ box (halyard ascii confirm: box bg #142030)
 	boxed := mutate("testdata/overlays/box-ascii-confirm-80x24.ansi", "confirm-box-80x24.ansi",
 		"prod returns to the last healthy version.", "\x1b[38;2;24;34;48mprod returns to the last healthy version.")

@@ -571,8 +571,8 @@ func ruleRuns(row []Cell) []ruleRun {
 }
 
 // rulesDialog finds a "dialog": "rules" panel: a bottom rule (one run of 12+ of one
-// glyph, the theme's rule, or two runs around a status set into it, ui.DialogStatus's
-// "1 of 2") and, above it with rows between, a top rule of the same glyph over the same
+// glyph, the theme's rule, or two runs around a status set into its right end,
+// ui.DialogStatus's "1 of 2") and, above it with rows between, a top rule of the same glyph over the same
 // columns (±2) made of two runs closing around a title (one text segment whose spaces
 // come singly; a table header's columns don't, and two section rules of one width have
 // no title). The panel between must be filled (filled), except in a 16- or 256-colour
@@ -592,11 +592,14 @@ func rulesDialog(grid [][]Cell, downsampled bool) (region, bool) {
 	var first, cleared region
 	found, clear := false, false
 	for yb := 2; yb < len(grid); yb++ {
-		var edges []ruleRun // the bottom edge: a run, or two around a status
+		// the bottom edge: a run, or two around a status set at its right end, as
+		// DialogStatus draws it ("──── 1 of 2 ──", the run after it 3 cells at most); a
+		// section row beside another ("disk ···· 52%  net ····") is two long runs
+		var edges []ruleRun
 		for j, rb := range runs[yb] {
 			edges = append(edges, rb)
 			for _, rs := range runs[yb][j+1:] {
-				if rs.ch == rb.ch && title(grid[yb], rb.b+1, rs.a-1, rb.ch) {
+				if rs.ch == rb.ch && rs.b-rs.a < 3 && title(grid[yb], rb.b+1, rs.a-1, rb.ch) {
 					edges = append(edges, ruleRun{rb.a, rs.b, rb.ch})
 				}
 			}
