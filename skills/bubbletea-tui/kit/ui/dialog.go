@@ -79,6 +79,21 @@ func DialogStatus(t *theme.Theme, w, h int, title, status string, body []string,
 	return dialog(t, t.S.Dialog, t.P.BgPanel, w, h, title, body, off, buttons, help, status)
 }
 
+// DialogLines is where a scrolled body stands, for DialogStatus to set into the
+// dialog's bottom edge: "lines 1–10 of 76" for the shown rows off+1…off+shown of
+// total, in muted, or "" when the body fits. Use it for a dialog whose body must be
+// shown whole and has no length bound, such as a write's verbatim text. That body
+// scrolls between edges that stay, and draws no Clip row that isn't part of it, so
+// nothing unsent is hidden without a position. List such a dialog in the harness's
+// scrolls table.
+func DialogLines(t *theme.Theme, off, shown, total int) string {
+	if total <= shown || shown <= 0 {
+		return ""
+	}
+	off = max(0, min(off, total-shown))
+	return t.S.Muted.Render("lines " + strconv.Itoa(off+1) + "–" + strconv.Itoa(off+shown) + " of " + strconv.Itoa(total))
+}
+
 // Popover is a Dialog on bgOverlay, the ramp's step for what pops over the page: a
 // command palette, completions. Draw it with Canvas.Popover.
 func Popover(t *theme.Theme, w, h int, title string, body []string, buttons string, help string) string {

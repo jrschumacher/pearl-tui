@@ -74,3 +74,38 @@ func TestDialogStatusSitsInTheBottomEdge(t *testing.T) {
 		}
 	}
 }
+
+// A body that must be shown whole (a write's verbatim text, with no length bound)
+// scrolls between edges that stay, and its position is set into the bottom edge:
+// "lines 1–10 of 76", the last offset clamped so the last page still fills, nothing
+// when the body fits. The position takes no row.
+func TestDialogLinesSaysWhereTheBodyStands(t *testing.T) {
+	th := theme.ResolveProfile(theme.Default(), true, false, colorprofile.TrueColor)
+	for _, c := range []struct {
+		off, shown, total int
+		want              string
+	}{
+		{0, 10, 76, "lines 1–10 of 76"},
+		{5, 10, 76, "lines 6–15 of 76"},
+		{70, 10, 76, "lines 67–76 of 76"},
+		{-3, 10, 76, "lines 1–10 of 76"},
+		{0, 10, 10, ""},
+		{0, 10, 4, ""},
+	} {
+		if got := ansi.Strip(DialogLines(th, c.off, c.shown, c.total)); got != c.want {
+			t.Errorf("DialogLines(%d, %d, %d) = %q, want %q", c.off, c.shown, c.total, got, c.want)
+		}
+	}
+	body := make([]string, 10)
+	for i := range body {
+		body[i] = "line " + strings.Repeat("x", i)
+	}
+	d := DialogStatus(th, 46, 0, "Send reply", DialogLines(th, 0, 10, 76), body, 0, "", "")
+	rows := strings.Split(ansi.Strip(d), "\n")
+	if !strings.Contains(rows[len(rows)-1], "lines 1–10 of 76") {
+		t.Errorf("the position isn't in the bottom edge: %q", rows[len(rows)-1])
+	}
+	if plain := Dialog(th, 46, 0, "Send reply", body, "", ""); lipgloss.Height(d) != lipgloss.Height(plain) {
+		t.Errorf("the position took a row")
+	}
+}

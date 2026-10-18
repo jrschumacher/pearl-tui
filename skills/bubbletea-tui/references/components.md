@@ -85,6 +85,10 @@ the keys; hue stays for state (color.md).
   the tabs and a row of air above the footer) and scrolls its body when it doesn't fit
   (`ui.Clip`: `↑ n more` above, `… n more` below; `DialogScrolled` for a screen with an
   offset, `DialogBodyRows` and `ClipMax` to clamp it), so no dialog reaches the footer.
+  A body that must be shown whole and has no length bound (a write's verbatim text)
+  scrolls between edges that stay, with `ui.DialogLines` (`lines 1–10 of 76`) set into
+  the bottom edge: nothing unsent is hidden without a position. List it in the
+  harness's `scrolls`.
 - A dialog's status (the sending dots, `3 of 12`) is set right-aligned into its bottom
   edge, as a rules title is into the top one, so it takes no row and never crowds the
   buttons (`ui.DialogStatus`).

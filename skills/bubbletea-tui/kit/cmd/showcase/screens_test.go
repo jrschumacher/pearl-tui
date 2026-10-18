@@ -58,7 +58,7 @@ func TestASCIIKeepsTheLaddersText(t *testing.T) {
 	}
 }
 
-// A dialog is judged by its own rows (dialogText), not the page's: the assistant's
+// A dialog is judged by its own cells (readPos), not the page's: the assistant's
 // transcript under it is cut ("↑ n more", "… (n lines hidden)"), and a test that scanned
 // the whole frame failed under every overlay of an app whose page has one. Each overlay
 // over that cut transcript, every theme, at 80×24 and the floor, passes dialogFits.

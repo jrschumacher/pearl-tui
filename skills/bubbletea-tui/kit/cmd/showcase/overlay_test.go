@@ -268,7 +268,8 @@ func sameRGB(a, b color.Color) bool {
 }
 
 // The tables the harness tests read are the app's own: a state opens a dialog exactly
-// when overlays names it, every overlayPages entry is a page with no dialog up, and
+// when overlays names it, scrolls names overlays and help among them, every
+// overlayPages entry is a page with no dialog up, and
 // every page that draws a focus mark is in overlayPages, renders as one that is, or is
 // in unjudgedPages with a reason. A cold build left its menu overlay out of the help
 // test, and its help over the menu named the screen's keys; leaving it out of overlays
@@ -283,6 +284,15 @@ func TestOverlayTablesMatchTheStates(t *testing.T) {
 				t.Errorf("%q is in the harness tables but not in states", s)
 			}
 		}
+	}
+	// scrolls names overlays: help's keys grow with the app, so help is always one
+	for _, s := range scrolls {
+		if !slices.Contains(overlays, s) {
+			t.Errorf("%q is in scrolls but not in overlays", s)
+		}
+	}
+	if !slices.Contains(scrolls, "help") {
+		t.Errorf("scrolls has no \"help\": the keys overlay's body grows with the app and scrolls at the floor")
 	}
 	// unjudgedPages is for a Huh form's pages, and every Huh form goes through ui.NewForm
 	// (tuilint code, C-HUHTHEME): an app that never builds one has nothing to leave out

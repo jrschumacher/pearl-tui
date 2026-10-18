@@ -44,6 +44,14 @@ var states = []string{"services", "services-toast", "deploys", "palette", "confi
 // state with openOverlay: replace both lists with your app's, keeping "help".
 var overlays = []string{"palette", "confirm", "help"}
 
+// scrolls are the overlays whose body may run past the floor and scroll there: help,
+// and a dialog whose body must be shown whole and has no length bound (a write's
+// verbatim text). Each draws its position while rows are hidden (Clip's "↑ n more" and
+// "… n more" rows, or ui.DialogLines in its bottom edge) and offers scroll in the
+// footer, and scrolling down reaches the body's end. Every other overlay fits the app's
+// floor: a confirm cut there hid its consequences.
+var scrolls = []string{"help"}
+
 // overlayPages are the states an overlay is opened over in the tests: every screen
 // that draws a selection, a focused field or a caret. (Not the setup wizard: a Huh
 // form has no way to draw its focused field blurred short of Field.Blur, which
