@@ -98,17 +98,39 @@ func BusyAnimates(t *theme.Theme) bool {
 			return false
 		}
 	}
-	return len(t.Unicode.Spinner) > 1 && len(t.G.Spinner) > 1
+	if len(t.Unicode.Spinner) < 2 {
+		return false
+	}
+	distinct := map[string]bool{}
+	for _, f := range busyFrames(t) {
+		distinct[f] = true
+	}
+	return len(distinct) > 1
+}
+
+// busyFrames are the spinner frames Busy turns through: the theme's, less the blurred
+// selection's mark (ASCII :, which the one-cell pulse . : ' : draws), so a blurred busy
+// row never reads ": : name", the gutter mark twice.
+func busyFrames(t *theme.Theme) []string {
+	var out []string
+	for _, f := range t.G.Spinner {
+		if f != t.BlurBar() {
+			out = append(out, f)
+		}
+	}
+	return out
 }
 
 // Busy is the working mark for a status column, one cell like the Dot beside it: the
 // theme's spinner at frame n when its frames are one cell, else Dot's busy mark (the
-// partial glyph, still), so a row in progress never pushes its name out of line. The
+// partial glyph, still), so a row in progress never pushes its name out of line, and
+// never the blurred selection's mark (busyFrames). The
 // theme's own frames decide (BusyAnimates), so unicode and ASCII agree: a three-cell
 // spinner holds the partial mark in both, never a still ◐ here and a turning / there.
 func Busy(t *theme.Theme, n int) string {
 	if !BusyAnimates(t) {
 		return Dot(t, "busy")
 	}
-	return Spinner(t, n)
+	f := busyFrames(t)
+	return t.S.Working.Render(f[n%len(f)])
 }
