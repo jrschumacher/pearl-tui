@@ -112,8 +112,9 @@
 //	                  the first, which is read as the main screen (so its block comes first),
 //	                  with no `brand:` line: a secondary screen or overlay that doesn't say what
 //	                  the brand's three words change on it (copy voice, dialog form, footer
-//	                  phrasing). A heading with no job (no dash or colon) whose next heading is
-//	                  deeper groups blocks (`Main`, `Overlays`) and is not one. `brand: nothing,
+//	                  phrasing). A heading whose next heading is deeper and has a job (a dash
+//	                  or a colon) groups blocks (`Main`, `Overlays — dialogs and help`) and is
+//	                  not one; a block's sub-headings with no job (`regions`) are part of it. `brand: nothing,
 //	                  because …` counts; a bare `nothing`, `none`, `n/a` or `-`, a placeholder
 //	                  (`TBD`, `todo`, `?`, `nothing yet`, `<…>`), an empty value, a line in a
 //	                  ``` or ~~~ fence (the sketch) or in backticks doesn't. Two

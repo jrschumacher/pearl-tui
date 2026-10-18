@@ -206,6 +206,10 @@ func TestRules(t *testing.T) {
 		{"a reason that starts like a placeholder is one", "### Screens\n#### list — every job\n#### detail — one job\nbrand: nothing yet differs from the list, because the row is the detail\n" + table("| list | list | enter open |", ""), nil},
 		{"a brand line in a ~~~ fence is not one", "### Screens\n#### list — every job\n#### detail — one job\n~~~\nbrand: terse\n```\n~~~\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
 		{"group headings hold blocks", "## Screens\n### Main\n#### list — every job\n### Overlays\n#### confirm — stop it\n#### help — every key\nbrand: nothing, because help lists the tables\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
+		// a heading is a group when the next heading is deeper and has a job: a group's
+		// heading may have a dash, and a block's sub-headings may have none
+		{"a group heading with a dash", "## Screens\n### Main\n#### list — every job\n### Overlays — dialogs and help\nbrand: terse\n#### confirm — stop it\n#### help — every key\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 2}},
+		{"a jobless block with sub-headings", "### Screens\n#### list — every job\n#### detail\nbrand: terse\n##### regions\n##### keys\n#### confirm — stop it\nbrand: plain\n" + table("| list | list | enter open |", ""), nil},
 		{"a sibling screens section continues it", "### Screens\n#### list — every job\n### Secondary screens\n#### detail — one job\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
 		{"a numbered screens heading", "### 4. Screens\n#### list — every job\n#### detail — one job\n" + table("| list | list | enter open |", ""), map[string]int{"S-SLOTS": 1}},
 		{"dialogs under Architecture are not § Screens", "### Screens\n#### list — every job\n#### detail — one job\nbrand: terse\n## Architecture\n### Dialogs\n#### confirm — ui.Dialog\n" + table("| list | list | enter open |", ""), nil},

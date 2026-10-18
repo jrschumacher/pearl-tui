@@ -875,9 +875,10 @@ func fenceToggle(fence *string, t string) bool {
 // screenBrand is S-SLOTS for § Screens: each block (a heading under the Screens
 // heading) after the first, which is the main screen and carries the read's move and
 // signature, is a secondary screen or an overlay, and names a `brand:` line: what the
-// brand's three words change there, or "nothing, because …". A heading with no job
-// (no dash or colon) whose next heading is deeper groups blocks ("Main", "Overlays")
-// and is no block itself. Presence only, but a value that skips the question
+// brand's three words change there, or "nothing, because …". A heading whose next
+// heading is deeper and has a job (a dash or a colon) groups blocks ("Main", "Overlays —
+// dialogs and help") and is no block itself; a block's own sub-headings ("regions")
+// have no job. Presence only, but a value that skips the question
 // ("nothing", "none", "n/a", "-" with no reason) doesn't count, nor does an empty
 // value, a fenced line (the sketch) or a slot word in backticks; the critic judges
 // what the line says.
@@ -928,8 +929,8 @@ func (s *spec) screenBrand(add func(string, int, string, ...any)) {
 				screens = 0
 			case screens == 0 || (start >= 0 && h.level > block):
 				// outside § Screens, or a sub-heading inside a block
-			case !jobRe.MatchString(h.text) && next < len(hs) && hs[next].level > h.level:
-				flush() // a group heading: its blocks follow
+			case next < len(hs) && hs[next].level > h.level && jobRe.MatchString(hs[next].text):
+				flush() // a group heading: its blocks, deeper and with a job, follow
 				block = 0
 			default:
 				flush()
