@@ -166,8 +166,8 @@ Would someone who lives in a terminal look at this and say "a model made this"? 
 5. 80×24 and 200×60: the same design, nothing torn, room used.
 6. Read every word aloud in the brand's voice.
 7. Any pink-purple, emoji or "Loading..."? Remove it.
-8. Point at the read's move and signature on the main screen. If you can't, it has no
-   identity yet.
+8. Point at the read's move and signature on the main screen, and at a dialog's
+   `brand:` line in its words. If you can't, it has no identity yet.
 
 ## Commands
 

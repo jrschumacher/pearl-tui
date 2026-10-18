@@ -130,6 +130,7 @@ One block per screen: `shape` fills it, `craft` builds it in § First slice orde
 collapse: < 110 cols <what becomes what>; < 30 rows <what goes>
 components: <ui.Table, ui.Dot, …>; new: <none | name, and why no kit component draws it>
 fixtures: <count, the longest name, the failing row, the empty list>
+brand: <every block after the main screen's: what the three words change here, copy voice, dialog form or footer phrasing, or nothing, because …>
 sketch (exactly 80 wide, real content):
 ```
 <row 0>

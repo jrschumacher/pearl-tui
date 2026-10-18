@@ -63,6 +63,18 @@ or puts it elsewhere in the screen's order is a move. Both brands in that pair c
 as their motif, which has its own line. A recoloured `ui.Header` is the kit's element,
 not a signature.
 
+### The Read Reaches Past The Main Screen
+
+The move and the signature tell two brands apart at a glance; a user also tells them
+apart after one keypress, on the detail, the picker and the confirm. Those come from the
+kit's components and the spec's words, so two brands built from one spec matched there
+word for word, after main screens with nothing in common. So the read carries on: each
+secondary screen and overlay block in `TUI.md` § Screens names a `brand:` line, what the
+three words change there (copy voice, dialog form, footer phrasing; `cmd-shape.md`
+§ Behind The Main Screen). Where the spec gives the words, its product facts stay (what
+is acted on, the number, the consequence) and the voice is the brand's: a terse brand
+asks `delete nightly-0412?`, a thorough one says what goes and what stays.
+
 ## 2. Translate Traits Into Terminal Moves
 
 | The brand is… | Terminal moves that say it |
