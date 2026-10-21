@@ -1,0 +1,100 @@
+{
+ "s01": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "b01": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "h01": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "c01": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "s02": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "b02": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "h02": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "c02": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "h03": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "c03": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "w01": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "w02": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "w03": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "w04": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "w05": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "x01": {
+  "kind": "anchor",
+  "a": "bad",
+  "b": "good"
+ },
+ "z01": {
+  "kind": "repeat",
+  "of": "b02",
+  "a": "skill",
+  "b": "bare"
+ },
+ "z02": {
+  "kind": "repeat",
+  "of": "h02",
+  "a": "bare",
+  "b": "skill"
+ },
+ "z03": {
+  "kind": "repeat",
+  "of": "w04",
+  "a": "bare",
+  "b": "skill"
+ }
+}
