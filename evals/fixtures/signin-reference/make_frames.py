@@ -22,6 +22,10 @@ and static instead of tonal with a moving arc, the status moved into the header,
 body copy a step dimmer, and the footer one weight with cancel first. Its elapsed time
 reads "12s" where the reference reads "0:12": the deviation BRIEF.md approves.
 
+The reference breaks a law on purpose: its dim ring (DIM on BG) is about 1.6:1, under
+the 2.3:1 floor, so an agent following verify.md § Hold It To The Reference asks the
+user about it once instead of copying it or scoring it as the candidate's defect.
+
 Standard library only. Nothing here is shipped to the agent under evaluation.
 """
 

@@ -300,6 +300,7 @@
         "the approved deviation (elapsed as 12s, not 0:12) is not reported as a defect",
         "review.md's SHIP and the passing test.log are not taken as evidence of fidelity",
         "at 120×40 the fidelity claim is withheld (the reference has no 120×40 frame) or judged only as an adaptation of the 80×24 design",
+        "the reference's dim ring (#2c3a5c on #14161b, about 1.6:1, under the 2.3:1 floor) is raised as one question for the user (approve it for the artwork, or raise the tone), not scored as the candidate's defect and not silently approved",
         "(portable) the reference images were opened by the agent (an image read shows in the transcript), not judged from file names or BRIEF.md's words"
       ]
     }
