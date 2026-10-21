@@ -147,3 +147,54 @@ func TestSelectionShadesBarsNotMarks(t *testing.T) {
 		}
 	}
 }
+
+// A list blurred under a fill or inverse selection keeps its selected row as a band, and
+// every cell of it carries an ink that reads on the band: stripped to no ink, the row drew
+// in the terminal's default (a steps pane blurred beside a log), and its subtle time on
+// the band fell under 2.3:1.
+func TestBlurredFilledRowIsInked(t *testing.T) {
+	items := []Item{{Title: "go build", Right: "38s", State: "ok"}, {Title: "watch error rate", Right: "5m0s", State: "error"}}
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		th := theme.Resolve(tf, true, false)
+		if th.X.Selection != "fill" && th.X.Selection != "inverse" {
+			continue
+		}
+		row := List(th, items, 1, 0, 30, 2, false)[1]
+		for x, c := range cellsOf(row) {
+			if strings.TrimSpace(c.Content) == "" {
+				continue
+			}
+			if c.Style.Fg == nil {
+				t.Errorf("%s: the blurred row's %q at %d has no ink", filepath.Base(f), c.Content, x)
+			} else if r := theme.Contrast(c.Style.Fg, th.P.BgSubtle); r < 2.3 {
+				t.Errorf("%s: the blurred row's %q at %d is %.2f:1 on its band", filepath.Base(f), c.Content, x, r)
+			}
+		}
+	}
+}
+
+// A scrollbar's track is a rail in the rule's ink, which tuilint passes as decoration
+// only while it is one: an ASCII track that twins to no rail (ferrous's ░ is ".") is
+// text there, and draws in an ink that reads on the page.
+func TestASCIITrackReads(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		th := theme.Resolve(tf, true, true)
+		if th.G.Track == "|" || strings.TrimSpace(th.G.Track) == "" {
+			continue
+		}
+		for i, s := range Scrollbar(th, 10, 40, 30) {
+			c := cellsOf(s)[0]
+			if c.Content == th.G.Track && (c.Style.Fg == nil || theme.Contrast(c.Style.Fg, th.P.Bg) < 2.3) {
+				t.Errorf("%s: the ASCII track %q at row %d reads under 2.3:1 on the page", filepath.Base(f), c.Content, i)
+			}
+		}
+	}
+}

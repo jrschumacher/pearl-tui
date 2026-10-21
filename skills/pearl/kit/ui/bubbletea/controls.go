@@ -277,11 +277,17 @@ func Scrollbar(t *theme.Theme, h, total, offset int) []string {
 	}
 	size := max(1, h*h/total)
 	pos := int(math.Round(float64(offset) / float64(total-h) * float64(h-size)))
+	// the track is a rail in the rule's ink; a track whose ASCII twin is no rail (░ is
+	// ".") is text there, and takes the thumb's ink: the glyphs tell the two apart
+	track := t.S.Rule
+	if t.ASCII && t.G.Track != "|" {
+		track = t.S.Muted
+	}
 	for i := range out {
 		if i >= pos && i < pos+size {
 			out[i] = t.S.Muted.Render(t.G.Thumb)
 		} else {
-			out[i] = t.S.Rule.Render(t.G.Track)
+			out[i] = track.Render(t.G.Track)
 		}
 	}
 	return out

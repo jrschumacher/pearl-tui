@@ -182,7 +182,9 @@ func listRow(t *theme.Theme, it Item, selected, focused bool, w int, c cols) str
 	}
 	line := Fit(marker+Fit(Trunc(t, text, max(0, avail)), max(0, avail))+pre(right != "", " ")+right, w)
 	if selected && !focused && (mode == "fill" || mode == "inverse") {
-		return lipgloss.NewStyle().Background(t.P.BgSubtle).Render(ansi.Strip(line))
+		// the band in the page's ink: stripped with no ink, the row drew in the terminal's
+		// default (a pane blurred beside a log), and its hints keep no contrast on the band
+		return lipgloss.NewStyle().Background(t.P.BgSubtle).Foreground(t.P.Fg).Render(ansi.Strip(line))
 	}
 	return line
 }
