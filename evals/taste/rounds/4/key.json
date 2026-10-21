@@ -1,0 +1,53 @@
+{
+ "t01": {
+  "kind": "read-vs-literal",
+  "a": "read",
+  "b": "literal"
+ },
+ "t02": {
+  "kind": "read-vs-literal",
+  "a": "literal",
+  "b": "read"
+ },
+ "t03": {
+  "kind": "read-vs-literal",
+  "a": "read",
+  "b": "literal"
+ },
+ "n01": {
+  "kind": "read-vs-literal",
+  "a": "read",
+  "b": "literal"
+ },
+ "n02": {
+  "kind": "read-vs-literal",
+  "a": "read",
+  "b": "literal"
+ },
+ "n03": {
+  "kind": "read-vs-literal",
+  "a": "read",
+  "b": "literal"
+ },
+ "b01": {
+  "kind": "read-vs-literal",
+  "a": "literal",
+  "b": "read"
+ },
+ "b02": {
+  "kind": "read-vs-literal",
+  "a": "literal",
+  "b": "read"
+ },
+ "b03": {
+  "kind": "read-vs-literal",
+  "a": "read",
+  "b": "literal"
+ },
+ "r01": {
+  "kind": "repeat",
+  "of": "t01",
+  "a": "literal",
+  "b": "read"
+ }
+}
