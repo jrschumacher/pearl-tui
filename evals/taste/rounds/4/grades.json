@@ -1,0 +1,82 @@
+[
+ {
+  "at": "2026-10-21T17:09:38.941Z",
+  "item": "b01",
+  "note": "A still has the issue with the readtime conflated with when it was recieved. Logo in A is pretty love it.\nB the list is really nice, but missing the read time, but maybe as a header for the email?\nB logo in the email doesn't make sense.",
+  "refined": 1,
+  "round": 4,
+  "use": -1
+ },
+ {
+  "at": "2026-10-21T17:14:16.086Z",
+  "item": "b02",
+  "note": "B is missing the estimated read time, but looks good otherwise.",
+  "refined": 2,
+  "round": 4,
+  "use": 2
+ },
+ {
+  "at": "2026-10-21T17:15:02.402Z",
+  "item": "b03",
+  "note": "B is good. I'd have probably put it above, but this is nice too.",
+  "refined": 2,
+  "round": 4,
+  "use": 2
+ },
+ {
+  "at": "2026-10-21T17:05:05.381Z",
+  "item": "n01",
+  "note": "So I really prefer D, but we have a problem. I just want to pull out our logo uses these little blue dots. It's clever, it's pretty. And then we start using it all throughout everywhere. And that is a bit of a challenge navigating the view.",
+  "refined": -1,
+  "round": 4,
+  "use": 2
+ },
+ {
+  "at": "2026-10-21T17:05:54.045Z",
+  "item": "n02",
+  "note": "Again only need to fix the blue circle as the indicator",
+  "refined": 1,
+  "round": 4,
+  "use": 2
+ },
+ {
+  "at": "2026-10-21T17:06:57.239Z",
+  "item": "n03",
+  "note": "I like the clean main view of A, but the what happens of B. B has too much sub text. Header in B is nicer than A.",
+  "refined": -1,
+  "round": 4,
+  "use": -1
+ },
+ {
+  "at": "2026-10-21T17:15:44.705Z",
+  "item": "r01",
+  "note": "I think this was the first question or at least looks the same.",
+  "refined": 0,
+  "round": 4,
+  "use": 2
+ },
+ {
+  "at": "2026-10-21T17:01:01.115Z",
+  "item": "t01",
+  "note": "I would choose A because it is much cleaner to process quickly. Like I look and I'm like, okay, there's my calendar. You can see the number of hours. I can see what I've worked on this week. It's very clear. I would say there's a lot of open space for additional sort of widgets if we can ever figure out. I think we can figure out how to do like ANSI based charts and stuff. I also like B, but there's so much going on. It's really hard to process it all.",
+  "refined": 0,
+  "round": 4,
+  "use": -2
+ },
+ {
+  "at": "2026-10-21T17:02:23.752Z",
+  "item": "t02",
+  "note": "Yes, B looks so good here in that size screen that's exactly what I want. Like I'm on Thursday. These are the things I'm working on. It's time I'm logging. It's great. The only thing is I'd be like, where? Oh, and there's like a way to do invoice. That's all rich. Like it moves it to a different place. The only thing is like, how do I start and stop with the timer, space to stop? It's a little bit weird. I feel like there needs to be a pause symbol or something. And then also my only other question is how am I tracking agents doing work? I feel like there would need to be like sort of a breakdown or like I have a couple agents working on this I would want to track that because that's actual cost",
+  "refined": 2,
+  "round": 4,
+  "use": 2
+ },
+ {
+  "at": "2026-10-21T17:03:39.735Z",
+  "item": "t03",
+  "note": "These are both really great. They sort of do different things though. The first one is sort of giving me an overview. It's really good at giving me an overview and I can think I can navigate each of the items and maybe do further reading or investigation The export isn't as straightforward but then the second one in B that's an invoice right there and I really like that for the invoice view",
+  "refined": 0,
+  "round": 4,
+  "use": 0
+ }
+]
