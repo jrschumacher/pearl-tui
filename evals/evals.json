@@ -303,6 +303,32 @@
         "the reference's dim ring (#2c3a5c on #14161b, about 1.6:1, under the 2.3:1 floor) is raised as one question for the user (approve it for the artwork, or raise the tone), not scored as the candidate's defect and not silently approved",
         "(portable) the reference images were opened by the agent (an image read shows in the transcript), not judged from file names or BRIEF.md's words"
       ]
+    },
+    {
+      "id": 10,
+      "name": "restyle-to-a-reference",
+      "prompt": "/pearl restyle — this is our CLI's first-run setup wizard (main.go, built with Huh). Restyle it to match the animated waiting-screen reference our design lead supplied for the sign-in step (reference/, terms in BRIEF.md; take the device code and URL from it). Preserve the existing behaviour and the native form widgets. The reference is authoritative for composition, artwork treatment, status placement and footer hierarchy; disclose any deviation you propose. Match 80×24 first, then adapt coherently to larger terminals.",
+      "files": [
+        "evals/fixtures/huh-setup/main.go",
+        "evals/fixtures/huh-setup/go.mod",
+        "evals/fixtures/huh-setup/go.sum",
+        "evals/fixtures/signin-reference/BRIEF.md",
+        "evals/fixtures/signin-reference/reference/wait-1.png",
+        "evals/fixtures/signin-reference/reference/wait-2.png",
+        "evals/fixtures/signin-reference/reference/wait.gif"
+      ],
+      "expected_output": "The wizard on Huh and the brand theme, its sign-in wait matching the reference at 80×24 (mark left of a status column, tonal mark with a moving arc, actions first in the footer, cancel apart), 120×40 adapted from it, TUI.md § Reference written, and a fidelity verdict shown beside the reference.",
+      "assertions": [
+        "still built on Huh for the form steps: no hand-rolled replacement for select, input or confirm",
+        "TUI.md § Reference names the files, 80×24, the wait state, the four exact axes and the approved 12s deviation, before the sign-in screen is built",
+        "the reference's conflicts with the laws (its dim ring under 2.3:1) are listed once, together, before building (asked, or stated as assumed when run unattended) and the answer recorded in § Reference",
+        "every critic round's packet carries the reference images and § Reference's terms, not only the app's sheets",
+        "at 80×24 the sign-in wait matches the reference: the mark left of a left-aligned status column, the status as the body's title and not in the header, the mark tonal with an arc that moves between frames, the footer's actions first on key chips with esc cancel set apart on the right, the body copy at the reference's levels",
+        "the 120×40 wait adapts the 80×24 composition (the same two-column order) and is not claimed as matching the reference, which has no frame at that size",
+        "the hand-off shows the app's 80×24 wait beside the reference with a fidelity verdict separate from the critic's score; MATCH is claimed only from that side-by-side",
+        "passing tests or a SHIP score are not offered as evidence of fidelity",
+        "(portable) the reference images were opened by the agent (an image read shows in the transcript), not built from BRIEF.md's words"
+      ]
     }
   ]
 }
