@@ -402,6 +402,62 @@
         "nothing reads as a casino: no reels, no flashing credits, no gold",
         "the floor uses a 120×40 terminal's room: more than the 80×24 layout stretched"
       ]
+    },
+    {
+      "id": 15,
+      "name": "taste-tallyho",
+      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /pearl init, then craft the first slice it plans. go run should start it.",
+      "files": [
+        "evals/fixtures/taste-tallyho/README.md",
+        "evals/fixtures/taste-tallyho/answers.md"
+      ],
+      "expected_output": "TUI.md and the first slice of tallyho (a time tracker for freelancers: the week and an invoice draft), planned from a product read argued with simulated customers, every state rendered, and graded in a taste round against the literal build.",
+      "assertions": [
+        "(taste) graded blind against the literal build of this brief: at least as usable for the job",
+        "TUI.md § Product names two or three customers with how often each uses it, and the jobs ranked by how often they're done; § Decisions holds the cut list, one reason per cut",
+        "the product read was attacked by simulated customers (a subagent, or the documented fallback) before any screen was planned, and each blocking objection is answered in a line, not with a new screen",
+        "nothing on any screen is shown twice: one fact, one place",
+        "the week screen holds the timer, the selected day's entries and the week's hours; money appears only on the invoice",
+        "an idea from one stakeholder that no customer needs in most sessions (an agents' hours view, earnings goals) is cut with its reason, not built",
+        "the timer line shows whether it runs with a glyph beside its key, not only `space stop`"
+      ]
+    },
+    {
+      "id": 16,
+      "name": "taste-burrow",
+      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /pearl init, then craft the first slice it plans. go run should start it.",
+      "files": [
+        "evals/fixtures/taste-burrow/README.md",
+        "evals/fixtures/taste-burrow/answers.md"
+      ],
+      "expected_output": "TUI.md and the first slice of burrow (an email client for people who read long letters: the inbox and compose), planned from a product read argued with simulated customers, every state rendered, and graded in a taste round against the literal build.",
+      "assertions": [
+        "(taste) graded blind against the literal build of this brief: at least as usable for the job",
+        "TUI.md § Product names two or three customers with how often each uses it, and the jobs ranked by how often they're done; § Decisions holds the cut list, one reason per cut",
+        "the product read was attacked by simulated customers (a subagent, or the documented fallback) before any screen was planned, and each blocking objection is answered in a line, not with a new screen",
+        "nothing on any screen is shown twice: one fact, one place",
+        "an unclear value is labelled, never cut: a reading time reads `3 min read`, apart from the time received",
+        "a reply shows the original letter once, beside the draft or as its quote, not both",
+        "the brand's mark sits with the product's name (header or footer), never beside a letter's own header"
+      ]
+    },
+    {
+      "id": 17,
+      "name": "taste-nestkeeper",
+      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /pearl init, then craft the first slice it plans. go run should start it.",
+      "files": [
+        "evals/fixtures/taste-nestkeeper/README.md",
+        "evals/fixtures/taste-nestkeeper/answers.md"
+      ],
+      "expected_output": "TUI.md and the first slice of nestkeeper (a home server's settings: settings and review & apply), planned from a product read argued with simulated customers, every state rendered, and graded in a taste round against the literal build.",
+      "assertions": [
+        "(taste) graded blind against the literal build of this brief: at least as usable for the job",
+        "TUI.md § Product names two or three customers with how often each uses it, and the jobs ranked by how often they're done; § Decisions holds the cut list, one reason per cut",
+        "the product read was attacked by simulated customers (a subagent, or the documented fallback) before any screen was planned, and each blocking objection is answered in a line, not with a new screen",
+        "nothing on any screen is shown twice: one fact, one place",
+        "settings stay the main screen: a health dashboard is a cut with its reason, because no customer leaves it open",
+        "the logo's motif marks nothing but the logo: staged rows use a glyph of their own"
+      ]
     }
   ]
 }
