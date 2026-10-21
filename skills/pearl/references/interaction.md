@@ -61,6 +61,30 @@ clickable (tabs, list rows, buttons via compositor hit regions, "N lines hidden"
 expand). Coalesce wheel events; some terminals send 3 per notch. Mouse is a convenience:
 every action must also have a key.
 
+The wheel and the keys answer to different things, because a desktop taught both:
+
+- **The wheel scrolls the pane under the pointer**, and focus stays where it is. A click
+  is what moves focus. Scrolling the focused pane from across the screen, or stealing
+  focus on a wheel, leaves the user typing into a pane they weren't looking at.
+- **The wheel moves the view, never the selection.** The selected row may scroll out of
+  sight; the next arrow key brings the view back to it before moving. A wheel that walks
+  the selection runs actions on a row the user scrolled past.
+- **Shift+wheel and a trackpad's side scroll move sideways** in a pane that overflows.
+
+## Panes That Scroll
+
+- **`tab` moves focus between panes; arrows act inside the focused one.** `↑↓` move the
+  selection or the view, and `←→` scroll sideways when the focused pane's content is
+  wider than it. So `←→` never mean both "scroll" and "change pane".
+- **Show what's hidden.** A pane scrolled sideways marks its cut edges with `‹` `›` (ASCII
+  `<` `>`) on the rows that continue; a pane with more rows than fit carries the
+  scrollbar or a "N more" line. A user who can't see that a pane scrolls never scrolls it.
+- **Each pane keeps its own offsets**, vertical and horizontal, across focus changes and
+  resizes; a resize clamps them, never resets them.
+- **Help names the mouse once.** The footer shows keys only. The full help screen ends
+  with a short Mouse section: click focuses, the wheel scrolls the pane under the
+  pointer, shift+wheel scrolls sideways.
+
 ## Async And Long Work
 
 - Start the work as a `tea.Cmd`, mark the region busy, show a spinner with a subject, and
