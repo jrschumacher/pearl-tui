@@ -164,6 +164,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; width: auto; hei
     if (at >= items.length) return drawDone();
     const item = items[at];
     const saved = grades[docId(item)];
+    if (item.kind === "brief" || item.kind === "reveal") return drawWritten(item, saved);
     const brief = el("div", { className: "brief" }, [
       el("h2", { className: "brand" }, [item.brand, el("span", { className: "screen", textContent: item.screen ? ` · ${item.screen}` : "" })]),
       item.words ? el("p", { className: "words" }, [el("b", { textContent: item.words }), item.never ? ` · never ${item.never}` : ""]) : null,
@@ -214,11 +215,55 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; width: auto; hei
     main.replaceChildren(brief, renders, qs);
   }
 
+  // A brief asks for the grader's intuition before any mock exists; a reveal shows the
+  // mocks beside what they wrote, read back from the store, and asks what's off.
+  function drawWritten(item, saved) {
+    const head = el("div", { className: "brief" }, [
+      el("h2", { className: "brand" }, [item.brand, el("span", { className: "screen", textContent: item.screen ? ` · ${item.screen}` : "" })]),
+      item.words ? el("p", { className: "words" }, [el("b", { textContent: item.words }), item.never ? ` · never ${item.never}` : ""]) : null,
+    ]);
+    const body = el("div", { className: "qs" }, (item.body || []).map((t) => el("p", { textContent: t, style: "margin:0;max-width:68ch" })));
+    const parts = [head, body];
+    if (item.kind === "reveal") {
+      const wrote = grades[`r${round.round}-${item.recall}`]?.answers
+        || Object.values(grades).find((g) => g.item === item.recall)?.answers || {};
+      parts.push(el("div", { className: "qs" }, [el("p", { className: "hint", textContent: "What you wrote before seeing it:" }),
+        ...(item.recallPrompts || []).map((pr) => el("p", { style: "margin:0;max-width:68ch" }, [el("b", { textContent: pr.label + " " }), wrote[pr.key] || "—"]))]));
+      parts.push(el("div", { className: "renders grid" }, item.images.map((src, i) => figure(item.captions?.[i] || "", src))));
+    }
+    const form = el("form", { className: "qs", noValidate: true });
+    const boxes = (item.prompts || []).map((pr) => {
+      const box = el("textarea", { id: `${item.id}-${pr.key}`, value: saved?.answers?.[pr.key] || "" });
+      form.append(el("div", { className: "q" }, [el("label", { htmlFor: box.id, textContent: pr.label, style: "font-weight:600" }), box]));
+      return [pr.key, box];
+    });
+    const status = el("span", { className: "status", ariaLive: "polite" });
+    const back = el("button", { type: "button", className: "btn", textContent: "Back", disabled: at === 0 });
+    const next = el("button", { type: "submit", className: "btn primary", textContent: at === items.length - 1 ? "Save and finish" : "Save and next" });
+    back.addEventListener("click", () => { at--; draw(); window.scrollTo(0, 0); });
+    form.append(el("div", { className: "actions" }, [back, next, status]));
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const answers = Object.fromEntries(boxes.map(([k, b]) => [k, b.value.trim()]));
+      if (!Object.values(answers).some(Boolean)) { status.textContent = "Write something in at least one box."; return; }
+      next.disabled = true; status.textContent = "Saving…";
+      const g = { round: round.round, item: item.id, kind: item.kind, answers, at: new Date().toISOString() };
+      try {
+        if (!db) throw new Error("no store");
+        await db.doc(`grades/${docId(item)}`).set(g);
+        grades[docId(item)] = g; at++; draw(); window.scrollTo(0, 0);
+      } catch {
+        next.disabled = false; status.textContent = "Couldn't save. Your answers are still here; try again in a moment.";
+      }
+    });
+    main.replaceChildren(...parts, form);
+  }
+
   function drawDone() {
     const done = items.filter((it) => grades[docId(it)]).length;
     const left = items.length - done;
     main.replaceChildren(el("div", { className: "notice" }, [
-      el("h2", { textContent: left ? `${left} pair${left === 1 ? "" : "s"} still to grade` : "Round graded. Thank you." }),
+      el("h2", { textContent: left ? `${left} item${left === 1 ? "" : "s"} still to do` : "All done. Thank you." }),
       el("p", { textContent: left ? "Pick an empty step on the rail above to finish them." : "Claude reads these grades next, turns your notes into fixes, and the next round lands on this page." }),
     ]));
   }
@@ -230,6 +275,8 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; width: auto; hei
       const at_ = (f) => `rounds/${round.round}/${f}`;
       items = round.items.map((it) => it.kind === "pick"
         ? { ...it, options: it.options.map((o) => ({ ...o, src: at_(o.src) })) }
+        : it.kind === "brief" ? it
+        : it.kind === "reveal" ? { ...it, images: it.images.map(at_) }
         : { ...it, a: at_(it.a), b: at_(it.b) });
       document.getElementById("roundTitle").textContent = round.title;
     } catch {
