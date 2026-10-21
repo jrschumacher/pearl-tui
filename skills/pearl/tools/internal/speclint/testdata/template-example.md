@@ -7,6 +7,8 @@ Read before any UI change. Update it when a decision changes.
 ### Product
 Halyard deploys and rolls back services. The TUI is for on-call engineers checking
 service health, shipping a version and rolling back at 3am. Sessions last minutes.
+customers: the on-call engineer (paged a few times a week, kubectl and a dashboard today); the release owner (ships daily, a CI page today); the team lead (reads the incident log weekly)
+jobs: check what is deployed and healthy (many times a day) · ship a version · roll one back · read an incident
 
 ### Users and terminals
 SREs on laptops and over SSH, often inside tmux; 80×24 design floor, 120×40 common;
@@ -103,6 +105,7 @@ services, deploy and confirm rendered from fixtures through the harness, every s
 
 ## Decisions
 - 2026-10-16 signal orange only for "needs you" because focus in orange hid failing rows
+- 2026-10-16 cut: a cost dashboard — no on-call engineer acts on spend at 3am; the finance team has its own
 
 ## Assumed
 - 60×18 floor

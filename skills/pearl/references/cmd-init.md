@@ -108,7 +108,9 @@ Read before any UI change. Update it when a decision changes.
 ## Design
 
 ### Product
-<what it does, for whom, the jobs the TUI is for, how long a session lasts>
+<what it does, for whom, how long a session lasts>
+customers: <two or three: who, how often, what they use today>   (cmd-shape.md § Read The Product, Then Let Customers Attack It)
+jobs: <ranked by how often a customer does each; the first is the main screen's>
 
 ### Users and terminals
 <who; sizes (80×24 design floor); light/dark; SSH/tmux; NO_COLOR; screen readers>
@@ -226,6 +228,7 @@ Then: <the rest of v1, in order>
 
 ## Decisions
 - <date> <decision> because <reason>
+- <date> cut: <idea> — <why no customer needs it in most sessions>
 - <date> cuts: [<screen>:] <column header or budget region>, … — <why it has no longest>   (e.g. `- 2026-10-18 cuts: detail: command — no longest; the pager shows it whole`; <screen> is a § Screens block's name, and with none the line holds on every screen; `tuilint frames --spec TUI.md` reads it under this exact `## Decisions` heading [F-TRUNC])
 
 ## Assumed

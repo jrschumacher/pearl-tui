@@ -204,7 +204,7 @@ invents its regions and keys screen by screen.
 |---|---|---|
 | `init` | no `TUI.md`; new project; the brand or stack changed | `references/cmd-init.md` |
 | `brand` | create or change a theme from brand assets | `references/cmd-brand.md` |
-| `shape` | plan screens: budgets, states, keys, sketches | `references/cmd-shape.md` |
+| `shape` | plan screens: the product read customers attack, budgets, states, keys, sketches | `references/cmd-shape.md` |
 | `craft` | build screens from the kit, with the loop | `references/cmd-craft.md` |
 | `critique` | design review: scored, cited, two critics | `references/cmd-critique.md` |
 | `audit` | technical pass: footprint, profiles, keys, clock, exit | `references/cmd-audit.md` |
