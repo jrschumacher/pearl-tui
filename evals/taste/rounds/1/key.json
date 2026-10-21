@@ -1,0 +1,63 @@
+{
+ "x01": {
+  "kind": "anchor",
+  "a": "bad",
+  "b": "good"
+ },
+ "h01": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "h02": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "h03": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "s01": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "s02": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "c01": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "c02": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "c03": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "b01": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "b02": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "z01": {
+  "kind": "repeat",
+  "of": "h01",
+  "a": "bare",
+  "b": "skill"
+ }
+}

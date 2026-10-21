@@ -1,6 +1,6 @@
 {
   "skill_name": "pearl",
-  "notes": "Run with the skill-creator skill pointed at skills/pearl. This file lives outside the skill on purpose: npx skills add copies the skill directory whole, and the prompts and graded assertions here must not reach the agent under evaluation. `files` are relative to the repository root. Each assertion is a failure seen when models build TUIs without the skill (or with an earlier version). Deterministic ones are checked by tuilint and the harness; the rest by a grader reading renders and the transcript. The init cases run unattended: an answers.md fixture stands in for the user. Add a case whenever the skill misses something in real use: write the miss as an assertion first, make the kit pass it, then edit the skill. An assertion that starts '(pair)' is graded only on a paired run: two cold builds of the case as the assertion describes them, judged side by side; a single run skips it. An assertion that starts '(portable)' checks something the skill assumes of the agent's harness (that it can open an image, that it has a critic subagent or uses the fallback): grade it on a run under each harness the skill is evaluated in (Claude Code, pi), so a miss that only one harness or model shows is caught.",
+  "notes": "Run with the skill-creator skill pointed at skills/pearl. This file lives outside the skill on purpose: npx skills add copies the skill directory whole, and the prompts and graded assertions here must not reach the agent under evaluation. `files` are relative to the repository root. Each assertion is a failure seen when models build TUIs without the skill (or with an earlier version). Deterministic ones are checked by tuilint and the harness; the rest by a grader reading renders and the transcript. The init cases run unattended: an answers.md fixture stands in for the user. Add a case whenever the skill misses something in real use: write the miss as an assertion first, make the kit pass it, then edit the skill. An assertion that starts '(pair)' is graded only on a paired run: two cold builds of the case as the assertion describes them, judged side by side; a single run skips it. An assertion that starts '(portable)' checks something the skill assumes of the agent's harness (that it can open an image, that it has a critic subagent or uses the fallback): grade it on a run under each harness the skill is evaluated in (Claude Code, pi), so a miss that only one harness or model shows is caught. An assertion that starts '(taste)' is graded in a taste round (evals/taste/README.md): the build is shown blind beside a build of the same brief without the skill, and a person grades which is more refined and which is more like the brand.",
   "evals": [
     {
       "id": 0,
@@ -328,6 +328,79 @@
         "the hand-off shows the app's 80×24 wait beside the reference with a fidelity verdict separate from the critic's score; MATCH is claimed only from that side-by-side",
         "passing tests or a SHIP score are not offered as evidence of fidelity",
         "(portable) the reference images were opened by the agent (an image read shows in the transcript), not built from BRIEF.md's words"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "taste-spoofify",
+      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /pearl init, then craft the first slice it plans. go run should start it.",
+      "files": [
+        "evals/fixtures/taste-spoofify/README.md",
+        "evals/fixtures/taste-spoofify/answers.md"
+      ],
+      "expected_output": "TUI.md and the first slice of spoofify, every state rendered, looking like its own brand, and graded in a taste round against a build without the skill.",
+      "assertions": [
+        "(taste) graded blind against a build of the same brief without the skill: at least as refined, and at least as much this brand",
+        "the slice is the two screens answers.md names, every state of both, rendered by the harness at 80×24 and 120×40",
+        "what follows the selection is one region: no row change repaints content both above and below the list",
+        "no real company's name, palette, mark or layout in the theme, the art or the copy",
+        "nothing moves to the music: no bouncing bars or spectrum; motion is a progress clock that stops when paused",
+        "works at the 60×18 side pane, and every band, track and 'original' is made up"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "taste-hairdnd",
+      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /pearl init, then craft the first slice it plans. go run should start it.",
+      "files": [
+        "evals/fixtures/taste-hairdnd/README.md",
+        "evals/fixtures/taste-hairdnd/answers.md"
+      ],
+      "expected_output": "TUI.md and the first slice of hairdnd, every state rendered, looking like its own brand, and graded in a taste round against a build without the skill.",
+      "assertions": [
+        "(taste) graded blind against a build of the same brief without the skill: at least as refined, and at least as much this brand",
+        "the slice is the two screens answers.md names, every state of both, rendered by the harness at 80×24 and 120×40",
+        "what follows the selection is one region: no row change repaints content both above and below the list",
+        "no real company's name, palette, mark or layout in the theme, the art or the copy",
+        "the light role set is designed: a light-terminal render reads as this brand, not as the dark one inverted",
+        "booking's review step is the confirmation and pays with the card on file: no card fields, no dialog after it"
+      ]
+    },
+    {
+      "id": 13,
+      "name": "taste-bisque",
+      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /pearl init, then craft the first slice it plans. go run should start it.",
+      "files": [
+        "evals/fixtures/taste-bisque/README.md",
+        "evals/fixtures/taste-bisque/answers.md"
+      ],
+      "expected_output": "TUI.md and the first slice of bisque, every state rendered, looking like its own brand, and graded in a taste round against a build without the skill.",
+      "assertions": [
+        "(taste) graded blind against a build of the same brief without the skill: at least as refined, and at least as much this brand",
+        "the slice is the two screens answers.md names, every state of both, rendered by the harness at 80×24 and 120×40",
+        "what follows the selection is one region: no row change repaints content both above and below the list",
+        "no real company's name, palette, mark or layout in the theme, the art or the copy",
+        "ember means firing and nothing else; a failure is error red with its own glyph",
+        "retry has no confirm; cancel confirms, because a cancelled run can't be resumed",
+        "the runs list is not a traffic-light board: no column of red and green dots"
+      ]
+    },
+    {
+      "id": 14,
+      "name": "taste-coinslot",
+      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /pearl init, then craft the first slice it plans. go run should start it.",
+      "files": [
+        "evals/fixtures/taste-coinslot/README.md",
+        "evals/fixtures/taste-coinslot/answers.md"
+      ],
+      "expected_output": "TUI.md and the first slice of coinslot, every state rendered, looking like its own brand, and graded in a taste round against a build without the skill.",
+      "assertions": [
+        "(taste) graded blind against a build of the same brief without the skill: at least as refined, and at least as much this brand",
+        "the slice is the two screens answers.md names, every state of both, rendered by the harness at 80×24 and 120×40",
+        "what follows the selection is one region: no row change repaints content both above and below the list",
+        "no real company's name, palette, mark or layout in the theme, the art or the copy",
+        "nothing reads as a casino: no reels, no flashing credits, no gold",
+        "the floor uses a 120×40 terminal's room: more than the 80×24 layout stretched"
       ]
     }
   ]

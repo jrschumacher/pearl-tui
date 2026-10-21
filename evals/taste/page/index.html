@@ -1,0 +1,229 @@
+<title>Pearl Taste Bench</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one pair at a time, the two renders stacked full width (side by side on very wide screens), the two questions under them, a slim progress rail on top. Deliberately dark only: the renders are dark terminals and read truest on a dark surround. */
+:root {
+  --ground: #0f1115;
+  --panel: #171a20;
+  --rule: #262a33;
+  --ink: #e8e9ec;
+  --muted: #a4a9b4;
+  --subtle: #6d7380;
+  --accent: #e8b04a;
+  --accent-ink: #1a1408;
+  --ok: #6cc28a;
+  --sans: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--ground); color: var(--ink); font: 15px/1.5 var(--sans); }
+.wrap { max-width: 1960px; margin: 0 auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 20px; }
+header { display: grid; gap: 10px; }
+.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+h1 { font: 600 13px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.count { font: 400 13px/1 var(--mono); color: var(--subtle); font-variant-numeric: tabular-nums; }
+.rail { display: flex; gap: 4px; }
+.rail button { flex: 1; height: 6px; border: 0; padding: 0; border-radius: 3px; background: var(--rule); cursor: pointer; }
+.rail button.done { background: var(--muted); }
+.rail button.here { background: var(--accent); }
+.rail button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.brief { display: grid; gap: 2px; }
+.brand { font: 600 22px/1.25 var(--sans); text-wrap: balance; margin: 0; }
+.brand .screen { font-weight: 400; color: var(--muted); }
+.words { color: var(--muted); margin: 0; }
+.words b { color: var(--ink); font-weight: 500; }
+.renders { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 1900px) { .renders { grid-template-columns: 1fr 1fr; } }
+figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+figcaption { font: 600 13px/1 var(--mono); color: var(--muted); letter-spacing: .1em; }
+figure img { width: 100%; max-width: 960px; height: auto; display: block; border-radius: 4px; border: 1px solid var(--rule); background: #000; cursor: zoom-in; image-rendering: auto; }
+.qs { display: grid; gap: 18px; max-width: 960px; }
+.q { display: grid; gap: 8px; border: 0; margin: 0; padding: 0; }
+.q legend { font-weight: 600; padding: 0; margin-bottom: 8px; }
+.scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.scale label { display: grid; place-items: center; min-height: 44px; padding: 6px 4px; text-align: center; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); color: var(--muted); font-size: 13px; line-height: 1.2; cursor: pointer; }
+.scale input { position: absolute; opacity: 0; pointer-events: none; }
+.scale input:checked + label { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.scale input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+textarea { width: 100%; min-height: 72px; resize: vertical; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; font: 14px/1.5 var(--sans); }
+textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hint { color: var(--subtle); font-size: 13px; margin: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { min-height: 44px; padding: 0 18px; border-radius: 6px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); font: 500 15px var(--sans); cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.status { font-size: 13px; color: var(--subtle); }
+.status.ok { color: var(--ok); }
+.notice { max-width: 720px; display: grid; gap: 10px; padding: 24px 0; }
+.notice h2 { margin: 0; font: 600 22px/1.3 var(--sans); }
+.notice p { margin: 0; color: var(--muted); }
+dialog { padding: 0; border: 0; background: transparent; max-width: 100vw; max-height: 100vh; }
+dialog::backdrop { background: rgba(0,0,0,.85); }
+dialog img { display: block; max-width: 96vw; max-height: 92vh; width: auto; height: auto; cursor: zoom-out; }
+@media (prefers-reduced-motion: no-preference) { .scale label, .btn { transition: background .12s, border-color .12s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="top"><h1 id="roundTitle">Taste round</h1><span class="count" id="count"></span></div>
+    <div class="rail" id="rail" aria-label="Pairs in this round"></div>
+  </header>
+  <main id="main">
+    <div class="notice"><h2>Loading the round…</h2><p>The renders and your saved grades are on their way.</p></div>
+  </main>
+</div>
+<dialog id="zoom"><img id="zoomImg" alt=""></dialog>
+
+<script>
+(() => {
+  const SCALE = {
+    refined: ["A, clearly", "A, a little", "Same", "B, a little", "B, clearly"],
+    brand: ["A, clearly", "A, a little", "Same", "B, a little", "B, clearly"],
+  };
+  const QUESTION = {
+    refined: "Which is more refined?",
+    brand: "Which feels more like this brand?",
+  };
+  const VALUE = [-2, -1, 0, 1, 2];
+  const main = document.getElementById("main");
+  const rail = document.getElementById("rail");
+  const count = document.getElementById("count");
+  const zoom = document.getElementById("zoom");
+  const zoomImg = document.getElementById("zoomImg");
+  zoom.addEventListener("click", () => zoom.close());
+
+  let round = null, items = [], at = 0, grades = {}, db = null;
+
+  const el = (tag, props = {}, kids = []) => {
+    const n = document.createElement(tag);
+    Object.assign(n, props);
+    for (const k of [].concat(kids)) if (k != null) n.append(k);
+    return n;
+  };
+  const docId = (item) => `r${round.round}-${item.id}`;
+
+  function drawRail() {
+    rail.replaceChildren(...items.map((it, i) => {
+      const b = el("button", { type: "button", title: `Pair ${i + 1}`, ariaLabel: `Pair ${i + 1}` });
+      if (grades[docId(it)]) b.classList.add("done");
+      if (i === at) b.classList.add("here");
+      b.addEventListener("click", () => { at = i; draw(); });
+      return b;
+    }));
+    const done = items.filter((it) => grades[docId(it)]).length;
+    count.textContent = `${Math.min(at + 1, items.length)} of ${items.length} · ${done} graded`;
+  }
+
+  function scale(item, key, saved) {
+    const fs = el("fieldset", { className: "q" }, el("legend", { textContent: QUESTION[key] }));
+    const row = el("div", { className: "scale" });
+    SCALE[key].forEach((label, i) => {
+      const id = `${item.id}-${key}-${i}`;
+      const input = el("input", { type: "radio", name: `${item.id}-${key}`, id, value: String(VALUE[i]) });
+      if (saved && saved[key] === VALUE[i]) input.checked = true;
+      row.append(input, el("label", { htmlFor: id, textContent: label }));
+    });
+    fs.append(row);
+    return fs;
+  }
+
+  function figure(tag, src) {
+    const img = el("img", { src, alt: `Render ${tag}`, loading: "eager", decoding: "async" });
+    img.addEventListener("click", () => { zoomImg.src = src; zoomImg.alt = `Render ${tag}, full size`; zoom.showModal(); });
+    return el("figure", {}, [el("figcaption", { textContent: tag }), img]);
+  }
+
+  function draw() {
+    drawRail();
+    if (at >= items.length) return drawDone();
+    const item = items[at];
+    const saved = grades[docId(item)];
+    const brief = el("div", { className: "brief" }, [
+      el("h2", { className: "brand" }, [item.brand, el("span", { className: "screen", textContent: item.screen ? ` · ${item.screen}` : "" })]),
+      item.words ? el("p", { className: "words" }, [el("b", { textContent: item.words }), item.never ? ` · never ${item.never}` : ""]) : null,
+    ]);
+    const renders = el("div", { className: "renders" }, [figure("A", item.a), figure("B", item.b)]);
+    const qs = el("form", { className: "qs", noValidate: true });
+    for (const key of item.ask) qs.append(scale(item, key, saved));
+    const note = el("textarea", { id: `${item.id}-note`, placeholder: "What made the call: what's off, what's good. Needed when you lean on brand.", value: saved?.note || "" });
+    qs.append(el("div", { className: "q" }, [el("label", { htmlFor: note.id, textContent: "Note", style: "font-weight:600" }), note]));
+    const status = el("span", { className: "status", ariaLive: "polite" });
+    const back = el("button", { type: "button", className: "btn", textContent: "Back", disabled: at === 0 });
+    const next = el("button", { type: "submit", className: "btn primary", textContent: at === items.length - 1 ? "Save and finish" : "Save and next" });
+    back.addEventListener("click", () => { at--; draw(); window.scrollTo(0, 0); });
+    qs.append(el("p", { className: "hint", textContent: "Click a render to see it full size. A and B are shuffled on every pair." }));
+    qs.append(el("div", { className: "actions" }, [back, next, status]));
+    qs.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const g = { round: round.round, item: item.id, note: note.value.trim(), at: new Date().toISOString() };
+      for (const key of item.ask) {
+        const picked = qs.querySelector(`input[name="${item.id}-${key}"]:checked`);
+        if (!picked) { status.className = "status"; status.textContent = `Pick an answer for "${QUESTION[key]}"`; return; }
+        g[key] = Number(picked.value);
+      }
+      // A brand lean with no reason can't be turned into a fix, so ask for one line.
+      if (g.brand && !g.note) {
+        status.className = "status";
+        status.textContent = "One line on what made it feel more like the brand, please.";
+        note.focus();
+        return;
+      }
+      next.disabled = true;
+      status.className = "status"; status.textContent = "Saving…";
+      try {
+        if (!db) throw new Error("no store");
+        await db.doc(`grades/${docId(item)}`).set(g);
+        grades[docId(item)] = g;
+        at++; draw(); window.scrollTo(0, 0);
+      } catch (err) {
+        next.disabled = false;
+        status.textContent = "Couldn't save. Your answers are still here; try again in a moment.";
+      }
+    });
+    main.replaceChildren(brief, renders, qs);
+  }
+
+  function drawDone() {
+    const done = items.filter((it) => grades[docId(it)]).length;
+    const left = items.length - done;
+    main.replaceChildren(el("div", { className: "notice" }, [
+      el("h2", { textContent: left ? `${left} pair${left === 1 ? "" : "s"} still to grade` : "Round graded. Thank you." }),
+      el("p", { textContent: left ? "Pick an empty step on the rail above to finish them." : "Claude reads these grades next, turns your notes into fixes, and the next round lands on this page." }),
+    ]));
+  }
+
+  async function start() {
+    try {
+      const idx = await (await fetch("rounds/index.json", { cache: "no-store" })).json();
+      round = await (await fetch(`rounds/${idx.current}/round.json`, { cache: "no-store" })).json();
+      items = round.items.map((it) => ({ ...it, a: `rounds/${round.round}/${it.a}`, b: `rounds/${round.round}/${it.b}` }));
+      document.getElementById("roundTitle").textContent = round.title;
+    } catch {
+      main.replaceChildren(el("div", { className: "notice" }, [el("h2", { textContent: "No round is ready yet" }), el("p", { textContent: "Claude publishes the renders here when the builds finish." })]));
+      return;
+    }
+    draw();
+    db = await window.claude?.use?.("db") ?? null;
+    if (!db) { main.prepend(el("p", { className: "status", textContent: "Grades can't be saved in this view. Open the page signed in to claude.ai." })); return; }
+    let placed = false; // jump to the first ungraded pair once, on the first server-definitive snapshot
+    db.collection("grades").onSnapshot((snap) => {
+      const next = {};
+      for (const d of snap.docs) next[d.id] = d.data();
+      grades = next;
+      if (!placed && !snap.metadata.fromCache) {
+        placed = true;
+        const i = items.findIndex((it) => !grades[docId(it)]);
+        at = i === -1 ? items.length : i;
+        draw();
+      } else drawRail();
+    });
+  }
+  start();
+})();
+</script>
