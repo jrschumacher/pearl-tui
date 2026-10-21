@@ -313,6 +313,8 @@ func glyphDefaults(g Glyphs) Glyphs {
 	d(&g.ProgressHead, "╸")
 	d(&g.TurnBar, "│")
 	d(&g.TabUnderline, "▔")
+	d(&g.CutLeft, "‹")
+	d(&g.CutRight, "›")
 	if len(g.Spinner) == 0 {
 		g.Spinner = []string{"◜", "◠", "◝", "◞", "◡", "◟"}
 	}
@@ -375,7 +377,7 @@ var asciiTwins = map[string]string{
 	"•": "*", "▪": "*", "…": "...", "■": "[x]", "□": "[ ]", "☑": "[x]", "☐": "[ ]", "»": ">>", "«": "<<",
 	"├─": "|-", "╰─": "`-", "└─": "`-", "├──": "|--", "╰──": "`--", "▶": ">", "◌": ".", "◐": "~", "▲": "^", "△": "o", "◢": "/",
 	"◦": "o", "–": "-", "—": "-", "█": "#", "░": ".",
-	"▏": "'", "↑": "^", "↓": "v", "↑↓": "^v", "←": "<-", "←→": "<>", "╸": "=", "▔": "-",
+	"▏": "'", "↑": "^", "↓": "v", "↑↓": "^v", "←": "<-", "←→": "<>", "╸": "=", "▔": "-", "‹": "<",
 }
 
 // ASCIITwin returns the twin ASCII draws for glyph, and whether the kit's map has one.
@@ -559,6 +561,14 @@ func CheckGlyphs(g Glyphs) error {
 		return fmt.Errorf("glyphs.blurBar %q is the focusBar: a blurred selection in the focus bar's shape is a second focus under NO_COLOR and ASCII; pick ╎ ┆ or ┊ (ASCII :), or leave it unset for ╎", src.BlurBar)
 	case src.BlurBar == "" && (src.FocusBar == blurFallback || out.FocusBar == blurFallbackASCII):
 		return fmt.Errorf("glyphs.focusBar %q is the kit's blurred marker (%s, ASCII %s): set glyphs.blurBar to another glyph, or pick another focus bar", src.FocusBar, blurFallback, blurFallbackASCII)
+	}
+	// a pane's cut-edge marks each stand in the one cell ui.Pane reserves for them: a
+	// wider mark, or a wider twin (» is >> under ASCII), pushes every cut row past the
+	// pane's edge
+	for _, k := range []string{"CutLeft", "CutRight"} {
+		if g, a := sv.FieldByName(k).String(), ov.FieldByName(k).String(); lipgloss.Width(g) != 1 || lipgloss.Width(a) != 1 {
+			return fmt.Errorf("glyphs.%s %q draws %d cells (ASCII %q, %d): a cut-edge mark takes one cell; pick ‹ › (ASCII < >) or another one-cell pair", jsonKey(k), g, lipgloss.Width(g), a, lipgloss.Width(a))
+		}
 	}
 	// the caret sits after typed text; as a bar, or a bar's twin, "> ro|" reads as a
 	// focused block

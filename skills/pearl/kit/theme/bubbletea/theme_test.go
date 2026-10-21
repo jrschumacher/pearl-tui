@@ -192,6 +192,9 @@ func TestCheckGlyphs(t *testing.T) {
 		{`{"glyphs": {"focusBar": "│", "blurBar": "│"}}`, `glyphs.blurBar "│" is the focusBar`, ""},
 		{`{"glyphs": {"focusBar": "▌", "blurBar": "▎"}}`, `glyphs.focusBar "▌" and glyphs.blurBar "▎" both draw as "|"`, ""},
 		{`{"glyphs": {"focusBar": "╎"}}`, `glyphs.focusBar "╎" is the kit's blurred marker`, ""},
+		// a pane's cut-edge marks stand in one cell each (ui.Pane): » is >> under ASCII
+		{`{"glyphs": {"cutRight": "»"}}`, `glyphs.cutRight "»" draws 1 cells (ASCII ">>", 2)`, ""},
+		{`{"glyphs": {"cutLeft": "<<"}}`, `glyphs.cutLeft "<<" draws 2 cells`, ""},
 	} {
 		path := writeTheme(t, c.json)
 		f, err := Load(path)
