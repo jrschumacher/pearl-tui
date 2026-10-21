@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"slices"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -138,7 +139,13 @@ func (p Pane) Visible(row int) bool { return row >= p.Top && row < p.Top+p.h }
 // each cut at Left (styles kept), with the theme's cut marks (CutLeft, CutRight in
 // subtle) on the rows that continue past an edge while the pane is Wide, and the
 // scrollbar while it is Tall. Fit it with these lines first.
-func (p Pane) View(t *theme.Theme, lines []string) []string {
+//
+// fixed are the content rows that stay put when the pane scrolls sideways: a group's
+// header ("unit tests  1m12s" over its lines), drawn from column 0 in the text's
+// column, cut with the theme's ellipsis if it must be, never marked. Scrolled with the
+// rest, a header left a row of nothing but the left mark. Leave fixed rows out of the
+// widest row Fit is given: they never scroll.
+func (p Pane) View(t *theme.Theme, lines []string, fixed ...int) []string {
 	tall, wide, tw := p.Tall(), p.Wide(), p.TextWidth()
 	sb := Scrollbar(t, p.h, p.rows, p.Top)
 	out := make([]string, 0, p.h)
@@ -146,7 +153,10 @@ func (p Pane) View(t *theme.Theme, lines []string) []string {
 		row := ""
 		if i := p.Top + r; i < len(lines) {
 			l := ExpandTabs(lines[i])
-			if wide {
+			switch {
+			case wide && slices.Contains(fixed, i):
+				row = " " + Fit(Trunc(t, l, tw), tw) + " "
+			case wide:
 				lw := lipgloss.Width(l)
 				left, right := " ", " "
 				if p.Left > 0 && lw > 0 {
@@ -156,8 +166,8 @@ func (p Pane) View(t *theme.Theme, lines []string) []string {
 					right = t.S.Subtle.Render(t.G.CutRight)
 				}
 				row = left + Fit(ansi.Cut(l, p.Left, p.Left+tw), tw) + right
-			} else {
-				row = Fit(l, tw)
+			default:
+				row = Fit(Trunc(t, l, tw), tw)
 			}
 		} else {
 			row = Fit("", tw)

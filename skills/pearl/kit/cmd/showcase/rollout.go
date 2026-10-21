@@ -98,10 +98,12 @@ func (m *app) fitPanes() {
 		return
 	}
 	_, view := m.paneRects()
-	items, lines, _ := m.rollout()
+	items, lines, first := m.rollout()
 	widest := 0
-	for _, l := range lines {
-		widest = max(widest, lipgloss.Width(l))
+	for i, l := range lines {
+		if !slices.Contains(first, i) { // a step's header stays put: it never scrolls
+			widest = max(widest, lipgloss.Width(l))
+		}
 	}
 	m.panes[paneSteps].Fit(len(items), 0, view[paneSteps].Dy(), view[paneSteps].Dx())
 	m.panes[paneLog].Fit(len(lines), widest, view[paneLog].Dy(), view[paneLog].Dx())
@@ -224,7 +226,8 @@ func (m *app) rollout() (items []ui.Item, lines []string, first []int) {
 			first = append(first, -1)
 			continue
 		}
-		// a step's lines open on its name, as a CI log groups them; enter scrolls there
+		// a step's lines open on its name, as a CI log groups them; enter scrolls there, and
+		// the name stays put when the log scrolls sideways (a fixed row of ui.Pane.View)
 		first = append(first, len(lines))
 		head := t.S.Bold.Render(s.Name)
 		if it.Right != "" {
@@ -254,7 +257,7 @@ func (m *app) rollout() (items []ui.Item, lines []string, first []int) {
 func (m *app) rolloutScreen(c *ui.Canvas) {
 	t := m.t
 	outer, view := m.paneRects()
-	items, lines, _ := m.rollout()
+	items, lines, first := m.rollout()
 	focused := m.ov == ovNone // under a dialog no pane has the focus
 	done := 0
 	for _, it := range items {
@@ -273,7 +276,7 @@ func (m *app) rolloutScreen(c *ui.Canvas) {
 	}
 	c.Draw(ui.Section(t, "Log", outer[paneLog].Dx(), info), uv.Rect(outer[paneLog].Min.X, outer[paneLog].Min.Y, outer[paneLog].Dx(), 1))
 	gutter := ui.Gutter(t, focused && m.pane == paneLog, t.S.FocusBar)
-	rows := lg.View(t, lines)
+	rows := lg.View(t, lines, first...) // each step's header stays put when the log scrolls sideways
 	for i := range rows {
 		rows[i] = gutter + rows[i]
 	}

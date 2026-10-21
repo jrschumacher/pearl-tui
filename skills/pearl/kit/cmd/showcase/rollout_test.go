@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -144,14 +145,14 @@ func TestShiftWheelScrollsSideways(t *testing.T) {
 	}
 	c := m.render(80, 24)
 	_, view := m.paneRects()
-	cut := 0
+	// every log line is marked at the left edge; a step's header stays put, unmarked
+	_, _, first := m.rollout()
+	ltop := m.panes[paneLog].Top
 	for y := view[paneLog].Min.Y; y < view[paneLog].Max.Y; y++ {
-		if cellText(c, view[paneLog].Min.X, y) == m.t.G.CutLeft {
-			cut++
+		header := slices.Contains(first, ltop+y-view[paneLog].Min.Y)
+		if marked := cellText(c, view[paneLog].Min.X, y) == m.t.G.CutLeft; marked == header {
+			t.Errorf("scrolled sideways, row %d (header %v) has the left mark %v: %q", y, header, marked, rowText(c, y))
 		}
-	}
-	if cut != view[paneLog].Dy() {
-		t.Errorf("scrolled sideways, %d of the log's %d rows carry %s at its left edge", cut, view[paneLog].Dy(), m.t.G.CutLeft)
 	}
 	if head := rowText(c, view[paneLog].Min.Y-1-m.t.Gap()); !strings.Contains(head, fmt.Sprintf("col %d", 2*ui.WheelCols+1)) {
 		t.Errorf("the log's title doesn't say the column: %q", head)
@@ -348,5 +349,38 @@ func TestRolloutLayoutIsDrawn(t *testing.T) {
 				t.Errorf("%s %dx%d: the panes overlap: %v %v", filepath.Base(f), sz[0], sz[1], outer[0], outer[1])
 			}
 		}
+	}
+}
+
+// A step's header row in the log stays readable when the log scrolls sideways: drawn
+// from its first column, with no cut mark. Scrolled with the lines, "unit tests  1m12s"
+// left rows of nothing but the left mark, which read as broken.
+func TestLogHeadersStayPutSideways(t *testing.T) {
+	m, _ := rolloutModel(t, "rollout-scrolled", 80, 24)
+	lg := m.panes[paneLog]
+	if lg.Left == 0 {
+		t.Fatal("rollout-scrolled isn't scrolled sideways")
+	}
+	c := m.render(80, 24)
+	_, view := m.paneRects()
+	_, _, first := m.rollout()
+	seen := 0
+	for i, row := range first {
+		if row < 0 || !lg.Visible(row) {
+			continue
+		}
+		seen++
+		y := view[paneLog].Min.Y + row - lg.Top
+		var b strings.Builder
+		for x := view[paneLog].Min.X; x < view[paneLog].Max.X; x++ {
+			b.WriteString(cellText(c, x, y))
+		}
+		text := b.String()
+		if !strings.HasPrefix(text, " "+rolloutSteps[i].Name) || strings.Contains(text, m.t.G.CutLeft) {
+			t.Errorf("the header of %q at row %d reads %q at left %d: want the step's name from its first column, unmarked", rolloutSteps[i].Name, y, text, lg.Left)
+		}
+	}
+	if seen == 0 {
+		t.Fatal("no step header on screen: the test proves nothing")
 	}
 }

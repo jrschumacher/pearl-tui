@@ -118,7 +118,9 @@ the pattern; interaction.md § Mouse and § Panes That Scroll say why.
   from the selection on purpose. `View` cuts each line at `Left` (styles kept), marks
   the rows that continue past an edge with `t.G.CutLeft` / `CutRight` (`‹` `›`, ASCII
   `<` `>`, one cell each) while the pane is `Wide`, and draws `ui.Scrollbar` while it is
-  `Tall`.
+  `Tall`. A group's header row stays put: pass its index as fixed (`p.View(t, lines,
+  headers...)`) and leave it out of `Fit`'s widest. Scrolled with its lines, a header
+  leaves a row of nothing but `‹`, which reads as broken.
 - **The wheel goes to the pane under the pointer**: `ui.Hit(x, y, rects…)` over the
   panes' rects (titles included), then `p.Wheel(mouse)`. Focus doesn't move. Pass each
   event through one `ui.WheelGate` first (a burst within `ui.WheelBurst`, 15 ms, is one

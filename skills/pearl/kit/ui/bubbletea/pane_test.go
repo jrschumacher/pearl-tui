@@ -220,3 +220,45 @@ func TestWheelGateCoalescesBursts(t *testing.T) {
 		t.Errorf("one notch sent as 3 events scrolled %d rows, want %d", p.Top, WheelRows)
 	}
 }
+
+// A fixed row (a group's header over its lines) stays put when the pane scrolls
+// sideways: drawn from column 0 in the text's column, never cut at Left, never marked.
+// Scrolled with the rest, "unit tests  1m12s" left a row of nothing but the left mark,
+// which read as a broken row. Every theme, unicode and ASCII.
+func TestPaneFixedRowsStayPut(t *testing.T) {
+	for _, f := range testThemes(t) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, ascii := range []bool{false, true} {
+			th := theme.Resolve(tf, true, ascii)
+			long := th.S.Soft.Render(strings.Repeat("upstream payments timed out ", 5))
+			head := th.S.Bold.Render("unit tests") + th.S.Subtle.Render("  1m12s")
+			wide := th.S.Bold.Render(strings.Repeat("integration tests ", 4)) // wider than the pane
+			lines := []string{head, long, long, wide, long}
+			p := Pane{Sel: -1}
+			p.Fit(len(lines), lipgloss.Width(long), 5, 30)
+			p.Scroll(0, 24)
+			if p.Left == 0 {
+				t.Fatal("the pane didn't scroll sideways: the test proves nothing")
+			}
+			rows := p.View(th, lines, 0, 3)
+			plain := func(i int) string { return ansi.Strip(rows[i]) }
+			if r := plain(0); !strings.HasPrefix(r, " unit tests  1m12s") || strings.Contains(r, th.G.CutLeft) || strings.Contains(r, th.G.CutRight) {
+				t.Errorf("%s ascii=%v: the header scrolled or is marked: %q", tf.Name, ascii, r)
+			}
+			if r := plain(3); !strings.HasPrefix(r, " integration tests") || !strings.Contains(r, th.G.Ellipsis) || strings.Contains(r, th.G.CutRight) {
+				t.Errorf("%s ascii=%v: a fixed row wider than the pane must be cut with the ellipsis, unmarked: %q", tf.Name, ascii, r)
+			}
+			if r := plain(1); !strings.HasPrefix(r, th.G.CutLeft) {
+				t.Errorf("%s ascii=%v: the rows around the header no longer scroll: %q", tf.Name, ascii, r)
+			}
+			for i, r := range rows {
+				if w := lipgloss.Width(r); w != 30 {
+					t.Errorf("%s ascii=%v: row %d is %d cells, want 30", tf.Name, ascii, i, w)
+				}
+			}
+		}
+	}
+}
