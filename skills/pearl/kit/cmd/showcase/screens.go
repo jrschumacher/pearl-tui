@@ -37,6 +37,7 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		c.Draw(ui.TooSmall(t, w, h, minW, minH, m.footerBindings()), c.Bounds())
 		return c
 	}
+	m.fitPanes() // before the footer: its keys (←→ while a pane is wide) read the panes
 	if m.screen == scrSplash {
 		m.splash(c)
 		return c
@@ -63,7 +64,7 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		// the wizard's step row stands where the tabs stand
 		c.Draw(m.setup.steps(t).Row(t, w-2*g), ui.Rect(g, y, w-2*g, 1))
 		y += 2
-	} else if m.screen != scrDeploy && m.screen != scrLadder {
+	} else if m.screen != scrDeploy && m.screen != scrLadder && m.screen != scrRollout {
 		counts := []string{t.S.Subtle.Render(itoa(len(m.svcs))), "", "", ""}
 		if m.declared {
 			counts[2] = t.S.Warn.Render("1")
@@ -88,6 +89,8 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		m.deployForm(c, body)
 	case scrLadder:
 		m.ladder(c, body)
+	case scrRollout:
+		m.rolloutScreen(c)
 	case scrSetup:
 		m.setupView(c, body)
 	}
@@ -698,7 +701,17 @@ func (m *app) helpBody() []string {
 		h := a.b.Help()
 		body = append(body, t.S.Key.Render(ui.Fit(h.Key, 12))+t.S.Soft.Render(h.Desc))
 	}
-	return append(body, t.S.Key.Render(ui.Fit("ctrl+c", 12))+t.S.Soft.Render("quit from anywhere"))
+	body = append(body, t.S.Key.Render(ui.Fit("ctrl+c", 12))+t.S.Soft.Render("quit from anywhere"))
+	// help names the mouse once, after the keys, where the page takes it (the footer
+	// shows keys only); a dialog takes no mouse, so help over one has no Mouse section
+	if m.helpFrom == ovNone && m.mouseOn() {
+		body = append(body, "", t.S.Title.Render(t.Case("Mouse")))
+		for _, g := range [][2]string{{"click", "focus a pane, select a row"}, {"wheel", "scroll the pane under the pointer"},
+			{"shift+wheel", "scroll it sideways"}} {
+			body = append(body, t.S.Key.Render(ui.Fit(g[0], 12))+t.S.Soft.Render(g[1]))
+		}
+	}
+	return body
 }
 
 // helpTitle names the screen the help is for.
@@ -711,6 +724,8 @@ func (m *app) helpTitle() string {
 		name = "Legend"
 	case scrSetup:
 		name = "Setup"
+	case scrRollout:
+		name = "Rollout"
 	}
 	switch m.helpFrom {
 	case ovPalette:

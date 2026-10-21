@@ -90,7 +90,7 @@ jobs:
       - name: the kept harness tests pass with the showcase's screens deleted
         run: |
           cd "$RUNNER_TEMP/brandapp/cmd/brandapp"
-          rm data.go screens_test.go setup.go setup_test.go app.go screens.go main.go
+          rm data.go screens_test.go setup.go setup_test.go rollout.go rollout_test.go app.go screens.go main.go
           cp "$GITHUB_WORKSPACE"/.github/kit-stub/*.go .
           ls
           cd ../..

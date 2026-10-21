@@ -60,6 +60,13 @@ func (m *model) View() tea.View {                            // returns tea.View
   `shift+enter` can be told apart from `enter`. Set `t.KeyDisambiguation` from it after
   every `Resolve` (the showcase's `resolve` does), and `ui.Help` draws a
   `shift+enter/ctrl+j` help key as the alternative that works.
+- Mouse is per frame: set `v.MouseMode = tea.MouseModeCellMotion` in `View` only for the
+  states that take it, so the terminal keeps text selection elsewhere. Clicks arrive as
+  `tea.MouseClickMsg`, the wheel as `tea.MouseWheelMsg`; `msg.Mouse()` gives `X`, `Y`,
+  `Button` (`tea.MouseLeft`, `MouseWheelUp`/`Down`, and `MouseWheelLeft`/`Right` for a
+  trackpad's side scroll) and `Mod` (`tea.ModShift` for shift+wheel). The kit routes them
+  with `ui.Hit`, `ui.WheelGate` and `ui.Pane` (components.md § Panes That Scroll; the
+  showcase's `rollout.go`).
 
 ### Lip Gloss v2
 

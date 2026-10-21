@@ -102,6 +102,39 @@ names and keys in fg, punctuation and values in muted (or the reverse, chosen on
 never one flat level and never a rainbow of token colours. Two levels let the eye find
 the keys; hue stays for state (color.md).
 
+## Panes That Scroll — `ui.Pane`, `ui.Hit`, `ui.WheelGate`
+
+Two or more regions side by side that each scroll (a step list beside its log, a file
+tree beside a diff). The showcase's `rollout` state (enter on a deploy, `rollout.go`) is
+the pattern; interaction.md § Mouse and § Panes That Scroll say why.
+
+- **One `ui.Pane` per pane in the root model**, holding `Top`, `Left` and `Sel` (`-1`
+  for a pane with no selection). Call `Fit(rows, widest, h, w)` from the
+  `WindowSizeMsg` handler and before drawing the footer, from a layout function that
+  computes the panes' rects from the size alone: the footer's `←→` and every key read
+  the pane as it will be drawn. `Fit` clamps the offsets; a resize never resets them.
+- **Draw a list pane with `ui.List(t, items, p.Sel, p.Top, …)`, a text pane with
+  `p.View(t, lines)`.** Never call `Follow` on render: the wheel moves the view away
+  from the selection on purpose. `View` cuts each line at `Left` (styles kept), marks
+  the rows that continue past an edge with `t.G.CutLeft` / `CutRight` (`‹` `›`, ASCII
+  `<` `>`, one cell each) while the pane is `Wide`, and draws `ui.Scrollbar` while it is
+  `Tall`.
+- **The wheel goes to the pane under the pointer**: `ui.Hit(x, y, rects…)` over the
+  panes' rects (titles included), then `p.Wheel(mouse)`. Focus doesn't move. Pass each
+  event through one `ui.WheelGate` first (a burst within `ui.WheelBurst`, 15 ms, is one
+  notch of `ui.WheelRows`), on a clock the tests can drive.
+- **A left click focuses the pane** and on a list selects the row clicked
+  (`p.Top + y - view.Min.Y`). Under a dialog the page takes no mouse.
+- **Keys act on the focused pane**: `↑↓` call `p.Move(d)` (the view comes back to the
+  selection as it moves), `tab` / `shift+tab` move focus, and `←→` (`ui.KeyCols`) join
+  the action table only while `p.Wide()`.
+- **Focus shows on the pane, not its title**: a list pane by its selection (`focused`
+  to `ui.List`), a text pane by `ui.Gutter` down its left edge. Both drop under a
+  dialog, as every page focus does.
+- **Mouse on only where a pane scrolls** (`View.MouseMode = tea.MouseModeCellMotion`
+  for that state), and the full help ends with a Mouse section there: click, wheel,
+  shift+wheel. The footer shows keys only.
+
 ## Dialog / Command Palette — `ui.Dialog` + `Canvas.Overlay`
 
 - The title row per `expressions.dialogTitle` (the motif rule in a gradient, plain, or a

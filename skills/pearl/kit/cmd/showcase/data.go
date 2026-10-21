@@ -111,3 +111,57 @@ var initialEvents = []event{
 	{"21d ago", "ledger", "prod", "v7.1.0", "@jun", "ok"},
 	{"34d ago", "recommendations", "prod", "v4.4.4", "@ci", "idle"},
 }
+
+// rstep is one step of a rollout (the rollout screen): its name, how long it took,
+// and the lines it logged, each "level message" with {svc}, {ver} and {prev} filled in
+// from the deploy. Log lines run long, as real ones do: the log pane scrolls sideways.
+type rstep struct {
+	Name, Took, At string // At: the step's start, the clock its log lines count from
+	Log            []string
+}
+
+var rolloutSteps = []rstep{
+	{"fetch source", "2s", "14:00:00", []string{
+		"info git fetch --depth=50 origin refs/heads/main && git checkout --detach 9f3c2e1d7a4b (tag {ver}, signed by mara@payments)"}},
+	{"restore cache", "4s", "14:00:02", []string{
+		"info cache hit: go-build-{svc}-linux-amd64-5e1f0a 1.4 GiB restored from s3://ci-cache/go-build/{svc}/5e1f0a.tar.zst in 3.8s"}},
+	{"resolve config", "1s", "14:00:06", []string{
+		"info loaded config/prod.yaml + config/prod.us-east-1.yaml: 41 keys, 3 secrets from vault:kv/{svc}",
+		"info PAYMENTS_TIMEOUT=2000 (from config/prod.yaml:18), PAYMENTS_RETRIES=2, CHECKOUT_MAX_INFLIGHT=512"}},
+	{"go vet", "9s", "14:00:07", []string{"info go vet ./... : no issues in 214 packages"}},
+	{"go build", "38s", "14:00:16", []string{
+		"info go build -trimpath -ldflags=\"-s -w -X main.version={ver} -X main.commit=9f3c2e1d\" -o bin/{svc} ./cmd/{svc}",
+		"info bin/{svc}: 31.2 MiB, go1.26.7 linux/amd64, buildid 7c1e9a0f4d2b"}},
+	{"unit tests", "1m12s", "14:00:54", []string{
+		"info ok   {svc}/internal/config     0.087s  coverage: 91.2% of statements",
+		"info ok   {svc}/internal/payments   0.412s  coverage: 81.4% of statements",
+		"info ok   {svc}/internal/cart       1.930s  coverage: 77.0% of statements",
+		"info 1,284 tests passed in 214 packages, 0 failed, 12 skipped (integration build tag not set)"}},
+	{"integration tests", "2m31s", "14:02:06", []string{
+		"info started postgres:16.4, redis:7.2 and a payments stub on 127.0.0.1:18080 (docker compose -f test/compose.yaml)",
+		"warn payments stub answered in 1.8s on TestCheckoutSlowProvider (budget 2s): the stub reads PAYMENTS_TIMEOUT in ms",
+		"info 86 tests passed, 0 failed"}},
+	{"lint", "21s", "14:04:37", []string{"info golangci-lint run --timeout 5m ./... : 0 issues (34 linters)"}},
+	{"build image", "54s", "14:04:58", []string{
+		"info docker buildx build --platform linux/amd64,linux/arm64 -t registry.internal/{svc}:{ver} .",
+		"info image registry.internal/{svc}:{ver} 48.6 MiB, 7 layers, base distroless/static:nonroot"}},
+	{"sbom", "6s", "14:05:52", []string{"info syft: 142 packages, 0 with known critical CVEs (grype db 2026-10-21)"}},
+	{"push image", "9s", "14:05:58", []string{"info pushed registry.internal/{svc}:{ver} sha256:4be1c9f07d3a82e6b1f0c55e9a7d2c41"}},
+	{"sign image", "3s", "14:06:07", []string{"info cosign sign --key kms://payments-release registry.internal/{svc}@sha256:4be1c9f0"}},
+	{"migrate schema", "6s", "14:06:10", []string{
+		"info migrate up: 0042_add_checkout_attempts_idx.sql applied to payments-db-prod in 5.1s (online, no lock held)"}},
+	{"canary 1 pod", "2m0s", "14:06:16", []string{
+		"info {svc}-7d9f8c6b5-x2kqp ready on {ver}; 10% of traffic for 2m against {prev} on 2 pods",
+		"warn canary p99 412ms vs baseline 128ms on POST /v1/checkout (threshold 3x not crossed: 3.2x needs 5 min)"}},
+	{"roll pod 2/3", "41s", "14:08:16", []string{
+		"info {svc}-7d9f8c6b5-mh7rd ready on {ver}; drained {svc}-5c4b7f9d8-q8wzn ({prev}) after 30s grace"}},
+	{"roll pod 3/3", "39s", "14:08:57", []string{
+		"info {svc}-7d9f8c6b5-zt5vn ready on {ver}; drained {svc}-5c4b7f9d8-l2cfj ({prev}); 3/3 pods on {ver}"}},
+	{"watch error rate", "5m0s", "14:09:36", []string{
+		"info watching 5xx rate on {svc} for 5m; auto-rollback above 1.00% is off for prod by policy deploy/policies/prod.yaml:14",
+		"warn 5xx rate 0.62% over the last minute (POST /v1/checkout 502, upstream: payments, after 30s)",
+		"error 5xx rate 4.81% over the last minute, above 1.00%: 502 POST /v1/checkout, upstream payments timed out after 2000s (PAYMENTS_TIMEOUT read as seconds)",
+		"error rollout held: {svc} {ver} failing; roll back to {prev} with r on Services, or ship a fix"}},
+	{"promote", "", "14:14:36", nil},
+	{"notify #deploys", "", "14:14:36", nil},
+}

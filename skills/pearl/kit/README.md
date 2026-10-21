@@ -33,6 +33,9 @@ ui/bubbletea/   canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                 list.go     List (selection styles, fuzzy underline, scrollbar), Table (borderless;
                             TableWith{NoRule} without the rule under its header),
                             Follow (scroll-into-view), Fuzzy (subsequence match with indices)
+                pane.go     Pane (a region that scrolls both ways: its own offsets and selection,
+                            Fit, Wheel, Move, Scroll, View with the cut-edge marks), Hit (the pane
+                            under a mouse cell), WheelGate (a wheel burst is one notch)
                 ladder.go   Mark (a status rung in its role), Rungs (the theme's ladder, or the kit's),
                             Ladder (the legend the ladder state draws)
                 dialog.go   DialogTitle, Dialog (on bgPanel, at most h rows), DialogScrolled, DialogStatus (a
@@ -77,6 +80,11 @@ or meaning the kit can't draw (`theme.CheckLadder`).
   clock with a generation number; async work finishes by message; selection by identity.
 - `screens.go`: `render(w, h)` draws every region into rectangles; header and footer
   first; overlays last; the ASCII pass at the end.
+- `rollout.go`: two panes that scroll (enter on a deploy): a `ui.Pane` per pane in the
+  root model, fitted from the layout on every resize and draw (`fitPanes`), the wheel
+  routed to the pane under the pointer (`ui.Hit`) through a `ui.WheelGate`, a click that
+  focuses, `tab` between panes, `←→` offered only while the focused pane is wide, mouse
+  on for this screen alone (`View.MouseMode`), and help's Mouse section.
 - `setup.go`: the first-run wizard on Huh (`-first-run`): one themed Huh form per input
   step, kit screens for review and sign-in, a step row that counts past the review, a
   summary that marks defaults, and keys only reaching Huh through the action table.
@@ -102,7 +110,11 @@ or meaning the kit can't draw (`theme.CheckLadder`).
   deploys finish, rollbacks don't repeat, layout holds under focus, breakpoints, tab
   stops in a tool body, Silence's undo toast, the page's grace window (its send a
   command that runs once, never once undone, its clock stopped under help), the state's
-  key winning a clash with a toast's, the filter narrows the list and esc clears it) and `setup_test.go` (the wizard's review defaults to Continue,
+  key winning a clash with a toast's, the filter narrows the list and esc clears it),
+  `rollout_test.go` (wheel, click, keys and resizes as Update receives them: the wheel
+  scrolls the pane under the pointer and never the selection, shift+wheel goes
+  sideways, `←→` only while wide, a resize clamps, a burst is one notch, help's Mouse
+  section) and `setup_test.go` (the wizard's review defaults to Continue,
   button order, the step count past review, esc keeps input, no Huh default colour in
   any frame, the accessible transcript).
 
@@ -165,6 +177,10 @@ Once your screens are in, delete what is the showcase's alone:
   palette command raises a toast with a key, its key checked as
   `TestShowcaseToastKeysAreHandled` does: the kept `TestToastKeysAreHandled` reaches
   the toasts your keys raise, not your commands').
+- `rollout.go` and `rollout_test.go`, the panes screen, with its wiring (`scrRollout`,
+  `roll`, `pane`, `panes`, `wheel`, `now`, the Deploys `enter`, the `rollout` states and
+  help's Mouse section). Where your screens have panes that scroll, build them on its
+  pattern and rewrite its tests on your states.
 - `setup.go` and `setup_test.go`, the first-run wizard, with its wiring: each `scrSetup`,
   `m.setup` and `firstRun` branch in `app.go` and `screens.go`, and in `main.go` the
   `setup-*` states, `setupState`, `-first-run` and the `runAccessibleSetup` call.

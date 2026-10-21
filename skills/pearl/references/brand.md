@@ -145,6 +145,7 @@ read it too.
     "up": "↑", "down": "↓",      // one arrow key in a footer ("↓ select"); optional, these defaults
     "progressFill": "━", "progressEmpty": "╌", "progressHead": "╸",
     "turnBar": "│", "tabUnderline": "▔",                  // a blurred chat turn; the active tab
+    "cutLeft": "‹", "cutRight": "›",  // a pane scrolled sideways: rows cut at its edges (one cell each)
     "marks": { "stop": "•", "stopAhead": "◦" },  // the product's own marks, t.ProductMark("stop"): a signature with no kit slot
     "ascii": { "◭": "~", "•": "#", "◦": "_" }  // twins the kit's map lacks or draws as a state (• ◦ are * o, current and todo)
   },

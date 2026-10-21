@@ -35,7 +35,7 @@ import (
 
 // states are every screen the app can show. A state you can't render here is
 // a state nobody reviewed.
-var states = []string{"services", "services-toast", "services-undo", "services-filter", "services-filtered", "deploys", "palette", "confirm", "help", "deploy", "deploy-review",
+var states = []string{"services", "services-toast", "services-undo", "services-filter", "services-filtered", "deploys", "rollout", "rollout-scrolled", "palette", "confirm", "help", "deploy", "deploy-review",
 	"incidents", "incidents-grace", "ladder", "assistant", "assistant-busy", "splash", "toosmall",
 	"setup-target", "setup-namespace", "setup-invalid", "setup-auth", "setup-alerts", "setup-review", "setup-signin", "setup-failed", "setup-done"}
 
@@ -56,7 +56,7 @@ var scrolls = []string{"help"}
 // that draws a selection, a focused field or a caret. (Not the setup wizard: a Huh
 // form has no way to draw its focused field blurred short of Field.Blur, which
 // validates it.)
-var overlayPages = []string{"services", "deploys", "assistant", "deploy", "deploy-review", "services-toast", "services-undo",
+var overlayPages = []string{"services", "deploys", "rollout", "rollout-scrolled", "assistant", "deploy", "deploy-review", "services-toast", "services-undo",
 	"services-filter", "services-filtered"}
 
 // unjudgedPages are the states that draw a focus mark that an overlay can't blur, kept
@@ -115,6 +115,16 @@ func (m *app) setState(s string) {
 	case "deploys":
 		m.screen = scrDeploys
 		m.sel = m.svcIndex(m.events[m.depSel].Svc)
+	case "rollout", "rollout-scrolled": // the failed deploy's rollout, opened from its row
+		m.screen = scrDeploys
+		for _, k := range []rune{tea.KeyDown, tea.KeyEnter} {
+			m.key(tea.KeyPressMsg{Code: k})
+		}
+		if s == "rollout-scrolled" { // the log focused, read down and to the right
+			for _, k := range []rune{tea.KeyTab, tea.KeyPgDown, tea.KeyRight, tea.KeyRight, tea.KeyRight, tea.KeyRight, tea.KeyRight, tea.KeyRight} {
+				m.key(tea.KeyPressMsg{Code: k})
+			}
+		}
 	case "palette", "confirm", "help":
 		m.openOverlay(s)
 	case "deploy":

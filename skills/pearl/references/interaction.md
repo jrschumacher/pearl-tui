@@ -1,8 +1,8 @@
 # Interaction and copy: keys, focus, states, words
 
-*Bubble Tea: the `tea.*`, Bubbles and Huh names in § Keys Are A Contract, § Async And Long
-Work, § Terminal Citizenship and § Screen Readers are Bubble Tea v2's; the rules hold for
-any framework.*
+*Bubble Tea: the `tea.*`, `ui.*`, Bubbles and Huh names in § Keys Are A Contract,
+§ Mouse, § Panes That Scroll, § Async And Long Work, § Terminal Citizenship and § Screen
+Readers are Bubble Tea v2's and the kit's; the rules hold for any framework.*
 
 ## Keys Are A Contract
 
@@ -84,6 +84,9 @@ The wheel and the keys answer to different things, because a desktop taught both
 - **Help names the mouse once.** The footer shows keys only. The full help screen ends
   with a short Mouse section: click focuses, the wheel scrolls the pane under the
   pointer, shift+wheel scrolls sideways.
+- **Copy the kit's panes rather than improvising them.** The showcase's `rollout` state
+  does all of the above with one `ui.Pane` per pane, `ui.Hit` and `ui.WheelGate`, and
+  its tests hold each rule (components.md § Panes That Scroll).
 
 ## Async And Long Work
 

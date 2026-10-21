@@ -32,7 +32,8 @@ const (
 	scrDeploy // the deploy form (from services)
 	scrLadder // the status legend: every mark in its role (from the palette)
 	scrSplash
-	scrSetup // the first-run wizard (setup.go)
+	scrSetup   // the first-run wizard (setup.go)
+	scrRollout // a deploy's steps beside its log: two panes that scroll (rollout.go)
 )
 
 var tabNames = []string{"Services", "Deploys", "Incidents", "Assistant"}
@@ -113,6 +114,14 @@ type app struct {
 	// first-run setup (setup.go)
 	setup    *setupFlow
 	firstRun bool
+	// rollout (rollout.go): the deploy shown, an index into events that logEvent keeps
+	// on its event; the focused pane; each pane's offsets and selection; and the wheel's
+	// burst gate, on a clock tests drive
+	roll  int
+	pane  int
+	panes [2]ui.Pane
+	wheel ui.WheelGate
+	now   func() time.Time
 }
 
 // tickState is the one frame clock. gen kills stale tick chains: a key press can't
@@ -166,6 +175,7 @@ func newApp(f theme.File, dark, ascii bool) *app {
 	m.silenced = map[string]bool{}
 	m.refresh.rate = 2 // every 5 s
 	m.setup = newSetup()
+	m.now = time.Now
 	return m
 }
 
@@ -256,6 +266,9 @@ func (m *app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.w, m.h = msg.Width, msg.Height
+		m.fitPanes() // a resize clamps each pane's offsets, never resets them
+	case tea.MouseClickMsg, tea.MouseWheelMsg:
+		m.mouse(msg.(tea.MouseMsg))
 	case tea.ColorProfileMsg:
 		// 16 colours or NO_COLOR can merge a background step into the page: the
 		// theme adds edges where that happens, so it must know the profile
@@ -592,6 +605,8 @@ func (m *app) stateActions() []action {
 		return []action{quit}
 	case scrLadder:
 		return []action{esc("back", func(m *app) { m.screen = scrServices }), palette, quit, help}
+	case scrRollout:
+		return m.rolloutActions(help, palette, quit, esc("back", func(m *app) { m.screen = scrDeploys }))
 	case scrDeploy:
 		enterDesc := "next field" // enter in a field never ships to prod
 		if m.focus == 4 {
@@ -718,7 +733,8 @@ func (m *app) stateActions() []action {
 		return nil
 	}}
 	if m.screen == scrDeploys {
-		return []action{move, palette, tabs, tabsBack, quit, help}
+		open := action{bind([]string{"enter"}, "enter", "open"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.openRollout(); return nil }}
+		return []action{move, open, palette, tabs, tabsBack, quit, help}
 	}
 	// the filter: / types it, esc clears it, offered only while one is typed or in force
 	clearFilter := esc("clear filter", func(m *app) { m.filter, m.filtering = "", false })
@@ -805,6 +821,7 @@ func (m *app) svcIndex(name string) int {
 func (m *app) logEvent(e event, what string) {
 	m.events = append([]event{e}, m.events...)
 	m.depSel = 0
+	m.roll++ // the rollout shown is the same event, one row down
 	m.feed = append([][4]string{{"now", what, e.By, e.State}}, m.feed...)
 }
 
@@ -947,6 +964,9 @@ func (m *app) View() tea.View {
 	}
 	if m.busy {
 		v.ProgressBar = tea.NewProgressBar(tea.ProgressBarIndeterminate, 0)
+	}
+	if m.mouseOn() { // only where a pane scrolls: elsewhere the terminal keeps text selection
+		v.MouseMode = tea.MouseModeCellMotion
 	}
 	return v
 }
