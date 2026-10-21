@@ -1,0 +1,43 @@
+{
+ "w01": {
+  "kind": "cold-vs-warm",
+  "a": "warm",
+  "b": "cold"
+ },
+ "w02": {
+  "kind": "cold-vs-warm",
+  "a": "warm",
+  "b": "cold"
+ },
+ "w03": {
+  "kind": "cold-vs-warm",
+  "a": "warm",
+  "b": "cold"
+ },
+ "w04": {
+  "kind": "cold-vs-warm",
+  "a": "cold",
+  "b": "warm"
+ },
+ "w05": {
+  "kind": "cold-vs-warm",
+  "a": "cold",
+  "b": "warm"
+ },
+ "w06": {
+  "kind": "cold-vs-warm",
+  "a": "cold",
+  "b": "warm"
+ },
+ "w07": {
+  "kind": "cold-vs-warm",
+  "a": "cold",
+  "b": "warm"
+ },
+ "r01": {
+  "kind": "repeat",
+  "of": "w04",
+  "a": "warm",
+  "b": "cold"
+ }
+}

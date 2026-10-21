@@ -1,0 +1,110 @@
+{
+ "round": 5,
+ "items": [
+  {
+   "id": "w01",
+   "brand": "lanternfish",
+   "screen": "signin, 80x24",
+   "words": "lanternfish init: the first-run setup of an observability agent, once per machine",
+   "never": "",
+   "a": "w01-a.png",
+   "b": "w01-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "w02",
+   "brand": "lanternfish",
+   "screen": "sso, 80x24",
+   "words": "lanternfish init: the first-run setup of an observability agent, once per machine",
+   "never": "",
+   "a": "w02-a.png",
+   "b": "w02-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "w03",
+   "brand": "lanternfish",
+   "screen": "collect, 120x40",
+   "words": "lanternfish init: the first-run setup of an observability agent, once per machine",
+   "never": "",
+   "a": "w03-a.png",
+   "b": "w03-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "w04",
+   "brand": "lanternfish",
+   "screen": "review, 80x24",
+   "words": "lanternfish init: the first-run setup of an observability agent, once per machine",
+   "never": "",
+   "a": "w04-a.png",
+   "b": "w04-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "w05",
+   "brand": "lanternfish",
+   "screen": "connecting, 80x24",
+   "words": "lanternfish init: the first-run setup of an observability agent, once per machine",
+   "never": "",
+   "a": "w05-a.png",
+   "b": "w05-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "w06",
+   "brand": "lanternfish",
+   "screen": "failed, 80x24",
+   "words": "lanternfish init: the first-run setup of an observability agent, once per machine",
+   "never": "",
+   "a": "w06-a.png",
+   "b": "w06-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "w07",
+   "brand": "lanternfish",
+   "screen": "done, 120x40",
+   "words": "lanternfish init: the first-run setup of an observability agent, once per machine",
+   "never": "",
+   "a": "w07-a.png",
+   "b": "w07-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "r01",
+   "brand": "lanternfish",
+   "screen": "review, 80x24",
+   "words": "lanternfish init: the first-run setup of an observability agent, once per machine",
+   "never": "",
+   "a": "r01-a.png",
+   "b": "r01-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  }
+ ],
+ "title": "Work orders: cold session vs the one that had the interview"
+}
