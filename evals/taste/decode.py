@@ -4,10 +4,11 @@
 Usage: python3 decode.py ROUND_DIR
 
 Reads ROUND_DIR/key.json and ROUND_DIR/grades.json ({item: {refined, brand}}, read back
-from the page's store). A grade runs from -2 (A, clearly) to +2 (B, clearly); this turns
-each into a score toward the skill's build (+ favours the skill), checks the anchor
-(+ favours the known-good screen) and each repeat against its original, and prints the
-skill's wins, losses and ties per question.
+from the page's store). A pair's grade runs from -2 (A, clearly) to +2 (B, clearly);
+this turns each into a score toward the skill's build (+ favours the skill), checks the
+anchor (+ favours the known-good screen) and each repeat against its original, and
+prints the skill's wins, losses and ties per question, and each pick item's choices by
+name.
 """
 
 import json
@@ -30,7 +31,12 @@ def main(argv):
         if g is None:
             print(f"{item:5} not graded")
             continue
-        if k["kind"] == "anchor":
+        if k["kind"] == "pick":
+            picks = {q: k["options"].get(g.get(q), "-") for q in ("brand", "refined")}
+            for q, name in picks.items():
+                totals.setdefault("pick " + q, []).append(name)
+            print(f"{item:5} pick: brand {picks['brand']}, refined {picks['refined']}")
+        elif k["kind"] == "anchor":
             print(f"{item:5} anchor: {toward(key, item, 'good', g['refined']):+d} toward the known-good screen")
         elif k["kind"] == "repeat":
             first = grades.get(k["of"], {})
@@ -47,6 +53,9 @@ def main(argv):
                     row.append(f"{q} {v:+d}")
             print(f"{item:5} " + "  ".join(row))
     for q, vs in totals.items():
+        if q.startswith("pick "):
+            print(f"{q}: " + ", ".join(f"{n} {vs.count(n)}" for n in sorted(set(vs), key=vs.count, reverse=True)))
+            continue
         w, l = sum(v > 0 for v in vs), sum(v < 0 for v in vs)
         print(f"{q}: the skill wins {w}, loses {l}, ties {len(vs) - w - l}; mean {sum(vs) / len(vs):+.1f}")
 

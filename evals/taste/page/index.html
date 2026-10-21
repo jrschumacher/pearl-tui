@@ -39,6 +39,8 @@ h1 { font: 600 13px/1 var(--mono); letter-spacing: .14em; text-transform: upperc
 .words b { color: var(--ink); font-weight: 500; }
 .renders { display: grid; gap: 16px; grid-template-columns: 1fr; }
 @media (min-width: 1900px) { .renders { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1500px) { .renders.grid { grid-template-columns: 1fr 1fr; } }
+.scale.pick { grid-template-columns: repeat(var(--n), 1fr); }
 figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
 figcaption { font: 600 13px/1 var(--mono); color: var(--muted); letter-spacing: .1em; }
 figure img { width: 100%; max-width: 960px; height: auto; display: block; border-radius: 4px; border: 1px solid var(--rule); background: #000; cursor: zoom-in; image-rendering: auto; }
@@ -91,6 +93,11 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; width: auto; hei
     brand: "Which feels more like this brand?",
   };
   const VALUE = [-2, -1, 0, 1, 2];
+  // A pick item shows several renders of one brand and asks for the best on each question.
+  const PICK = {
+    brand: "Which fits this brand best?",
+    refined: "Which is most refined?",
+  };
   const main = document.getElementById("main");
   const rail = document.getElementById("rail");
   const count = document.getElementById("count");
@@ -110,7 +117,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; width: auto; hei
 
   function drawRail() {
     rail.replaceChildren(...items.map((it, i) => {
-      const b = el("button", { type: "button", title: `Pair ${i + 1}`, ariaLabel: `Pair ${i + 1}` });
+      const b = el("button", { type: "button", title: `Item ${i + 1}`, ariaLabel: `Item ${i + 1}` });
       if (grades[docId(it)]) b.classList.add("done");
       if (i === at) b.classList.add("here");
       b.addEventListener("click", () => { at = i; draw(); });
@@ -133,6 +140,19 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; width: auto; hei
     return fs;
   }
 
+  function pick(item, key, saved) {
+    const fs = el("fieldset", { className: "q" }, el("legend", { textContent: PICK[key] }));
+    const row = el("div", { className: "scale pick", style: `--n:${item.options.length}` });
+    for (const o of item.options) {
+      const id = `${item.id}-${key}-${o.tag}`;
+      const input = el("input", { type: "radio", name: `${item.id}-${key}`, id, value: o.tag });
+      if (saved && saved[key] === o.tag) input.checked = true;
+      row.append(input, el("label", { htmlFor: id, textContent: o.tag }));
+    }
+    fs.append(row);
+    return fs;
+  }
+
   function figure(tag, src) {
     const img = el("img", { src, alt: `Render ${tag}`, loading: "eager", decoding: "async" });
     img.addEventListener("click", () => { zoomImg.src = src; zoomImg.alt = `Render ${tag}, full size`; zoom.showModal(); });
@@ -148,27 +168,32 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; width: auto; hei
       el("h2", { className: "brand" }, [item.brand, el("span", { className: "screen", textContent: item.screen ? ` · ${item.screen}` : "" })]),
       item.words ? el("p", { className: "words" }, [el("b", { textContent: item.words }), item.never ? ` · never ${item.never}` : ""]) : null,
     ]);
-    const renders = el("div", { className: "renders" }, [figure("A", item.a), figure("B", item.b)]);
+    const isPick = item.kind === "pick";
+    const renders = isPick
+      ? el("div", { className: "renders grid" }, item.options.map((o) => figure(o.tag, o.src)))
+      : el("div", { className: "renders" }, [figure("A", item.a), figure("B", item.b)]);
     const qs = el("form", { className: "qs", noValidate: true });
-    for (const key of item.ask) qs.append(scale(item, key, saved));
+    for (const key of item.ask) qs.append(isPick ? pick(item, key, saved) : scale(item, key, saved));
     const note = el("textarea", { id: `${item.id}-note`, placeholder: "What made the call: what's off, what's good. Needed when you lean on brand.", value: saved?.note || "" });
     qs.append(el("div", { className: "q" }, [el("label", { htmlFor: note.id, textContent: "Note", style: "font-weight:600" }), note]));
     const status = el("span", { className: "status", ariaLive: "polite" });
     const back = el("button", { type: "button", className: "btn", textContent: "Back", disabled: at === 0 });
     const next = el("button", { type: "submit", className: "btn primary", textContent: at === items.length - 1 ? "Save and finish" : "Save and next" });
     back.addEventListener("click", () => { at--; draw(); window.scrollTo(0, 0); });
-    qs.append(el("p", { className: "hint", textContent: "Click a render to see it full size. A and B are shuffled on every pair." }));
+    qs.append(el("p", { className: "hint", textContent: isPick
+      ? "Click a render to see it full size. The styles are shuffled for every brand."
+      : "Click a render to see it full size. A and B are shuffled on every pair." }));
     qs.append(el("div", { className: "actions" }, [back, next, status]));
     qs.addEventListener("submit", async (e) => {
       e.preventDefault();
       const g = { round: round.round, item: item.id, note: note.value.trim(), at: new Date().toISOString() };
       for (const key of item.ask) {
         const picked = qs.querySelector(`input[name="${item.id}-${key}"]:checked`);
-        if (!picked) { status.className = "status"; status.textContent = `Pick an answer for "${QUESTION[key]}"`; return; }
-        g[key] = Number(picked.value);
+        if (!picked) { status.className = "status"; status.textContent = `Pick an answer for "${(isPick ? PICK : QUESTION)[key]}"`; return; }
+        g[key] = isPick ? picked.value : Number(picked.value);
       }
       // A brand lean with no reason can't be turned into a fix, so ask for one line.
-      if (g.brand && !g.note) {
+      if (!isPick && g.brand && !g.note) {
         status.className = "status";
         status.textContent = "One line on what made it feel more like the brand, please.";
         note.focus();
@@ -202,7 +227,10 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; width: auto; hei
     try {
       const idx = await (await fetch("rounds/index.json", { cache: "no-store" })).json();
       round = await (await fetch(`rounds/${idx.current}/round.json`, { cache: "no-store" })).json();
-      items = round.items.map((it) => ({ ...it, a: `rounds/${round.round}/${it.a}`, b: `rounds/${round.round}/${it.b}` }));
+      const at_ = (f) => `rounds/${round.round}/${f}`;
+      items = round.items.map((it) => it.kind === "pick"
+        ? { ...it, options: it.options.map((o) => ({ ...o, src: at_(o.src) })) }
+        : { ...it, a: at_(it.a), b: at_(it.b) });
       document.getElementById("roundTitle").textContent = round.title;
     } catch {
       main.replaceChildren(el("div", { className: "notice" }, [el("h2", { textContent: "No round is ready yet" }), el("p", { textContent: "Claude publishes the renders here when the builds finish." })]));
