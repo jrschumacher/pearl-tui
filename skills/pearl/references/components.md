@@ -102,6 +102,41 @@ names and keys in fg, punctuation and values in muted (or the reverse, chosen on
 never one flat level and never a rainbow of token colours. Two levels let the eye find
 the keys; hue stays for state (color.md).
 
+## Panes That Scroll — `ui.Pane`, `ui.Hit`, `ui.WheelGate`
+
+Two or more regions side by side that each scroll (a step list beside its log, a file
+tree beside a diff). The showcase's `rollout` state (enter on a deploy, `rollout.go`) is
+the pattern; interaction.md § Mouse and § Panes That Scroll say why.
+
+- **One `ui.Pane` per pane in the root model**, holding `Top`, `Left` and `Sel` (`-1`
+  for a pane with no selection). Call `Fit(rows, widest, h, w)` from the
+  `WindowSizeMsg` handler and before drawing the footer, from a layout function that
+  computes the panes' rects from the size alone: the footer's `←→` and every key read
+  the pane as it will be drawn. `Fit` clamps the offsets; a resize never resets them.
+- **Draw a list pane with `ui.List(t, items, p.Sel, p.Top, …)`, a text pane with
+  `p.View(t, lines)`.** Never call `Follow` on render: the wheel moves the view away
+  from the selection on purpose. `View` cuts each line at `Left` (styles kept), marks
+  the rows that continue past an edge with `t.G.CutLeft` / `CutRight` (`‹` `›`, ASCII
+  `<` `>`, one cell each) while the pane is `Wide`, and draws `ui.Scrollbar` while it is
+  `Tall`. A group's header row stays put: pass its index as fixed (`p.View(t, lines,
+  headers...)`) and leave it out of `Fit`'s widest. Scrolled with its lines, a header
+  leaves a row of nothing but `‹`, which reads as broken.
+- **The wheel goes to the pane under the pointer**: `ui.Hit(x, y, rects…)` over the
+  panes' rects (titles included), then `p.Wheel(mouse)`. Focus doesn't move. Pass each
+  event through one `ui.WheelGate` first (a burst within `ui.WheelBurst`, 15 ms, is one
+  notch of `ui.WheelRows`), on a clock the tests can drive.
+- **A left click focuses the pane** and on a list selects the row clicked
+  (`p.Top + y - view.Min.Y`). Under a dialog the page takes no mouse.
+- **Keys act on the focused pane**: `↑↓` call `p.Move(d)` (the view comes back to the
+  selection as it moves), `tab` / `shift+tab` move focus, and `←→` (`ui.KeyCols`) join
+  the action table only while `p.Wide()`.
+- **Focus shows on the pane, not its title**: a list pane by its selection (`focused`
+  to `ui.List`), a text pane by `ui.Gutter` down its left edge. Both drop under a
+  dialog, as every page focus does.
+- **Mouse on only where a pane scrolls** (`View.MouseMode = tea.MouseModeCellMotion`
+  for that state), and the full help ends with a Mouse section there: click, wheel,
+  shift+wheel. The footer shows keys only.
+
 ## Dialog / Command Palette — `ui.Dialog` + `Canvas.Overlay`
 
 - The title row per `expressions.dialogTitle` (the motif rule in a gradient, plain, or a
@@ -149,18 +184,19 @@ now     v2.4.0  failing 12 min
 after   v2.3.9  healthy for 3 days
 impact  3 pods restart, one at a time (~90s)
 
-                         Roll back   [ Cancel ]
+                    Roll back   [ Keep v2.4.0 ]
 ```
 
 The title is the question, naming the object. The body says what changes, with before
-and after. The danger button is coloured even when unfocused. **Cancel is focused by
-default.** `y`/`n` shortcuts for experts. It asks for a judgement, so it guards rungs 3
-and 4 of `interaction.md` § Confirm By Consequence only: what can't be taken back, or
-what a failing signal makes risky ("2 checks failing: lint, e2e. Merge anyway?"). This
+and after. The danger button is coloured even when unfocused. **The safe button is
+focused by default, and it names what is kept** (`Keep v2.4.0`, the version running
+now), never a bare `Cancel`. `y`/`n` shortcuts for experts. It asks for a judgement, so
+it guards rungs 3 and 4 of `interaction.md` § Confirm By Consequence only: what can't
+be taken back, or what a failing signal makes risky ("2 checks failing: lint, e2e. Merge anyway?"). This
 roll back is rung 3: it ships to production, and the fix would be another ship, so it
 confirms even when the target is healthy. A ship started from a form gets no dialog:
 the form's review step is its confirmation (the showcase's `deploy-review`: what ships
-where, a danger button named `Deploy v2.4.1 to prod`, focus arriving on Cancel).
+where, a danger button named `Deploy v2.4.1 to prod`, focus arriving on `Keep v2.4.0`).
 Anything a revert or the same key takes back gets no confirm: one on every write
 teaches `y` before the one that matters.
 
@@ -202,12 +238,13 @@ Sign-in ──────────────────── staging-eu-
   `ui.SummaryStrip`, one line.
 - **Every step counts.** Connecting and finishing are steps, so the counter never repeats
   the review's number on three screens.
-- **Review defaults to the forward action** (`ui.NewActions(0, "Continue", "Edit",
-  "Cancel")`), unless the review ships what can't be taken back: then it is the
-  confirmation, and focus arrives on Cancel (`interaction.md` § Confirm By Consequence,
-  rung 3). `ui.Confirm(t, title, action, negative, def, &v)` for yes/no, action first.
+- **Review defaults to the forward action** (`ui.NewActions(0, "Continue", "Back to
+  edit", "Discard setup")`), and so does a review whose act is what the flow is for (a
+  purchase, a booking). Only a review that destroys or replaces what's running (a deploy,
+  a rollback) is the confirmation with focus on its safe button (`interaction.md`
+  § Confirm By Consequence, rung 3). Every button names what it does: no bare `Cancel`. `ui.Confirm(t, title, action, negative, def, &v)` for yes/no, action first.
 - **Waits say what to do if nothing happens**: the URL to open by hand, the code, elapsed
-  time, `esc cancel`; a timeout becomes a failure state with Retry.
+  time, `esc cancel sign-in`; a timeout becomes a failure state with Retry.
 - **Esc goes back** from step 2 on; on step 1 it asks before dropping typed input.
 
 ## Buttons — `ui.Button`, `ui.Buttons`
@@ -217,7 +254,7 @@ focused one with a cursor), `underline` (text), `inverse`. Mnemonic letters are
 underlined. Buttons sit in a row, aligned per the layout (right in dialogs, left in
 forms).
 
-**One order, everywhere: the action first, the negative last** (`Roll back  Cancel`,
+**One order, everywhere: the action first, the negative last** (`Roll back  Keep v2.4.0`,
 `Yes  No`, `Continue  Back`). It matches Huh's confirm and Crush, and a user who learns it
 on one screen can press it blind on the next. A two-option select is not a confirm:
 use the confirm, so the order can't flip. The focused default is the safe choice when the

@@ -54,7 +54,7 @@ func TestSetupReviewDefaultsToContinue(t *testing.T) {
 // field's text column, never centred under the title.
 func TestSetupButtonOrder(t *testing.T) {
 	for state, labels := range map[string][]string{
-		"setup-review": {"Continue", "Edit", "Cancel"},
+		"setup-review": {"Continue", "Back to edit", "Discard setup"},
 		"setup-alerts": {"Turn on", "Not now"},
 		"setup-done":   {"Yes", "No"},
 		"setup-failed": {"Retry", "Back"},

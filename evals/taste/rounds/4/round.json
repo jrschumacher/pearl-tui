@@ -1,0 +1,136 @@
+{
+ "round": 4,
+ "items": [
+  {
+   "id": "t01",
+   "brand": "tallyho",
+   "screen": "the week, 120\u00d740",
+   "words": "a freelancer's time tracker: switch timers all day, invoice weekly or monthly",
+   "never": "",
+   "a": "t01-a.png",
+   "b": "t01-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "t02",
+   "brand": "tallyho",
+   "screen": "the week, 80\u00d724",
+   "words": "a freelancer's time tracker: switch timers all day, invoice weekly or monthly",
+   "never": "",
+   "a": "t02-a.png",
+   "b": "t02-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "t03",
+   "brand": "tallyho",
+   "screen": "invoice draft, 120\u00d740",
+   "words": "a freelancer's time tracker: switch timers all day, invoice weekly or monthly",
+   "never": "",
+   "a": "t03-a.png",
+   "b": "t03-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "n01",
+   "brand": "nestkeeper",
+   "screen": "settings, 120\u00d740",
+   "words": "a home server's settings: find one, change it, review and apply",
+   "never": "",
+   "a": "n01-a.png",
+   "b": "n01-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "n02",
+   "brand": "nestkeeper",
+   "screen": "settings, 80\u00d724",
+   "words": "a home server's settings: find one, change it, review and apply",
+   "never": "",
+   "a": "n02-a.png",
+   "b": "n02-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "n03",
+   "brand": "nestkeeper",
+   "screen": "review & apply, 120\u00d740",
+   "words": "a home server's settings: find one, change it, review and apply",
+   "never": "",
+   "a": "n03-a.png",
+   "b": "n03-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "b01",
+   "brand": "burrow",
+   "screen": "inbox, reading a letter, 120\u00d740",
+   "words": "an email client for people who read long letters, in a terminal",
+   "never": "",
+   "a": "b01-a.png",
+   "b": "b01-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "b02",
+   "brand": "burrow",
+   "screen": "inbox, 80\u00d724",
+   "words": "an email client for people who read long letters, in a terminal",
+   "never": "",
+   "a": "b02-a.png",
+   "b": "b02-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "b03",
+   "brand": "burrow",
+   "screen": "reply, 120\u00d740",
+   "words": "an email client for people who read long letters, in a terminal",
+   "never": "",
+   "a": "b03-a.png",
+   "b": "b03-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  },
+  {
+   "id": "r01",
+   "brand": "tallyho",
+   "screen": "the week, 120\u00d740",
+   "words": "a freelancer's time tracker: switch timers all day, invoice weekly or monthly",
+   "never": "",
+   "a": "r01-a.png",
+   "b": "r01-b.png",
+   "ask": [
+    "use",
+    "refined"
+   ]
+  }
+ ],
+ "title": "Taste bench: the product read"
+}

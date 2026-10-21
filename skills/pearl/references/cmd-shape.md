@@ -6,6 +6,37 @@ both sizes, collapse rule, components, fixtures, brand line, any flow line, sket
 § States and keys, and nowhere else: a second file gets skipped, and the project's own
 docs belong to the user. No Go yet.
 
+## Read The Product, Then Let Customers Attack It
+
+A brief lists screens; it doesn't say what the people using them need first. Three
+briefs built as written put a dozen money panels on a time tracker's week and a
+reading-time column nobody could parse. A grader's think-aloud ideas taken as orders
+(an agents' hours view, a health dashboard on a settings tool) added screens no customer
+asked for. Before the first block, write the read into § Product:
+
+- `customers:` two or three, each with how often they use it and what they use today
+- `jobs:` ranked by how often a customer does each; the first is the main screen's job
+- the slice: the brief's screens (no more), and what each shows, ranked; every idea left
+  out goes in § Decisions as `cut: <idea> — <why>`
+
+Then have it attacked by simulated customers, with a subagent where you have one (the
+fallback is a fresh message of your own, as `verify.md` § The Critic describes):
+four interviews (a daily user, a power user, a newcomer in their first week, a skeptic
+about to quit) in their voices, then objections tagged blocking or minor, each with the
+customer who raised it. Answer each in the read; repeat until nothing blocks, at most
+three rounds. Three briefs rebuilt from such a read, graded blind against the literal
+builds, won wherever scope was the problem: "much cleaner to process quickly".
+
+**DO** weigh a stakeholder's idea as one voice: test it against the customers, neither
+adopt nor dismiss it. One raised twice is still one voice.
+**DO** answer an undefined state with a line (`a timer left past midnight counts to the
+day it started`), not a feature or a screen.
+**DON'T** cut a value because it reads two ways: label it (`3 min read`, apart from the
+time received). The read that deleted it lost to the build that kept it unlabelled.
+**DON'T** stop at answering objections one by one: re-read each screen whole after. A
+reply answered two objections apart showed the original beside the draft and again as
+its quote, and lost.
+
 ## Depth Follows The Domain, Then The Brand
 
 Before the first block, answer one question: does this domain, or this brand, earn more
@@ -63,8 +94,15 @@ not identity, and the critic marks it.
 
 ## For Each Screen
 
-1. **Job**: the one thing the user comes to this screen to do, and what they look at
-   first.
+1. **Job and data**: the one thing the user comes to this screen to do, and what they
+   look at first, then the journey around it. Write three lines in its block: `job:`
+   (the task, and its flow from `flows.md`: monitoring, checkout, media, browse,
+   configure), `data:` (each region's data by kind: live, background, money, the
+   product's purpose) and `carry:` (what this screen keeps in view from the product's
+   purpose, or nothing, because it is that purpose). Then load `flows.md` § Name The
+   Data Before Placing It and the section the `job:` names: they decide where the
+   live pane goes, what becomes a glyph and how loud the brand is, before any region is
+   drawn. A flow is a screen's, not the app's: a booking app browses until its pay step.
 2. **Regions and budgets** at 80×24 and 120×40, with every pane's outer, inner and text
    width as integers (`layout.md`). Say what collapses below 110 columns and below 30
    rows.

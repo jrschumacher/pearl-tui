@@ -1,0 +1,161 @@
+{
+ "round": 1,
+ "title": "Round 1",
+ "items": [
+  {
+   "id": "x01",
+   "brand": "halyard",
+   "screen": "services",
+   "words": "a deploy dashboard",
+   "never": "",
+   "a": "x01-a.png",
+   "b": "x01-b.png",
+   "ask": [
+    "refined"
+   ]
+  },
+  {
+   "id": "s01",
+   "brand": "spoofify",
+   "screen": "now playing",
+   "words": "cheeky, nocturnal, deadpan",
+   "never": "a spectrum-analyser light show",
+   "a": "s01-a.png",
+   "b": "s01-b.png",
+   "ask": [
+    "refined",
+    "brand"
+   ]
+  },
+  {
+   "id": "b01",
+   "brand": "bisque",
+   "screen": "recent runs",
+   "words": "hot, terse, workmanlike",
+   "never": "a traffic-light board",
+   "a": "b01-a.png",
+   "b": "b01-b.png",
+   "ask": [
+    "refined",
+    "brand"
+   ]
+  },
+  {
+   "id": "h01",
+   "brand": "hairdnd",
+   "screen": "den search",
+   "words": "warm, shaggy, adventurous",
+   "never": "a hotel booking form",
+   "a": "h01-a.png",
+   "b": "h01-b.png",
+   "ask": [
+    "refined",
+    "brand"
+   ]
+  },
+  {
+   "id": "c01",
+   "brand": "coinslot",
+   "screen": "the arcade floor",
+   "words": "bright, generous, showy",
+   "never": "a casino: no reels, no flashing credits, no gold",
+   "a": "c01-a.png",
+   "b": "c01-b.png",
+   "ask": [
+    "refined",
+    "brand"
+   ]
+  },
+  {
+   "id": "s02",
+   "brand": "spoofify",
+   "screen": "search results",
+   "words": "cheeky, nocturnal, deadpan",
+   "never": "a spectrum-analyser light show",
+   "a": "s02-a.png",
+   "b": "s02-b.png",
+   "ask": [
+    "refined",
+    "brand"
+   ]
+  },
+  {
+   "id": "b02",
+   "brand": "bisque",
+   "screen": "a failed run's detail",
+   "words": "hot, terse, workmanlike",
+   "never": "a traffic-light board",
+   "a": "b02-a.png",
+   "b": "b02-b.png",
+   "ask": [
+    "refined",
+    "brand"
+   ]
+  },
+  {
+   "id": "h02",
+   "brand": "hairdnd",
+   "screen": "booking review",
+   "words": "warm, shaggy, adventurous",
+   "never": "a hotel booking form",
+   "a": "h02-a.png",
+   "b": "h02-b.png",
+   "ask": [
+    "refined",
+    "brand"
+   ]
+  },
+  {
+   "id": "c02",
+   "brand": "coinslot",
+   "screen": "a cabinet's detail",
+   "words": "bright, generous, showy",
+   "never": "a casino: no reels, no flashing credits, no gold",
+   "a": "c02-a.png",
+   "b": "c02-b.png",
+   "ask": [
+    "refined",
+    "brand"
+   ]
+  },
+  {
+   "id": "h03",
+   "brand": "hairdnd",
+   "screen": "den search, light terminal",
+   "words": "warm, shaggy, adventurous",
+   "never": "a hotel booking form",
+   "a": "h03-a.png",
+   "b": "h03-b.png",
+   "ask": [
+    "refined",
+    "brand"
+   ]
+  },
+  {
+   "id": "c03",
+   "brand": "coinslot",
+   "screen": "the arcade floor, large terminal",
+   "words": "bright, generous, showy",
+   "never": "a casino: no reels, no flashing credits, no gold",
+   "a": "c03-a.png",
+   "b": "c03-b.png",
+   "ask": [
+    "refined",
+    "brand"
+   ]
+  },
+  {
+   "id": "z01",
+   "brand": "hairdnd",
+   "screen": "den search",
+   "words": "warm, shaggy, adventurous",
+   "never": "a hotel booking form",
+   "a": "z01-a.png",
+   "b": "z01-b.png",
+   "ask": [
+    "refined",
+    "brand"
+   ]
+  }
+ ]
+}

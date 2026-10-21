@@ -144,6 +144,12 @@ Cmd for everything slow, cancel paths, and copy that names the thing and the nex
 user no judgement to make (a toggle, a sent message, a merge the checks passed), or
 write "An error occurred" or "Successfully".
 
+### Flows → *Consult `references/flows.md`, the section each screen's `job:` names*
+**DO** name each region's data before placing it: live beside its list, background as a
+glyph with a help key, money as a receipt, the product's purpose kept in view as a
+strip. A flow belongs to a screen, not the app.
+**DON'T** give background status a header sentence, or a working screen a tall mark.
+
 ### Motion → *Consult `references/motion.md`*
 **DO** run one `gen`-stamped frame clock, render deterministic frames from `frame`, and keep
 one hero animation (`ui.Anim`) with a subject.
@@ -198,7 +204,7 @@ invents its regions and keys screen by screen.
 |---|---|---|
 | `init` | no `TUI.md`; new project; the brand or stack changed | `references/cmd-init.md` |
 | `brand` | create or change a theme from brand assets | `references/cmd-brand.md` |
-| `shape` | plan screens: budgets, states, keys, sketches | `references/cmd-shape.md` |
+| `shape` | plan screens: the product read customers attack, budgets, states, keys, sketches | `references/cmd-shape.md` |
 | `craft` | build screens from the kit, with the loop | `references/cmd-craft.md` |
 | `critique` | design review: scored, cited, two critics | `references/cmd-critique.md` |
 | `audit` | technical pass: footprint, profiles, keys, clock, exit | `references/cmd-audit.md` |

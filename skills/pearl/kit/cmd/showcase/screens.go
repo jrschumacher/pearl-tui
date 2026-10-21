@@ -37,6 +37,7 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		c.Draw(ui.TooSmall(t, w, h, minW, minH, m.footerBindings()), c.Bounds())
 		return c
 	}
+	m.fitPanes() // before the footer: its keys (←→ while a pane is wide) read the panes
 	if m.screen == scrSplash {
 		m.splash(c)
 		return c
@@ -63,7 +64,7 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		// the wizard's step row stands where the tabs stand
 		c.Draw(m.setup.steps(t).Row(t, w-2*g), ui.Rect(g, y, w-2*g, 1))
 		y += 2
-	} else if m.screen != scrDeploy && m.screen != scrLadder {
+	} else if m.screen != scrDeploy && m.screen != scrLadder && m.screen != scrRollout {
 		counts := []string{t.S.Subtle.Render(itoa(len(m.svcs))), "", "", ""}
 		if m.declared {
 			counts[2] = t.S.Warn.Render("1")
@@ -88,6 +89,8 @@ func (m *app) draw(w, h int) *ui.Canvas {
 		m.deployForm(c, body)
 	case scrLadder:
 		m.ladder(c, body)
+	case scrRollout:
+		m.rolloutScreen(c)
 	case scrSetup:
 		m.setupView(c, body)
 	}
@@ -556,7 +559,7 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 	btns := ui.Buttons(t, w-2, lipgloss.Left,
 		// the button names the act and where it lands; prod's is danger, as a confirm's is
 		ui.Button(t, "Deploy "+m.version+" to "+env, focus == 4 && m.formBtn == 0, m.env == 0, -1),
-		ui.Button(t, "Cancel", focus == 4 && m.formBtn == 1, false, -1))
+		ui.Button(t, m.deploySafeLabel(), focus == 4 && m.formBtn == 1, false, -1))
 	rows = append(rows, ui.Gutter(t, focus == 4, t.S.FocusBar)+btns)
 	c.Draw(strings.Join(rows, "\n"), main)
 
@@ -668,7 +671,7 @@ func (m *app) confirmBody() (title string, body []string, btns string) {
 	}, 7)...)
 	btns = ui.Buttons(t, inner, lipgloss.Right,
 		ui.Button(t, "Roll back", m.btn == 0, true, 0),
-		ui.Button(t, "Cancel", m.btn == 1, false, 0))
+		ui.Button(t, m.keepLabel(), m.btn == 1, false, -1))
 	return "Roll back " + s.Name + "?", body, btns
 }
 
@@ -698,7 +701,17 @@ func (m *app) helpBody() []string {
 		h := a.b.Help()
 		body = append(body, t.S.Key.Render(ui.Fit(h.Key, 12))+t.S.Soft.Render(h.Desc))
 	}
-	return append(body, t.S.Key.Render(ui.Fit("ctrl+c", 12))+t.S.Soft.Render("quit from anywhere"))
+	body = append(body, t.S.Key.Render(ui.Fit("ctrl+c", 12))+t.S.Soft.Render("quit from anywhere"))
+	// help names the mouse once, after the keys, where the page takes it (the footer
+	// shows keys only); a dialog takes no mouse, so help over one has no Mouse section
+	if m.helpFrom == ovNone && m.mouseOn() {
+		body = append(body, "", t.S.Title.Render(t.Case("Mouse")))
+		for _, g := range [][2]string{{"click", "focus a pane, select a row"}, {"wheel", "scroll the pane under the pointer"},
+			{"shift+wheel", "scroll it sideways"}} {
+			body = append(body, t.S.Key.Render(ui.Fit(g[0], 12))+t.S.Soft.Render(g[1]))
+		}
+	}
+	return body
 }
 
 // helpTitle names the screen the help is for.
@@ -711,6 +724,8 @@ func (m *app) helpTitle() string {
 		name = "Legend"
 	case scrSetup:
 		name = "Setup"
+	case scrRollout:
+		name = "Rollout"
 	}
 	switch m.helpFrom {
 	case ovPalette:

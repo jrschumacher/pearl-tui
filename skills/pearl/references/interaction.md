@@ -1,8 +1,8 @@
 # Interaction and copy: keys, focus, states, words
 
-*Bubble Tea: the `tea.*`, Bubbles and Huh names in § Keys Are A Contract, § Async And Long
-Work, § Terminal Citizenship and § Screen Readers are Bubble Tea v2's; the rules hold for
-any framework.*
+*Bubble Tea: the `tea.*`, `ui.*`, Bubbles and Huh names in § Keys Are A Contract,
+§ Mouse, § Panes That Scroll, § Async And Long Work, § Terminal Citizenship and § Screen
+Readers are Bubble Tea v2's and the kit's; the rules hold for any framework.*
 
 ## Keys Are A Contract
 
@@ -33,7 +33,7 @@ any framework.*
   `t.KeyDisambiguation` from `SupportsKeyDisambiguation()`: `ui.Help` draws the one that
   works there (ctrl+j, or shift+enter), never the 18-cell pair.
 - **A toggle's help names what the key does now:** `f pause` while following, `f follow`
-  while paused, as the kit's `enter` reads `deploy` or `cancel` from the focused button.
+  while paused, as the kit's `enter` reads `deploy` or `keep v2.4.0` from the focused button.
   `TestHelpIsHandled` proves the key fires, not that the label is true, so render both
   states and read the footer against the header: `following` beside `f follow` is a lie.
 - Key order in the help: the primary action, navigation, secondary actions, then
@@ -60,6 +60,33 @@ off when the user disables it so terminal text selection works. Make the obvious
 clickable (tabs, list rows, buttons via compositor hit regions, "N lines hidden" to
 expand). Coalesce wheel events; some terminals send 3 per notch. Mouse is a convenience:
 every action must also have a key.
+
+The wheel and the keys answer to different things, because a desktop taught both:
+
+- **The wheel scrolls the pane under the pointer**, and focus stays where it is. A click
+  is what moves focus. Scrolling the focused pane from across the screen, or stealing
+  focus on a wheel, leaves the user typing into a pane they weren't looking at.
+- **The wheel moves the view, never the selection.** The selected row may scroll out of
+  sight; the next arrow key brings the view back to it before moving. A wheel that walks
+  the selection runs actions on a row the user scrolled past.
+- **Shift+wheel and a trackpad's side scroll move sideways** in a pane that overflows.
+
+## Panes That Scroll
+
+- **`tab` moves focus between panes; arrows act inside the focused one.** `↑↓` move the
+  selection or the view, and `←→` scroll sideways when the focused pane's content is
+  wider than it. So `←→` never mean both "scroll" and "change pane".
+- **Show what's hidden.** A pane scrolled sideways marks its cut edges with `‹` `›` (ASCII
+  `<` `>`) on the rows that continue; a pane with more rows than fit carries the
+  scrollbar or a "N more" line. A user who can't see that a pane scrolls never scrolls it.
+- **Each pane keeps its own offsets**, vertical and horizontal, across focus changes and
+  resizes; a resize clamps them, never resets them.
+- **Help names the mouse once.** The footer shows keys only. The full help screen ends
+  with a short Mouse section: click focuses, the wheel scrolls the pane under the
+  pointer, shift+wheel scrolls sideways.
+- **Copy the kit's panes rather than improvising them.** The showcase's `rollout` state
+  does all of the above with one `ui.Pane` per pane, `ui.Hit` and `ui.WheelGate`, and
+  its tests hold each rule (components.md § Panes That Scroll).
 
 ## Async And Long Work
 
@@ -110,14 +137,21 @@ explicit send), a confirm adds nothing. Put every action on the first rung that 
    and the fix is another ship, not an undo. Hard to undo isn't can't be undone: a
    merge reverts, an issue reopens. Only the user knows whether this is the object to
    lose, so the dialog names it and what can't be taken back ("Delete nightly-0412?
-   41.2 GB, no undo"), focuses **Cancel**, colours the destructive button as danger,
-   and accepts `y` for experts. For what destroys production data (dropping a
+   41.2 GB, no undo"), focuses the safe button, colours the destructive button as
+   danger, and accepts `y` for experts. Where focus starts follows the intent, not the
+   rung: an act that destroys, removes or replaces what exists (a delete, a purge, a
+   force-push, a deploy or rollback over what's running) starts on the safe button; the
+   act a flow exists for (a purchase, a booking, a sign-up) starts on the act, because
+   the user came to do it and focusing away from it reads as the app arguing (§
+   Checkout in `flows.md`). The safe button says what it does, never a bare `Cancel`:
+   `Keep v2.4.0`, `Back to edit`, `Keep looking`. "Cancel" on a review left the user
+   asking whether their answers were lost. For what destroys production data (dropping a
    database, deleting a prod bucket), make the user type its name; a ship doesn't
    need it, since its fix is another ship. A ship started from a form is confirmed by
    the form's last step when that step says exactly what ships where (version, target,
    what changes), its button is named for the act (`Deploy v2.4.1 to prod`, not
-   `Submit` or `OK`) and drawn as danger, and focus arrives on Cancel so enter alone
-   doesn't ship. No dialog after it: it would repeat what the user just read. The
+   `Submit` or `OK`) and drawn as danger, and focus arrives on the safe button
+   (`Keep v2.4.0`) so enter alone doesn't ship over what's running. No dialog after it: it would repeat what the user just read. The
    dialog is for a ship one key starts (`r roll back` from a list).
 4. **Normally safe, but a signal says no: confirm only in that state.** The signal is
    one the user should weigh: red checks, a blocking review, an unsaved draft, a stale
@@ -206,7 +240,7 @@ Terminal copy is read at speed by people mid-task. Every word earns its cells.
   Consequence). The question names what they are judging: the object and what changes
   ("Roll back checkout-api?", rung 3: it ships to production), or the signal that made
   it risky ("2 checks failing: lint, e2e. Merge anyway?"). The buttons are verbs
-  ("Roll back" / "Cancel"), never "OK" / "Yes".
+  ("Roll back" / "Keep v2.4.0"), never "OK" / "Yes", and never a bare "Cancel".
 - **Success**: past tense + object + the fact that matters. "Rolled back checkout-api
   to v2.3.9 · 3/3 pods healthy". No "Successfully".
 - **Voice** comes from the brand read: Crush's `Yep!` / `Nope` and rotating

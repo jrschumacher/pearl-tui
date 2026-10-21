@@ -111,6 +111,8 @@ type Glyphs struct {
 	ProgressHead  string `json:"progressHead"`  // the half cell at the fill's end: ╸ ▌
 	TurnBar       string `json:"turnBar"`       // the user's turn in a chat when blurred: │ ┆ (focusBar when focused; blurBar wins when set)
 	TabUnderline  string `json:"tabUnderline"`  // the active tab's underline under tabs "underline": ▔ ─ ▀ (ASCII draws the rule glyph instead)
+	CutLeft       string `json:"cutLeft"`       // a pane scrolled sideways: the row continues past its left edge (ui.Pane): ‹ (ascii <), one cell
+	CutRight      string `json:"cutRight"`      // the row continues past its right edge: › (ascii >), one cell
 
 	// Marks are the product's own marks by name, for a signature the kit has no slot for:
 	// {"stop": "•", "stopAhead": "◦"} for a progress pair, one dot per tour stop. Each has

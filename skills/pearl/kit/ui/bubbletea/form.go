@@ -428,7 +428,7 @@ func Confirm(t *theme.Theme, title, action, negative string, def bool, value *bo
 // explicit. It draws left-aligned in the form's text column, behind the same
 // 2-cell gutter a Huh field has, never centred.
 type Actions struct {
-	Labels []string // the action first, the negative last: "Continue", "Edit", "Cancel"
+	Labels []string // the action first, the negative last, each naming what it does: "Continue", "Back to edit", "Discard setup" (never a bare "Cancel")
 	Sel    int      // the focused button; NewActions starts it at the default
 	Danger int      // index of a destructive button (coloured even unfocused); -1 for none
 }

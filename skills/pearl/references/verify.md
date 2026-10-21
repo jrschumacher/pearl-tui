@@ -156,9 +156,11 @@ Rubric (score each 0–4, cite rows/cells, not impressions; 0 = a default or a b
      outside its signal's state; a rung-3 act keeps its confirm or its form's review
      step, a rung-4 act in its signal's state keeps its confirm, and neither gets a
      second one after it.
-  4. Layout: budgets respected; 80×24, 120×40 and 200×60 are the same design; room
-     used, not stretched (layout.md § Use The Room: a blank sidebar or unused columns
-     beside the body at 120×40 is a stretch); nothing touching edges; no box soup.
+  4. Layout: budgets respected; what follows the selection is one region, not split
+     above and below the list (brand.md § Move A Region); 80×24, 120×40 and 200×60 are
+     the same design; room used, not stretched (layout.md § Use The Room: a blank
+     sidebar or unused columns beside the body at 120×40 is a stretch); nothing
+     touching edges; no box soup.
   5. States: empty, loading, error, partial, too-small all designed; copy says what
      happened and what to do.
   6. Terminal craft: NO_COLOR and ASCII still readable; light set reviewed; no holes in

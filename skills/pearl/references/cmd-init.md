@@ -108,7 +108,9 @@ Read before any UI change. Update it when a decision changes.
 ## Design
 
 ### Product
-<what it does, for whom, the jobs the TUI is for, how long a session lasts>
+<what it does, for whom, how long a session lasts>
+customers: <two or three: who, how often, what they use today>   (cmd-shape.md § Read The Product, Then Let Customers Attack It)
+jobs: <ranked by how often a customer does each; the first is the main screen's>
 
 ### Users and terminals
 <who; sizes (80×24 design floor); light/dark; SSH/tmux; NO_COLOR; screen readers>
@@ -135,6 +137,9 @@ approved: <date> <deviation> (<who>), one line each; a law the reference breaks 
 One block per screen, the main screen's first (`tuilint spec` reads the first block as the main screen): `shape` fills it, `craft` builds it in § First slice order.
 
 #### <screen> — <its job in one line, and what the eye lands on first>
+job: <the task, and its flow: monitoring | checkout | media | browse | configure>   (flows.md)
+data: <each region's data by kind: live, background, money, the product's purpose>
+carry: <what stays in view from the product's purpose, or nothing, because this screen is it>
 80×24:  <region> <x,y w×h> · <region> <x,y w×h> · footer 0,23 80×1     (outer widths; text width = outer − gutters)
 120×40: <region> <x,y w×h> · <the pane that exists only here> · footer 0,39 120×1
         (under footer: rule the footer is 0,22 80×2: layout.md § Write The Budget)
@@ -223,6 +228,7 @@ Then: <the rest of v1, in order>
 
 ## Decisions
 - <date> <decision> because <reason>
+- <date> cut: <idea> — <why no customer needs it in most sessions>
 - <date> cuts: [<screen>:] <column header or budget region>, … — <why it has no longest>   (e.g. `- 2026-10-18 cuts: detail: command — no longest; the pager shows it whole`; <screen> is a § Screens block's name, and with none the line holds on every screen; `tuilint frames --spec TUI.md` reads it under this exact `## Decisions` heading [F-TRUNC])
 
 ## Assumed

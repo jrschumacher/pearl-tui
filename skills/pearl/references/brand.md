@@ -67,6 +67,16 @@ adds a rule or gap row (`footer: rule`, `density`) is paint; one that removes a 
 or puts it elsewhere in the screen's order is a move. Both brands in that pair chose `╌`
 as their motif, which has its own line. A recoloured `ui.Header` is the kit's element,
 not a signature.
+**DON'T** move a region that follows the selection to the far side of the list from
+another one that does: a row change that repaints the screen above and below the list
+leaves the eye nowhere to rest. A den's card above its list, with that den's reviews
+below it, read as "hard on the eyes"; a cabinet's marquee above its list, with nothing
+below that changes, did not. Everything that follows the selection sits in one region,
+beside the list or on one side of it.
+**DON'T** let the signature's motif mark anything else, or sit anywhere but beside the
+name. A settings tool whose nest of eggs also marked every staged row was "clever, it's
+pretty… then we start using it throughout everywhere" and hard to navigate; a mail
+client's door beside a letter's header "doesn't make sense". A state gets its own glyph.
 
 ### The Read Reaches Past The Main Screen
 
@@ -139,6 +149,7 @@ read it too.
     "up": "↑", "down": "↓",      // one arrow key in a footer ("↓ select"); optional, these defaults
     "progressFill": "━", "progressEmpty": "╌", "progressHead": "╸",
     "turnBar": "│", "tabUnderline": "▔",                  // a blurred chat turn; the active tab
+    "cutLeft": "‹", "cutRight": "›",  // a pane scrolled sideways: rows cut at its edges (one cell each)
     "marks": { "stop": "•", "stopAhead": "◦" },  // the product's own marks, t.ProductMark("stop"): a signature with no kit slot
     "ascii": { "◭": "~", "•": "#", "◦": "_" }  // twins the kit's map lacks or draws as a state (• ◦ are * o, current and todo)
   },

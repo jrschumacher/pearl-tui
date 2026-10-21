@@ -1,0 +1,92 @@
+[
+ {
+  "id": "r3-s01",
+  "brand": "spoofify",
+  "screen": "now playing",
+  "words": "cheeky, nocturnal, deadpan",
+  "never": "a spectrum-analyser light show",
+  "a": "r3-s01-a.png",
+  "b": "r3-s01-b.png"
+ },
+ {
+  "id": "r3-b01",
+  "brand": "bisque",
+  "screen": "recent runs",
+  "words": "hot, terse, workmanlike",
+  "never": "a traffic-light board",
+  "a": "r3-b01-a.png",
+  "b": "r3-b01-b.png"
+ },
+ {
+  "id": "r3-h01",
+  "brand": "hairdnd",
+  "screen": "den search",
+  "words": "warm, shaggy, adventurous",
+  "never": "a hotel booking form",
+  "a": "r3-h01-a.png",
+  "b": "r3-h01-b.png"
+ },
+ {
+  "id": "r3-c01",
+  "brand": "coinslot",
+  "screen": "the arcade floor",
+  "words": "bright, generous, showy",
+  "never": "a casino: no reels, no flashing credits, no gold",
+  "a": "r3-c01-a.png",
+  "b": "r3-c01-b.png"
+ },
+ {
+  "id": "r3-s02",
+  "brand": "spoofify",
+  "screen": "search results",
+  "words": "cheeky, nocturnal, deadpan",
+  "never": "a spectrum-analyser light show",
+  "a": "r3-s02-a.png",
+  "b": "r3-s02-b.png"
+ },
+ {
+  "id": "r3-b02",
+  "brand": "bisque",
+  "screen": "a failed run",
+  "words": "hot, terse, workmanlike",
+  "never": "a traffic-light board",
+  "a": "r3-b02-a.png",
+  "b": "r3-b02-b.png"
+ },
+ {
+  "id": "r3-h02",
+  "brand": "hairdnd",
+  "screen": "booking review",
+  "words": "warm, shaggy, adventurous",
+  "never": "a hotel booking form",
+  "a": "r3-h02-a.png",
+  "b": "r3-h02-b.png"
+ },
+ {
+  "id": "r3-c02",
+  "brand": "coinslot",
+  "screen": "a cabinet",
+  "words": "bright, generous, showy",
+  "never": "a casino: no reels, no flashing credits, no gold",
+  "a": "r3-c02-a.png",
+  "b": "r3-c02-b.png"
+ },
+ {
+  "id": "r3-h03",
+  "brand": "hairdnd",
+  "screen": "den search, light terminal",
+  "words": "warm, shaggy, adventurous",
+  "never": "a hotel booking form",
+  "a": "r3-h03-a.png",
+  "b": "r3-h03-b.png"
+ },
+ {
+  "id": "r3-c03",
+  "brand": "coinslot",
+  "screen": "the arcade floor, large terminal",
+  "words": "bright, generous, showy",
+  "never": "a casino: no reels, no flashing credits, no gold",
+  "a": "r3-c03-a.png",
+  "b": "r3-c03-b.png"
+ }
+]

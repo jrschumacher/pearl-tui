@@ -12,6 +12,7 @@ import (
 	"image/color"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -127,9 +128,9 @@ func TestActionsTargetSelection(t *testing.T) {
 	if txt := strings.ToLower(ansi.Strip(m.render(100, 30).String())); !strings.Contains(txt, strings.ToLower("Roll back "+want+"?")) {
 		t.Fatalf("confirm does not name the selected service %q", want)
 	}
-	m.key(press("enter")) // Cancel is the default
+	m.key(press("enter")) // Keep <running version> is the default
 	if m.svcs[m.sel].Version != services[m.sel].Version {
-		t.Fatal("enter on the default button must cancel, not roll back")
+		t.Fatal("enter on the default button must keep what runs, not roll back")
 	}
 	m.key(press("r"))
 	m.key(press("left"))
@@ -305,7 +306,8 @@ func TestSelectionIsIdentity(t *testing.T) {
 
 // The deploy form's review step is a ship's confirmation (interaction.md § Confirm By
 // Consequence, rung 3): the button names the act and the target, and on prod the
-// buttons start on Cancel, so enter, enter, enter… never ships. Staging starts on the act.
+// buttons start on the safe one (Keep v2.4.0), so enter, enter, enter… never ships.
+// Staging starts on the act.
 func TestDeployReviewIsTheConfirm(t *testing.T) {
 	m := fixture(t, "deploy")
 	for i := 0; i < 10 && m.screen == scrDeploy; i++ {
@@ -316,12 +318,12 @@ func TestDeployReviewIsTheConfirm(t *testing.T) {
 	}
 	m = fixture(t, "deploy-review")
 	if m.focus != 4 || m.formBtn != 1 {
-		t.Fatal("deploy-review must render the prod review step with Cancel focused")
+		t.Fatal("deploy-review must render the prod review step with its safe button focused")
 	}
 	if out := strings.ToLower(ansi.Strip(m.render(120, 40).String())); !strings.Contains(out, strings.ToLower("Deploy "+m.version+" to prod")) {
 		t.Fatal("the deploy button must name the act and where it lands")
 	}
-	// the act is drawn in danger ink while Cancel holds the focus, as a confirm's is
+	// the act is drawn in danger ink while the safe button holds the focus, as a confirm's is
 	c, found := m.render(120, 40), false
 	for y, line := range strings.Split(strings.ToLower(ansi.Strip(c.String())), "\n") {
 		x := strings.Index(line, "deploy "+m.version)
@@ -359,9 +361,9 @@ func TestDeployLifecycle(t *testing.T) {
 	for m.focus != 4 {
 		m.key(press("tab"))
 	}
-	// the review step is the confirmation: a prod deploy arrives on Cancel
+	// the review step is the confirmation: a prod deploy arrives on its safe button
 	if m.formBtn != 1 {
-		t.Fatal("a prod deploy's buttons must start on Cancel, so enter alone never ships")
+		t.Fatal("a prod deploy's buttons must start on its safe button, so enter alone never ships")
 	}
 	m.key(press("right"))
 	cmd := m.key(press("enter"))
@@ -1121,6 +1123,48 @@ func TestFilterNeverActsOnAHiddenRow(t *testing.T) {
 		m.key(press("ctrl+p"))
 		if m.ov == ovPalette {
 			t.Errorf("typing=%v: ctrl+p opened the palette, whose commands act on the hidden %q", typing, m.svcs[m.sel].Name)
+		}
+	}
+}
+
+// bareCancel finds "Cancel" standing alone, as a button or a key's whole description
+// ("[ Cancel ]", a pill, "esc cancel" at a row's end or before a gap), in any case; a
+// word after it ("cancel sign-in") or a past tense ("Canceled.") is not bare.
+var bareCancel = regexp.MustCompile(`(?i)(^|[^a-z])cancel(\s*\]|\s{2,}|\s*$)`)
+
+// No button and no key says a bare "Cancel" (interaction.md § Confirm By Consequence,
+// rung 3): the safe button says what it does, Keep v2.4.0 on a rollback or a prod
+// deploy, Back to edit and Discard setup on the setup review. A bare Cancel on a review
+// left the user asking whether their answers were lost. Every state's action table, and
+// the table after each of its keys, and every state's frame in three button styles.
+func TestNoBareCancel(t *testing.T) {
+	descs := func(name string, m *app) {
+		for _, a := range m.actions() {
+			if d := a.b.Help().Desc; strings.EqualFold(strings.TrimSpace(d), "cancel") {
+				t.Errorf("%s: %s is described as a bare %q: say what it does (keep v2.4.0, back to edit)", name, a.b.Help().Key, d)
+			}
+		}
+	}
+	for _, s := range states {
+		descs(s, fixture(t, s))
+		for _, a := range fixture(t, s).actions() {
+			m := fixture(t, s)
+			m.key(press(a.b.Keys()[0]))
+			descs(s+" then "+a.b.Keys()[0], m)
+		}
+	}
+	for _, name := range []string{"charm.json", "halyard.json", "lumen.json"} {
+		m := newApp(testTheme(t, name), true, false)
+		for _, s := range states {
+			for _, sz := range [][2]int{{80, 24}, {120, 40}} {
+				m.setState(s)
+				w, h := frameSize(s, sz[0], sz[1])
+				for i, row := range strings.Split(ansi.Strip(m.render(w, h).String()), "\n") {
+					if bareCancel.MatchString(row) {
+						t.Errorf("%s %s %dx%d: row %d has a bare Cancel: %q", name, s, w, h, i, strings.TrimSpace(row))
+					}
+				}
+			}
 		}
 	}
 }
