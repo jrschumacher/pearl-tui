@@ -67,6 +67,12 @@ adds a rule or gap row (`footer: rule`, `density`) is paint; one that removes a 
 or puts it elsewhere in the screen's order is a move. Both brands in that pair chose `╌`
 as their motif, which has its own line. A recoloured `ui.Header` is the kit's element,
 not a signature.
+**DON'T** move a region that follows the selection to the far side of the list from
+another one that does: a row change that repaints the screen above and below the list
+leaves the eye nowhere to rest. A den's card above its list, with that den's reviews
+below it, read as "hard on the eyes"; a cabinet's marquee above its list, with nothing
+below that changes, did not. Everything that follows the selection sits in one region,
+beside the list or on one side of it.
 
 ### The Read Reaches Past The Main Screen
 
