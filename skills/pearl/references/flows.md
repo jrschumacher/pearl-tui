@@ -37,7 +37,10 @@ form or a monitor the mark is the one-row signature beside the name (`brand.md`)
 mark in the header was read as "way too large", and pushes the job down. A product
 whose content is a picture can give up the mark there: a player whose screen belongs to
 the artwork puts its name in a corner with a short brand gradient, and was called
-"really refined" for it. The splash is where the mark is big.
+"really refined" for it. The splash is where the mark is big. The exception is a header
+band built to carry it: a taller mark set into a band that holds the screen's context
+beside it ("the header band actually works") was the grader's pick over a one-row mark,
+because the band, not the mark, is the header.
 
 ## Monitoring And Live Work
 
@@ -82,5 +85,12 @@ Lists to compare and choose from.
 
 ## Configure
 
-Setup wizards and settings: the user wants to be done. The steps, the summary and the
-review are in `components.md` § Forms And Wizards.
+Setup wizards and settings: the user wants to be done, and to know how far that is.
+
+- **The whole journey stays in view**: every step this user will see, as a column or a
+  row, the done ones carrying their answer and the current one lit. "It can get really
+  frustrating when you don't know… how many pages am I gonna be going through." A branch
+  that adds or removes a step updates the list and the count as soon as it's chosen.
+- **Going back keeps every answer**; changing one that removes a later step drops only
+  that step's answer.
+- The steps, the summary and the review are in `components.md` § Forms And Wizards.

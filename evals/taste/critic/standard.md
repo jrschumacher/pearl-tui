@@ -26,20 +26,26 @@ this grader's experience, these decide which of two screens is better:
    purchase; a bare "Cancel", or focus on it, is frustrating and unclear about what it
    loses. A destructive act defaults to the safe choice.
 7. **Context that carries the product's purpose is kept**: a now-playing strip under a
-   music app's search; a search highlights the matched text.
+   music app's search; a search highlights the matched text. A wizard shows every step
+   ahead with the answers given so far; not knowing how many steps remain is frustrating.
+8. **Working with the data beats a first impression.** A layout that looks clean and
+   uniform at a glance loses to one that is easier to read and act on; judge by doing the
+   screen's job in it, not by its tidiness.
 
 ## On-brand
 
-8. **The brand shows in details that serve the job**, not in volume: a refined small
+9. **The brand shows in details that serve the job**, not in volume: a refined small
    mark, the brand's voice in headings and empty states ("Check the scroll before you
    roll"), the accent on the number that matters to this product, a motif in a rule or
    the selection. More colour or a bigger logo is not more brand.
-9. **Working screens put the job first**; people are there to do their job, not to look
+10. **Working screens put the job first**; people are there to do their job, not to look
    at the brand. A media product can give up the logo for the content (artwork) and keep
-   the name small in a corner.
-10. **The brand's three words and its "never" are the test**: name the specific detail
+   the name small in a corner. A taller mark is right only in a header band built to
+   carry it, with the screen's context beside it.
+11. **The brand's three words and its "never" are the test**: name the specific detail
     that makes one screen feel like those words, or like the "never", more than the
     other.
 
-When the two screens are close, say so (0 or ±1); a ±2 is for a difference the person
-would notice in a second.
+Commit to a side. This grader rarely calls pairs even: a 0 is for screens you could not
+tell apart, ±1 for a difference you have to look for, ±2 for one the person would notice
+in a second, which is most of them.
