@@ -1,0 +1,121 @@
+{
+ "x01": {
+  "kind": "anchor",
+  "a": "good",
+  "b": "bad"
+ },
+ "s01": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "b01": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "h01": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "c01": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "s02": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "b02": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "h02": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "c02": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "h03": {
+  "kind": "skill-vs-bare",
+  "a": "bare",
+  "b": "skill"
+ },
+ "c03": {
+  "kind": "skill-vs-bare",
+  "a": "skill",
+  "b": "bare"
+ },
+ "z01": {
+  "kind": "repeat",
+  "of": "s02",
+  "a": "skill",
+  "b": "bare"
+ },
+ "z02": {
+  "kind": "repeat",
+  "of": "b01",
+  "a": "skill",
+  "b": "bare"
+ },
+ "z03": {
+  "kind": "repeat",
+  "of": "c02",
+  "a": "bare",
+  "b": "skill"
+ },
+ "k01": {
+  "kind": "pick",
+  "options": {
+   "A": "quiet",
+   "B": "wordmark",
+   "C": "intro",
+   "D": "field"
+  }
+ },
+ "k02": {
+  "kind": "pick",
+  "options": {
+   "A": "quiet",
+   "B": "wordmark",
+   "C": "field",
+   "D": "intro"
+  }
+ },
+ "k03": {
+  "kind": "pick",
+  "options": {
+   "A": "quiet",
+   "B": "intro",
+   "C": "wordmark",
+   "D": "field"
+  }
+ },
+ "k04": {
+  "kind": "pick",
+  "options": {
+   "A": "field",
+   "B": "intro",
+   "C": "quiet",
+   "D": "wordmark"
+  }
+ },
+ "k05": {
+  "kind": "pick",
+  "options": {
+   "A": "field",
+   "B": "intro",
+   "C": "quiet",
+   "D": "wordmark"
+  },
+  "repeat_of": "k03"
+ }
+}
