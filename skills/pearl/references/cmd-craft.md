@@ -99,6 +99,9 @@ fallback in `verify.md` § The Critic) → fix → again. Two to four rounds.
 
 Show it after the first slice, before the rest, so the design is judged before the
 integrations eat the effort: the contact sheets (80×24, 120×40, light), the run command,
-the critic's verdict, and what you chose not to do. Append decisions to `TUI.md`.
+the critic's verdict, and what you chose not to do. A pick point the work order names
+(a splash style, a layout two arrangements pass) ships behind a harness flag per option,
+shown as its own sheet, until the person picks (`collaborate.md`). Append decisions to
+`TUI.md`, and rewrite § Work orders for what comes next.
 
 Next: `audit` (mechanics), then `polish`; `harden` before a release.

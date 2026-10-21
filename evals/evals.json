@@ -458,6 +458,27 @@
         "settings stay the main screen: a health dashboard is a cut with its reason, because no customer leaves it open",
         "the logo's motif marks nothing but the logo: staged rows use a glyph of their own"
       ]
+    },
+    {
+      "id": 18,
+      "name": "work-order-lanternfish",
+      "prompt": "I'm not available; read answers.md and take the proposed default for anything it doesn't answer. /pearl init, then shape. Stop before any Go code: another session will build it from what you leave.",
+      "files": [
+        "evals/fixtures/work-order-lanternfish/README.md",
+        "evals/fixtures/work-order-lanternfish/answers.md"
+      ],
+      "expected_output": "TUI.md with the product read, the screens and a work order for craft that stands alone; at each pick point, two to four rendered options shown before one was taken; and the next work order printed in the hand-off.",
+      "assertions": [
+        "TUI.md has a `## Work orders` section whose first order stands alone: a goal, `keep:` lines, `exact:` and `inspiration:` lines (or `reference: none`), a `method:` naming each pick point, `deliver:` naming the files to review, and `decide:` naming what the person chooses",
+        "every `keep:` line quotes what answers.md says must stay, word for word: the --token path with no screen, the token never shown again, the step order",
+        "a `keep:` line that points at something outside TUI.md (\"the order above\") carries what it points at: here the step order itself, since answers.md won't be in the repo",
+        "the order points at TUI.md's sections instead of restating them: no screen block, key table or palette copied into it",
+        "at each pick point (at least the main screen's move and signature) the agent rendered two to four options that differ in kind, not only in colour, as a contact sheet at 80×24 (sketches through cellshot before code, harness flags after), and named the sheet's path before taking one",
+        "each pick is recorded under `## Assumed` (the person was away) with its one-line reason, and the reason is written as a rule the rest of the build can follow",
+        "the hand-off prints the next work order, ready to paste, instead of a bare `Next: craft`",
+        "nothing is asked of the person that the skill decides itself: keys, states, contrast and the laws are not pick points",
+        "(pair) a fresh session given only the repo, the skill and the prompt `Run the work orders in TUI.md, in order.`, with answers.md removed (the conversation reaches it only through the orders), builds the slice; graded against the same slice built by a session that also had the interview, it is at least as good, and it keeps every `keep:` line"
+      ]
     }
   ]
 }
