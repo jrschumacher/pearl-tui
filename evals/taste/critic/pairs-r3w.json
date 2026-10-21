@@ -1,0 +1,47 @@
+[
+ {
+  "id": "r3-w01",
+  "brand": "lanternfish",
+  "screen": "setup: sign in, first step",
+  "words": "calm, precise, luminous",
+  "never": "a wall of blinking lights",
+  "a": "r3-w01-a.png",
+  "b": "r3-w01-b.png"
+ },
+ {
+  "id": "r3-w02",
+  "brand": "lanternfish",
+  "screen": "setup: SSO details (a branch)",
+  "words": "calm, precise, luminous",
+  "never": "a wall of blinking lights",
+  "a": "r3-w02-a.png",
+  "b": "r3-w02-b.png"
+ },
+ {
+  "id": "r3-w03",
+  "brand": "lanternfish",
+  "screen": "setup: what to collect",
+  "words": "calm, precise, luminous",
+  "never": "a wall of blinking lights",
+  "a": "r3-w03-a.png",
+  "b": "r3-w03-b.png"
+ },
+ {
+  "id": "r3-w04",
+  "brand": "lanternfish",
+  "screen": "setup: review",
+  "words": "calm, precise, luminous",
+  "never": "a wall of blinking lights",
+  "a": "r3-w04-a.png",
+  "b": "r3-w04-b.png"
+ },
+ {
+  "id": "r3-w05",
+  "brand": "lanternfish",
+  "screen": "setup: connection failed",
+  "words": "calm, precise, luminous",
+  "never": "a wall of blinking lights",
+  "a": "r3-w05-a.png",
+  "b": "r3-w05-b.png"
+ }
+]

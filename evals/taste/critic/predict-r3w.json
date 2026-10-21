@@ -1,0 +1,17 @@
+[
+ {"id": "r3-w01", "refined": 1, "brand": 1,
+  "refined_why": "Point 5 and 3: B's footer carries esc and a right-aligned '? help', and its header names what is being acted on (web-01); A has no help key. B's step rail also shows where you are in the whole setup.",
+  "brand_why": "Point 8: B's small lantern mark beside the name is a refined brand detail; A is equally calm but only a dot. Both are calm, so only a little."},
+ {"id": "r3-w02", "refined": 1, "brand": 1,
+  "refined_why": "Points 2 and 5: B's selected 'Okta' is bold and stark and its footer has '? help'; A's longer footer has no help. B loses some ground to a stray duplicate 'SSO' label in the rail gutter, so only a little.",
+  "brand_why": "Point 8 and 10: B's small mark and checked-step rail read precise; the stray 'SSO SSO' undercuts precision, so a little."},
+ {"id": "r3-w03", "refined": -2, "brand": -1,
+  "refined_why": "Points 7, 2 and 5: A's rail carries every earlier answer right-aligned (SSO, acme-corp.com, cloud, eu-west), uses checkboxes for a multi-select, and shows '? help'; B uses radio-dot circles for a pick-several list and offers no help.",
+  "brand_why": "Point 10 (precise): A's aligned answer column and correct checkbox glyphs feel precise; B is calm but its round dots for a multi-select are imprecise."},
+ {"id": "r3-w04", "refined": 1, "brand": 1,
+  "refined_why": "Points 6 and 4: B's 'Start collecting' is a single filled accent button with focus on it and a line saying what starting does; A repeats the same answers in both the rail and the review list and uses clunky '›[ ]' bracket buttons. A keeps '? help', so only a little.",
+  "brand_why": "Point 8 (luminous): B's one lit button is the accent on the act that matters, calm around it; A's duplicated lists and bracketed buttons read busier."},
+ {"id": "r3-w05", "refined": 1, "brand": 1,
+  "refined_why": "Points 3, 5 and 1: B keeps a calm header and the failed check next to the steps it belongs to, with enter defaulting to Retry and '? help' shown; A puts 'x not connected' status in the header and spends the top of the screen on a big illustration before the error. A's right-aligned timings are good, so a little.",
+  "brand_why": "Points 8 and 9: A's large fish illustration is volume, not brand, on a working error screen; B keeps the small mark and job first, though its red appears in three places, so a little."}
+]
