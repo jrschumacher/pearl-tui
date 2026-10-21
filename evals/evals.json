@@ -1,6 +1,6 @@
 {
   "skill_name": "pearl",
-  "notes": "Run with the skill-creator skill pointed at skills/pearl. This file lives outside the skill on purpose: npx skills add copies the skill directory whole, and the prompts and graded assertions here must not reach the agent under evaluation. `files` are relative to the repository root. Each assertion is a failure seen when models build TUIs without the skill (or with an earlier version). Deterministic ones are checked by tuilint and the harness; the rest by a grader reading renders and the transcript. The init cases run unattended: an answers.md fixture stands in for the user. Add a case whenever the skill misses something in real use: write the miss as an assertion first, make the kit pass it, then edit the skill. An assertion that starts '(pair)' is graded only on a paired run: two cold builds of the case as the assertion describes them, judged side by side; a single run skips it.",
+  "notes": "Run with the skill-creator skill pointed at skills/pearl. This file lives outside the skill on purpose: npx skills add copies the skill directory whole, and the prompts and graded assertions here must not reach the agent under evaluation. `files` are relative to the repository root. Each assertion is a failure seen when models build TUIs without the skill (or with an earlier version). Deterministic ones are checked by tuilint and the harness; the rest by a grader reading renders and the transcript. The init cases run unattended: an answers.md fixture stands in for the user. Add a case whenever the skill misses something in real use: write the miss as an assertion first, make the kit pass it, then edit the skill. An assertion that starts '(pair)' is graded only on a paired run: two cold builds of the case as the assertion describes them, judged side by side; a single run skips it. An assertion that starts '(portable)' checks something the skill assumes of the agent's harness (that it can open an image, that it has a critic subagent or uses the fallback): grade it on a run under each harness the skill is evaluated in (Claude Code, pi), so a miss that only one harness or model shows is caught.",
   "evals": [
     {
       "id": 0,
@@ -272,6 +272,35 @@
         "every § Screens block after the main screen's (each secondary screen and overlay) carries one `brand:` line: what the read's three words change there (copy voice, dialog form, footer phrasing), or 'nothing, because …' with a reason, following from the words as the move does, not a restyle the theme already makes; tuilint spec raises no S-SLOTS",
         "TUI.md's architecture half puts the root model, render(w,h), the fixtures and the harness in cmd/<app>/ (where the kit's README copy block puts the showcase and its tests), not in internal/app/; internal/ holds only the copied theme/ and ui/",
         "each § Screens region line gives the footer the height the theme's footer draws, 80×1 at 0,23 bare or on a bar and 80×2 at 0,22 under footer: rule (a rule row then the keys), with the body budget above it one row shorter in the rule case; no region line writes footer 0,23 80×1 under a rule footer"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "critique-against-a-reference",
+      "prompt": "/pearl critique — we restyled kestrel setup's sign-in wait to match the reference our design lead supplied (reference/, terms in BRIEF.md). The app's harness frames are in frames/, the tests pass (test.log) and the last review said SHIP (review.md). Can we ship it? Don't change anything.",
+      "files": [
+        "evals/fixtures/signin-reference/BRIEF.md",
+        "evals/fixtures/signin-reference/reference/wait-1.png",
+        "evals/fixtures/signin-reference/reference/wait-2.png",
+        "evals/fixtures/signin-reference/reference/wait.gif",
+        "evals/fixtures/signin-reference/frames/wait-80x24.ansi",
+        "evals/fixtures/signin-reference/frames/wait-2-80x24.ansi",
+        "evals/fixtures/signin-reference/frames/wait-120x40.ansi",
+        "evals/fixtures/signin-reference/review.md",
+        "evals/fixtures/signin-reference/test.log"
+      ],
+      "expected_output": "A fidelity verdict of DEVIATES, separate from the score, that names the composition, artwork, status, contrast and footer differences from the reference at 80×24 with cells, so the answer is not yet, whatever the score; no files changed.",
+      "assertions": [
+        "no files modified",
+        "the candidate's 80×24 frames were rendered with cellshot and set beside the reference at the same size and state (both wait frames); the 120×40 frame is not compared with the 80×24 reference",
+        "the critic's packet (the subagent prompt, or the fallback's) carries the reference images and BRIEF.md's terms, not only the candidate's sheets",
+        "a fidelity verdict separate from the score out of 24 (DEVIATES or equivalent), and the answer to 'can we ship' is not yet because of it, whatever the score",
+        "names the material deviations with rows or cells: the status moved from beside the mark into the header; the mark centred above the copy instead of left of it; the mark solid primary instead of tonal rings; the body copy a step dimmer than the reference's; the footer one weight with cancel first instead of boxed actions first and cancel set apart on the right",
+        "motion compared from both reference frames or the GIF: the reference's bright arc moves round the outer ring and the candidate's mark is static",
+        "the approved deviation (elapsed as 12s, not 0:12) is not reported as a defect",
+        "review.md's SHIP and the passing test.log are not taken as evidence of fidelity",
+        "at 120×40 the fidelity claim is withheld (the reference has no 120×40 frame) or judged only as an adaptation of the 80×24 design",
+        "(portable) the reference images were opened by the agent (an image read shows in the transcript), not judged from file names or BRIEF.md's words"
       ]
     }
   ]

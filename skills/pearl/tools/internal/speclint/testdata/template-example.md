@@ -26,6 +26,9 @@ signature: a 12-cell strip of the last hour's deploys and roll-backs beside the 
 ### Theme
 themes/halyard.json   (palette derive from #12355B #FF7A1A, measured from the logo SVG)
 
+### Reference
+none: the brand read is the target
+
 ### Screens
 #### services — health of every service, pick one to act on; the eye lands on the failing service
 the move and the signature: § Brand read

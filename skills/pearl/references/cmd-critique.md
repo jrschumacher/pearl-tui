@@ -16,6 +16,12 @@ and 120×40. If it doesn't, that is finding #1. Get frames anyway:
 
 Then `cellshot --sheet`, `tuilint frames` and `tuilint code`.
 
+If the user says the screen should match something (an image, a GIF, frames, a
+mockup), open it, get frames at its size and in its states, and give both critics the
+reference and its terms: the report then carries the fidelity verdict
+(`verify.md` § Hold It To The Reference), and a DEVIATES answers "can we ship" whatever
+the score.
+
 ## 2. Two Independent Reviews
 
 Spawn two critic subagents with the same files but no shared context (`verify.md` has
@@ -36,6 +42,7 @@ same screen against the same bar.
 
 ```
 VERDICT  FIX   17/24   (identity 2, hierarchy 3, focus 3, layout 4, states 2, craft 3)
+FIDELITY DEVIATES      (only with a reference: composition, footer; see P1s)
 
 P0  services@80×24  rows 4–12: selection is a bg change only; invisible at -profile ascii
     → selection: "bar" or add the ▌ gutter (ui.List handles both)

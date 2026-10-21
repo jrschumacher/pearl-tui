@@ -17,7 +17,10 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
 0. **Read `TUI.md` first.** If it's missing and the job is one screen, run `init`'s
    short form, saying what you assumed; otherwise suggest `init` and stop: restyling
    without the brand read and the screen plan only recolours.
-1. **Get eyes on it first** (`cmd-critique.md` §1) and save the "before" sheets.
+1. **Get eyes on it first** (`cmd-critique.md` §1) and save the "before" sheets. If the
+   user gave a screen to match, write its terms in TUI.md § Reference now and ask about
+   its conflicts with the laws in one message (`verify.md` § Hold It To The Reference):
+   from here on it is the target, not an ingredient list.
 2. **Add the harness from the kit.** Copy `theme/bubbletea` and `ui/bubbletea` with the
    README block (`cmd-craft.md` §1; skip `cmd/showcase`, the app exists), then lift
    `main.go`'s harness (`render(w, h)`, `setState`, `states`, `overlays`, `scrolls`,
@@ -39,9 +42,11 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
    (`idiom.md` §1). Keep one border, for dialogs.
 6. **Adopt the components** one region at a time (the list, the footer and help from
    bindings, tags, the dialog with a scrim). Re-render after each.
-7. **Raise it to the idiom.** Put the "after" sheet beside the kit's services screen and
-   check each move. A restyled screen shows at least four of them; say in one line why
-   any missing one doesn't fit this product.
+7. **Raise it to the idiom.** With an `exact` reference, put the "after" sheet beside
+   the reference at its size and state instead, and take the moves below only where it
+   leaves room: a move it leaves out is its choice, not a gap. Otherwise put the "after"
+   sheet beside the kit's services screen and check each move. A restyled screen shows
+   at least four of them; say in one line why any missing one doesn't fit this product.
 
    | Move | On a dashboard | On a wizard |
    |---|---|---|
@@ -58,4 +63,5 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
    first, the negative last), the forward action as the default on a review step, a step
    counter that keeps counting after review, and a wait that says what to do if it never
    ends (the URL to open by hand, elapsed time, cancel).
-9. **Loop** (`verify.md`) and show before/after sheets side by side.
+9. **Loop** (`verify.md`) and show before/after sheets side by side, and the reference
+   beside the "after" when there is one, with the critic's fidelity verdict.

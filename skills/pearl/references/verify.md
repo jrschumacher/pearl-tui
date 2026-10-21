@@ -42,11 +42,13 @@ frames takes the rest of the loop unchanged.*
             (globs, not a state list: toosmall renders at its own size, 50x14, and a
             named list drops it)
             → Read the PNGs. Run the slop test (anti-patterns.md) on each.
-5. CRITIQUE spawn a critic subagent (below; or its fallback) with the PNGs, goldens, TUI.md and code
+5. CRITIQUE spawn a critic subagent (below; or its fallback) with the PNGs, goldens, TUI.md and code,
+            and the user's reference when TUI.md § Reference names one (§ Hold It To The Reference)
 6. FIX      one change per defect; re-run 1–4; resume the SAME critic for round 2
 ```
 
-Expect 2–4 rounds. Stop when the critic says ship and your own slop test passes.
+Expect 2–4 rounds. Stop when the critic says ship and your own slop test passes, and,
+with a reference, its fidelity verdict says MATCH.
 
 ## Reading A Render Honestly
 
@@ -72,6 +74,33 @@ It cannot see a weak hierarchy, a screen with no identity, help that lies about 
 key does in this state, copy in the wrong voice, or a layout that wastes the 120×40
 room. That's the critic's job, and yours.
 
+## Hold It To The Reference
+
+When the user gives you a screen to match (an image, a GIF, frames, a mockup), the
+rubric stops being the whole question: it asks "is this good?", and a coherent screen
+built from the reference's ingredients scores SHIP while it misses the reference's
+composition, contrast and footer. So fidelity gets its own verdict.
+
+- **Write its terms down first**, in TUI.md § Reference: the files, the size in cells,
+  the states it shows, what is `exact` and what is `inspiration`, and the deviations the
+  user approved. A reference with no terms is a question for the user, not a guess.
+- **Ask about conflicts once, before building.** List every place the reference breaks
+  a law or a lint rule (a border the idiom drops, contrast under 2.3:1, fewer than four
+  restyle moves) in one message, and record each answer in § Reference as approved or as
+  the law winning. Asked one at a time, they cost the user a round each.
+- **Compare at its size and state.** Render the app at the reference's size in the
+  state it shows, and set the two side by side. An image's size is its pixels over the
+  cell: cellshot's 12×24 default makes 960×576 an 80×24 frame. A 120×40 frame against an
+  80×24 reference compares nothing: say there's no reference at that size and judge the
+  larger frame as an adaptation of the matched one. For motion, compare two or more
+  frames of each, or the GIF frame by frame.
+- **Ask for frames when the reference came from a TUI.** `.ansi` frames (a harness's
+  `-out`) render through the same cellshot and compare cell for cell; a GIF of them has
+  lost the cells.
+- **Claim MATCH only from a side-by-side you looked at.** A SHIP score, a passing test
+  run or an earlier review says nothing about fidelity; without the comparison, say the
+  fidelity is unchecked.
+
 ## The Critic
 
 Spawn a fresh subagent. It has not seen your reasoning, so it judges the screen, not the
@@ -94,6 +123,8 @@ Files:
   - TUI.md (§ Brand read, § Never, § Screens) and themes/<brand>.json: what the brand
     and the screens are supposed to be
   - the app's render code: <paths>
+  - only when the user gave one: the reference (<paths>, at <size>, in <states>) and
+    TUI.md § Reference: what is exact, what is inspiration, and the approved deviations
 Rubric (score each 0–4, cite rows/cells, not impressions; 0 = a default or a break,
 2 = works but surprises, 4 = designed):
   1. Identity: with colour stripped, is it recognisably this brand? Does the main
@@ -134,6 +165,10 @@ Rubric (score each 0–4, cite rows/cells, not impressions; 0 = a default or a b
      filled bars; nothing animates while idle.
 Output:
   - verdict first: SHIP (20+) / FIX (14–19) / RETHINK (below 14), and a total out of 24
+  - with a reference, a second verdict the score can't offset: FIDELITY MATCH or
+    DEVIATES, from frames of the same size and state only. For each exact axis
+    (composition, contrast, artwork treatment, status placement, footer hierarchy,
+    motion), the cells that differ in each frame; an approved deviation is not one
   - ≤ 10 defects ranked P0 (broken) → P3 (polish), each with the state, the cells, why,
     and the fix in renderer terms (which component, which theme key)
   - the one change that would help most
@@ -151,4 +186,6 @@ Show the user the result, not the process:
 - the contact sheets (80×24 and 120×40, plus light) as files they can open
 - what the brand read decided, in 3–5 lines
 - the critic's last verdict and score, and anything you chose not to fix (with the reason)
+- with a reference, the fidelity verdict and the sheet beside it at its size; DEVIATES
+  is not ready, whatever the score
 - how to run it: `go run ./cmd/<app>` and the harness flags

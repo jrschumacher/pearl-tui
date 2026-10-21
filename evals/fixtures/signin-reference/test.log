@@ -1,0 +1,4 @@
+$ go test ./...
+ok  	kestrel/cmd/setup	0.412s
+ok  	kestrel/internal/theme	0.087s
+ok  	kestrel/internal/ui	0.231s

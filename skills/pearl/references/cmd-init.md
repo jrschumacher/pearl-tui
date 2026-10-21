@@ -71,7 +71,8 @@ Round 1, design (skip what the repo answered):
    hours; developers in a split pane for seconds)
 2. **The brand in three words, and one thing it must never feel like.**
 3. **Brand assets**: primary colours (hex), the logo file, the typeface, a reference
-   product ("like Crush but calmer").
+   product ("like Crush but calmer"). Any screen to match: is it exact, or inspiration?
+   (`verify.md` § Hold It To The Reference; it goes in § Reference.)
 
 Round 2, architecture (screens always; the rest only what the code didn't answer):
 
@@ -124,6 +125,11 @@ glyphs: <glyph> <meaning> (ascii <twin>), one line each; twins the kit lacks go 
 
 ### Theme
 themes/<brand>.json   (palette derive from <measured hexes, source>)
+
+### Reference
+<none | the files; size in cells; the states shown>   (verify.md § Hold It To The Reference)
+exact: <composition, contrast, artwork treatment, status placement, footer hierarchy, motion: the axes to match>; inspiration: <the rest>
+approved: <date> <deviation> (<who>), one line each; a law the reference breaks and the user kept goes here too
 
 ### Screens
 One block per screen, the main screen's first (`tuilint spec` reads the first block as the main screen): `shape` fills it, `craft` builds it in § First slice order.
