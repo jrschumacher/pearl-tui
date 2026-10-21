@@ -1,0 +1,114 @@
+{
+ "round": "i1",
+ "title": "Intuition check",
+ "items": [
+  {
+   "id": "tallyho",
+   "kind": "brief",
+   "brand": "tallyho",
+   "screen": "a time tracker for freelancers",
+   "words": "brisk, honest, tidy",
+   "never": "a corporate timesheet",
+   "body": [
+    "Start a timer on a client's project, see the week's entries, and turn a client's hours into an invoice (export to PDF; it can be redone, and nothing is sent).",
+    "Used all day: timers are started and stopped many times a day; invoices go out weekly or monthly.",
+    "Plum on near-black, chalk as the second colour. The logo is a tally of four strokes crossed by a fifth.",
+    "Two screens: the week, and an invoice draft for one client."
+   ],
+   "prompts": [
+    {
+     "key": "lead",
+     "label": "What does the main screen lead with?"
+    },
+    {
+     "key": "data",
+     "label": "Where does the important or live data sit?"
+    },
+    {
+     "key": "visible",
+     "label": "What's always visible, and what stays hidden until asked for?"
+    },
+    {
+     "key": "second",
+     "label": "How does the second screen work? Defaults, what's highlighted, what could go wrong."
+    },
+    {
+     "key": "brand",
+     "label": "How should the brand show?"
+    }
+   ]
+  },
+  {
+   "id": "burrow",
+   "kind": "brief",
+   "brand": "burrow",
+   "screen": "a terminal email client",
+   "words": "cozy, unhurried, private",
+   "never": "an inbox that shouts",
+   "body": [
+    "For people who read a lot of mail and answer some of it. Open for hours in a full tab, often large, but it must work at 80\u00d724. Long messages, and wide lines in them.",
+    "Mail syncs every minute in the background and can fail while offline. Mouse on. A sent message can be undone for 5 seconds.",
+    "Soft rose on midnight blue, slate as the second colour. The logo is a round burrow door with a warm light inside.",
+    "Two screens: the inbox (the list, and reading a message), and compose."
+   ],
+   "prompts": [
+    {
+     "key": "lead",
+     "label": "What does the main screen lead with?"
+    },
+    {
+     "key": "data",
+     "label": "Where does the important or live data sit?"
+    },
+    {
+     "key": "visible",
+     "label": "What's always visible, and what stays hidden until asked for?"
+    },
+    {
+     "key": "second",
+     "label": "How does the second screen work? Defaults, what's highlighted, what could go wrong."
+    },
+    {
+     "key": "brand",
+     "label": "How should the brand show?"
+    }
+   ]
+  },
+  {
+   "id": "nestkeeper",
+   "kind": "brief",
+   "brand": "nestkeeper",
+   "screen": "settings for a home server",
+   "words": "orderly, reassuring, exact",
+   "never": "a registry editor",
+   "body": [
+    "Network, storage, backups, users and updates: about 60 settings in six sections, findable by name. Changes stay pending until applied together.",
+    "Applying takes 3 to 10 seconds and can partly fail. Some changes restart a service; one, the admin port, can lock you out.",
+    "Used a few times a month, over SSH, for 5 to 15 minutes. Sage on near-black, bone as the second colour. The logo is a small nest with one egg.",
+    "Two screens: settings, and review & apply."
+   ],
+   "prompts": [
+    {
+     "key": "lead",
+     "label": "What does the main screen lead with?"
+    },
+    {
+     "key": "data",
+     "label": "Where does the important or live data sit?"
+    },
+    {
+     "key": "visible",
+     "label": "What's always visible, and what stays hidden until asked for?"
+    },
+    {
+     "key": "second",
+     "label": "How does the second screen work? Defaults, what's highlighted, what could go wrong."
+    },
+    {
+     "key": "brand",
+     "label": "How should the brand show?"
+    }
+   ]
+  }
+ ]
+}
