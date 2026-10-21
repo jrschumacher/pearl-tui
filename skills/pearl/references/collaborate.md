@@ -62,7 +62,9 @@ decide: the step column's form; work stops at the sheet until it is picked
 
 **DO** quote the person word for word on each `keep:` line: what they said must stay
 (a flag CI runs, a step order support docs follow, a key). A default nobody stated is
-not a keep; it goes under `## Assumed`.
+not a keep; it goes under `## Assumed`. A quote that points elsewhere carries what it
+points at, because the conversation it pointed into won't be there: `keep: "The steps
+stay in the order above." (sign in, where data goes, collect, alerts, review, connect)`.
 **DO** point at `TUI.md`'s sections instead of copying them: a screen block or key table
 copied into an order drifts from the one the next command edits.
 **DO** rewrite the orders at every hand-off and delete the ones done, then print the
