@@ -202,10 +202,11 @@ Sign-in ──────────────────── staging-eu-
   `ui.SummaryStrip`, one line.
 - **Every step counts.** Connecting and finishing are steps, so the counter never repeats
   the review's number on three screens.
-- **Review defaults to the forward action** (`ui.NewActions(0, "Continue", "Edit",
-  "Cancel")`), unless the review ships what can't be taken back: then it is the
-  confirmation, and focus arrives on Cancel (`interaction.md` § Confirm By Consequence,
-  rung 3). `ui.Confirm(t, title, action, negative, def, &v)` for yes/no, action first.
+- **Review defaults to the forward action** (`ui.NewActions(0, "Continue", "Back to
+  edit", "Discard setup")`), and so does a review whose act is what the flow is for (a
+  purchase, a booking). Only a review that destroys or replaces what's running (a deploy,
+  a rollback) is the confirmation with focus on its safe button (`interaction.md`
+  § Confirm By Consequence, rung 3). Every button names what it does: no bare `Cancel`. `ui.Confirm(t, title, action, negative, def, &v)` for yes/no, action first.
 - **Waits say what to do if nothing happens**: the URL to open by hand, the code, elapsed
   time, `esc cancel`; a timeout becomes a failure state with Retry.
 - **Esc goes back** from step 2 on; on step 1 it asks before dropping typed input.

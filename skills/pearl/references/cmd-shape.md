@@ -63,8 +63,15 @@ not identity, and the critic marks it.
 
 ## For Each Screen
 
-1. **Job**: the one thing the user comes to this screen to do, and what they look at
-   first.
+1. **Job and data**: the one thing the user comes to this screen to do, and what they
+   look at first, then the journey around it. Write three lines in its block: `job:`
+   (the task, and its flow from `flows.md`: monitoring, checkout, media, browse,
+   configure), `data:` (each region's data by kind: live, background, money, the
+   product's purpose) and `carry:` (what this screen keeps in view from the product's
+   purpose, or nothing, because it is that purpose). Then load `flows.md` § Name The
+   Data Before Placing It and the section the `job:` names: they decide where the
+   live pane goes, what becomes a glyph and how loud the brand is, before any region is
+   drawn. A flow is a screen's, not the app's: a booking app browses until its pay step.
 2. **Regions and budgets** at 80×24 and 120×40, with every pane's outer, inner and text
    width as integers (`layout.md`). Say what collapses below 110 columns and below 30
    rows.

@@ -134,14 +134,21 @@ explicit send), a confirm adds nothing. Put every action on the first rung that 
    and the fix is another ship, not an undo. Hard to undo isn't can't be undone: a
    merge reverts, an issue reopens. Only the user knows whether this is the object to
    lose, so the dialog names it and what can't be taken back ("Delete nightly-0412?
-   41.2 GB, no undo"), focuses **Cancel**, colours the destructive button as danger,
-   and accepts `y` for experts. For what destroys production data (dropping a
+   41.2 GB, no undo"), focuses the safe button, colours the destructive button as
+   danger, and accepts `y` for experts. Where focus starts follows the intent, not the
+   rung: an act that destroys, removes or replaces what exists (a delete, a purge, a
+   force-push, a deploy or rollback over what's running) starts on the safe button; the
+   act a flow exists for (a purchase, a booking, a sign-up) starts on the act, because
+   the user came to do it and focusing away from it reads as the app arguing (§
+   Checkout in `flows.md`). The safe button says what it does, never a bare `Cancel`:
+   `Keep v2.4.0`, `Back to edit`, `Keep looking`. "Cancel" on a review left the user
+   asking whether their answers were lost. For what destroys production data (dropping a
    database, deleting a prod bucket), make the user type its name; a ship doesn't
    need it, since its fix is another ship. A ship started from a form is confirmed by
    the form's last step when that step says exactly what ships where (version, target,
    what changes), its button is named for the act (`Deploy v2.4.1 to prod`, not
-   `Submit` or `OK`) and drawn as danger, and focus arrives on Cancel so enter alone
-   doesn't ship. No dialog after it: it would repeat what the user just read. The
+   `Submit` or `OK`) and drawn as danger, and focus arrives on the safe button
+   (`Keep v2.4.0`) so enter alone doesn't ship over what's running. No dialog after it: it would repeat what the user just read. The
    dialog is for a ship one key starts (`r roll back` from a list).
 4. **Normally safe, but a signal says no: confirm only in that state.** The signal is
    one the user should weigh: red checks, a blocking review, an unsaved draft, a stale

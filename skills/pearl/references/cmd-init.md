@@ -135,6 +135,9 @@ approved: <date> <deviation> (<who>), one line each; a law the reference breaks 
 One block per screen, the main screen's first (`tuilint spec` reads the first block as the main screen): `shape` fills it, `craft` builds it in § First slice order.
 
 #### <screen> — <its job in one line, and what the eye lands on first>
+job: <the task, and its flow: monitoring | checkout | media | browse | configure>   (flows.md)
+data: <each region's data by kind: live, background, money, the product's purpose>
+carry: <what stays in view from the product's purpose, or nothing, because this screen is it>
 80×24:  <region> <x,y w×h> · <region> <x,y w×h> · footer 0,23 80×1     (outer widths; text width = outer − gutters)
 120×40: <region> <x,y w×h> · <the pane that exists only here> · footer 0,39 120×1
         (under footer: rule the footer is 0,22 80×2: layout.md § Write The Budget)
