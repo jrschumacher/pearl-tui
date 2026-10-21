@@ -129,7 +129,7 @@ func (m *app) setState(s string) {
 		m.openOverlay(s)
 	case "deploy":
 		m.openDeploy()
-	case "deploy-review": // the prod deploy's last step, its confirmation: focus on Cancel
+	case "deploy-review": // the prod deploy's last step, its confirmation: focus on Keep v2.4.0
 		m.openDeploy()
 		m.focus = 4
 		m.armDeploy()

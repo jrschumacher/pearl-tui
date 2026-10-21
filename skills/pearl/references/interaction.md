@@ -33,7 +33,7 @@ Readers are Bubble Tea v2's and the kit's; the rules hold for any framework.*
   `t.KeyDisambiguation` from `SupportsKeyDisambiguation()`: `ui.Help` draws the one that
   works there (ctrl+j, or shift+enter), never the 18-cell pair.
 - **A toggle's help names what the key does now:** `f pause` while following, `f follow`
-  while paused, as the kit's `enter` reads `deploy` or `cancel` from the focused button.
+  while paused, as the kit's `enter` reads `deploy` or `keep v2.4.0` from the focused button.
   `TestHelpIsHandled` proves the key fires, not that the label is true, so render both
   states and read the footer against the header: `following` beside `f follow` is a lie.
 - Key order in the help: the primary action, navigation, secondary actions, then
@@ -240,7 +240,7 @@ Terminal copy is read at speed by people mid-task. Every word earns its cells.
   Consequence). The question names what they are judging: the object and what changes
   ("Roll back checkout-api?", rung 3: it ships to production), or the signal that made
   it risky ("2 checks failing: lint, e2e. Merge anyway?"). The buttons are verbs
-  ("Roll back" / "Cancel"), never "OK" / "Yes".
+  ("Roll back" / "Keep v2.4.0"), never "OK" / "Yes", and never a bare "Cancel".
 - **Success**: past tense + object + the fact that matters. "Rolled back checkout-api
   to v2.3.9 · 3/3 pods healthy". No "Successfully".
 - **Voice** comes from the brand read: Crush's `Yep!` / `Nope` and rotating

@@ -559,7 +559,7 @@ func (m *app) deployForm(c *ui.Canvas, r uv.Rectangle) {
 	btns := ui.Buttons(t, w-2, lipgloss.Left,
 		// the button names the act and where it lands; prod's is danger, as a confirm's is
 		ui.Button(t, "Deploy "+m.version+" to "+env, focus == 4 && m.formBtn == 0, m.env == 0, -1),
-		ui.Button(t, "Cancel", focus == 4 && m.formBtn == 1, false, -1))
+		ui.Button(t, m.deploySafeLabel(), focus == 4 && m.formBtn == 1, false, -1))
 	rows = append(rows, ui.Gutter(t, focus == 4, t.S.FocusBar)+btns)
 	c.Draw(strings.Join(rows, "\n"), main)
 
@@ -671,7 +671,7 @@ func (m *app) confirmBody() (title string, body []string, btns string) {
 	}, 7)...)
 	btns = ui.Buttons(t, inner, lipgloss.Right,
 		ui.Button(t, "Roll back", m.btn == 0, true, 0),
-		ui.Button(t, "Cancel", m.btn == 1, false, 0))
+		ui.Button(t, m.keepLabel(), m.btn == 1, false, -1))
 	return "Roll back " + s.Name + "?", body, btns
 }
 

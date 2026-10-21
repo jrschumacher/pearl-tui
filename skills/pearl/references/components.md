@@ -184,18 +184,19 @@ now     v2.4.0  failing 12 min
 after   v2.3.9  healthy for 3 days
 impact  3 pods restart, one at a time (~90s)
 
-                         Roll back   [ Cancel ]
+                    Roll back   [ Keep v2.4.0 ]
 ```
 
 The title is the question, naming the object. The body says what changes, with before
-and after. The danger button is coloured even when unfocused. **Cancel is focused by
-default.** `y`/`n` shortcuts for experts. It asks for a judgement, so it guards rungs 3
-and 4 of `interaction.md` § Confirm By Consequence only: what can't be taken back, or
-what a failing signal makes risky ("2 checks failing: lint, e2e. Merge anyway?"). This
+and after. The danger button is coloured even when unfocused. **The safe button is
+focused by default, and it names what is kept** (`Keep v2.4.0`, the version running
+now), never a bare `Cancel`. `y`/`n` shortcuts for experts. It asks for a judgement, so
+it guards rungs 3 and 4 of `interaction.md` § Confirm By Consequence only: what can't
+be taken back, or what a failing signal makes risky ("2 checks failing: lint, e2e. Merge anyway?"). This
 roll back is rung 3: it ships to production, and the fix would be another ship, so it
 confirms even when the target is healthy. A ship started from a form gets no dialog:
 the form's review step is its confirmation (the showcase's `deploy-review`: what ships
-where, a danger button named `Deploy v2.4.1 to prod`, focus arriving on Cancel).
+where, a danger button named `Deploy v2.4.1 to prod`, focus arriving on `Keep v2.4.0`).
 Anything a revert or the same key takes back gets no confirm: one on every write
 teaches `y` before the one that matters.
 
@@ -243,7 +244,7 @@ Sign-in ──────────────────── staging-eu-
   a rollback) is the confirmation with focus on its safe button (`interaction.md`
   § Confirm By Consequence, rung 3). Every button names what it does: no bare `Cancel`. `ui.Confirm(t, title, action, negative, def, &v)` for yes/no, action first.
 - **Waits say what to do if nothing happens**: the URL to open by hand, the code, elapsed
-  time, `esc cancel`; a timeout becomes a failure state with Retry.
+  time, `esc cancel sign-in`; a timeout becomes a failure state with Retry.
 - **Esc goes back** from step 2 on; on step 1 it asks before dropping typed input.
 
 ## Buttons — `ui.Button`, `ui.Buttons`
@@ -253,7 +254,7 @@ focused one with a cursor), `underline` (text), `inverse`. Mnemonic letters are
 underlined. Buttons sit in a row, aligned per the layout (right in dialogs, left in
 forms).
 
-**One order, everywhere: the action first, the negative last** (`Roll back  Cancel`,
+**One order, everywhere: the action first, the negative last** (`Roll back  Keep v2.4.0`,
 `Yes  No`, `Continue  Back`). It matches Huh's confirm and Crush, and a user who learns it
 on one screen can press it blind on the next. A two-option select is not a confirm:
 use the confirm, so the order can't flip. The focused default is the safe choice when the

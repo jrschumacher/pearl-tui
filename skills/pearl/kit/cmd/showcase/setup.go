@@ -33,7 +33,7 @@ const (
 	stTarget setupStep = iota // cluster (select) + namespace (input)
 	stAuth                    // how to sign in (select with descriptions)
 	stAlerts                  // notifications (confirm)
-	stReview                  // summary + Continue / Edit / Cancel
+	stReview                  // summary + Continue / Back to edit / Discard setup
 	stSignin                  // waiting for approval
 	stDone                    // make it the default? Yes / No
 )
@@ -64,7 +64,7 @@ type setupFlow struct {
 	cluster, namespace, auth string
 	alerts, makeDefault      bool
 
-	acts     ui.Actions // review: Continue / Edit / Cancel. failed sign-in: Retry / Back
+	acts     ui.Actions // review: Continue / Back to edit / Discard setup. failed sign-in: Retry / Back
 	since    int        // frame the sign-in started
 	failed   bool
 	gen      int  // sign-in attempt; a result from an older one is ignored
@@ -102,7 +102,9 @@ func (m *app) goStep(s setupStep) tea.Cmd {
 	f.fw, f.fh = 0, 0
 	switch s {
 	case stReview:
-		f.acts = ui.NewActions(0, "Continue", "Edit", "Cancel") // the expected forward choice is the default
+		// the expected forward choice is the default; each button says what it does: a bare
+		// "Cancel" on a review left the user asking whether their answers were lost
+		f.acts = ui.NewActions(0, "Continue", "Back to edit", "Discard setup")
 	case stSignin:
 		return m.startSignin()
 	}
@@ -270,7 +272,7 @@ func (m *app) setupActions(help action) []action {
 				back(stReview), help,
 			}
 		}
-		acts := []action{esc("cancel", func(m *app) tea.Cmd {
+		acts := []action{esc("cancel sign-in", func(m *app) tea.Cmd {
 			m.setup.gen++ // the pending result is now stale
 			return tea.Batch(m.say("info", "CANCELED", "Sign-in canceled "+m.t.G.Sep+" nothing was sent to "+m.setup.cluster), m.goStep(stReview))
 		})}

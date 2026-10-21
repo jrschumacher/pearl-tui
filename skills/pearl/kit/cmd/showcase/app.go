@@ -72,7 +72,7 @@ type app struct {
 	palSel int
 	palOff int // the list's scroll offset (ui.Follow keeps palSel on screen)
 	// confirm
-	btn int // 0 = the action, 1 = cancel (the default)
+	btn int // 0 = the action, 1 = keep what runs (the default)
 	// help and confirm: a dialog's body scrolls when it doesn't fit (ui.Clip)
 	helpOff  int
 	confOff  int
@@ -576,7 +576,8 @@ func (m *app) stateActions() []action {
 	case ovConfirm:
 		s := m.svcs[m.sel]
 		_, confBody, _ := m.confirmBody()
-		enterDesc := "cancel"
+		keep := strings.ToLower(m.keepLabel())
+		enterDesc := keep
 		if m.btn == 0 {
 			enterDesc = "roll back"
 		}
@@ -590,8 +591,7 @@ func (m *app) stateActions() []action {
 			}},
 			{bind([]string{"left", "right", "tab", "h", "l"}, m.t.G.LeftRight, "switch"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.btn = 1 - m.btn; return nil }},
 			{bind([]string{"r"}, "r", "roll back to "+s.Prev), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.ov = ovNone; return m.rollback() }},
-			{bind([]string{"c"}, "c", "cancel"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.ov = ovNone; return nil }},
-			esc("cancel", func(m *app) { m.ov = ovNone; m.confOff = 0 }),
+			esc(keep, func(m *app) { m.ov = ovNone; m.confOff = 0 }),
 			// a fallback: the dialog takes the rows it needs down to the footer first
 			scroll(len(confBody), m.confirmRows(), &m.confOff),
 			help,
@@ -610,7 +610,7 @@ func (m *app) stateActions() []action {
 	case scrDeploy:
 		enterDesc := "next field" // enter in a field never ships to prod
 		if m.focus == 4 {
-			enterDesc = []string{"deploy", "cancel"}[m.formBtn]
+			enterDesc = []string{"deploy", strings.ToLower(m.deploySafeLabel())}[m.formBtn]
 		}
 		return []action{
 			{bind([]string{"enter"}, "enter", enterDesc), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
@@ -794,9 +794,9 @@ func (m *app) openDeploy() {
 	m.screen, m.focus, m.formBtn = scrDeploy, 1, 0
 }
 
-// armDeploy runs as focus moves: arriving on the buttons, a prod deploy starts on Cancel,
-// so the review step is the confirmation and enter alone never ships to prod; the
-// other environments start on the act, the forward choice.
+// armDeploy runs as focus moves: arriving on the buttons, a prod deploy starts on its
+// safe button (Keep v2.4.0), so the review step is the confirmation and enter alone
+// never ships to prod; the other environments start on the act, the forward choice.
 func (m *app) armDeploy() {
 	if m.focus != 4 {
 		return
@@ -805,6 +805,20 @@ func (m *app) armDeploy() {
 	if m.env == 0 {
 		m.formBtn = 1
 	}
+}
+
+// keepLabel is the safe button of what replaces the version running in prod (a
+// rollback, a prod deploy): it names what is kept, "Keep v2.4.0", never a bare
+// "Cancel", which leaves the user asking what it cancels (interaction.md, rung 3).
+func (m *app) keepLabel() string { return "Keep " + m.svcs[m.sel].Version }
+
+// deploySafeLabel is the deploy form's second button: on prod it keeps what runs; on
+// staging or dev, which this view doesn't show, it says where it goes.
+func (m *app) deploySafeLabel() string {
+	if m.env == 0 {
+		return m.keepLabel()
+	}
+	return "Back to services"
 }
 
 func (m *app) svcIndex(name string) int {
