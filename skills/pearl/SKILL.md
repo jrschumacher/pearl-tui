@@ -150,6 +150,12 @@ glyph with a help key, money as a receipt, the product's purpose kept in view as
 strip. A flow belongs to a screen, not the app.
 **DON'T** give background status a header sentence, or a working screen a tall mark.
 
+### Working with the person → *Consult `references/collaborate.md`*
+**DO** stop at the pick points (the brand read, the move and signature, a splash style, a
+layout two arrangements pass) with two to four rendered options, and end `init` and
+`shape` with a work order that quotes what the person said must stay.
+**DON'T** put a law or a key table to a vote, or describe a layout instead of showing it.
+
 ### Motion → *Consult `references/motion.md`*
 **DO** run one `gen`-stamped frame clock, render deterministic frames from `frame`, and keep
 one hero animation (`ui.Anim`) with a subject.

@@ -215,6 +215,9 @@ this; the kit's components are the vocabulary.
 Run `tuilint spec TUI.md` after every change to § States and keys, and fix what it
 reports before the user sees the table.
 
-Show the 80×24 sketches and the state list, and ask the one or two questions that change
-the design (not "does this look good?"). Record decisions in `TUI.md` § Decisions. Then
-hand off to `craft`.
+At each pick point (`collaborate.md`: the move and signature, a layout two arrangements
+pass), sketch two to four options, render them to one contact sheet with `cellshot`, show
+it, and ask which. Show the 80×24 sketches and the state list, and ask the one or two
+questions that change the design (not "does this look good?"). Record decisions in
+`TUI.md` § Decisions. Then write § Work orders (`collaborate.md` § Work Orders Carry The
+Conversation) and hand off to `craft` by printing its order.

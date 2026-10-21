@@ -103,6 +103,15 @@ lines. stdout not a TTY: --json, never escape codes.
 services, deploy and confirm rendered from fixtures through the harness, every state at
 80×24 and 120×40, before the deploy API or kubectl are wired.
 
+## Work orders
+### 1. craft: services, deploy and rollback, every state on fixtures
+keep: "Rollback is always one key from the services list: it's what we reach for at 3am."
+keep: "The service names stay exactly as kubectl prints them."
+reference: none
+method: the main screen's move at three options (-variant a|b|c), then the loop (verify.md)
+deliver: frames/ at 80×24 and 120×40, sheet-80.png, sheet-120.png, pick-move.png
+decide: the main screen's move; work stops at pick-move.png until it is picked
+
 ## Decisions
 - 2026-10-16 signal orange only for "needs you" because focus in orange hid failing rows
 - 2026-10-16 cut: a cost dashboard — no on-call engineer acts on spend at 3am; the finance team has its own

@@ -90,7 +90,7 @@ Round 2, architecture (screens always; the rest only what the code didn't answer
    60×18 floor, designed at 80×24.
 
 No brand: write two short brand reads that differ in kind (not in colour) and let the
-user pick. If the user can't pick, take the read matching the session's tone (hours on
+user pick (a pick point, `collaborate.md`). If the user can't pick, take the read matching the session's tone (hours on
 call: calm and compact; seconds in a split pane: terse and plain), put the other under
 `## Assumed` as the alternative, and say so in the hand-off. Never fall back to the
 default theme silently.
@@ -226,6 +226,15 @@ lines. stdout not a TTY: <--json | plain output>, never escape codes.
 <the main loop's 2–3 screens, every state of those, rendered from fixtures through the harness; no integration>
 Then: <the rest of v1, in order>
 
+## Work orders
+One standalone prompt per next step, rewritten at every hand-off (references/collaborate.md):
+### 1. <command>: <goal in one line>
+keep: "<what the person said must stay, word for word>"   (one line each; none: `keep: nothing stated`)
+reference: none   (or exact: <axes> and inspiration: <the rest>, from § Reference)
+method: <the pick points in this step and how they're shown>; the loop (verify.md)
+deliver: <the files to review: frames, sheets, GIFs>
+decide: <the pick point the person chooses, or nothing; build it>
+
 ## Decisions
 - <date> <decision> because <reason>
 - <date> cut: <idea> — <why no customer needs it in most sessions>
@@ -309,12 +318,12 @@ puts "the accent" or "primary" on something the `accents:` line didn't give it
 marking the footer, bold or ‖: the state's main actions and its way out, then `? help`,
 so the rest are help-only by decision rather than cut by width, and never `esc` or quit.
 
-## 5. Hand Off In Three Lines
+## 5. Hand Off In Three Lines, Then The Next Order
 
 ```
 Captured: <product, users, brand read, N screens, stack>. Assumed: <the defaults nobody confirmed>.
 Proposed for <their doc>: <product changes from the interview, one per line> (apply? y/n)   ← only if an answer changes one of their docs
-Next: brand (no theme yet) | shape (theme exists) | restyle (an existing app).
+Next: brand (no theme yet) | shape (theme exists) | restyle (an existing app), then its work order from § Work orders, printed whole, ready to paste.
 ```
 
 ## The Short Form
