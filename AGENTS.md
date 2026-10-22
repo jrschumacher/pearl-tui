@@ -21,6 +21,9 @@ skills/pearl/
                   level deep, loaded on demand
   tools/          Go module `tuitools`: cellshot, tuilint, tuivet, palette, diversity (the build loop),
                   feedback (files an issue here from a user's agent)
+  capture/        Go module `tuicap`: runs any app in a PTY from a tape and writes its screens as
+                  .ansi frames, a flow and a sequence log, in full or privacy mode (eyes on an
+                  app with no harness)
   scripts/        wordmark, logo2cells (Python 3 + Pillow/numpy; brand-asset conversion only)
   kit/            Go module `tuikit`: themes/*.json (the framework-neutral contract),
                   theme/bubbletea/ and ui/bubbletea/ (one framework's engine and components),
@@ -52,7 +55,8 @@ plugin job fails unless the three and the top `## <version>` heading agree. Tags
 cd skills/pearl/kit && go vet ./... && go test ./...              # footprint, contrast, behaviour
 cd skills/pearl/kit && go run ./cmd/showcase                       # the reference app, live
 cd skills/pearl/tools && go vet ./... && go test ./...            # the tools, held to Python-era goldens
-go -C skills/pearl/tools build -o "$PWD/.tuitools/" ./cmd/... && export PATH="$PWD/.tuitools:$PATH"   # per checkout, gitignored; all six tools, feedback included
+cd skills/pearl/capture && go vet ./... && go test ./...          # tuicap (needs a pty)
+go -C skills/pearl/tools build -o "$PWD/.tuitools/" ./cmd/... && go -C skills/pearl/capture build -o "$PWD/.tuitools/" ./cmd/tuicap && export PATH="$PWD/.tuitools:$PATH"   # per checkout, gitignored; all seven tools, feedback and tuicap included
 tuilint code skills/pearl/kit
 tuilint spec skills/pearl/tools/internal/speclint/testdata/template-example.md   # init's template, filled in (CI: covered by the tools tests on the template)
 diversity skills/pearl/kit/themes/*.json
@@ -129,7 +133,8 @@ The skill gets better from observed misses, not from adding prose.
   To bump: update `kit/go.mod`, run everything above, and update
   `references/bubbletea-architecture.md`, whose API claims are verified against these
   versions, the `go get` line in `kit/README.md`'s copy block, and the stack line in
-  `references/cmd-init.md`'s TUI.md template.
+  `references/cmd-init.md`'s TUI.md template. `capture/go.mod` pins Ultraviolet to the
+  kit's commit too, so its emulator's cells are the kit canvas's: bump them together.
 - **Fictional brands only** in `kit/themes/`. No real companies' marks or palettes, apart
   from the clearly labelled Charmtone study (`charm.json`).
 - **SKILL.md frontmatter** stays within the Agent Skills spec: `name` (must equal the
@@ -142,6 +147,11 @@ The skill gets better from observed misses, not from adding prose.
   `golang.org/x/{image,text,tools}`. Each command's package doc is its `-h` text. Their tests
   hold them to goldens taken from the Python originals: change a golden only on purpose,
   and say why in the commit. Anything the agent runs on every iteration belongs here.
+- **Capture** (`capture/`, `tuicap`) is its own module because it needs a PTY and a
+  terminal emulator: it depends only on Charm's `x/vt`, `x/xpty` and `x/ansi`,
+  Ultraviolet at the kit's commit, and `uniseg`. Its frames must stay cell-identical
+  with the harness's for the same state (confirm, help, setup); a change that breaks
+  that says why. Its privacy level never writes a letter outside the allowlist.
 - **Scripts** (`scripts/`) are Python with Pillow and numpy, kept only for converting
   brand assets (wordmark, logo), which run once per brand. Each has a `--help`
   docstring that is its documentation.
