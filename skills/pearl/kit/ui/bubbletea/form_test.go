@@ -3,9 +3,12 @@ package ui
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -137,5 +140,47 @@ func TestConfirmOrderAndDefault(t *testing.T) {
 	}
 	if v {
 		t.Fatal("the default was false")
+	}
+}
+
+type slowMsg struct{ n int }
+type tickMsg struct{}
+type quickMsg struct{}
+
+// Settle delivers a command that answers in a few tens of milliseconds, and the command
+// its message returns: under load a real command (Huh's NextField) took longer than the
+// 5 ms Settle gave each one, was dropped as a timer, and the harness drew focus on the
+// field before. A 500 ms tick (a cursor blink, a spinner) is still dropped, and Settle
+// doesn't wait for it to fire: every command of a round runs at once against one window.
+func TestSettleDeliversSlowCommandsAndDropsTimers(t *testing.T) {
+	var got []tea.Msg
+	sleep := func(n int) tea.Cmd {
+		return func() tea.Msg { time.Sleep(20 * time.Millisecond); return slowMsg{n} }
+	}
+	tick := tea.Tick(500*time.Millisecond, func(time.Time) tea.Msg { return tickMsg{} })
+	update := func(msg tea.Msg) tea.Cmd {
+		got = append(got, msg)
+		if m, ok := msg.(slowMsg); ok && m.n == 1 {
+			return sleep(2) // the next field's own command, as slow
+		}
+		return nil
+	}
+	start := time.Now()
+	Settle(update, tea.Batch(tick, sleep(1), func() tea.Msg { return quickMsg{} },
+		tea.Tick(500*time.Millisecond, func(time.Time) tea.Msg { return tickMsg{} }),
+		tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })))
+	took := time.Since(start)
+	want := []tea.Msg{slowMsg{1}, slowMsg{2}, quickMsg{}}
+	for _, w := range want {
+		if !slices.Contains(got, w) {
+			t.Errorf("Settle dropped %T%v: delivered %v", w, w, got)
+		}
+	}
+	if slices.Contains(got, tea.Msg(tickMsg{})) {
+		t.Errorf("Settle delivered a 500 ms tick: %v", got)
+	}
+	// three timers in one round cost one window, not three, and never the tick's 500 ms
+	if took > 300*time.Millisecond {
+		t.Errorf("Settle took %v over three timers and two 20 ms commands: it waited on the timers", took)
 	}
 }

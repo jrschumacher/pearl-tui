@@ -101,7 +101,9 @@ defaults render.
   draw `m.form.View()` into a rectangle. Send it every non-key message too: Huh moves
   focus with commands (`NextField`), not in `Update`.
 - `ui.Resize(f, w, h)` after a size change; `ui.Settle(update, cmd)` in tests to run
-  Huh's follow-up commands.
+  Huh's follow-up commands. It runs them at once and drops whatever doesn't answer within
+  `ui.SettleWait` (40 ms: timers, blinks, ticks), so a test that waits on a tick must
+  send the tick's message itself.
 
 Huh v2.0.3 quirks the kit already works around (each is a test; don't undo it):
 
