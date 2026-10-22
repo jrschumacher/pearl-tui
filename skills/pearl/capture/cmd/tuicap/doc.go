@@ -73,7 +73,7 @@
 // every letter becomes x or X (by case) and every digit 0; URL-, email- and path-shaped
 // runs are redacted whole. Key names and generic UI words survive so the frames can
 // still be critiqued: enter esc tab space shift ctrl alt pgup pgdn home end backspace
-// q help quit back next cancel keys yes no ok, any glyph (↑ ↓ ← → ?), and the letter
+// q help quit back next cancel keys yes no ok arrows, any glyph (↑ ↓ ← → ?), and the letter
 // after ctrl+/alt+/shift+; -allow adds words. Typed text and the command line are
 // redacted the same way; titles' text, unknown bytes and -raw are not written. State
 // names (the tape's) are kept. Privacy frames pass the same size checks and tuilint

@@ -21,7 +21,7 @@ import (
 // after ctrl+, alt+ or shift+ (ctrl+c).
 var Allow = []string{
 	"enter", "esc", "tab", "space", "shift", "ctrl", "alt", "pgup", "pgdn", "home", "end", "backspace", "q",
-	"help", "quit", "back", "next", "cancel", "keys", "yes", "no", "ok",
+	"help", "quit", "back", "next", "cancel", "keys", "yes", "no", "ok", "arrows",
 }
 
 // Redactor redacts with Allow plus extra words.

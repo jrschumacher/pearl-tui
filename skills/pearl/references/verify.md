@@ -22,6 +22,9 @@ frames takes the rest of the loop unchanged.*
             a tape per flow (cmd-critique.md §1); the frames are in capture/frames/
             tuicap -sizes 80x24,120x40 -tape <flow>.tape -out capture -- ./bin/<app>
             tuicap -profile ansi -tape <flow>.tape -out capture-16 -- ./bin/<app>
+            (lint capture-16 without --theme: the emulator draws the 16 slots in its
+            own colours, so off-palette there means nothing; the harness's -profile
+            ansi frames are the ones to hold to the theme)
 2. GOLDEN   go run ./cmd/<app> -golden -w 80 -h 24 && … -w 120 -h 40      (exit 0 or stop)
             go test ./...                                                 (footprint at the kit's 5 sizes × themes)
 3. LINT     tuilint frames frames frames/256 frames/16 frames/nocolor --theme themes/<brand>.json --bg <bg> --spec TUI.md
