@@ -22,8 +22,8 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
    120×40, into `capture/before/`; lint those frames and read the sheets. A restyle that
    starts from the code restyles what the agent imagines: one shipped a wizard whose
    steps and form spread over the terminal's height and whose footer wrapped at 80
-   columns, each plain in the first sheet of the running app. Keep the tapes; step 9
-   replays them.
+   columns, each plain in the first sheet of the running app and reported by
+   `tuilint frames` [F-SPREAD] [F-FOOTWRAP]. Keep the tapes; step 9 replays them.
    If the
    user gave a screen to match, write its terms in TUI.md § Reference now and ask about
    its conflicts with the laws in one message (`verify.md` § Hold It To The Reference):
