@@ -141,22 +141,34 @@ func Fuzzy(s, q string) ([]int, bool) {
 	return idx, true
 }
 
+// markerWidth is the cells of the marker column before a list's or a table's rows: the
+// widest mark it can hold (the focus bar, the blurred bar, the cursor, as measured: an
+// ASCII twin can be "->") and a cell of space, at least 2. Every row takes it, marked or
+// not, so selecting a row never shifts its text (Crush's rule for its focus bar).
+func markerWidth(t *theme.Theme) int {
+	return 1 + max(1, lipgloss.Width(t.G.FocusBar), lipgloss.Width(t.BlurBar()), lipgloss.Width(t.G.Cursor))
+}
+
+// marker is mark in st, padded to the marker column of n cells.
+func marker(st lipgloss.Style, mark string, n int) string {
+	return st.Render(mark) + strings.Repeat(" ", max(1, n-lipgloss.Width(mark)))
+}
+
 func listRow(t *theme.Theme, it Item, selected, focused bool, w int, c cols) string {
 	mode := t.X.Selection
-	// the marker column is always 2 cells, focused or not, so selecting a row
-	// never shifts its text (Crush's rule for its focus bar)
-	marker := "  "
+	mw := markerWidth(t)
+	mark := strings.Repeat(" ", mw)
 	switch {
 	case selected && mode == "bar":
 		if focused {
-			marker = t.S.FocusBar.Render(t.G.FocusBar) + " "
+			mark = marker(t.S.FocusBar, t.G.FocusBar, mw)
 		} else {
-			marker = t.S.BlurBar.Render(t.BlurBar()) + " " // its own shape: colour alone is no cue
+			mark = marker(t.S.BlurBar, t.BlurBar(), mw) // its own shape: colour alone is no cue
 		}
 	case selected && mode == "caret" && focused:
-		marker = t.S.Focus.Render(t.G.Cursor) + " "
+		mark = marker(t.S.Focus, t.G.Cursor, mw)
 	case selected && mode == "caret":
-		marker = t.S.BlurBar.Render(t.BlurBar()) + " " // the cursor is the focus: a blurred row keeps the quiet bar
+		mark = marker(t.S.BlurBar, t.BlurBar(), mw) // the cursor is the focus: a blurred row keeps the quiet bar
 	}
 	plain := selected && focused && (mode == "fill" || mode == "inverse")
 	if plain {
@@ -172,7 +184,7 @@ func listRow(t *theme.Theme, it Item, selected, focused bool, w int, c cols) str
 	if it.Right != "" {
 		right = t.S.Subtle.Render(it.Right)
 	}
-	avail := w - 2 - lipgloss.Width(right)
+	avail := w - mw - lipgloss.Width(right)
 	if right != "" {
 		avail--
 	}
@@ -180,7 +192,7 @@ func listRow(t *theme.Theme, it Item, selected, focused bool, w int, c cols) str
 	if it.Desc != "" && lipgloss.Width(title)+2+8 < avail {
 		text = title + "  " + t.S.Muted.Render(it.Desc)
 	}
-	line := Fit(marker+Fit(Trunc(t, text, max(0, avail)), max(0, avail))+pre(right != "", " ")+right, w)
+	line := Fit(mark+Fit(Trunc(t, text, max(0, avail)), max(0, avail))+pre(right != "", " ")+right, w)
 	if selected && !focused && (mode == "fill" || mode == "inverse") {
 		// the band in the page's ink: stripped with no ink, the row drew in the terminal's
 		// default (a pane blurred beside a log), and its hints keep no contrast on the band
@@ -317,7 +329,8 @@ func filledRow(t *theme.Theme, it Item, w int, c cols) string {
 	for i, m := range it.Match {
 		match[i] = m + len([]rune(lead))
 	}
-	avail := w - 2
+	mw := markerWidth(t)
+	avail := w - mw
 	if it.Right != "" {
 		avail -= lipgloss.Width(it.Right) + 1
 	}
@@ -330,7 +343,7 @@ func filledRow(t *theme.Theme, it Item, w int, c cols) string {
 	title := matchUnderline(string([]rune(full)[:nt]), match, st)
 	rest := st.Render(string([]rune(full)[nt:]))
 	gap := avail - lipgloss.Width(full)
-	out := st.Render("  ") + title + rest + st.Render(strings.Repeat(" ", max(0, gap)))
+	out := st.Render(strings.Repeat(" ", mw)) + title + rest + st.Render(strings.Repeat(" ", max(0, gap)))
 	if it.Right != "" {
 		out += st.Render(" " + it.Right)
 	}
@@ -425,7 +438,9 @@ func stretch(widths []int, w, gap int) []int {
 
 func table(t *theme.Theme, header []string, rows [][]string, widths []int, align string, sel, w int, focused bool, g int, rule bool) []string {
 	sp := strings.Repeat(" ", g)
-	ws := stretch(widths, w-2, g)
+	mw := markerWidth(t)
+	pad := strings.Repeat(" ", mw)
+	ws := stretch(widths, w-mw, g)
 	cell := func(s string, i int) string {
 		s = Trunc(t, s, ws[i])
 		if i < len(align) && align[i] == 'r' {
@@ -437,9 +452,9 @@ func table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 	for i, c := range header {
 		h = append(h, t.S.Subtle.Render(cell(t.Label(c, "upper"), i)))
 	}
-	out := []string{Fit("  "+strings.Join(h, sp), w)}
+	out := []string{Fit(pad+strings.Join(h, sp), w)}
 	if rule {
-		out = append(out, "  "+Rule(t, w-2))
+		out = append(out, pad+Rule(t, w-mw))
 	}
 	for r, row := range rows {
 		var cs []string
@@ -451,7 +466,7 @@ func table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 		mode := t.X.Selection
 		switch {
 		case selected && focused && (mode == "fill" || mode == "inverse"):
-			out = append(out, selFilled(t, Fit("  "+ansi.Strip(line), w)))
+			out = append(out, selFilled(t, Fit(pad+ansi.Strip(line), w)))
 		case selected && (mode == "bar"):
 			bar, glyph := t.S.FocusBar, t.G.FocusBar
 			if !focused {
@@ -459,15 +474,15 @@ func table(t *theme.Theme, header []string, rows [][]string, widths []int, align
 			} else {
 				line = bolden(line) // SelRow: bold text beside the bar, as List draws it
 			}
-			out = append(out, Fit(bar.Render(glyph)+" "+line, w))
+			out = append(out, Fit(marker(bar, glyph, mw)+line, w))
 		case selected && mode == "caret" && focused:
-			out = append(out, Fit(t.S.Focus.Render(t.G.Cursor)+" "+bolden(line), w))
+			out = append(out, Fit(marker(t.S.Focus, t.G.Cursor, mw)+bolden(line), w))
 		case selected && mode == "caret":
-			out = append(out, Fit(t.S.BlurBar.Render(t.BlurBar())+" "+line, w))
+			out = append(out, Fit(marker(t.S.BlurBar, t.BlurBar(), mw)+line, w))
 		case selected:
-			out = append(out, underlay(Fit("  "+line, w), t.P.BgSubtle))
+			out = append(out, underlay(Fit(pad+line, w), t.P.BgSubtle))
 		default:
-			out = append(out, Fit("  "+line, w))
+			out = append(out, Fit(pad+line, w))
 		}
 	}
 	return out

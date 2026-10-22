@@ -1,11 +1,13 @@
 package ui
 
 import (
+	"fmt"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme/bubbletea"
@@ -280,6 +282,69 @@ func TestTableStretchesAZeroColumn(t *testing.T) {
 				t.Errorf("widths %v: column %d at %d+%d reads %q, want %q: %q", c.widths, i, x, w, cell, rows[0][i], string(line))
 			}
 			x += w + 2
+		}
+	}
+}
+
+// The marker column is as wide as the widest mark it holds, measured: an app whose
+// theme twinned its → cursor to "->" under ASCII drew a selected row a cell wider than
+// the rest, its title a cell right of every other title and its last cell cut, and a
+// kit test failed. List and Table keep every row w cells and every title in one column,
+// whatever the cursor's, focus bar's or blurred bar's width.
+func TestMarkerColumnFitsAWideCursor(t *testing.T) {
+	path := filepath.Join("..", "..", "themes", "moss.json")
+	for _, f := range testThemes(t) {
+		if filepath.Base(f) == "moss.json" {
+			path = f
+		}
+	}
+	tf, err := theme.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tf.Glyphs.Cursor = "→"
+	tf.Glyphs.ASCII = map[string]string{"→": "->"}
+	items := []Item{{Title: "ledger", Right: "2d"}, {Title: "auth-gateway", Right: "8d"}, {Title: "checkout-api", Right: "1h"}}
+	rows := [][]string{{"ledger", "2d"}, {"auth-gateway", "8d"}, {"checkout-api", "1h"}}
+	for _, sel := range []string{"caret", "bar", "fill", "inverse"} {
+		for _, ascii := range []bool{false, true} {
+			tf.Expressions.Selection = sel
+			th := theme.Resolve(tf, true, ascii)
+			name := fmt.Sprintf("%s ascii=%v cursor=%q", sel, ascii, th.G.Cursor)
+			for _, focused := range []bool{true, false} {
+				check := func(what string, out []string, selRow int, title func(i int) string) {
+					col := -1
+					for i, l := range out {
+						plain := ansi.Strip(l)
+						if got := lipgloss.Width(l); got != 40 {
+							t.Errorf("%s focused=%v %s row %d: %d cells, want 40: %q", name, focused, what, i, got, plain)
+						}
+						x := strings.Index(plain, title(i))
+						if x < 0 {
+							t.Errorf("%s focused=%v %s row %d: %q lost %q", name, focused, what, i, plain, title(i))
+							continue
+						}
+						x = lipgloss.Width(plain[:x])
+						if col < 0 {
+							col = x
+						}
+						if x != col {
+							t.Errorf("%s focused=%v %s row %d: %q starts at %d, the other rows at %d", name, focused, what, i, plain, x, col)
+						}
+						if i == selRow && focused && sel == "caret" && !strings.Contains(plain, th.G.Cursor+" ") {
+							t.Errorf("%s %s: the selected row %q doesn't draw the cursor %q whole", name, what, plain, th.G.Cursor)
+						}
+					}
+				}
+				check("list", List(th, items, 1, 0, 40, 3, focused), 1, func(i int) string { return items[i].Title })
+				tbl := Table(th, []string{"service", "age"}, rows, []int{0, 4}, "lr", 1, 40, focused)
+				check("table", append([]string{tbl[0]}, tbl[2:]...), 2, func(i int) string {
+					if i == 0 {
+						return th.Label("service", "upper")
+					}
+					return rows[i-1][0]
+				})
+			}
 		}
 	}
 }
