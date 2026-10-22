@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"tuitools/internal/framelint"
 	"tuitools/internal/tuimd"
@@ -15,9 +16,10 @@ import (
 
 // frameHint is one `key action` hint read off a golden frame's footer row.
 type frameHint struct {
-	text string
-	keys []key
-	twin []key // the keys again with a lone "v" read as ↓, its ASCII twin and a key of its own
+	text    string
+	keys    []key
+	twin    []key          // the keys again with a lone "v" read as ↓, its ASCII twin and a key of its own
+	keyCell framelint.Cell // the key's first cell, as drawn: its style is ui.Help's Key
 }
 
 // frameFooter reads the footer of a golden frame: its last non-blank row, split where
@@ -67,7 +69,9 @@ func frameFooter(text string) (hints []frameHint, cut bool) {
 		blanks = 0
 		cur = append(cur, c)
 	}
-	afterHelp := false
+	// every chunk's readings as a hint, in order; the first chunk may open with
+	// ui.Footer's left status (a badge, a prompt, a spinner frame and what is working)
+	cands := make([][]frameHint, len(chunks))
 	for i, ch := range chunks {
 		var sb strings.Builder
 		for _, c := range ch {
@@ -77,38 +81,31 @@ func frameFooter(text string) (hints []frameHint, cut bool) {
 			cut = true
 			continue
 		}
-		h, ok := chunkHint(ch, styled)
-		if !ok && !styled && i == 0 && !startsWord(ch) {
-			// NO_COLOR: a prompt or badge one blank before the first hint ("/yes▏ enter
-			// keep", "[PROD] enter next"), with no style to tell them apart: the hint
-			// starts at the next word
-			at := 0
-			for at < len(ch) && strings.TrimSpace(ch[at].Ch) != "" {
-				at++
-			}
-			for at < len(ch) && strings.TrimSpace(ch[at].Ch) == "" {
-				at++
-			}
-			if at < len(ch) {
-				h, ok = chunkHint(ch[at:], styled)
-			}
+		cands[i] = chunkHints(ch, styled, i == 0)
+	}
+	// ui.Help draws every key in one style (Key). Past the first chunk no left status
+	// stands before a hint, so the first hint there names that style, and the first
+	// chunk's reading must keep it: an ASCII spinner frame ("/" in the working ink)
+	// before "Deploying" is no key, the hint after it is
+	var keyStyle *framelint.Cell
+	for _, cs := range cands[min(1, len(cands)):] {
+		if len(cs) > 0 {
+			keyStyle = &cs[0].keyCell
+			break
 		}
-		if !ok && styled {
-			// a badge one blank before the first hint ("[PROD] enter next field"): the
-			// hint starts at the next word when that is drawn in another style
-			at := 0
-			for at < len(ch) && strings.TrimSpace(ch[at].Ch) != "" {
-				at++
-			}
-			for at < len(ch) && strings.TrimSpace(ch[at].Ch) == "" {
-				at++
-			}
-			if at < len(ch) && !sameStyle(ch[0], ch[at]) {
-				h, ok = chunkHint(ch[at:], styled)
-			}
-		}
-		if !ok {
+	}
+	afterHelp := false
+	for i, cs := range cands {
+		if len(cs) == 0 {
 			continue
+		}
+		h := cs[0]
+		if i == 0 && styled && keyStyle != nil {
+			at := slices.IndexFunc(cs, func(c frameHint) bool { return sameStyle(c.keyCell, *keyStyle) })
+			if at < 0 {
+				continue // all status: ui.Footer's left
+			}
+			h = cs[at]
 		}
 		if countRe.MatchString(h.text) || (afterHelp && numberRe.MatchString(h.text)) {
 			continue // "4 of 101", "1/9", and after the help hint "9 procs": ui.Footer's right status
@@ -117,6 +114,65 @@ func frameFooter(text string) (hints []frameHint, cut bool) {
 		afterHelp = afterHelp || (len(h.keys) == 1 && (h.keys[0].String() == "?" || h.keys[0].String() == "ctrl+g"))
 	}
 	return hints, cut
+}
+
+// chunkHints are the readings of one footer chunk as a `key action` hint, the likeliest
+// first: the whole chunk, then past a prompt or badge one blank before the first hint
+// ("/yes▏ enter keep", "[PROD] enter next") where a style changes, or under NO_COLOR
+// past one word that is no status word. In the first chunk (first) a styled row is read
+// on at every word where the style changes, past ui.Footer's left status however many
+// words it has ("⣾ Deploying checkout-api ↑↓/jk move").
+func chunkHints(ch []framelint.Cell, styled, first bool) []frameHint {
+	var out []frameHint
+	if h, ok := chunkHint(ch, styled); ok {
+		out = append(out, h)
+	}
+	// word starts after the first word, and the cell before each
+	var starts []int
+	for at := 0; at < len(ch); {
+		for at < len(ch) && strings.TrimSpace(ch[at].Ch) != "" {
+			at++
+		}
+		for at < len(ch) && strings.TrimSpace(ch[at].Ch) == "" {
+			at++
+		}
+		if at < len(ch) {
+			starts = append(starts, at)
+		}
+	}
+	if len(starts) == 0 {
+		return out
+	}
+	switch {
+	case !styled && first && !startsWord(ch) && len(out) == 0:
+		// NO_COLOR: a prompt or badge one blank before the first hint, with no style to
+		// tell them apart: the hint starts at the next word
+		if h, ok := chunkHint(ch[starts[0]:], styled); ok {
+			out = append(out, h)
+		}
+	case styled && !first:
+		// a badge one blank before the first hint: the hint starts at the next word when
+		// that is drawn in another style
+		if len(out) == 0 && !sameStyle(ch[0], ch[starts[0]]) {
+			if h, ok := chunkHint(ch[starts[0]:], styled); ok {
+				out = append(out, h)
+			}
+		}
+	case styled:
+		for _, at := range starts {
+			prev := at - 1
+			for prev > 0 && strings.TrimSpace(ch[prev].Ch) == "" {
+				prev--
+			}
+			if sameStyle(ch[prev], ch[at]) {
+				continue
+			}
+			if h, ok := chunkHint(ch[at:], styled); ok {
+				out = append(out, h)
+			}
+		}
+	}
+	return out
 }
 
 // numberRe is a chunk that leads with a number ("9 procs"): after the help hint ui.Help
@@ -177,7 +233,7 @@ func chunkHint(ch []framelint.Cell, styled bool) (frameHint, bool) {
 	}
 	words[0] = unASCII(words[0])
 	b := readItem(words)
-	if b.bad != "" || len(b.keys) == 0 || b.action == "" {
+	if b.bad != "" || len(b.keys) == 0 || b.action == "" || slices.ContainsFunc(b.keys, unpressable) {
 		return frameHint{}, false
 	}
 	if styled { // the action's first cell, after the key words, in another style
@@ -195,6 +251,12 @@ func chunkHint(ch []framelint.Cell, styled bool) (frameHint, bool) {
 		}
 	}
 	h := frameHint{text: s, keys: b.keys}
+	for _, c := range ch {
+		if strings.TrimSpace(c.Ch) != "" {
+			h.keyCell = c
+			break
+		}
+	}
 	if alts := splitAlts(words[0]); slices.Contains(alts, "v") { // "v select": v, or ↓ under -ascii
 		for i, a := range alts {
 			if a == "v" {
@@ -204,6 +266,18 @@ func chunkHint(ch []framelint.Cell, styled bool) (frameHint, bool) {
 		h.twin = readItem(append([]string{strings.Join(alts, "/")}, words[1:]...)).keys
 	}
 	return h, true
+}
+
+// unpressable reports a one-character key no keyboard sends: a spinner frame or a mark
+// (braille ⣾, blocks ▖, shapes ◢ ◴, bullets • ·) drawn before a footer's status text.
+// ASCII, letters, digits and Latin-1's symbols (§, £, °, a European layout's) are keys;
+// the middle dot is a separator and a spinner frame, never a key.
+func unpressable(k key) bool {
+	r, n := utf8.DecodeRuneInString(k.base)
+	if n != len(k.base) || unicode.IsLetter(r) || unicode.IsDigit(r) {
+		return false
+	}
+	return r >= 0x100 || r == 0xB7 || !unicode.IsPrint(r)
 }
 
 // sameAs is a keys cell that borrows another state's: "as chat", "same as chat",
