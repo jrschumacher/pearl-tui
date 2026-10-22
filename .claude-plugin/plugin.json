@@ -1,6 +1,6 @@
 {
   "name": "pearl",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "description": "Design and build terminal UIs at Crush quality with a per-brand identity, Bubble Tea v2 first: the pearl skill, plus a hook that runs tuilint code after every Go edit and hands blocking findings back to Claude.",
   "author": {
     "name": "J.R. Schumacher",

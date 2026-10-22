@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "pearl",
-      "version": "1.0.0-rc.1",
+      "version": "1.0.0-rc.2",
       "source": "./",
       "description": "The pearl skill for terminal UIs, Bubble Tea v2 first, with a hook that runs tuilint code after every Go edit"
     }

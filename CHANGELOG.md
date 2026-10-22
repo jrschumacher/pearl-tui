@@ -5,6 +5,54 @@ What changed in the skill, its kit and its tools, by release. The commit history
 needs to know when updating. Versions follow SKILL.md's `metadata.version`, which the
 plugin manifests repeat.
 
+## 1.0.0-rc.2
+
+The skill now plans each screen from the product's job and data, argues the plan with
+simulated customers, stops for your taste choices with rendered options, and hands off
+work orders a fresh session can run. Every change came from blind, human-graded rounds
+(`evals/taste/`).
+
+- **Hold a screen to your reference.** A reference you supply has a slot in `TUI.md`
+  (§ Reference: what is exact, what is inspiration, the deviations you approved) and
+  travels into the critic's packet; restyle and critique compare real renders at
+  80×24 against it, and fidelity is its own MATCH / DEVIATES verdict, never a SHIP
+  score (#89).
+- **A journey pass per screen.** Each screen block starts with `job:`, `data:` and
+  `carry:` lines, and the new `references/flows.md`, loaded per screen, says where each
+  kind of data goes: live beside its list, background status as a glyph with a help key,
+  money as a receipt, the product's purpose kept in view as a strip. Sheets for
+  monitoring, checkout, media, browse and configure; a wizard keeps its whole journey in
+  view (#90).
+- **Confirm by intent.** Focus starts on the act a flow exists for (a purchase) and on
+  the safe button where an act destroys or replaces what runs; no button is a bare
+  `Cancel` (#90).
+- **Panes that scroll.** `ui.Pane` scrolls both ways with header rows that stay put;
+  the wheel scrolls the pane under the pointer and never moves the selection; `ui.Hit`
+  and `ui.WheelGate` route and coalesce mouse events (#90).
+- **Read the product before the screens.** `shape` writes `customers:` and `jobs:`
+  (ranked by how often) into § Product and the cut list into § Decisions, then has
+  simulated customers attack the read for up to three rounds: a stakeholder's idea is
+  one voice, an unclear value gets a label, never a cut (#90).
+- **Pick points and work orders.** The skill stops only for your taste (the brand read,
+  the main screen's move and signature, a splash style, a layout two arrangements pass)
+  with two to four rendered options, and records your reason as a rule. `init` and
+  `shape` end with `## Work orders` in `TUI.md`: one prompt per next step, quoting what
+  you said must stay, that a fresh session or another model can run (#91).
+- **Kit fixes** (#92): buttons are marked by a fill where colour shows (brackets only
+  without colour); toasts draw every kind in its own role; `muted-upper` titles
+  uppercase; gradients stay off error's red at 16 colours; `ui.Settle` delivers slow
+  commands under load; a zero-width middle table column stretches; the popover's
+  scrollbar reads at 16 colours on light; lists and tables measure a wide cursor;
+  `tuilint spec` reads no spinner frame as a key.
+
+### Updating
+
+Nothing breaks. A project that copied the kit before this release keeps working. To
+take the kit fixes, copy the changed `.go` files from `kit/ui/bubbletea/` and
+`kit/theme/bubbletea/` into your `internal/ui` and `internal/theme` file by file
+(`cp -r` into an existing directory nests it), and keep your own theme file. Existing `TUI.md` files lint as before; `## Work orders`, `customers:` and
+`jobs:` are new sections the next `init` or `shape` fills in.
+
 ## 1.0.0-rc.1
 
 The first release candidate. Pearl is an agent skill for designing and building
