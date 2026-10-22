@@ -60,6 +60,21 @@
 //	F-ASCII     [P1] (with --ascii) a cell outside ASCII in a frame rendered for ASCII; with
 //	                 --unicode, also a "?" where the unicode frame of the same state draws
 //	                 something else (a rune the sweep had no twin for)
+//	F-FOOTWRAP  [P1] the key footer runs to a second row: the last non-blank row is in the
+//	                 frame's last two, it and the row above both read as `<key> <action>`
+//	                 hints (enter, esc, tab, space, pgup, home, ↑↓, f5, q, ?, ctrl+x, alt+x,
+//	                 shift+tab, j/k; the upper row with 2 or more), and the last row's first
+//	                 hint would not fit after the row above within the width less its left
+//	                 margin. A status row over the keys opens with a word and a rule is no
+//	                 hint, so neither counts; key rows sharing 2 or more hint columns are a
+//	                 help grid, not a wrap
+//	F-SPREAD    [P2] content distributed down the height instead of packed from the top:
+//	                 4 or more phrases starting at one column, between the header and footer
+//	                 rows, 3 or more blank rows apart (counted across the item and what is
+//	                 left of it on its row) with no two gaps more than a row apart; or an
+//	                 action row (filled spans, [ bracketed ] labels) in the 4 rows over the
+//	                 bottom with a quarter of the height or more blank above it, across its
+//	                 own columns. Not on a splash*, intro* or wordmark* frame
 package framelint
 
 import (
@@ -125,6 +140,13 @@ else is a rune the ASCII sweep had no twin for, which reads as a question.
                    on a "cuts:" line in TUI.md § Decisions and pass --spec TUI.md
   F-ASCII     [P1] (with --ascii) a cell outside ASCII: give the glyph an ASCII twin;
                    with --unicode, a "?" where the unicode frame of the state has none
+  F-FOOTWRAP  [P1] the key footer runs to a second row (the bottom two rows read as key
+                   hints and the lower one's first hint did not fit on the upper): keep it
+                   one row, the keys the state needs most, cut with … and ? help
+  F-SPREAD    [P2] content spread down the height: 4+ rows at one column 3+ blank rows
+                   apart, evenly (within a row), or an action row stranded at the bottom a
+                   quarter of the height under its content: pack from the top
+                   (not on a splash*/intro*/wordmark* frame)
 `
 
 var sevOrder = map[string]int{"P0": 0, "P1": 1, "P2": 2}

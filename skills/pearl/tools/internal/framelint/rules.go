@@ -861,6 +861,8 @@ func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii boo
 	f := parseText(text)
 	out := LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
 	out = append(out, LintTab(filepath.Base(path), normText(text))...)
+	out = append(out, LintFootWrap(filepath.Base(path), f)...)
+	out = append(out, LintSpread(filepath.Base(path), f)...)
 	ellipses := []string{theme.Ellipsis}
 	if pal != nil && pal.Ellipsis != "" && pal.Ellipsis != theme.Ellipsis {
 		ellipses = append(ellipses, pal.Ellipsis)
