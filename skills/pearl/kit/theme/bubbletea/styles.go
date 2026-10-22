@@ -120,8 +120,8 @@ func build(t *Theme) Styles {
 	switch x.SectionTitle {
 	case "primary":
 		s.Title = s.Primary.Bold(true)
-	case "muted-upper":
-		s.Title = s.Muted.Bold(true)
+	case "muted-upper": // the case is the style's: every title it draws is in capitals
+		s.Title = s.Muted.Bold(true).Transform(strings.ToUpper)
 	case "fg":
 		s.Title = s.Bold
 	default:
@@ -165,27 +165,41 @@ func build(t *Theme) Styles {
 	s.BlurBar = lipgloss.NewStyle().Foreground(p.FgSubtle)
 	s.Match = lipgloss.NewStyle().Underline(true)
 
+	// a filled button is reverse video of (fill, ink): the same pixels in colour, and a
+	// reversed block still when the terminal strips colour (NO_COLOR with no profile)
+	filled := func(fill, on color.Color, pad int) lipgloss.Style {
+		return lipgloss.NewStyle().Foreground(fill).Background(ink(on, fill)).Reverse(true).Bold(true).Padding(0, pad)
+	}
 	switch x.Button {
 	case "bracket":
-		s.Button = s.Muted
-		s.ButtonFocus = s.Focus.Bold(true)
-		s.ButtonDanger = s.Err.Bold(true)
+		// where colour shows, the focused button is a primary fill and the rest plain
+		// labels: a page of [x] marks and [PROD] badges can't tell bracketed buttons
+		// apart. ui.Button draws the brackets where there is no colour. The hue is a
+		// state under focus "fg", and primary can land on the page's or a panel's slot:
+		// there the fill is fg
+		fill, on := p.Primary, p.OnPrimary
+		if fgFocus || !t.Distinct(fill, p.Bg) || !t.Distinct(fill, p.BgPanel) || !t.Distinct(fill, p.BgOverlay) {
+			fill, on = p.Fg, p.Bg
+		}
+		s.Button = s.Muted.Padding(0, 1)
+		s.ButtonFocus = filled(fill, on, 1)
+		s.ButtonDanger = filled(p.Error, p.OnError, 1)
 	case "underline":
 		s.Button = s.Muted
 		s.ButtonFocus = s.Focus.Bold(true).Underline(true)
 		s.ButtonDanger = s.Err.Bold(true).Underline(true)
 	case "inverse":
 		s.Button = lipgloss.NewStyle().Foreground(ink(p.Fg, p.BgSubtle)).Background(p.BgSubtle).Padding(0, 2)
-		s.ButtonFocus = lipgloss.NewStyle().Foreground(p.Bg).Background(p.Fg).Bold(true).Padding(0, 2)
-		s.ButtonDanger = lipgloss.NewStyle().Foreground(ink(p.OnError, p.Error)).Background(p.Error).Bold(true).Padding(0, 2)
+		s.ButtonFocus = filled(p.Fg, p.Bg, 2)
+		s.ButtonDanger = filled(p.Error, p.OnError, 2)
 	default: // pill
 		s.Button = lipgloss.NewStyle().Foreground(ink(p.FgMuted, p.BgSubtle)).Background(p.BgSubtle).Padding(0, 2)
 		fill, on := p.Secondary, p.OnSecondary
 		if fgFocus || !t.Distinct(fill, p.BgSubtle) {
 			fill, on = p.Fg, p.Bg // the focused pill must not look like the rest: fg, as inverse draws it
 		}
-		s.ButtonFocus = lipgloss.NewStyle().Foreground(ink(on, fill)).Background(fill).Bold(true).Padding(0, 2)
-		s.ButtonDanger = lipgloss.NewStyle().Foreground(ink(p.OnError, p.Error)).Background(p.Error).Bold(true).Padding(0, 2)
+		s.ButtonFocus = filled(fill, on, 2)
+		s.ButtonDanger = filled(p.Error, p.OnError, 2)
 	}
 
 	// a dialog is a filled panel whatever its edge, and whether or not the app paints the
@@ -345,10 +359,55 @@ func (t *Theme) Label(s, own string) string {
 	return s
 }
 
-// Grad renders text with a per-grapheme foreground gradient from a to b.
+// Grad renders text with a per-grapheme foreground gradient from a to b, blended as
+// written whatever the terminal: on screen use Theme.Gradient, which knows the profile.
 // Use it on a handful of cells (a wordmark, a title rule, a spinner), never
 // on prose. Under ASCII/NO_COLOR it degrades to the plain text.
 func Grad(text string, a, b color.Color, bold bool) string {
+	return grad(text, bold, func(n int) []color.Color { return lipgloss.Blend1D(n, a, b) })
+}
+
+// Gradient is Grad at the theme's profile: its colours are GradRamp's, so at 16 colours
+// it never draws a cell in error's red unless it is error's own gradient.
+func (t *Theme) Gradient(text string, a, b color.Color, bold bool) string {
+	return grad(text, bold, func(n int) []color.Color { return t.GradRamp(n, a, b) })
+}
+
+// GradRamp is n colours from a to b, as the theme's profile can draw them. At 16 colours
+// a blend has no steps: each cell snaps to the nearest of the 16, and the blend between
+// two brand hues lands on whatever slot is nearest, other roles' slots: error's red
+// between a blue and a yellow (halyard's progress bar), warning's yellow between a green
+// and a red. There the ramp is its two ends, a over the first half and b over the rest,
+// and an end on red (ANSI 1 or 9, or error's own slot) gives way to the other end, so a
+// healthy bar or a brand's rule never reads as failing. Only a gradient with both ends on
+// red keeps them: error's own, or a brand pinned to red, which palette check reports.
+func (t *Theme) GradRamp(n int, a, b color.Color) []color.Color {
+	n = max(1, n)
+	if t.Profile != colorprofile.ANSI {
+		return lipgloss.Blend1D(max(2, n), a, b)[:n]
+	}
+	red := func(c color.Color) bool {
+		s := Slot16(c)
+		return s == 1 || s == 9 || s == Slot16(t.P.Error)
+	}
+	switch {
+	case red(a) && !red(b):
+		a = b
+	case red(b) && !red(a):
+		b = a
+	}
+	out := make([]color.Color, n)
+	for i := range out {
+		out[i] = a
+		if 2*i >= n {
+			out[i] = b
+		}
+	}
+	return out
+}
+
+// grad renders text one grapheme a colour, from ramp(n) for n graphemes.
+func grad(text string, bold bool, colors func(int) []color.Color) string {
 	var clusters []string
 	g := uniseg.NewGraphemes(text)
 	for g.Next() {
@@ -357,7 +416,7 @@ func Grad(text string, a, b color.Color, bold bool) string {
 	if len(clusters) == 0 {
 		return ""
 	}
-	ramp := lipgloss.Blend1D(max(2, len(clusters)), a, b)
+	ramp := colors(max(2, len(clusters)))
 	var sb strings.Builder
 	for i, c := range clusters {
 		st := lipgloss.NewStyle().Foreground(ramp[i])

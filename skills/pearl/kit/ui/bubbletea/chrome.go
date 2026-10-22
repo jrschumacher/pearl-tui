@@ -32,7 +32,7 @@ func Wordmark(t *theme.Theme, name string) string {
 	if t.ASCII {
 		return t.S.Bold.Render(name)
 	}
-	return theme.Grad(name, p.Secondary, p.Primary, true)
+	return t.Gradient(name, p.Secondary, p.Primary, true)
 }
 
 // Header is the app's top row(s), exactly w cells wide, per expressions.header:
@@ -323,7 +323,8 @@ func Footer(t *theme.Theme, w int, left string, bindings []key.Binding, right st
 	return []string{row}
 }
 
-// Toast paints over the footer row: a tag then the message on a tinted bar.
+// Toast paints over the footer row: a tag then the message on a tinted bar, both in
+// kind's role: ok, error, warning or info (toastStyles takes warn, fail and done too).
 // It replaces the help line for a few seconds (ToastTTL; an undo toast UndoTTL, a
 // grace window GraceTTL) instead of taking a new row. A toast that offers a key
 // (u undo) is ToastKey.

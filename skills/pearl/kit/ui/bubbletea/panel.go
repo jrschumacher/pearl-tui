@@ -18,9 +18,10 @@ const panelFloor = 2.3
 // under 2.3:1 on fill takes the next level up (fgSubtle to fgMuted, fgMuted to fgSoft or
 // fg), so hints stay readable on bgPanel and bgOverlay whatever step the theme chose.
 // ToolCall and Thinking draw their hints muted for the same reason; Dialog and Popover
-// apply it to every row they hold. A span that sets its own background (a filled
-// button, a filled tag, a selected row) sits on that fill, not the panel's, and keeps
-// its ink; the hue roles are left alone everywhere, a state's colour on a panel being
+// apply it to every row they hold. A rule in the border's ink that lands on the fill
+// takes the first level that draws apart from it. A span that sets its own background
+// (a filled button, a filled tag, a selected row) sits on that fill, not the panel's,
+// and keeps its ink; the hue roles are left alone everywhere, a state's colour on a panel being
 // the theme's own contrast decision.
 func OnPanel(t *theme.Theme, s string, fill color.Color) string {
 	// judged as the terminal shows them: at 16 or 256 colours a level and the fill can
@@ -52,6 +53,22 @@ func OnPanel(t *theme.Theme, s string, fill color.Color) string {
 			}
 		}
 		lift[fgParam(c)] = fgParam(to)
+	}
+	// a rule (a scrollbar's track, a section's rule) is quiet, not text: it needs only to
+	// draw apart from the fill. At 16 colours a light page's border and bgOverlay are both
+	// grey 7, and a palette's track vanished into the popover: it takes the first text
+	// level that is apart, as quiet as it can be and still a rail
+	apart := func(c color.Color) bool {
+		cc, cf := prof.Convert(rgb8(c)), prof.Convert(rgb8(fill))
+		return cc == nil || cf == nil || !same8(cc, cf)
+	}
+	if b := fgParam(t.P.Border); !apart(t.P.Border) && lift[b] == "" {
+		for _, up := range levels {
+			if apart(up) {
+				lift[b] = fgParam(up)
+				break
+			}
+		}
 	}
 	if len(lift) == 0 {
 		return s

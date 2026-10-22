@@ -103,8 +103,11 @@ a mascot palette) may.
 
 ## Gradients
 
-- `theme.Grad(text, a, b, bold)` blends per grapheme cluster in CIELAB
-  (`lipgloss.Blend1D`).
+- `t.Gradient(text, a, b, bold)` blends per grapheme cluster in CIELAB
+  (`lipgloss.Blend1D`), at the theme's profile: at 16 colours a blend's middle snaps to
+  other roles' slots (error's red between a blue and a yellow), so there it draws its two
+  ends, and an end on red gives way to the other. A healthy bar never reads as failing.
+  `theme.Grad` is the raw blend; don't put it on screen.
 - Use it on 5–40 cells: the wordmark, a motif rule, a spinner, a progress fill. Never on
   prose, borders, or backgrounds.
 - Two stops from the brand, adjacent in hue. A three-hue rainbow is a toy.

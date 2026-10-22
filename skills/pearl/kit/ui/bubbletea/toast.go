@@ -41,18 +41,20 @@ func SecondsLeft(frames int) int {
 	return (frames + per - 1) / per
 }
 
-// toastStyles are the tag and the tinted bar of a toast of kind: ok (the default),
-// error, warning or info.
+// toastStyles are the tag and the tinted bar of a toast of kind: ok ("" too), error,
+// warning or info, in any case, and the names the kit's status slots use for them
+// (done, fail, warn) or that people write (success, err, failed). Any other kind is
+// info: a notice, never a success, so a mistyped kind can't paint a failure green.
 func toastStyles(t *theme.Theme, kind string) (tag, bar lipgloss.Style) {
-	switch kind {
-	case "error":
+	switch strings.ToLower(kind) {
+	case "", "ok", "success", "done":
+		return t.S.TagOK, t.S.BarOK
+	case "error", "err", "fail", "failed":
 		return t.S.TagErr, t.S.BarErr
-	case "warning":
+	case "warning", "warn":
 		return t.S.TagWarn, t.S.BarWarn
-	case "info":
-		return t.S.TagInfo, t.S.BarInfo
 	}
-	return t.S.TagOK, t.S.BarOK
+	return t.S.TagInfo, t.S.BarInfo
 }
 
 // hintGap reports whether sep, the theme's separator, misreads between a message and

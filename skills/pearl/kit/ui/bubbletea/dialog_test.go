@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"image/color"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -227,5 +228,65 @@ func TestDialogScrolls(t *testing.T) {
 	}
 	if got := ClipMax(2, 5); got != 0 {
 		t.Errorf("ClipMax(2, 5) = %d, want 0", got)
+	}
+}
+
+// A palette's list scrolls inside a Popover, and every cell of it reads on the popover's
+// fill at 16 colours: the scrollbar's track is a rule (the border's grey), and on a light
+// page the border and bgOverlay are both grey 7, so the track vanished into the fill and
+// the thumb floated with no rail (TestNoTextOnItsFillAt16Colours caught it in an app).
+// Dialog's panel the same.
+func TestPopoverScrollbarReadsAt16Colours(t *testing.T) {
+	var items []Item
+	for i := range 20 {
+		items = append(items, Item{Title: fmt.Sprintf("Command %d", i)})
+	}
+	for _, f := range append(testThemes(t), quirePath(t)) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dark := range []bool{true, false} {
+			th := theme.ResolveProfile(tf, dark, false, colorprofile.ANSI)
+			for _, name := range []string{"popover", "dialog"} {
+				const W, H = 60, 20
+				c := NewCanvas(th, W, H)
+				if name == "popover" { // a palette: Popover on the canvas's Popover, filled with bgOverlay
+					c.Popover(Popover(th, W-4, 0, "Commands", List(th, items, 3, 2, W-4-th.S.Popover.GetHorizontalFrameSize(), 6, true), "", ""), nil)
+				} else {
+					c.Overlay(Dialog(th, W-4, 0, "Commands", List(th, items, 3, 2, W-4-th.S.Dialog.GetHorizontalFrameSize(), 6, true), "", ""), nil)
+				}
+				c.PaintBackground()
+				out := downsample(c.String(), colorprofile.ANSI)
+				read := uv.NewScreenBuffer(W, H)
+				uv.NewStyledString(out).Draw(read, read.Bounds())
+				where := fmt.Sprintf("%s dark=%v %s", filepath.Base(f), dark, name)
+				track := 0
+				for y := range H {
+					for x := range W {
+						cell := read.CellAt(x, y)
+						if cell == nil || strings.TrimSpace(cell.Content) == "" {
+							continue
+						}
+						if cell.Content == th.G.Track {
+							track++
+						}
+						fg, bg := cell.Style.Fg, cell.Style.Bg
+						if fg == nil {
+							fg = th.P.Fg
+						}
+						if bg == nil {
+							bg = th.P.Bg
+						}
+						if cell.Style.Attrs&uv.AttrReverse == 0 && theme.Slot16(fg) == theme.Slot16(bg) {
+							t.Errorf("%s: %q at %d,%d draws on its own fill's slot (ANSI %d)", where, cell.Content, x, y, theme.Slot16(bg))
+						}
+					}
+				}
+				if track == 0 {
+					t.Errorf("%s: no scrollbar track drawn", where)
+				}
+			}
+		}
 	}
 }

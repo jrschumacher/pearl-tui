@@ -249,9 +249,12 @@ Sign-in ──────────────────── staging-eu-
 
 ## Buttons — `ui.Button`, `ui.Buttons`
 
-Per `expressions.button`: `pill` (padded filled blocks), `bracket` (`[ Save ]`, the
-focused one with a cursor), `underline` (text), `inverse`. Mnemonic letters are
-underlined. Buttons sit in a row, aligned per the layout (right in dialogs, left in
+Per `expressions.button`: `pill` (padded filled blocks), `bracket` (a primary fill for
+the focused one and plain labels for the rest; `›[ Save ]` only where there is no colour),
+`underline` (text), `inverse`. Where colour shows, a button is marked by its fill, never
+by brackets: a page of `[x]` marks and `[PROD]` badges can't tell bracketed buttons apart.
+With no colour (NO_COLOR) every filled expression draws brackets, the focused one with the
+cursor. Mnemonic letters are underlined. Buttons sit in a row, aligned per the layout (right in dialogs, left in
 forms).
 
 **One order, everywhere: the action first, the negative last** (`Roll back  Keep v2.4.0`,

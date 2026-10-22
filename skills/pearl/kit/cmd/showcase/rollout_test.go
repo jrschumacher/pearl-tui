@@ -314,7 +314,11 @@ func TestHelpNamesTheMouse(t *testing.T) {
 				t.Errorf("%s: mouse on=%v, and help names %q: %v\n%s", s, on, g, has, body)
 			}
 		}
-		if on && !strings.Contains(body, m.t.Case("Mouse")) {
+		titled := false // the theme may case the title, or a muted-upper style uppercase it
+		for _, l := range strings.Split(body, "\n") {
+			titled = titled || strings.EqualFold(strings.TrimSpace(l), "mouse")
+		}
+		if on && !titled {
 			t.Errorf("%s: help names the gestures under no Mouse title:\n%s", s, body)
 		}
 	}

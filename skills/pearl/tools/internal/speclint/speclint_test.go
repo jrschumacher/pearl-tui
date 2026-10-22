@@ -662,6 +662,7 @@ func TestAccentDrift(t *testing.T) {
 // one blank before the first hint ("[PROD] enter next field") is not part of it.
 func TestGoldenFooters(t *testing.T) {
 	key, desc, off := "\x1b[1;38;2;230;230;230m", "\x1b[22;38;2;140;140;140m", "\x1b[0m"
+	spin := "\x1b[38;2;120;90;255m"          // the working ink
 	footer := func(hints ...string) string { // each "key action", drawn as ui.Help does
 		var b strings.Builder
 		b.WriteString("  ")
@@ -692,6 +693,10 @@ func TestGoldenFooters(t *testing.T) {
 		"| list-after | list | **↑↓ move** · **? help** |",
 		"| panes | list | **↑↓ move** · **? help** |",
 		"| panes-num | list | **1/2 pane** · **↑↓ move** · **? help** |",
+		"| busy | list | **↑↓/jk move** · **enter open** · **? help** |",
+		"| busy-wide | list | **↑↓/jk move** · **enter open** · **? help** |",
+		"| busy-ascii | list | **↑↓/jk move** · **enter open** · **? help** |",
+		"| busy-alone | list | **↑↓/jk move** · **? help** (if idle) |",
 	}, "\n"), "ctrl+c quit")
 	cases := []struct {
 		name, frame string
@@ -724,6 +729,14 @@ func TestGoldenFooters(t *testing.T) {
 		{"list-after", footer("↑↓ move", "? help", "d delete"), []string{"shows `d delete`, which the row doesn't bind"}},
 		{"panes", footer("↑↓ move", "3/4 pane", "? help"), []string{"shows `3/4 pane`, which the row doesn't bind"}},
 		{"panes-num", footer("1/2 pane", "↑↓ move", "? help"), nil},
+		// ui.Footer's left status, a spinner frame then what is working, one blank before
+		// the hints: the frame is no key (a braille or block glyph no keyboard sends), nor
+		// is its ASCII twin, drawn in the working ink and not in the keys' style, and the
+		// hints after it are still read
+		{"busy", "  " + spin + "⣾" + off + desc + " Deploying checkout-api" + off + " " + strings.TrimPrefix(footer("↑↓/jk move", "enter open", "? help"), "  "), nil},
+		{"busy-wide", "  " + spin + "◢" + off + desc + " Deploying" + off + footer("↑↓/jk move", "enter open", "? help"), nil},
+		{"busy-ascii", "  " + spin + "/" + off + desc + " Deploying checkout-api" + off + " " + strings.TrimPrefix(footer("↑↓/jk move", "enter open", "? help"), "  "), nil},
+		{"busy-alone", "  " + spin + "▖" + off + desc + " Deploying checkout-api" + off, nil},
 	}
 	dir := t.TempDir()
 	for _, c := range cases {

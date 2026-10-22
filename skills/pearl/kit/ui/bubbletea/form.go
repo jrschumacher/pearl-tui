@@ -203,7 +203,7 @@ func Options[T comparable](cs ...Choice[T]) []huh.Option[T] {
 // still visibly the choice, never as loud as a focused one.
 func chosenButton(t *theme.Theme, label string) string {
 	st := t.S.Button.Foreground(t.P.Fg).Bold(true)
-	if t.ASCII || t.X.Button == "bracket" {
+	if Colourless(t) && t.X.Button != "underline" {
 		return st.UnsetPadding().UnsetBackground().Render(" [ " + label + " ]")
 	}
 	return st.Render(label)
@@ -284,42 +284,80 @@ type relayout struct{}
 // until nothing is left: a model driven outside a running program (a
 // harness, a test) reaches the state a user would see. Huh moves between
 // fields by returning a Cmd (NextField), not by moving, so Update alone
-// leaves focus where it was. Commands that don't answer at once (cursor
-// blink, spinner and clock ticks) are dropped: they are timers, and a frame
-// must not wait on a timer. tea.Sequence's message is private, so a sequence
-// is dropped too; Huh only uses one in Form.Init, whose work is done by then.
+// leaves focus where it was.
+//
+// Every command runs at once, as a program runs them, and each has SettleWait from
+// when it started to answer; one that answers later is a timer (a cursor blink, a
+// spinner or clock tick) and is dropped: a frame must not wait on a timer. So a round's
+// timers cost one window together, never their own time, and a command that does real
+// work keeps its window under load (it had 5 ms, one after another, and a busy machine
+// dropped Huh's NextField). tea.Sequence's message is private, so a sequence is
+// dropped too; Huh only uses one in Form.Init, whose work is done by then.
 //
 //	ui.Settle(func(msg tea.Msg) tea.Cmd { _, c := form.Update(msg); return c }, cmd)
 func Settle(update func(tea.Msg) tea.Cmd, cmd tea.Cmd) {
-	queue := []tea.Cmd{cmd}
-	for n := 0; len(queue) > 0 && n < 256; n++ {
-		c := queue[0]
-		queue = queue[1:]
+	type answer struct {
+		id  int
+		msg tea.Msg
+		at  time.Time // when it answered, not when Settle got to it
+	}
+	done := make(chan struct{})
+	defer close(done) // a timer still running answers nobody, and its goroutine ends
+	answers := make(chan answer)
+	due := map[int]time.Time{} // each running command's deadline
+	next := 0
+	run := func(c tea.Cmd) {
 		if c == nil {
-			continue
+			return
 		}
-		switch msg := quick(c).(type) {
-		case nil:
-		case tea.BatchMsg:
-			queue = append(queue, msg...)
-		default:
-			queue = append(queue, update(msg))
+		id := next
+		next++
+		due[id] = time.Now().Add(SettleWait)
+		go func() {
+			m := c()
+			select {
+			case answers <- answer{id, m, time.Now()}:
+			case <-done:
+			}
+		}()
+	}
+	run(cmd)
+	for delivered := 0; len(due) > 0 && delivered < 256; {
+		var last time.Time // every running command is past its deadline then
+		for _, d := range due {
+			if d.After(last) {
+				last = d
+			}
+		}
+		wait := time.NewTimer(time.Until(last))
+		select {
+		case a := <-answers:
+			wait.Stop()
+			late := a.at.After(due[a.id])
+			delete(due, a.id)
+			if late {
+				continue // a timer that fired while the others ran
+			}
+			switch msg := a.msg.(type) {
+			case nil:
+			case tea.BatchMsg:
+				for _, c := range msg {
+					run(c)
+				}
+			default:
+				delivered++
+				run(update(msg))
+			}
+		case <-wait.C:
+			return
 		}
 	}
 }
 
-// quick runs a command and returns its message if it answers within a few
-// milliseconds (anything slower is a timer).
-func quick(c tea.Cmd) tea.Msg {
-	ch := make(chan tea.Msg, 1)
-	go func() { ch <- c() }()
-	select {
-	case m := <-ch:
-		return m
-	case <-time.After(5 * time.Millisecond):
-		return nil
-	}
-}
+// SettleWait is how long Settle gives each command to answer: past a command that does
+// work on a loaded machine (tens of milliseconds), short of the kit's frame clock
+// (FrameInterval, 50 ms) and every spinner and cursor blink, which Settle drops.
+const SettleWait = 40 * time.Millisecond
 
 // ---------------------------------------------------------------- input
 

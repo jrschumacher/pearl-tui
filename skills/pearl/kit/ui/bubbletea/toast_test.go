@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme/bubbletea"
@@ -278,5 +280,52 @@ func TestToastWaitsUnderADialog(t *testing.T) {
 	}
 	if _, ok := p.Current(); ok {
 		t.Error("a plain note under a dialog outlived ToastTTL")
+	}
+}
+
+// Each kind of toast draws in its own role, never success's unless it is one: an app
+// that raised Toast(t, "warn", …), the name the kit's own status slots use (ui.Mark's
+// "warn", "fail", "done"), or "Info", got the success green for a warning, since every
+// kind the switch didn't name fell through to ok. The kit's names and those aliases
+// take their role in any case; a kind the kit doesn't know is info, a notice, never a
+// success. Judged as the terminal draws it, at every profile that has colour.
+func TestToastKindsTakeTheirRoles(t *testing.T) {
+	same := map[string]string{
+		"ok": "ok", "success": "ok", "done": "ok", "OK": "ok",
+		"error": "error", "err": "error", "fail": "error", "failed": "error", "Error": "error",
+		"warning": "warning", "warn": "warning", "WARN": "warning", "Warning": "warning",
+		"info": "info", "Info": "info", "notice": "info",
+	}
+	for _, f := range append(testThemes(t), quirePath(t)) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dark := range []bool{true, false} {
+			for _, p := range []colorprofile.Profile{colorprofile.TrueColor, colorprofile.ANSI256, colorprofile.ANSI} {
+				th := theme.ResolveProfile(tf, dark, false, p)
+				name := fmt.Sprintf("%s dark=%v %s", filepath.Base(f), dark, p)
+				draw := func(kind string) string { return downsample(Toast(th, kind, "TAG", "Rolled back", 40), p) }
+				for kind, canon := range same {
+					if got, want := draw(kind), draw(canon); got != want {
+						t.Errorf("%s: Toast %q draws\n%q\nwant %q's\n%q", name, kind, got, canon, want)
+					}
+					if got, want := ToastKey(th, kind, "TAG", "Rolled back", key.NewBinding(key.WithKeys("u"), key.WithHelp("u", "undo")), 40),
+						ToastKey(th, canon, "TAG", "Rolled back", key.NewBinding(key.WithKeys("u"), key.WithHelp("u", "undo")), 40); got != want {
+						t.Errorf("%s: ToastKey %q is not %q's", name, kind, canon)
+					}
+				}
+				ok := draw("ok")
+				for _, kind := range []string{"info", "warning", "error", "upgrade"} {
+					role := map[string]string{"info": "info", "warning": "warning", "error": "error", "upgrade": "info"}[kind]
+					if sameColor(th.Role(role), th.P.Success) {
+						continue // the theme draws the two alike on purpose
+					}
+					if draw(kind) == ok {
+						t.Errorf("%s: a %q toast draws in success's colour", name, kind)
+					}
+				}
+			}
+		}
 	}
 }

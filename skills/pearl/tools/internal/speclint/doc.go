@@ -137,7 +137,9 @@
 //	                  enter keep") is not part of it; ASCII twins (^v, <>, ^v<>) read as arrows,
 //	                  and a lone v as v or ↓; a row "as list; x cancel" is list's keys and
 //	                  these; a badge one blank before the first hint ("[PROD] enter next") is not
-//	                  part of it, nor is ui.Footer's right status: a chunk that is only a count
+//	                  part of it, nor is ui.Footer's left status ("⣾ Deploying checkout-api":
+//	                  a spinner frame or mark no keyboard sends is never a key, nor one drawn
+//	                  in another style than the row's other keys), nor its right status: a chunk that is only a count
 //	                  (`4 of 101`, `1/9`; `1/2 pane` is keys), or after the help hint one that
 //	                  leads with a number (`9 procs`); a
 //	                  frame whose last row holds no hint (a toast) is not compared.

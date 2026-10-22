@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+	"image/color"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -8,6 +10,8 @@ import (
 	"testing"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 
 	"tuikit/theme/bubbletea"
@@ -15,9 +19,10 @@ import (
 
 var sgrFG = regexp.MustCompile(`\x1b\[[0-9;]*38;2;(\d+);(\d+);(\d+)`)
 
-// In ASCII mode every button is a bracket on the terminal background, so its ink must
-// read on that background: a pill's ink is its fill's on-colour, often the background
-// itself, which made the focused button invisible (found by linting -ascii renders).
+// In ASCII mode a button's ink must read on the background: in brackets a pill's ink was
+// its fill's on-colour, often the background itself, which made the focused button
+// invisible (found by linting -ascii renders). A filled button is reverse video, its
+// first ink the fill, which stands off the page (TestButtonsAreFillsWhereColourShows).
 func TestASCIIButtonsReadOnTheBackground(t *testing.T) {
 	for _, f := range testThemes(t) {
 		tf, err := theme.Load(f)
@@ -92,6 +97,101 @@ func TestASCIIProgressTrackReadsAsText(t *testing.T) {
 			}
 			if cr := theme.Contrast(c.Style.Fg, th.P.Bg); cr < 2.3 {
 				t.Errorf("%s dark=%v: the ASCII remainder %q is %.2f:1 on the page, under the 2.3:1 text floor", filepath.Base(f), dark, c.Content, cr)
+			}
+		}
+	}
+}
+
+// shown is what a terminal at p shows for the cell under the first rune of word in s:
+// its ink and its fill, reverse video applied, and whether it is reversed.
+func shown(s, word string, p colorprofile.Profile) (ink, fill color.Color, reversed bool, ok bool) {
+	c := cellAt(downsample(s, p), word)
+	if c == nil {
+		return nil, nil, false, false
+	}
+	ink, fill = c.Style.Fg, c.Style.Bg
+	reversed = c.Style.Attrs&uv.AttrReverse != 0
+	if reversed {
+		ink, fill = fill, ink
+	}
+	return ink, fill, reversed, true
+}
+
+// Buttons are marked by a fill where colour shows, not by brackets: a page of [x] marks,
+// [PROD] badges and bracketed buttons made the buttons hard to tell apart ("there are a
+// lot of brackets on the page"). Wherever colour shows (truecolour, 256 and 16 colours,
+// ASCII glyphs included), the focused button of every expression but underline is a
+// fill that stands off the page and the dialog, with its ink apart from it, and draws no
+// bracket or cursor; under bracket that fill is primary (fg under focus "fg", where the
+// hue is a state), and an unfocused button is a plain label. With no colour (NO_COLOR)
+// the focused button keeps a mark that needs none: brackets, or reverse video.
+func TestButtonsAreFillsWhereColourShows(t *testing.T) {
+	type mode struct {
+		name        string
+		dark, ascii bool
+		p           colorprofile.Profile
+	}
+	modes := []mode{
+		{"dark", true, false, colorprofile.TrueColor}, {"light", false, false, colorprofile.TrueColor},
+		{"ascii", true, true, colorprofile.TrueColor}, {"ansi256", true, false, colorprofile.ANSI256},
+		{"ansi", true, false, colorprofile.ANSI}, {"light-ansi", false, false, colorprofile.ANSI},
+		{"nocolor", true, false, colorprofile.Ascii}, {"nocolor-ascii", true, true, colorprofile.Ascii},
+	}
+	for _, f := range append(testThemes(t), quirePath(t)) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, x := range []string{"bracket", "pill", "inverse", "underline"} {
+			tf.Expressions.Button = x
+			for _, m := range modes {
+				th := theme.ResolveProfile(tf, m.dark, m.ascii, m.p)
+				name := fmt.Sprintf("%s button=%s %s", filepath.Base(f), x, m.name)
+				for _, danger := range []bool{false, true} {
+					on, off := Button(th, "Continue", true, danger, -1), Button(th, "Continue", false, danger, -1)
+					if m.p == colorprofile.Ascii {
+						if x == "underline" {
+							continue // bold and underlined: a mark with no colour (TestASCIIUnderlineButton)
+						}
+						_, _, rev, _ := shown(on, "Continue", m.p)
+						if !rev && !strings.Contains(ansi.Strip(on), "[") {
+							t.Errorf("%s danger=%v: with no colour the focused button %q has no mark: no bracket, no reverse", name, danger, ansi.Strip(on))
+						}
+						if downsample(on, m.p) == downsample(off, m.p) {
+							t.Errorf("%s danger=%v: with no colour focused and unfocused draw alike: %q", name, danger, ansi.Strip(on))
+						}
+						continue
+					}
+					if strings.ContainsAny(ansi.Strip(on+off), "[]") || strings.Contains(ansi.Strip(on), th.G.Cursor) {
+						t.Errorf("%s danger=%v: in colour the buttons draw %q and %q: brackets, not a fill", name, danger, ansi.Strip(on), ansi.Strip(off))
+					}
+					if x == "underline" {
+						continue
+					}
+					ink, fill, _, ok := shown(on, "Continue", m.p)
+					if !ok || fill == nil {
+						t.Errorf("%s danger=%v: the focused button %q has no fill", name, danger, ansi.Strip(on))
+						continue
+					}
+					for _, under := range []color.Color{th.P.Bg, th.P.BgPanel} {
+						if !th.Distinct(fill, under) {
+							t.Errorf("%s danger=%v: the focused button's fill %v draws as the surface %v it sits on", name, danger, fill, under)
+						}
+					}
+					if ink == nil || !th.Distinct(ink, fill) {
+						t.Errorf("%s danger=%v: the focused button's ink %v draws as its fill %v", name, danger, ink, fill)
+					}
+					want := th.P.Primary
+					if th.X.Focus == "fg" || !th.Distinct(want, th.P.Bg) || !th.Distinct(want, th.P.BgPanel) || !th.Distinct(want, th.P.BgOverlay) {
+						want = th.P.Fg
+					}
+					if x == "bracket" && !danger && th.Distinct(fill, want) {
+						t.Errorf("%s: the focused bracket button's fill is %v, want %v (primary, or fg where the hue is a state)", name, fill, want)
+					}
+					if _, offFill, _, _ := shown(off, "Continue", m.p); offFill != nil && !th.Distinct(offFill, fill) {
+						t.Errorf("%s danger=%v: the unfocused button's fill is the focused one's", name, danger)
+					}
+				}
 			}
 		}
 	}

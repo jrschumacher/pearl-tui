@@ -28,7 +28,11 @@ func DialogTitle(t *theme.Theme, title string, w int, info string) string {
 		return Fit(ti+info, w)
 	case "bar":
 		st := lipgloss.NewStyle().Background(t.P.Primary).Foreground(t.P.OnPrimary).Bold(true)
-		return st.Render(Fit(" "+t.Case(title)+ansi.Strip(info), w))
+		tt := t.Case(title)
+		if up := t.S.Title.GetTransform(); up != nil { // sectionTitle muted-upper: the strip's title in capitals too
+			tt = up(tt)
+		}
+		return st.Render(Fit(" "+tt+ansi.Strip(info), w))
 	}
 	g := t.G.HeaderRule
 	if g == "" {
@@ -42,7 +46,7 @@ func DialogTitle(t *theme.Theme, title string, w int, info string) string {
 	if t.ASCII || t.X.Focus == "fg" {
 		rule = t.S.Motif.Render(rule)
 	} else {
-		rule = theme.Grad(rule, t.P.Primary, t.P.Secondary, false)
+		rule = t.Gradient(rule, t.P.Primary, t.P.Secondary, false)
 	}
 	return ti + " " + rule + info
 }
