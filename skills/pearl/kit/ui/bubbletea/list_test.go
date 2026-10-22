@@ -292,8 +292,9 @@ func TestTableStretchesAZeroColumn(t *testing.T) {
 // kit test failed. List and Table keep every row w cells and every title in one column,
 // whatever the cursor's, focus bar's or blurred bar's width.
 func TestMarkerColumnFitsAWideCursor(t *testing.T) {
-	path := filepath.Join("..", "..", "themes", "moss.json")
-	for _, f := range testThemes(t) {
+	files := testThemes(t)
+	path := files[0] // a copied project has only its own theme
+	for _, f := range files {
 		if filepath.Base(f) == "moss.json" {
 			path = f
 		}
