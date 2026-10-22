@@ -41,6 +41,22 @@ jobs:
       - run: go vet ./...
       - run: go test ./...
 
+  capture:
+    name: capture (go vet + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: skills/pearl/capture
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: skills/pearl/capture/go.mod
+          cache-dependency-path: skills/pearl/capture/go.sum
+      - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - run: go vet ./...
+      - run: go test ./...
+
   kit-copy:
     name: kit copy (README block in a fresh module, ${{ matrix.theme }})
     runs-on: ubuntu-latest

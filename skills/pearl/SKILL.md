@@ -51,12 +51,13 @@ supports only Bubble Tea today; its design references still read as guidance the
    once.
 4. **Build the tools** once per project, into the project's own `.tuitools/`, from the
    project root: `go -C <dir holding this file>/tools build -o "$PWD/.tuitools/" ./cmd/...`
+   and `go -C <dir holding this file>/capture build -o "$PWD/.tuitools/" ./cmd/tuicap`
    (absolute, because `go -C` resolves a relative `-o` in the tools directory), then
    `export PATH="$PWD/.tuitools:$PATH"` and add `.tuitools/` to `.gitignore` (with
    `frames/` and `out/`). A per-project directory because two projects can hold two
    versions of the skill, and a shared `$HOME/.cache` lets one overwrite the other's
    `tuilint` with nothing to show which rules you are linting with. That gives
-   `cellshot`, `tuilint`, `palette`, `diversity` and `tuivet`. The kit's and the
+   `cellshot`, `tuilint`, `palette`, `diversity`, `tuivet` and `tuicap`. The kit's and the
    tools' `go.mod` pin Go 1.26.7; if `go` says "requires go >= 1.26.7", prefix the
    command with `GOTOOLCHAIN=auto` and Go fetches it.
 5. **Never show the user anything you haven't rendered and looked at** with
@@ -235,11 +236,12 @@ checking in with the user after `shape`. An existing app: `init` → `restyle`.
 | `palette` | `derive` a dark+light role set from brand hexes (OKLCH, tinted neutrals, contrast-tuned); `check` a theme |
 | `tuivet` | the `tuilint code` rules as a go vet tool (`tuivet ./...`, or `go vet -vettool=$(which tuivet) ./...`; exit 3 on a finding) |
 | `diversity` | how different are these themes from each other and from the default |
+| `tuicap` | runs any app in a pty from a tape and writes its screens as frames the rest read, with the flow and the terminal sequences it used; `-level privacy` redacts the words, keeps the layout, for sharing a private app's screens |
 | `feedback` | `draft`, dedupe (`similar`) and `submit` an issue on the skill's repository, `submit` only on the user's yes to the shown draft (`--confirm` its hash): gh when signed in, else a prefilled link |
 | `scripts/wordmark.py` | the brand name in cells, from a real font: half / shade / ascii / tracked |
 | `scripts/logo2cells.py` | a logo raster onto the grid (half, shade or quadrants) with lint |
 
-All but the last two are Go (`tools/`, built in Setup). The wordmark and logo converters
+All but the last two are Go (`tools/` and `capture/`, built in Setup). The wordmark and logo converters
 are Python 3 with Pillow and numpy, needed only when you convert brand assets.
 
 The verification loop that ties them together is `references/verify.md`. Run it before

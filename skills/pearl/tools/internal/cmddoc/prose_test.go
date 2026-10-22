@@ -84,6 +84,7 @@ func specs(t *testing.T) map[string]cmddoc.Spec {
 			}
 		}(),
 		"tuivet":        {Flags: vet},
+		"tuicap":        {Flags: free(cmddoc.Text(read(t, "capture/cmd/tuicap/doc.go")))},
 		"wordmark.py":   {Flags: cmddoc.ArgparseFlags(read(t, "scripts/wordmark.py"))},
 		"logo2cells.py": {Flags: cmddoc.ArgparseFlags(read(t, "scripts/logo2cells.py"))},
 	}
