@@ -261,3 +261,39 @@ func TestSectionKeepsStyledInfo(t *testing.T) {
 		t.Errorf("widths %d and %d, want 40", lipgloss.Width(styled), lipgloss.Width(plain))
 	}
 }
+
+// sectionTitle "muted-upper" is a muted title in capitals: terrarium (sentence case) drew
+// "Recent deploys" in fgMuted, mixed case, since the style set the ink and no case. Every
+// title the style draws takes it: a section's, a dialog's, a Huh group's. Under the
+// other values the title keeps the theme's case.
+func TestMutedUpperSectionTitles(t *testing.T) {
+	for _, f := range append(testThemes(t), quirePath(t)) {
+		tf, err := theme.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, x := range []string{"muted-upper", "accent", "primary", "fg"} {
+			tf.Expressions.SectionTitle, tf.Expressions.TitleCase = x, "sentence"
+			th := theme.Resolve(tf, true, false)
+			name := filepath.Base(f) + " " + x
+			sec := ansi.Strip(Section(th, "Recent deploys", 60, "3 today"))
+			dlg := ansi.Strip(DialogTitle(th, "Roll back checkout-api?", 50, ""))
+			want, wantD := "Recent deploys", "Roll back checkout-api?"
+			if x == "muted-upper" {
+				want, wantD = "RECENT DEPLOYS", "ROLL BACK CHECKOUT-API?"
+				if got, ink := firstInk(Section(th, "Recent deploys", 60, "")), th.P.FgMuted; !sameColor(got, ink) {
+					t.Errorf("%s: the title is %v, want fgMuted %v", name, got, ink)
+				}
+			}
+			if !strings.HasPrefix(sec, want+" ") {
+				t.Errorf("%s: section %q, want it to open %q", name, sec, want)
+			}
+			if !strings.HasPrefix(strings.TrimSpace(dlg), wantD) { // dialogTitle "bar" opens on a cell of its strip
+				t.Errorf("%s: dialog title %q, want it to open %q", name, dlg, wantD)
+			}
+			if got := lipgloss.Width(Section(th, "Recent deploys", 60, "3 today")); got != 60 {
+				t.Errorf("%s: section is %d cells, want 60", name, got)
+			}
+		}
+	}
+}

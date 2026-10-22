@@ -120,8 +120,8 @@ func build(t *Theme) Styles {
 	switch x.SectionTitle {
 	case "primary":
 		s.Title = s.Primary.Bold(true)
-	case "muted-upper":
-		s.Title = s.Muted.Bold(true)
+	case "muted-upper": // the case is the style's: every title it draws is in capitals
+		s.Title = s.Muted.Bold(true).Transform(strings.ToUpper)
 	case "fg":
 		s.Title = s.Bold
 	default:
