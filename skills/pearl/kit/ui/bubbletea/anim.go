@@ -40,8 +40,8 @@ func NewAnim(t *theme.Theme, size int, label, seed string) *Anim {
 	a := &Anim{T: t, Size: size, Label: label, Seed: seed}
 	// A→B→A over 3× the width, so the colour can flow by offsetting into it
 	n := size * 3
-	half := lipgloss.Blend1D(n/2+1, t.P.Primary, t.P.Secondary)
-	back := lipgloss.Blend1D(n-n/2+1, t.P.Secondary, t.P.Primary)
+	half := t.GradRamp(n/2+1, t.P.Primary, t.P.Secondary) // the profile's ramp: never error's red at 16 colours
+	back := t.GradRamp(n-n/2+1, t.P.Secondary, t.P.Primary)
 	a.ramp = append(half, back[1:]...)
 	h := fnv.New32a()
 	h.Write([]byte(seed))

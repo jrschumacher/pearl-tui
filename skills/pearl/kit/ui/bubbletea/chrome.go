@@ -32,7 +32,7 @@ func Wordmark(t *theme.Theme, name string) string {
 	if t.ASCII {
 		return t.S.Bold.Render(name)
 	}
-	return theme.Grad(name, p.Secondary, p.Primary, true)
+	return t.Gradient(name, p.Secondary, p.Primary, true)
 }
 
 // Header is the app's top row(s), exactly w cells wide, per expressions.header:

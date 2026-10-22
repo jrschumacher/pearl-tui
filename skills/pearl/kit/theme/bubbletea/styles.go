@@ -345,10 +345,55 @@ func (t *Theme) Label(s, own string) string {
 	return s
 }
 
-// Grad renders text with a per-grapheme foreground gradient from a to b.
+// Grad renders text with a per-grapheme foreground gradient from a to b, blended as
+// written whatever the terminal: on screen use Theme.Gradient, which knows the profile.
 // Use it on a handful of cells (a wordmark, a title rule, a spinner), never
 // on prose. Under ASCII/NO_COLOR it degrades to the plain text.
 func Grad(text string, a, b color.Color, bold bool) string {
+	return grad(text, bold, func(n int) []color.Color { return lipgloss.Blend1D(n, a, b) })
+}
+
+// Gradient is Grad at the theme's profile: its colours are GradRamp's, so at 16 colours
+// it never draws a cell in error's red unless it is error's own gradient.
+func (t *Theme) Gradient(text string, a, b color.Color, bold bool) string {
+	return grad(text, bold, func(n int) []color.Color { return t.GradRamp(n, a, b) })
+}
+
+// GradRamp is n colours from a to b, as the theme's profile can draw them. At 16 colours
+// a blend has no steps: each cell snaps to the nearest of the 16, and the blend between
+// two brand hues lands on whatever slot is nearest, other roles' slots: error's red
+// between a blue and a yellow (halyard's progress bar), warning's yellow between a green
+// and a red. There the ramp is its two ends, a over the first half and b over the rest,
+// and an end on red (ANSI 1 or 9, or error's own slot) gives way to the other end, so a
+// healthy bar or a brand's rule never reads as failing. Only a gradient with both ends on
+// red keeps them: error's own, or a brand pinned to red, which palette check reports.
+func (t *Theme) GradRamp(n int, a, b color.Color) []color.Color {
+	n = max(1, n)
+	if t.Profile != colorprofile.ANSI {
+		return lipgloss.Blend1D(max(2, n), a, b)[:n]
+	}
+	red := func(c color.Color) bool {
+		s := Slot16(c)
+		return s == 1 || s == 9 || s == Slot16(t.P.Error)
+	}
+	switch {
+	case red(a) && !red(b):
+		a = b
+	case red(b) && !red(a):
+		b = a
+	}
+	out := make([]color.Color, n)
+	for i := range out {
+		out[i] = a
+		if 2*i >= n {
+			out[i] = b
+		}
+	}
+	return out
+}
+
+// grad renders text one grapheme a colour, from ramp(n) for n graphemes.
+func grad(text string, bold bool, colors func(int) []color.Color) string {
 	var clusters []string
 	g := uniseg.NewGraphemes(text)
 	for g.Next() {
@@ -357,7 +402,7 @@ func Grad(text string, a, b color.Color, bold bool) string {
 	if len(clusters) == 0 {
 		return ""
 	}
-	ramp := lipgloss.Blend1D(max(2, len(clusters)), a, b)
+	ramp := colors(max(2, len(clusters)))
 	var sb strings.Builder
 	for i, c := range clusters {
 		st := lipgloss.NewStyle().Foreground(ramp[i])

@@ -46,7 +46,7 @@ func DialogTitle(t *theme.Theme, title string, w int, info string) string {
 	if t.ASCII || t.X.Focus == "fg" {
 		rule = t.S.Motif.Render(rule)
 	} else {
-		rule = theme.Grad(rule, t.P.Primary, t.P.Secondary, false)
+		rule = t.Gradient(rule, t.P.Primary, t.P.Secondary, false)
 	}
 	return ti + " " + rule + info
 }

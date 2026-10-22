@@ -177,7 +177,7 @@ func Progress(t *theme.Theme, frac float64, w int) string {
 	}
 	filled := strings.Repeat(fill, n) + head
 	if !t.ASCII && n > 1 && t.X.Focus != "fg" {
-		filled = theme.Grad(filled, t.P.Secondary, t.P.Primary, false)
+		filled = t.Gradient(filled, t.P.Secondary, t.P.Primary, false)
 	} else {
 		filled = t.S.Mark.Render(filled)
 	}
