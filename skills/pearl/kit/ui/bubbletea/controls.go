@@ -6,12 +6,16 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 
 	"tuikit/theme/bubbletea"
 )
 
 // Button renders one button per expressions.button. mnemonic (0-based rune
-// index, -1 for none) underlines the accelerator letter.
+// index, -1 for none) underlines the accelerator letter. Where colour shows, a
+// focused button is a fill (pill, inverse, bracket: primary) and an unfocused one a
+// quieter fill or a plain label; with no colour (Colourless) they are brackets, the
+// focused one with the cursor. underline is bold and underlined text everywhere.
 func Button(t *theme.Theme, label string, focused, danger bool, mnemonic int) string {
 	st := t.S.Button
 	if danger && !focused {
@@ -28,13 +32,11 @@ func Button(t *theme.Theme, label string, focused, danger bool, mnemonic int) st
 		r := []rune(label)
 		text = string(r[:mnemonic]) + "\x00" + string(r[mnemonic:mnemonic+1]) + "\x01" + string(r[mnemonic+1:])
 	}
-	style := t.X.Button
-	if t.ASCII && style != "underline" {
-		// a filled pill is invisible without colour, and its ink is the fill's on-colour
-		// (often the background itself): draw it as the bracket expression does. An
-		// underline button keeps its bold and underline: both survive ASCII, and a
+	if Colourless(t) && t.X.Button != "underline" {
+		// with no colour a fill is gone, and its ink is the fill's on-colour (often the
+		// background itself): the buttons are brackets, the focused one with the cursor.
+		// An underline button keeps its bold and underline: both need no colour, and a
 		// bracket with a cursor would be a second and third cue
-		style = "bracket"
 		switch {
 		case focused && danger:
 			st = t.S.Err.Bold(true)
@@ -45,18 +47,19 @@ func Button(t *theme.Theme, label string, focused, danger bool, mnemonic int) st
 		default:
 			st = t.S.Muted
 		}
-	}
-	switch style {
-	case "bracket":
 		mark := " "
 		if focused {
 			mark = t.G.Cursor
 		}
 		return st.Render(mark+"[ ") + underline(st, text) + st.Render(" ]")
-	case "underline":
-		return underline(st, text)
 	}
 	return underline(st, text)
+}
+
+// Colourless reports whether the theme's terminal shows no colour (NO_COLOR, no TTY):
+// a fill is gone there, so what a fill marks needs a mark of its own.
+func Colourless(t *theme.Theme) bool {
+	return t.Profile == colorprofile.Ascii || t.Profile == colorprofile.NoTTY
 }
 
 // underline renders text in st, with the span between \x00 and \x01 underlined.

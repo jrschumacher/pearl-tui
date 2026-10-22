@@ -165,27 +165,41 @@ func build(t *Theme) Styles {
 	s.BlurBar = lipgloss.NewStyle().Foreground(p.FgSubtle)
 	s.Match = lipgloss.NewStyle().Underline(true)
 
+	// a filled button is reverse video of (fill, ink): the same pixels in colour, and a
+	// reversed block still when the terminal strips colour (NO_COLOR with no profile)
+	filled := func(fill, on color.Color, pad int) lipgloss.Style {
+		return lipgloss.NewStyle().Foreground(fill).Background(ink(on, fill)).Reverse(true).Bold(true).Padding(0, pad)
+	}
 	switch x.Button {
 	case "bracket":
-		s.Button = s.Muted
-		s.ButtonFocus = s.Focus.Bold(true)
-		s.ButtonDanger = s.Err.Bold(true)
+		// where colour shows, the focused button is a primary fill and the rest plain
+		// labels: a page of [x] marks and [PROD] badges can't tell bracketed buttons
+		// apart. ui.Button draws the brackets where there is no colour. The hue is a
+		// state under focus "fg", and primary can land on the page's or a panel's slot:
+		// there the fill is fg
+		fill, on := p.Primary, p.OnPrimary
+		if fgFocus || !t.Distinct(fill, p.Bg) || !t.Distinct(fill, p.BgPanel) || !t.Distinct(fill, p.BgOverlay) {
+			fill, on = p.Fg, p.Bg
+		}
+		s.Button = s.Muted.Padding(0, 1)
+		s.ButtonFocus = filled(fill, on, 1)
+		s.ButtonDanger = filled(p.Error, p.OnError, 1)
 	case "underline":
 		s.Button = s.Muted
 		s.ButtonFocus = s.Focus.Bold(true).Underline(true)
 		s.ButtonDanger = s.Err.Bold(true).Underline(true)
 	case "inverse":
 		s.Button = lipgloss.NewStyle().Foreground(ink(p.Fg, p.BgSubtle)).Background(p.BgSubtle).Padding(0, 2)
-		s.ButtonFocus = lipgloss.NewStyle().Foreground(p.Bg).Background(p.Fg).Bold(true).Padding(0, 2)
-		s.ButtonDanger = lipgloss.NewStyle().Foreground(ink(p.OnError, p.Error)).Background(p.Error).Bold(true).Padding(0, 2)
+		s.ButtonFocus = filled(p.Fg, p.Bg, 2)
+		s.ButtonDanger = filled(p.Error, p.OnError, 2)
 	default: // pill
 		s.Button = lipgloss.NewStyle().Foreground(ink(p.FgMuted, p.BgSubtle)).Background(p.BgSubtle).Padding(0, 2)
 		fill, on := p.Secondary, p.OnSecondary
 		if fgFocus || !t.Distinct(fill, p.BgSubtle) {
 			fill, on = p.Fg, p.Bg // the focused pill must not look like the rest: fg, as inverse draws it
 		}
-		s.ButtonFocus = lipgloss.NewStyle().Foreground(ink(on, fill)).Background(fill).Bold(true).Padding(0, 2)
-		s.ButtonDanger = lipgloss.NewStyle().Foreground(ink(p.OnError, p.Error)).Background(p.Error).Bold(true).Padding(0, 2)
+		s.ButtonFocus = filled(fill, on, 2)
+		s.ButtonDanger = filled(p.Error, p.OnError, 2)
 	}
 
 	// a dialog is a filled panel whatever its edge, and whether or not the app paints the

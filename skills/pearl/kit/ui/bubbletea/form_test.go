@@ -131,12 +131,12 @@ func TestConfirmOrderAndDefault(t *testing.T) {
 	txt := ansi.Strip(f.View())
 	row := ""
 	for _, l := range strings.Split(txt, "\n") {
-		if strings.Contains(l, "Delete ]") {
+		if strings.Contains(l, "Delete") && strings.Contains(l, "Keep") {
 			row = l
 		}
 	}
-	if strings.Index(row, "Delete") > strings.Index(row, "Keep") || strings.Index(row, "[") > 6 {
-		t.Fatalf("button row %q", row)
+	if row == "" || strings.Index(row, "Delete") > strings.Index(row, "Keep") || strings.Index(row, "Delete") > 8 {
+		t.Fatalf("button row %q: want Delete first, left in the field's column", row)
 	}
 	if v {
 		t.Fatal("the default was false")

@@ -101,7 +101,7 @@ asks (`cmd-shape.md` § Depth Follows The Domain, Then The Brand).
 |---|---|
 | soft, calm, caring | `╌` dashed rules, `›` caret selection, `•` dots for steps, underline or pill buttons, a bold-word tag, minimal header, airy, sentence case, `scrim: dim`, dots spinner |
 | industrial, blunt, exact | `━`/`═` heavy rules, a stamp header, `fill` selection, inverse block buttons, `[BRACKET]` tags, heavy dialog, UPPERCASE labels, compact, quadrant spinner, no gradients |
-| precise, technical, nautical | a bar header, `┄` chart rules, slash tabs, `[ bracket ]` buttons, boxed keys, `▲ △` motifs, compact |
+| precise, technical, nautical | a bar header, `┄` chart rules, slash tabs, `bracket` buttons (a primary fill, `[ ]` with no colour), boxed keys, `▲ △` motifs, compact |
 | playful, loud, retro | a half-block banner, `inverse` selection, double dialog, pill tabs, owned background, a gradient motif rule, field backdrop |
 | editorial, bookish, quiet | lowercase titles and labels (`titleCase`, `labelCase: lower`), `·` dotted leaders, a thin `│` bar, filled-panel dialogs (no border, or `dialog: rules`: a rule above and below), underline buttons, measure 72; when the one hue is a state, `focus: fg` and `wordmark: plain` |
 | a developer tool with personality (Crush) | a `╱` motif in the header and every dialog title, a gradient wordmark, `▌` bars, pill buttons, filled tags, playful copy (`Yep!`) |

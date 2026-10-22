@@ -203,7 +203,7 @@ func Options[T comparable](cs ...Choice[T]) []huh.Option[T] {
 // still visibly the choice, never as loud as a focused one.
 func chosenButton(t *theme.Theme, label string) string {
 	st := t.S.Button.Foreground(t.P.Fg).Bold(true)
-	if t.ASCII || t.X.Button == "bracket" {
+	if Colourless(t) && t.X.Button != "underline" {
 		return st.UnsetPadding().UnsetBackground().Render(" [ " + label + " ]")
 	}
 	return st.Render(label)
