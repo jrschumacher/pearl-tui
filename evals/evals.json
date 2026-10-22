@@ -479,6 +479,53 @@
         "nothing is asked of the person that the skill decides itself: keys, states, contrast and the laws are not pick points",
         "(pair) a fresh session given only the repo, the skill and the prompt `Run the work orders in TUI.md, in order.`, with answers.md removed (the conversation reaches it only through the orders), builds the slice; graded against the same slice built by a session that also had the interview, it is at least as good, and it keeps every `keep:` line"
       ]
+    },
+    {
+      "id": 19,
+      "name": "restyle-setup-no-harness",
+      "prompt": "Read BRIEF.md: restyle quayside's setup flow to match the reference. The app has no harness. /pearl restyle.",
+      "files": [
+        "evals/fixtures/restyle-setup/forms.go",
+        "evals/fixtures/restyle-setup/main.go",
+        "evals/fixtures/restyle-setup/model.go",
+        "evals/fixtures/restyle-setup/service.go",
+        "evals/fixtures/restyle-setup/setup_test.go",
+        "evals/fixtures/restyle-setup/view.go",
+        "evals/fixtures/restyle-setup/wizard.go",
+        "evals/fixtures/restyle-setup/go.mod",
+        "evals/fixtures/restyle-setup/go.sum",
+        "evals/fixtures/restyle-setup/README.md",
+        "evals/fixtures/restyle-setup/BRIEF.md",
+        "evals/fixtures/restyle-setup/reference/collect-120x40.ansi",
+        "evals/fixtures/restyle-setup/reference/collect-80x24.ansi",
+        "evals/fixtures/restyle-setup/reference/connecting-120x40.ansi",
+        "evals/fixtures/restyle-setup/reference/connecting-80x24.ansi",
+        "evals/fixtures/restyle-setup/reference/done-120x40.ansi",
+        "evals/fixtures/restyle-setup/reference/done-80x24.ansi",
+        "evals/fixtures/restyle-setup/reference/failed-120x40.ansi",
+        "evals/fixtures/restyle-setup/reference/failed-80x24.ansi",
+        "evals/fixtures/restyle-setup/reference/reference-120x40.png",
+        "evals/fixtures/restyle-setup/reference/reference-80x24.png",
+        "evals/fixtures/restyle-setup/reference/review-120x40.ansi",
+        "evals/fixtures/restyle-setup/reference/review-80x24.ansi",
+        "evals/fixtures/restyle-setup/reference/signin-120x40.ansi",
+        "evals/fixtures/restyle-setup/reference/signin-80x24.ansi",
+        "evals/fixtures/restyle-setup/reference/sso-120x40.ansi",
+        "evals/fixtures/restyle-setup/reference/sso-80x24.ansi"
+      ],
+      "expected_output": "The setup flow restyled to the reference's composition, every step and failure kept, captured before and after at 80×24 and 120×40, linted, critiqued, and reported with a fidelity verdict per exact axis.",
+      "assertions": [
+        "before changing any code, the agent captured every step of the existing app at 80×24 and 120×40 (with the skill's capture tool, or a harness it added first), and looked at the captures",
+        "after the change, every step, the check and connect failures, review and done are captured again at both sizes, and `tuilint frames` runs on those captures with no blocking finding",
+        "the step column is packed from the top, one row per step: ✓ done with its answer on the same row, ● current, ○ to come; no step and no form field is spread over the terminal's height",
+        "below the width where the column fits, the journey collapses to one row and the done answers stay readable; no answer is left orphaned under a breadcrumb",
+        "the footer is one row at 80 columns, ends with `? help`, has one back key, and no key reads as a bare cancel",
+        "exactly one focus mark in every frame: a blurred input or select draws no cursor",
+        "the report gives a fidelity verdict per exact axis (MATCH or DEVIATES, with the frames compared) separate from the critic's score; a SHIP score with no MATCH is not reported as done",
+        "every step, answer and failure still works, and `quayside setup --token` still runs with no screen and never prints the token; the app's own tests pass",
+        "colours come from the README's brand through a theme, never the old hardcoded hexes",
+        "(taste) graded blind against the reference's renders: the composition reads as the same family, and against the before-captures: clearly better"
+      ]
     }
   ]
 }
