@@ -365,8 +365,8 @@ func matchUnderline(s string, idx []int, st lipgloss.Style) string {
 
 // Table renders a borderless table: a muted header row (upper case unless the theme's
 // labelCase says otherwise), a rule, then rows
-// with aligned columns. widths are cells per column (the last may be 0 =
-// take the rest). align: 'l' or 'r' per column. Selected row per selection. gap is the
+// with aligned columns. widths are cells per column (0 = take the rest, shared
+// among the columns that say 0). align: 'l' or 'r' per column. Selected row per selection. gap is the
 // cells between columns, 2 unless given: a 10-column table at 78 cells fits on 1
 // (ui.Table(…, focused, 1)). With no rule under the header, TableWith.
 func Table(t *theme.Theme, header []string, rows [][]string, widths []int, align string, sel, w int, focused bool, gap ...int) []string {
@@ -396,18 +396,36 @@ func TableWith(t *theme.Theme, header []string, rows [][]string, widths []int, a
 	return table(t, header, rows, widths, align, sel, w, focused, g, !o.NoRule)
 }
 
-func table(t *theme.Theme, header []string, rows [][]string, widths []int, align string, sel, w int, focused bool, g int, rule bool) []string {
-	sp := strings.Repeat(" ", g)
+// stretch gives every zero width in widths a share of the room the other columns and
+// the gaps leave in w cells, wherever the column stands: the last zero column takes the
+// odd cell, and none gets fewer than 4.
+func stretch(widths []int, w, gap int) []int {
 	ws := append([]int(nil), widths...)
-	used := 0
-	for i, x := range ws {
-		if i < len(ws)-1 || x > 0 {
-			used += x + g
+	room, zero := w-gap*max(0, len(ws)-1), 0
+	for _, x := range ws {
+		room -= x
+		if x == 0 {
+			zero++
 		}
 	}
-	if ws[len(ws)-1] == 0 {
-		ws[len(ws)-1] = max(4, w-2-used)
+	for i := range ws {
+		if ws[i] != 0 {
+			continue
+		}
+		share := room / zero
+		if zero == 1 {
+			share = room
+		}
+		ws[i] = max(4, share)
+		room -= share
+		zero--
 	}
+	return ws
+}
+
+func table(t *theme.Theme, header []string, rows [][]string, widths []int, align string, sel, w int, focused bool, g int, rule bool) []string {
+	sp := strings.Repeat(" ", g)
+	ws := stretch(widths, w-2, g)
 	cell := func(s string, i int) string {
 		s = Trunc(t, s, ws[i])
 		if i < len(align) && align[i] == 'r' {

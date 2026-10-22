@@ -247,3 +247,39 @@ func TestTableRuleIsOptional(t *testing.T) {
 		}
 	}
 }
+
+// A zero width stretches its column over the room the others leave, wherever it stands:
+// Table stretched a zero-width last column, and drew a zero-width middle (or first)
+// column as no cells at all, its text gone and the next column moved up. Several zero
+// columns share the room, the last taking any odd cell, and every row keeps w cells.
+func TestTableStretchesAZeroColumn(t *testing.T) {
+	th := testTheme(t, false)
+	header := []string{"service", "summary", "age"}
+	rows := [][]string{{"ledger", "p99 latency over budget", "2d"}, {"auth-gateway", "all healthy", "8d"}}
+	for _, c := range []struct {
+		widths []int
+		want   []int // each column's cells at w 60, gap 2, the 2-cell marker column
+	}{
+		{[]int{14, 0, 4}, []int{14, 36, 4}},
+		{[]int{0, 30, 4}, []int{20, 30, 4}},
+		{[]int{14, 30, 0}, []int{14, 30, 10}}, // the last, as before
+		{[]int{14, 0, 0}, []int{14, 20, 20}},
+		{[]int{0, 0, 4}, []int{25, 25, 4}},
+	} {
+		out := Table(th, header, rows, c.widths, "llr", -1, 60, true)
+		for i, l := range out {
+			if got := len([]rune(ansi.Strip(l))); got != 60 {
+				t.Errorf("widths %v: row %d is %d cells, want 60: %q", c.widths, i, got, ansi.Strip(l))
+			}
+		}
+		line := []rune(ansi.Strip(out[2]))
+		x := 2
+		for i, w := range c.want {
+			cell := strings.TrimSpace(string(line[x : x+w]))
+			if !strings.HasPrefix(rows[0][i], strings.TrimSuffix(cell, th.G.Ellipsis)) || cell == "" {
+				t.Errorf("widths %v: column %d at %d+%d reads %q, want %q: %q", c.widths, i, x, w, cell, rows[0][i], string(line))
+			}
+			x += w + 2
+		}
+	}
+}
