@@ -17,7 +17,13 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
 0. **Read `TUI.md` first.** If it's missing and the job is one screen, run `init`'s
    short form, saying what you assumed; otherwise suggest `init` and stop: restyling
    without the brand read and the screen plan only recolours.
-1. **Get eyes on it first** (`cmd-critique.md` §1) and save the "before" sheets. If the
+1. **Get eyes on it first**: capture every flow before touching any code, with the
+   harness or, when there is none, `tuicap` (`cmd-critique.md` §1), at 80×24 and
+   120×40, into `capture/before/`; lint those frames and read the sheets. A restyle that
+   starts from the code restyles what the agent imagines: one shipped a wizard whose
+   steps and form spread over the terminal's height and whose footer wrapped at 80
+   columns, all of which `tuilint frames` reports. Keep the tapes; step 9 replays them.
+   If the
    user gave a screen to match, write its terms in TUI.md § Reference now and ask about
    its conflicts with the laws in one message (`verify.md` § Hold It To The Reference):
    from here on it is the target, not an ingredient list.
@@ -63,5 +69,10 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
    first, the negative last), the forward action as the default on a review step, a step
    counter that keeps counting after review, and a wait that says what to do if it never
    ends (the URL to open by hand, elapsed time, cancel).
-9. **Loop** (`verify.md`) and show before/after sheets side by side, and the reference
-   beside the "after" when there is one, with the critic's fidelity verdict.
+9. **Loop** (`verify.md`): replay step 1's tapes into `capture/after/` (or render the
+   harness), `tuilint frames` them, and show before/after sheets side by side, and the
+   reference beside the "after" when there is one, with the critic's fidelity verdict.
+
+**DON'T** report a restyle done from code you haven't seen rendered: no captured or
+rendered "after", no claim. A restyle that changed the screen and has no frames of it
+says so, and why.
