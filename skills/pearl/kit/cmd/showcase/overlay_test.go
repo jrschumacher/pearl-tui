@@ -15,8 +15,8 @@ import (
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme/bubbletea"
-	"tuikit/ui/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/ui/bubbletea"
 )
 
 // pageBeside finds a page cell left on the rows a dialog spans, outside it, within

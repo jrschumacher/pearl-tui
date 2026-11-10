@@ -13,7 +13,7 @@ import (
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
 
 // Each kind of toast has its own length (references/motion.md § Budget), held on the

@@ -6,7 +6,7 @@ import (
 	"charm.land/lipgloss/v2"
 	uv "github.com/charmbracelet/ultraviolet"
 
-	"example.com/brandapp/internal/ui"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/ui/bubbletea"
 )
 
 const minW, minH = 60, 18

@@ -2,14 +2,14 @@ module tuitools
 
 go 1.26.7
 
-replace tuikit => ../kit
+replace github.com/jrschumacher/pearl-tui/skills/pearl/kit => ../kit
 
 require (
 	github.com/charmbracelet/x/ansi v0.11.9
+	github.com/jrschumacher/pearl-tui/skills/pearl/kit v0.0.0
 	golang.org/x/image v0.47.0
 	golang.org/x/text v0.43.0
 	golang.org/x/tools v0.52.0
-	tuikit v0.0.0
 )
 
 require (

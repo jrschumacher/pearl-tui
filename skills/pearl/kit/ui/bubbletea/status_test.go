@@ -11,7 +11,7 @@ import (
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
 
 // An item in progress (a deploy rolling, a tool call running) is its own state, and

@@ -13,7 +13,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 	"tuitools/internal/tuimd"
 )
 

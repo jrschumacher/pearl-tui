@@ -25,7 +25,7 @@
 // Options take their value as the next argument or after "=".
 //
 // `check` fills the on-colours a theme leaves out exactly as the kit's engine does
-// (tuikit/theme/bubbletea), so it checks the inks the app will draw. It reads role
+// (github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea), so it checks the inks the app will draw. It reads role
 // colours by the engine's rule too: "#RGB" or "#RRGGBB", nothing else. Lip Gloss reads
 // "6B50FF" (no #) as an ANSI index or no colour, and "#6B50FFAA" as no colour, so those
 // exit 2.

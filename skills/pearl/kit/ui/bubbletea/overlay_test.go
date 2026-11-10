@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/colorprofile"
 	uv "github.com/charmbracelet/ultraviolet"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
 
 // overlayPage is a page a dialog is drawn over: table rows whose columns are two blanks
@@ -274,6 +274,52 @@ func TestOverlayLeavesNoEmptyChip(t *testing.T) {
 			}
 			if !text && filled >= 0 {
 				t.Errorf("chip at %d: an empty chip at %d beside the dialog", x0, filled)
+			}
+		}
+	}
+}
+
+// A pane the app keeps (Canvas.Keep, a sidebar) stands whole on a dialog's rows where
+// the scrim dims it and the dialog doesn't reach it; the page beside it is still
+// cleared. With no scrim, or under a dialog that overlaps it, the band runs across.
+func TestOverlayKeepsAPaneBesideIt(t *testing.T) {
+	const W, H, side = 100, 20, 12
+	for _, mode := range []struct {
+		name  string
+		p     colorprofile.Profile
+		wide  bool // the dialog reaches the pane
+		whole bool // the pane keeps its cells on the dialog's rows
+	}{
+		{"truecolor", colorprofile.TrueColor, false, true},
+		{"ansi256", colorprofile.ANSI256, false, true},
+		{"ansi: no scrim", colorprofile.ANSI, false, false},
+		{"the dialog overlaps the pane", colorprofile.TrueColor, true, false},
+	} {
+		f := theme.Default()
+		f.Expressions.Scrim = "dim"
+		th := theme.ResolveProfile(f, true, false, mode.p)
+		dw := 44
+		if mode.wide {
+			dw = W - 4
+		}
+		d := Dialog(th, dw, 0, "Roll back checkout-api?", []string{"It goes back to v2.3.0."}, "", "")
+		c := NewCanvas(th, W, H)
+		page := overlayPage(th, c)
+		c.Keep = uv.Rect(0, 0, side, H)
+		r := c.Overlay(d, &uv.Position{X: -1, Y: 6})
+		for y := r.Min.Y; y < r.Max.Y; y++ {
+			for x := range W {
+				if uv.Pos(x, y).In(r) {
+					continue
+				}
+				got, was := cellText(c, x, y), string([]rune(page[y])[x])
+				kept := x < side && mode.whole
+				if kept && got != was {
+					t.Fatalf("%s: the kept pane lost (%d,%d): %q, was %q", mode.name, x, y, got, was)
+				}
+				if !kept && got != " " {
+					t.Fatalf("%s: (%d,%d) on the dialog's rows kept %q", mode.name, x, y, got)
+				}
 			}
 		}
 	}

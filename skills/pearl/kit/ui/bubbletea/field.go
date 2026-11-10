@@ -6,7 +6,7 @@ import (
 	"charm.land/lipgloss/v2"
 	uv "github.com/charmbracelet/ultraviolet"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
 
 // Field is the brand backdrop: two glyphs on a sheared lattice with a hue

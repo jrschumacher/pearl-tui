@@ -15,12 +15,12 @@ screen by screen.
 
 ## 1. Start From The Kit, Not From Prose
 
-Run the copy block in `kit/README.md` § Copying it into a project, as written: it copies
-`theme/bubbletea` and `ui/bubbletea` (flat, as `internal/theme` and `internal/ui`) and
-`cmd/showcase` (as `cmd/<app>`, tests included), the donor theme as
-`themes/<brand>.json` with `themes/embed.go` (the binary carries the theme: no `-theme`
-flag, no path that breaks when it moves), rewrites the import paths and pins the
-versions, and CI proves it passes in a fresh module. Follow its notes on skipping the
+Run the block in `kit/README.md` § Using it in a project, as written: it imports
+`theme/bubbletea` and `ui/bubbletea` with `go get` (the kit is a dependency: never copy
+those two packages into the project) and copies `cmd/showcase` (as `cmd/<app>`, tests
+included) and the donor theme as `themes/<brand>.json` with `themes/embed.go` (the
+binary carries the theme: no `-theme` flag, no path that breaks when it moves), and CI
+proves it passes in a fresh module. Follow its notes on skipping the
 `<closest>.json` line when `brand` ran first, on what to delete once your screens are
 in, and on a root model outside `package main` (an existing app's `internal/app`: the
 kept tests move beside it and change only their package clause). Then read

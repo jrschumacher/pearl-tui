@@ -15,7 +15,7 @@ import (
 
 	"golang.org/x/text/width"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 	"tuitools/internal/cmddoc"
 )
 

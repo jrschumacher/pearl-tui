@@ -9,7 +9,10 @@ import (
 // of the page reads as part of the dialog or as live beside it:
 //
 //   - The rows the dialog spans are its own, at every size and in every profile: the
-//     page outside it on those rows is cleared across, to the page's background. Under
+//     page outside it on those rows is cleared across, to the page's background. A pane
+//     the app keeps (Canvas.Keep, a sidebar) stands whole where the scrim dims it and
+//     the dialog doesn't reach it: it is its own column, and a band cut through it read
+//     as a hole in the list, not as part of the dialog. Under
 //     a scrim the kit once cleared only the word the dialog cut, with an ellipsis, and
 //     at 120 columns a column of "…to show it" stood beside a confirm on its own rows,
 //     re-cut at its margin, reading as the dialog's text.
@@ -46,22 +49,27 @@ func (c *Canvas) scrims() bool {
 // spans, across the canvas, and, for a modal with no scrim, the rows of the body.
 func (c *Canvas) clearPage(r uv.Rectangle, scrim, modal bool) {
 	b := c.Bounds()
-	c.clearOutside(uv.Rect(b.Min.X, r.Min.Y, b.Dx(), r.Dy()), r)
+	var keep uv.Rectangle
+	if scrim && !r.Overlaps(c.Keep) {
+		keep = c.Keep // a pane beside the dialog, dimmed with the rest, stays whole
+	}
+	c.clearOutside(uv.Rect(b.Min.X, r.Min.Y, b.Dx(), r.Dy()), r, keep)
 	if !scrim && modal {
 		body := b
 		if !c.Body.Empty() {
 			body = uv.Rect(b.Min.X, c.Body.Min.Y, b.Dx(), c.Body.Dy())
 		}
-		c.clearOutside(body, r)
+		c.clearOutside(body, r, uv.Rectangle{})
 	}
 }
 
-// clearOutside blanks every cell of area that isn't in the dialog's rectangle r.
-func (c *Canvas) clearOutside(area, r uv.Rectangle) {
+// clearOutside blanks every cell of area that isn't in the dialog's rectangle r or the
+// pane kept beside it.
+func (c *Canvas) clearOutside(area, r, keep uv.Rectangle) {
 	area = area.Intersect(c.Bounds())
 	for y := area.Min.Y; y < area.Max.Y; y++ {
 		for x := area.Min.X; x < area.Max.X; x++ {
-			if !uv.Pos(x, y).In(r) {
+			if p := uv.Pos(x, y); !p.In(r) && !p.In(keep) {
 				c.blank(x, y)
 			}
 		}

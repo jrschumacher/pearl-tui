@@ -6,11 +6,13 @@
 // charm.land/huh/v2, or in a file that imports one of them, and only in a project that
 // opted in to the pearl skill. The plugin installs at user scope, so without the
 // opt-in it would hold every Bubble Tea app on the machine to this kit's rules. A
-// project opts in with either marker:
+// project opts in with any of these markers:
 //
 //   - a TUI.md (the file the skill's init command writes) in the module root or in any
 //     directory above it, up to the repository root (the first directory holding .git);
 //     outside a repository, only the module root counts
+//   - a go.mod that requires the kit (KitModule): an app that imports the kit's theme
+//     and components
 //   - a copy of the kit's theme package at theme/ or internal/theme/ in the module, or
 //     one framework's under them (theme/<framework>/, the kit's own theme/bubbletea/):
 //     a package that declares type Roles and func Load or func Resolve
@@ -191,10 +193,35 @@ func Target(file string) (string, bool) {
 }
 
 // OptedIn reports whether the module at modDir belongs to a project built with the
-// skill: a TUI.md in the module root or above it up to the repository root, or a copy
-// of the kit's theme package in the module.
+// skill: a TUI.md in the module root or above it up to the repository root, a go.mod
+// that requires the kit, or a copy of the kit's theme package in the module.
 func OptedIn(modDir string) bool {
-	return hasMarker(modDir) || hasKitTheme(modDir)
+	return hasMarker(modDir) || requiresKit(modDir) || hasKitTheme(modDir)
+}
+
+// KitModule is the kit's module path: an app that imports the kit requires it.
+const KitModule = "github.com/jrschumacher/pearl-tui/skills/pearl/kit"
+
+// requiresKit reports whether the go.mod in modDir names KitModule, in a require block
+// or on a require line of its own.
+func requiresKit(modDir string) bool {
+	b, err := os.ReadFile(filepath.Join(modDir, "go.mod"))
+	if err != nil {
+		return false
+	}
+	for _, ln := range strings.Split(string(b), "\n") {
+		ln, _, _ = strings.Cut(ln, "//")
+		f := strings.Fields(ln)
+		if len(f) > 0 && f[0] == "module" {
+			continue // the kit itself opts in by its theme package
+		}
+		for _, w := range f {
+			if strings.Trim(w, `"`) == KitModule {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // hasMarker looks for Marker in modDir and each parent up to the first directory that

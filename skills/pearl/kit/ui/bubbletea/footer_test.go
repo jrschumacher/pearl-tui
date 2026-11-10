@@ -10,7 +10,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
 
 // testdata/footer-cases.json is shared with tuilint spec's S-FOOTER

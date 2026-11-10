@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 	"tuitools/internal/oklch"
 )
 

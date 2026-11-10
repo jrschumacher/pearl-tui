@@ -28,9 +28,9 @@ import (
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme/bubbletea"
-	"tuikit/themes"
-	"tuikit/ui/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/themes"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/ui/bubbletea"
 )
 
 // states are every screen the app can show. A state you can't render here is
@@ -165,7 +165,9 @@ func (m *app) setupState(s string, frame int) {
 		return
 	}
 	if s == "setup-namespace" || s == "setup-invalid" { // the input focused, typed into: one cursor, one prompt
-		f.form.Update(huh.NextField())
+		// the input is the form's second group: Huh gets there by a command
+		upd := func(msg tea.Msg) tea.Cmd { _, c := f.form.Update(msg); return c }
+		ui.Settle(upd, upd(huh.NextField()))
 		typed := "payments"
 		if s == "setup-invalid" {
 			typed = "Payments EU" // Huh validates on enter and keeps focus here

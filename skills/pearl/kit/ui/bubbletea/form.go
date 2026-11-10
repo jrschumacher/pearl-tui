@@ -5,28 +5,28 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	hspinner "charm.land/huh/v2/spinner"
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
 
-// Huh forms, themed from the brand. Keep Huh for input mechanics (typing,
-// cursors, validation, accessible prompts); take every colour, glyph and
-// button shape from the theme. Left alone, Huh draws its own Charm palette
-// (#F780E2, #7571F9), a centred confirm, a `>` cursor and a `>` prompt that
-// read as two selections, and a pink spinner. Everything here exists to stop
-// that. The rules (each one a Huh v2.0.3 quirk, see the comments):
+// Huh forms, themed from the brand. Huh keeps its own mechanics and layout
+// (typing, cursors, validation, focus order, sizing, accessible prompts); the
+// kit only gives it the theme's colours, glyphs and button shape through
+// Huh's public theme API. Left on its default theme, Huh draws Charm's palette
+// (#F780E2, #7571F9) and a pink spinner.
 //
-//	ui.NewForm(t, w, h, groups...)    never huh.NewForm: theme, size, keys, help, accessibility in the right order
-//	ui.NewInput(t)                    never huh.NewInput: a blurred input keeps its value, drops its prompt glyph
-//	ui.Confirm(t, …, def, &v)         never huh.NewConfirm: action first, left-aligned, the default explicit
-//	ui.HuhSpinner / ui.BubblesSpinner never spinner.New(): brand frames and colour, a subject in the title
+//	ui.NewForm(t, w, h, groups...)    huh.NewForm with the theme, the app's footer as help, ACCESSIBLE honoured
+//	ui.HuhSpinner / ui.BubblesSpinner the brand's frames and colour, a subject in the title
+//
+// Fields are Huh's own: huh.NewInput, huh.NewSelect, huh.NewConfirm. Where Huh's
+// look falls short of the theme (a blurred input draws in Bubbles' default
+// styles: Huh's theme reaches only the focused one), the fix belongs in Huh,
+// not in a wrapper here.
 //
 // It lives in ui, not theme: theme is the dependency-free contract any renderer
 // reads; Huh is one consumer of it, like every other component here.
@@ -88,12 +88,12 @@ func HuhStyles(t *theme.Theme) *huh.Styles {
 	f.SelectSelector = t.S.Focus.Bold(true).SetString(Fit(g.Cursor, cw) + " ")
 	f.MultiSelectSelector = f.SelectSelector
 	chip := t.X.Selection == "fill" || t.X.Selection == "inverse"
-	lead := "" // a chip pads its name by one cell each side; plain rows match it
+	lead := 0 // a chip pads its name by one cell each side; plain rows match it
 	if chip {
-		lead = " "
+		lead = 1
 	}
-	f.SelectedOption = option("", selected(t), t.S.Muted)
-	f.UnselectedOption = option(lead, t.S.Soft, t.S.Subtle)
+	f.SelectedOption = selected(t)
+	f.UnselectedOption = t.S.Soft.Padding(0, lead)
 	f.SelectedPrefix = t.S.Focus.SetString(g.CheckOn + " ")
 	f.UnselectedPrefix = t.S.Subtle.SetString(g.CheckOff + " ")
 	f.NextIndicator = t.S.Focus.MarginLeft(1).SetString(g.Arrow)
@@ -126,8 +126,8 @@ func HuhStyles(t *theme.Theme) *huh.Styles {
 	b.Description = t.S.Subtle
 	b.SelectSelector = t.S.Muted.SetString(Fit(g.RadioOn, cw) + " ")
 	b.MultiSelectSelector = lipgloss.NewStyle().SetString(strings.Repeat(" ", cw+1))
-	b.SelectedOption = option(lead, t.S.Base, t.S.Subtle)
-	b.UnselectedOption = option(lead, t.S.Muted, t.S.Subtle)
+	b.SelectedOption = t.S.Base.Padding(0, lead)
+	b.UnselectedOption = t.S.Muted.Padding(0, lead)
 	b.NextIndicator = lipgloss.NewStyle()
 	b.PrevIndicator = lipgloss.NewStyle()
 	b.TextInput.Prompt = t.S.Subtle
@@ -154,51 +154,6 @@ func selected(t *theme.Theme) lipgloss.Style {
 	return t.S.Bold
 }
 
-// descSep separates an option's name from its description (see Options).
-// An en space: one cell, never typed, and harmless if a theme ignores it.
-const descSep = " "
-
-// option draws an option key: the name in name (padded by pad on both sides
-// when a chip marks the highlighted one, so names line up), then (for keys built
-// by Options) the description in desc. Huh renders the selector and the key
-// separately and has no per-option description, so the theme does it.
-func option(pad string, name, desc lipgloss.Style) lipgloss.Style {
-	return lipgloss.NewStyle().Transform(func(k string) string {
-		n, d, ok := strings.Cut(k, descSep)
-		out := pad + name.Render(n) + pad
-		if ok {
-			out += "  " + desc.Render(d)
-		}
-		return out
-	})
-}
-
-// Choice is one option of a select, with a description beside it.
-type Choice[T comparable] struct {
-	Name, Desc string
-	Value      T
-}
-
-// Options turns choices into Huh options whose descriptions line up in a
-// column after the names, drawn in the description colour by HuhTheme. Huh's
-// options are only a key and a value; this is the key. Keep descriptions
-// short: Huh wraps a key that is wider than the field instead of cutting it.
-func Options[T comparable](cs ...Choice[T]) []huh.Option[T] {
-	w := 0
-	for _, c := range cs {
-		w = max(w, lipgloss.Width(c.Name))
-	}
-	out := make([]huh.Option[T], len(cs))
-	for i, c := range cs {
-		k := c.Name
-		if c.Desc != "" {
-			k = Fit(c.Name, w) + descSep + c.Desc
-		}
-		out[i] = huh.NewOption(k, c.Value)
-	}
-	return out
-}
-
 // chosenButton is the chosen button of a confirm that doesn't have focus:
 // still visibly the choice, never as loud as a focused one.
 func chosenButton(t *theme.Theme, label string) string {
@@ -213,72 +168,25 @@ func arrowBack(t *theme.Theme) string {
 	return t.G.Back
 }
 
-// FormKeys is Huh's keymap with the keys that open unthemed widgets turned
-// off. "/" on a select opens a filter (a bare textinput with Bubbles' default
-// colours); a wizard's lists are short enough not to need it. ctrl+c is the
-// app's, never the form's: the app's key handler sees it first.
-func FormKeys() *huh.KeyMap {
-	k := huh.NewDefaultKeyMap()
-	k.Select.Filter.SetEnabled(false)
-	k.MultiSelect.Filter.SetEnabled(false)
-	k.Quit = key.NewBinding(key.WithDisabled())
-	return k
-}
-
-// NewForm builds a Huh form the kit's way, in the order Huh needs:
-// theme first, then width (fields wrap by it), then height (Huh sized each
-// group's viewport with its default theme in NewGroup and never re-measures,
-// so a themed field can be clipped unless the height is set after).
-//
-// Huh's own help line is off: the app's footer, read from the same action
-// table that dispatches keys, is the help (law 6). With ACCESSIBLE=1 the form
-// runs as plain prompts (form.Run()) and takes Huh's colourless base theme:
-// Huh writes those prompts straight to the output, so a brand colour there is
-// escape codes in a screen reader's ear.
+// NewForm is huh.NewForm with the theme. Huh's own help line is off: the
+// app's footer, read from the same action table that dispatches keys, is the
+// help (law 6). With ACCESSIBLE=1 the form runs as plain prompts (form.Run())
+// and takes Huh's colourless base theme: Huh writes those prompts straight to
+// the output, so a brand colour there is escape codes in a screen reader's ear.
+// After a resize, call the form's own WithWidth and WithHeight.
 func NewForm(t *theme.Theme, w, h int, groups ...*huh.Group) *huh.Form {
 	th := HuhTheme(t)
 	if Accessible() {
 		th = huh.ThemeFunc(huh.ThemeBase)
 	}
-	f := huh.NewForm(groups...).
+	return huh.NewForm(groups...).
 		WithTheme(th).
-		WithKeyMap(FormKeys()).
 		WithShowHelp(false).
 		WithShowErrors(true).
-		WithAccessible(Accessible())
-	Resize(f, w, h)
-	return f
+		WithAccessible(Accessible()).
+		WithWidth(w).
+		WithHeight(h)
 }
-
-// Resize lays a form out at w×h: at most h rows, and no more than its
-// content needs. Two Huh quirks meet here. A group draws from a viewport that
-// is only refilled on Update, so after WithWidth/WithHeight the form shows
-// the old layout until a message arrives (a no-op one refills it). And the
-// viewport takes the whole height, with validation errors appended below it:
-// sized to the screen, an error lands rows under its field, or off the
-// bottom. Sized to the content, the error sits right under the field.
-func Resize(f *huh.Form, w, h int) {
-	f.WithWidth(max(20, w))
-	f.WithHeight(max(1, h))
-	f.Update(relayout{})
-	rows := strings.Split(ansi.Strip(f.View()), "\n")
-	errs := len(f.Errors()) // each error is a footer row, after a blank one
-	if errs > 0 {
-		rows = rows[:max(1, len(rows)-errs-1)]
-	}
-	n := len(rows)
-	for n > 1 && strings.TrimSpace(rows[n-1]) == "" {
-		n--
-	}
-	// Huh subtracts the footer from the height but not the blank row above
-	// it, so with errors the form draws errs+1 rows below its content
-	if n+errs < h {
-		f.WithHeight(n + errs)
-		f.Update(relayout{})
-	}
-}
-
-type relayout struct{}
 
 // Settle runs cmd and feeds every message it produces back through update,
 // until nothing is left: a model driven outside a running program (a
@@ -359,107 +267,7 @@ func Settle(update func(tea.Msg) tea.Cmd, cmd tea.Cmd) {
 // (FrameInterval, 50 ms) and every spinner and cursor blink, which Settle drops.
 const SettleWait = 40 * time.Millisecond
 
-// ---------------------------------------------------------------- input
-
-// Input is huh.Input with one fix: a blurred Huh input draws its prompt and
-// text with Bubbles' default styles (Huh only themes the focused state of the
-// textinput), so an unfocused "> prod" sat beside a select's "> " cursor and
-// two things looked selected. Blurred, this Input draws its own row: the
-// value in fg (or the placeholder in fgSubtle) behind blank prompt cells, so
-// focusing it never shifts the text. Focused, it is Huh's input.
-//
-// Build it like huh.NewInput; the setters return *Input so the chain keeps
-// the wrapper. Anything else is on .Input.
-type Input struct {
-	*huh.Input
-	t                        *theme.Theme
-	st                       huh.FieldStyles // the blurred styles, built once
-	title, desc, placeholder string
-	prompt                   string
-	focused                  bool
-	width                    int
-}
-
-// NewInput is a themed huh.Input with the theme's prompt glyph.
-func NewInput(t *theme.Theme) *Input {
-	i := &Input{Input: huh.NewInput(), t: t, st: HuhStyles(t).Blurred, prompt: t.G.Prompt + " "}
-	i.Input.Prompt(i.prompt)
-	return i
-}
-
-func (i *Input) Title(s string) *Input       { i.title = s; i.Input.Title(s); return i }
-func (i *Input) Description(s string) *Input { i.desc = s; i.Input.Description(s); return i }
-func (i *Input) Placeholder(s string) *Input {
-	i.placeholder = s
-	i.Input.Placeholder(s)
-	return i
-}
-func (i *Input) Value(v *string) *Input                     { i.Input.Value(v); return i }
-func (i *Input) Key(k string) *Input                        { i.Input.Key(k); return i }
-func (i *Input) Validate(fn func(string) error) *Input      { i.Input.Validate(fn); return i }
-func (i *Input) CharLimit(n int) *Input                     { i.Input.CharLimit(n); return i }
-func (i *Input) Suggestions(s []string) *Input              { i.Input.Suggestions(s); return i }
-func (i *Input) Focused() bool                              { return i.focused }
-func (i *Input) Focus() tea.Cmd                             { i.focused = true; return i.Input.Focus() }
-func (i *Input) Blur() tea.Cmd                              { i.focused = false; return i.Input.Blur() }
-func (i *Input) WithWidth(w int) huh.Field                  { i.width = w; i.Input.WithWidth(w); return i }
-func (i *Input) WithTheme(th huh.Theme) huh.Field           { i.Input.WithTheme(th); return i }
-func (i *Input) WithKeyMap(k *huh.KeyMap) huh.Field         { i.Input.WithKeyMap(k); return i }
-func (i *Input) WithHeight(h int) huh.Field                 { i.Input.WithHeight(h); return i }
-func (i *Input) WithPosition(p huh.FieldPosition) huh.Field { i.Input.WithPosition(p); return i }
-
-// Update keeps the wrapper in the group: Huh stores whatever Update returns.
-func (i *Input) Update(msg tea.Msg) (huh.Model, tea.Cmd) {
-	_, cmd := i.Input.Update(msg)
-	return i, cmd
-}
-
-// View is Huh's when focused, and the kit's quiet row when not.
-func (i *Input) View() string {
-	if i.focused {
-		return i.Input.View()
-	}
-	t := i.t
-	st := i.st
-	inner := max(1, i.width-st.Base.GetHorizontalFrameSize())
-	var rows []string
-	if i.title != "" {
-		ti := st.Title.Render(Trunc(t, i.title, inner))
-		if i.Error() != nil {
-			ti += st.ErrorIndicator.String()
-		}
-		rows = append(rows, ti)
-	}
-	if i.desc != "" {
-		rows = append(rows, st.Description.Render(Trunc(t, i.desc, inner)))
-	}
-	pad := strings.Repeat(" ", lipgloss.Width(i.prompt))
-	v, _ := i.GetValue().(string)
-	val := t.S.Base.Render(Trunc(t, v, inner-lipgloss.Width(pad)))
-	if v == "" {
-		val = t.S.Subtle.Render(Trunc(t, i.placeholder, inner-lipgloss.Width(pad)))
-	}
-	rows = append(rows, pad+val)
-	return st.Base.Width(max(1, i.width)).Render(strings.Join(rows, "\n"))
-}
-
-// ---------------------------------------------------------------- confirm
-
-// Confirm is huh.Confirm with the kit's convention: the action first and the
-// negative last ("Yes  No", "Connect  Back"), left-aligned to the field's
-// text column (Huh centres the buttons under the title by default, so they
-// float mid-column), and the default stated: def is the button focused when
-// the field opens. Make def the safe choice for a destructive or irreversible
-// action, the expected forward choice otherwise.
-func Confirm(t *theme.Theme, title, action, negative string, def bool, value *bool) *huh.Confirm {
-	*value = def
-	return huh.NewConfirm().
-		Title(title).
-		Affirmative(action).
-		Negative(negative).
-		WithButtonAlignment(lipgloss.Left).
-		Value(value)
-}
+// ---------------------------------------------------------------- actions
 
 // Actions is a row of buttons the app owns (a review step, a retry prompt):
 // the order fixed, the action first and the negative last, the default

@@ -47,7 +47,9 @@ supports only Bubble Tea today; its design references still read as guidance the
 3. **Start from the kit, never from prose.** `kit/` is a compiling Bubble Tea v2 module:
    `theme/bubbletea/` (engine), `ui/bubbletea/` (components), `cmd/showcase/` (a full
    reference app with the harness), `themes/` (eight themes: ink, the default, and seven
-   brands). Copy and adapt it. A cold rebuild from descriptions loses half the idiom at
+   brands). Import `theme` and `ui` as a dependency and copy only the showcase, as the
+   skeleton of the app (`kit/README.md` § Using it in a project): a copied kit is 12,000
+   lines nobody reviews, and a cold rebuild from descriptions loses half the idiom at
    once.
 4. **Build the tools** once per project, into the project's own `.tuitools/`, from the
    project root: `go -C <dir holding this file>/tools build -o "$PWD/.tuitools/" ./cmd/...`
@@ -130,9 +132,9 @@ signals, or holes in filled bars.
 **DON'T** centre lists, hard-code 80, or let content push the footer off screen.
 
 ### Components → *Consult `references/components.md`*
-**DO** copy `kit/ui/bubbletea`: Header, Tabs, Section, List, Table, KV, Dialog + Overlay,
+**DO** import `kit/ui/bubbletea`: Header, Tabs, Section, List, Table, KV, Dialog + Overlay,
 Button, Tag, Alert, Toast, Footer/Help, ToolCall, Thinking, Progress, Trace, Sparkline,
-Tree, Empty, TooSmall; for wizards and status, Steps, Summary, Form/Confirm, Dot/Busy,
+Tree, Empty, TooSmall; for wizards and status, Steps, Summary, Form, Dot/Busy,
 Anim, Field, Canvas.
 **DON'T** leave a bare "No items", focus the destructive button, or let a blurred list
 lose its selection.
@@ -253,11 +255,11 @@ a `TUI.md`: fix what it reports.
 
 ## The Kit
 
-`kit/` (module `tuikit`): `go test ./...` renders eight themes × dark/light/ASCII × every
+`kit/` (module `github.com/jrschumacher/pearl-tui/skills/pearl/kit`): `go test ./...` renders eight themes × dark/light/ASCII × every
 state × five sizes and asserts the footprint and contrast. `go run ./cmd/showcase
 -theme themes/halyard.json` runs the reference app. Its `-out` flag writes every state
-for `cellshot`. Copy `theme/bubbletea` and `ui/bubbletea` into the project's
-`internal/theme` and `internal/ui` with the README block, which rewrites the imports.
+for `cellshot`. A project imports `theme/bubbletea` and `ui/bubbletea` with the README
+block (`go get`, at the skill's version) and copies `cmd/showcase` as its own `cmd/<app>`.
 
 You can build terminal interfaces people screenshot and share. The libraries are
 capable of it, and Crush proves it. The difference is decisions: make them in the brand

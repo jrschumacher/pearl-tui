@@ -67,8 +67,9 @@ skim prose; they can't skim a failing check. The first Go edit builds the tools 
 
 The hook acts only in projects built with the skill, so your other Bubble Tea repos are
 left alone: a `TUI.md` (which `init` writes) in the module root or above it up to the
-repository root, or a copy of the kit's theme package (`theme/` or `internal/theme/`, or
-one framework's under either, as the kit's own `theme/bubbletea/`). It runs the go
+repository root, a `go.mod` that requires the kit, or a copy of the kit's theme package
+(`theme/` or `internal/theme/`, or one framework's under either, as the kit's own
+`theme/bubbletea/`). It runs the go
 command offline and read-only, so it never downloads modules or writes `go.mod` or
 `go.sum`. If it can't lint at all (no Go on `PATH`, Go too old, a failed
 build), it lets the edit through and shows you a one-line warning saying why, once per
@@ -120,7 +121,7 @@ skills/pearl/
 ├── scripts/              Python + Pillow, only for converting brand assets
 │   ├── wordmark.py       a brand name in terminal cells, from a real font
 │   └── logo2cells.py     a logo raster onto the cell grid, with lint
-├── kit/                  a compiling Go module to copy from, not re-derive; Bubble Tea v2 today
+├── kit/                  a compiling Go module to import, not re-derive; Bubble Tea v2 today
 │   ├── themes/           the theme contract, framework-neutral: eight themes (a default,
 │   │                     a Crush study, six fictional brands)
 │   ├── theme/bubbletea/  the Bubble Tea theme engine: roles, glyphs, expressions → styles

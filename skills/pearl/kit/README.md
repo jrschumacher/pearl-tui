@@ -1,7 +1,7 @@
-# tuikit: the reference kit
+# The reference kit
 
-A compiling Go module whose one framework today is Bubble Tea v2. Copy from it; don't
-re-derive it from the references.
+A compiling Go module (`github.com/jrschumacher/pearl-tui/skills/pearl/kit`) whose one framework today is
+Bubble Tea v2. Import it; don't re-derive it from the references.
 
 ## Layout
 
@@ -10,14 +10,14 @@ re-derive it from the references.
   judge them without knowing which one draws them.
 - `theme/<framework>/` and `ui/<framework>/` hold one framework's code each: its theme
   engine (the contract loaded into that framework's styles) and its components. Today
-  only `bubbletea` exists: `theme/bubbletea` and `ui/bubbletea`, Go packages still named
-  `theme` and `ui`, imported as `tuikit/theme/bubbletea` and `tuikit/ui/bubbletea`.
+  only `bubbletea` exists: `theme/bubbletea` and `ui/bubbletea`, Go packages named
+  `theme` and `ui`, imported as `github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea` and `…/ui/bubbletea`.
 - `cmd/showcase` is the Bubble Tea showcase: the reference app and its harness. It
   stays two levels below the module root, where a copied app's `cmd/<app>` sits, because
   its kept tests read `../../themes/*.json` in both places.
 
-A project copies one framework's packages flat (`internal/theme`, `internal/ui`), so its
-own imports never name the framework.
+A project imports one framework's packages and copies only `cmd/showcase`, as the
+skeleton of its own app (§ Using it in a project).
 
 ```
 theme/bubbletea/
@@ -46,7 +46,7 @@ ui/bubbletea/   canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                 anim.go     FrameInterval, Anim (brand spinner or the Crush scramble), Spinner,
                             Busy (the one-cell working mark for a status column)
                 field.go    Field: the two-glyph brand backdrop
-                form.go     Huh, themed: HuhTheme, NewForm, Resize, NewInput, Confirm, Options,
+                form.go     Huh, themed and otherwise its own: HuhTheme, NewForm,
                             Actions (button rows), HuhSpinner, BubblesSpinner, Settle, Accessible
                 steps.go    Steps (Count, Row, List), Summary, SummaryStrip: wizard chrome
 themes/         ink (the fallback: theme.Default() as a file, TestInkIsTheDefault keeps them equal),
@@ -125,38 +125,41 @@ go run ./cmd/showcase -theme themes/moss.json -light -out frames -sizes 80x24,12
 cellshot frames/*-80x24.ansi --sheet sheet.png
 ```
 
-## Copying it into a project
+## Using it in a project
 
-From the project root (after `go mod init <your/module>` in a new one), with `<skill>` the
-directory holding `SKILL.md`:
+Import the kit; don't copy it. `theme` and `ui` are a dependency, so the project's diff
+holds its own screens and its one theme, not 12,000 lines of the kit. From the project
+root (after `go mod init <your/module>` in a new one), with `<skill>` the directory
+holding `SKILL.md` and `<version>` SKILL.md's `metadata.version`:
 
 ```sh
-mkdir -p internal themes cmd
-cp -r <skill>/kit/theme/bubbletea internal/theme && cp -r <skill>/kit/ui/bubbletea internal/ui
+mkdir -p themes cmd
+go get github.com/jrschumacher/pearl-tui/skills/pearl/kit@v<version>
 cp -r <skill>/kit/cmd/showcase cmd/<app>
 cp <skill>/kit/themes/embed.go themes/
 cp <skill>/kit/themes/<closest>.json themes/<brand>.json   # skip when brand already wrote themes/<brand>.json
-perl -pi -e 's#"tuikit/themes"#"<your/module>/themes"#; s#"tuikit/(theme|ui)/bubbletea"#"<your/module>/internal/$1"#' $(grep -rl '"tuikit/' internal cmd)
-gofmt -w internal cmd
-go mod edit -go=1.26.7
-go get charm.land/bubbletea/v2@v2.1.0 charm.land/lipgloss/v2@v2.0.6 \
-  charm.land/bubbles/v2@v2.2.1 charm.land/huh/v2@v2.0.3 \
-  github.com/charmbracelet/ultraviolet@v0.0.0-20261008173134-6b8d4baf91b4
+perl -pi -e 's#"github.com/jrschumacher/pearl-tui/skills/pearl/kit/themes"#"<your/module>/themes"#' $(grep -rl '"github.com/jrschumacher/pearl-tui/skills/pearl/kit/themes"' cmd)
+gofmt -w cmd
 go mod tidy && go test ./...
 ```
 
-Huh is pinned too: `ui/bubbletea/form.go` (`internal/ui/form.go` once copied) works
-around v2.0.3's quirks, each with a test, and a newer Huh can change them. CI runs this
-block in a fresh module on every change.
+The kit's `go.mod` carries the versions it is tested with (Bubble Tea, Lip Gloss, Bubbles,
+Huh, Ultraviolet), so `go get` brings them: don't pin them again. `form.go` only themes
+Huh, through Huh's public theme API. CI runs this block in a fresh module on every
+change, against the checkout.
 
-The rewrite drops `/bubbletea` from the imports: the project holds one framework's
-packages flat, as `internal/theme` and `internal/ui`, with the same package names.
+What is copied is yours to rewrite: `cmd/showcase` is the app's skeleton (the root
+model, `render`, the harness and its tests), and `themes/embed.go` embeds the project's
+theme. What is imported stays the kit's: `github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea` (package `theme`) and
+`github.com/jrschumacher/pearl-tui/skills/pearl/kit/ui/bubbletea` (package `ui`). A component the kit lacks goes in the project's own
+package beside its screens, drawing with `theme` and `ui.Canvas` as the kit's do; a
+change the kit itself needs is a `feedback` issue, and until it lands a `replace`
+directive pointing at a patched checkout.
 `perl -pi` because `sed -i` takes different arguments on macOS, and `gofmt -w` after it
-because the rewrite moves `<your/module>/themes` below `<your/module>/internal/ui` in
-the import order, which `gofmt -l` would flag in CI. The tests find `themes/*.json` two
-levels up from `internal/theme`, `internal/ui` and `cmd/<app>`, as they do from the
-kit's `theme/bubbletea`, `ui/bubbletea` and `cmd/showcase`, and use your theme where
-they name one of the kit's, so they pass in your project as they do here.
+because the rewrite moves the import in the sort order, which `gofmt -l` would flag in
+CI. The tests find `themes/*.json` two levels up from `cmd/<app>`, as they do from the
+kit's `cmd/showcase`, and use your theme where they name one of the kit's, so they pass
+in your project as they do here.
 
 `themes/<brand>.json` is the one theme in the project: the donor is copied under your
 brand's name, so `brand` edits it in place and `diversity themes/*.json` judges one

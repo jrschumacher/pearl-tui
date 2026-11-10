@@ -1,4 +1,4 @@
-// Command brandapp is CI's stand-in for a copied app (ci.yml, kit copy): two pages (a
+// Command brandapp is CI's stand-in for an app built on the kit (ci.yml, kit import): two pages (a
 // list and an item) and one overlay of its own (a confirm) beside help, built on the
 // kit's shape with none of the showcase's screens. The kit's harness tests, kept whole
 // as kit/README.md says, run against it; this main.go is the kit's with the README's
@@ -19,8 +19,8 @@ import (
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 
-	"example.com/brandapp/internal/theme"
 	"example.com/brandapp/themes"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
 
 // states are every screen the app can show.
