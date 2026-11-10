@@ -33,7 +33,7 @@ import (
 // a state nobody reviewed.
 var states = []string{"services", "services-toast", "services-undo", "services-filter", "services-filtered", "deploys", "rollout", "rollout-scrolled", "palette", "confirm", "help", "deploy", "deploy-review",
 	"incidents", "incidents-grace", "ladder", "assistant", "assistant-busy", "splash", "toosmall",
-	"setup-target", "setup-namespace", "setup-invalid", "setup-auth", "setup-alerts", "setup-review", "setup-signin", "setup-failed", "setup-done"}
+	"setup-target", "setup-filter", "setup-nomatch", "setup-namespace", "setup-invalid", "setup-auth", "setup-alerts", "setup-review", "setup-signin", "setup-failed", "setup-done"}
 
 // overlays are the states that open a dialog over a page, as setState names them. The
 // harness tests (kit/harness/bubbletea, run by harness_test.go) open each over every overlayPages
@@ -53,7 +53,7 @@ var scrolls = []string{"help"}
 // fields (ui.Select, ui.Input, ui.Confirm) draw blurred under a dialog.
 var overlayPages = []string{"services", "deploys", "rollout", "rollout-scrolled", "assistant", "deploy", "deploy-review", "services-toast", "services-undo",
 	"services-filter", "services-filtered",
-	"setup-target", "setup-namespace", "setup-invalid", "setup-auth", "setup-alerts", "setup-review", "setup-failed", "setup-done"}
+	"setup-target", "setup-filter", "setup-nomatch", "setup-namespace", "setup-invalid", "setup-auth", "setup-alerts", "setup-review", "setup-failed", "setup-done"}
 
 // unjudgedPages are the states that draw a focus mark that an overlay can't blur, kept
 // out of overlayPages, each with its reason (repeat it in TUI.md § Decisions). Only a
@@ -146,6 +146,16 @@ func (m *app) setupState(s string, frame int) {
 	m.openSetup()
 	f := m.setup
 	if s == "setup-target" {
+		return
+	}
+	if s == "setup-filter" || s == "setup-nomatch" { // the cluster narrowed by typing, then by too much
+		typed := "eu"
+		if s == "setup-nomatch" {
+			typed = "euz"
+		}
+		for _, r := range typed {
+			m.key(tea.KeyPressMsg{Code: r, Text: string(r)})
+		}
 		return
 	}
 	if s == "setup-namespace" || s == "setup-invalid" { // the input focused, typed into: one cursor, one prompt

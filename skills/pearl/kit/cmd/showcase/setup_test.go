@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"io"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -174,7 +175,9 @@ func TestSetupStaleSignin(t *testing.T) {
 }
 
 // The select cursor and an input prompt never show at once on the step that has both
-// fields, and a blurred input draws no prompt glyph at all.
+// fields, and a blurred input draws no prompt glyph at all. The cluster's filter line is
+// the select's own input, as the palette's is (letters to the query, arrows to the
+// highlight), so it is left out of the count; with no filter in force it isn't drawn.
 func TestSetupOneCursor(t *testing.T) {
 	files := testThemes(t)
 	for _, f := range files {
@@ -183,7 +186,15 @@ func TestSetupOneCursor(t *testing.T) {
 		for _, s := range []string{"setup-target", "setup-namespace"} {
 			m.setState(s)
 			g, sf := m.t.G, m.setup
-			body := ansi.Strip(strings.Join(append(sf.cluster.View(m.t, 60, sf.field == 0), sf.namespace.View(m.t, 60, sf.field == 1)...), "\n"))
+			var kept []string
+			for _, r := range append(sf.cluster.View(m.t, 60, sf.field == 0), sf.namespace.View(m.t, 60, sf.field == 1)...) {
+				if r = ansi.Strip(r); !strings.Contains(r, " of "+itoa(len(sf.cluster.Options))) {
+					kept = append(kept, r)
+				} else if sf.field != 0 {
+					t.Errorf("%s %s: the blurred cluster draws its filter line: %q", filepath.Base(f), s, r)
+				}
+			}
+			body := strings.Join(kept, "\n")
 			cursors := strings.Count(body, g.Cursor+" ") // the select's selector
 			prompts := strings.Count(body, g.Prompt+" ")
 			if g.Cursor == g.Prompt {
@@ -194,6 +205,58 @@ func TestSetupOneCursor(t *testing.T) {
 				t.Errorf("%s %s: %d cursors and %d prompts, want one in all", filepath.Base(f), s, cursors, prompts)
 			}
 		}
+	}
+}
+
+// The cluster select filters as the user types (#104): letters narrow it, j and k
+// included, while only the arrows move; esc clears a filter in force and keeps the
+// user on the step, and only the next esc means quit setup. A filter that leaves
+// nothing offers no enter, since nothing is highlighted to submit.
+func TestSetupClusterFilter(t *testing.T) {
+	offers := func(m *app, desc string) bool {
+		return slices.ContainsFunc(m.actions(), func(a action) bool { return a.b.Help().Desc == desc })
+	}
+	m := fixture(t, "setup-target")
+	drive(m, "s", "t", "g", "j", "k")
+	if q := m.setup.cluster.Query(); q != "stgjk" {
+		t.Fatalf("typed stgjk into the cluster, its filter is %q", q)
+	}
+	drive(m, "backspace", "backspace")
+	if m.setup.cluster.Matches() != 2 {
+		t.Fatalf("stg leaves %d clusters, want the two staging ones", m.setup.cluster.Matches())
+	}
+	drive(m, "down")
+	if v := m.setup.cluster.Value(); v != "staging-us-east-1" {
+		t.Fatalf("down through the filtered clusters reached %q", v)
+	}
+	if !offers(m, "clear filter") || offers(m, "quit setup") {
+		t.Fatal("with a filter in force esc must offer to clear it, not to quit")
+	}
+	drive(m, "esc")
+	if m.screen != scrSetup || m.setup.step != stTarget || m.setup.cluster.Filtered() {
+		t.Fatalf("esc with a filter: screen %d step %d filtered %v; want the filter cleared, the step kept", m.screen, m.setup.step, m.setup.cluster.Filtered())
+	}
+	if v := m.setup.cluster.Value(); v != "staging-us-east-1" {
+		t.Fatalf("clearing the filter lost the choice: %q", v)
+	}
+	drive(m, "esc")
+	if m.screen != scrServices {
+		t.Fatal("esc with no filter should leave setup")
+	}
+
+	n := fixture(t, "setup-nomatch")
+	if n.setup.cluster.Matches() != 0 || offers(n, "next") || !offers(n, "clear filter") {
+		t.Fatalf("a filter that leaves nothing: %d matches, enter offered %v", n.setup.cluster.Matches(), offers(n, "next"))
+	}
+	if txt := screenText(n, 80, 24); !strings.Contains(txt, "No option matches") {
+		t.Errorf("a filter that leaves nothing draws no empty state:\n%s", txt)
+	}
+	// the other selects are not filterable: j still moves the sign-in choice
+	a := fixture(t, "setup-auth")
+	before := a.setup.auth.Value()
+	drive(a, "j")
+	if a.setup.auth.Value() == before || a.setup.auth.Filtered() {
+		t.Error("j on the sign-in select no longer moves it")
 	}
 }
 

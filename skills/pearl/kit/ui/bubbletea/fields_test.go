@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
@@ -267,5 +268,192 @@ func TestPrompter(t *testing.T) {
 	}
 	if err := kept.Ask(NewPrompter(strings.NewReader(""), &out)); err == nil {
 		t.Error("an input with no answer left asked forever or passed")
+	}
+}
+
+func typeInto[T comparable](s *Select[T], text string) {
+	for _, r := range text {
+		s.Type(tea.KeyPressMsg{Code: r, Text: string(r)})
+	}
+}
+
+func clusters() Select[string] {
+	s := NewSelect("Cluster", "contexts in ~/.kube/config", "staging-eu-west-1",
+		Option[string]{Name: "prod-us-east-1", Desc: "production", Value: "prod-us-east-1"},
+		Option[string]{Name: "prod-eu-west-1", Desc: "production", Value: "prod-eu-west-1"},
+		Option[string]{Name: "staging-eu-west-1", Desc: "current context", Value: "staging-eu-west-1"},
+		Option[string]{Name: "staging-us-east-1", Value: "staging-us-east-1"},
+		Option[string]{Name: "dev-local", Desc: "kind on this machine", Value: "dev-local"})
+	s.Filterable = true
+	return s
+}
+
+// shownNames are the option names a select's rows draw, in order.
+func shownNames(th *theme.Theme, s Select[string]) []string {
+	var out []string
+	txt := ansi.Strip(strings.Join(s.View(th, 60, true), "\n"))
+	for _, o := range s.Options {
+		if strings.Contains(txt, o.Name+" ") {
+			out = append(out, o.Name)
+		}
+	}
+	return out
+}
+
+// Typing narrows a filterable select to the names holding the letters in order, the
+// highlight stays on a shown option as the filter changes (and is the value), the
+// arrows move through the shown options only, and clearing the filter keeps the option
+// chosen. Backspace widens it; with no filter it is not the select's.
+func TestSelectFilterNarrows(t *testing.T) {
+	th := testTheme(t, false)
+	s := clusters()
+	typeInto(&s, "PRD")
+	if !s.Filtered() || s.Query() != "PRD" {
+		t.Fatalf("typed PRD, the filter is %q", s.Query())
+	}
+	if got, want := shownNames(th, s), []string{"prod-us-east-1", "prod-eu-west-1"}; !slices.Equal(got, want) {
+		t.Fatalf("PRD shows %v, want %v", got, want)
+	}
+	if s.Value() != "prod-us-east-1" {
+		t.Fatalf("the highlight %q is an option the filter hides", s.Value())
+	}
+	s.Move(1)
+	s.Move(1)
+	if s.Value() != "prod-eu-west-1" {
+		t.Fatalf("down twice reached %q, want the last shown, prod-eu-west-1", s.Value())
+	}
+	typeInto(&s, "eu")
+	if s.Value() != "prod-eu-west-1" || s.Matches() != 1 {
+		t.Fatalf("PRDeu: %d matches, highlight %q", s.Matches(), s.Value())
+	}
+	if !s.Type(tea.KeyPressMsg{Code: tea.KeyBackspace}) || !s.Type(tea.KeyPressMsg{Code: tea.KeyBackspace}) || s.Query() != "PRD" {
+		t.Fatalf("backspace left %q", s.Query())
+	}
+	if s.Type(tea.KeyPressMsg{Code: tea.KeyDown}) {
+		t.Fatal("an arrow key went to the filter")
+	}
+	s.ClearFilter()
+	if s.Filtered() || s.Matches() != 5 || s.Value() != "prod-eu-west-1" {
+		t.Fatalf("cleared: filtered %v, %d shown, value %q", s.Filtered(), s.Matches(), s.Value())
+	}
+	if s.Type(tea.KeyPressMsg{Code: tea.KeyBackspace}) {
+		t.Fatal("backspace with no filter claimed the key")
+	}
+	// scrolled: the highlight stays in the window as the filter narrows the list
+	s.Rows = 2
+	typeInto(&s, "st")
+	if got := shownNames(th, s); len(got) != 2 || !slices.Contains(got, s.Selected().Name) {
+		t.Fatalf("filtered and scrolled: shows %v, highlight %q", got, s.Selected().Name)
+	}
+}
+
+// A filter that leaves nothing draws the kit's empty state, not a blank, and the field
+// keeps its height as the options narrow (the filter's line added at the first letter),
+// at every width, focused or not, in every theme. With no filter a filterable select
+// draws exactly as any select.
+func TestSelectFilterEmptyAndHeight(t *testing.T) {
+	eachTheme(t, func(name string, th *theme.Theme) {
+		for _, q := range []string{"", "dev", "zzz"} {
+			s := clusters()
+			typeInto(&s, q)
+			for _, w := range []int{24, 40, 80} {
+				for _, focused := range []bool{true, false} {
+					rows := s.View(th, w, focused)
+					if h := s.Height(th, w); h != len(rows) {
+						t.Errorf("%s %q w=%d focused=%v: Height %d, View draws %d rows", name, q, w, focused, h, len(rows))
+					}
+					for _, r := range rows {
+						if ansi.StringWidth(r) != w {
+							t.Errorf("%s %q w=%d: a row is %d cells: %q", name, q, w, ansi.StringWidth(r), ansi.Strip(r))
+						}
+					}
+				}
+			}
+			// the filter's line and its air come with the first letter; past it the
+			// height holds as the options narrow, so what's under the field stays put
+			want := clusters().Height(th, 60)
+			if q != "" {
+				want += 2
+			}
+			if h := s.Height(th, 60); h != want {
+				t.Errorf("%s %q: the field is %d rows, want %d", name, q, h, want)
+			}
+		}
+		s := clusters()
+		typeInto(&s, "zzz")
+		txt := ansi.Strip(strings.Join(s.View(th, 60, true), "\n"))
+		if s.Matches() != 0 || !strings.Contains(txt, `No option matches "zzz"`) || !strings.Contains(txt, "0 of 5") {
+			t.Errorf("%s: a filter that leaves nothing draws:\n%s", name, txt)
+		}
+		// focus moves no text: the blurred filter line keeps the query's cells
+		for _, str := range []string{"zzz", "No option matches"} {
+			if a, b := cellIndex(strings.Join(s.View(th, 60, true), ""), str), cellIndex(strings.Join(s.View(th, 60, false), ""), str); a != b {
+				t.Errorf("%s: %q moves on blur: %d → %d", name, str, a, b)
+			}
+		}
+	})
+}
+
+// Filtering is opt-in: a select without it draws no filter line, takes no typed key,
+// and moves as it always did.
+func TestSelectUnfilteredUnchanged(t *testing.T) {
+	th := testTheme(t, false)
+	_, sel, _ := sampleFields()
+	before := sel.View(th, 60, true)
+	if sel.Type(tea.KeyPressMsg{Code: 'j', Text: "j"}) || sel.Filtered() {
+		t.Fatal("a select that isn't Filterable took a typed key")
+	}
+	if got := sel.View(th, 60, true); !slices.Equal(got, before) {
+		t.Fatal("a typed key changed an unfilterable select")
+	}
+	if len(before) != 2+len(sel.Options) || strings.Contains(ansi.Strip(strings.Join(before, "")), "type to filter") {
+		t.Fatalf("an unfilterable select drew a filter line:\n%s", ansi.Strip(strings.Join(before, "\n")))
+	}
+}
+
+// A secret input draws a mask for each character, focused and blurred, in every theme
+// and under ASCII, and never the value; the plain prompt never writes it either. The
+// messages here name lengths, never the value, so a failure can't print it.
+func TestInputSecretIsMasked(t *testing.T) {
+	const secret = "hunter2-tok"
+	eachTheme(t, func(name string, th *theme.Theme) {
+		in := NewInput("Token", "from your profile", "paste a token", "")
+		in.Secret = true
+		for _, r := range secret {
+			in.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
+		}
+		if in.Value() != secret {
+			t.Fatalf("%s: typed %d characters, the value holds %d", name, len(secret), len(in.Value()))
+		}
+		mask := strings.Repeat(string(in.Model.EchoCharacter), len(secret))
+		for _, focused := range []bool{true, false} {
+			txt := ansi.Strip(strings.Join(in.View(th, 60, focused), "\n"))
+			if strings.Contains(txt, "hunter") || strings.Contains(txt, "tok") {
+				t.Errorf("%s focused=%v: the secret's text is on screen", name, focused)
+			}
+			if !strings.Contains(txt, mask) {
+				t.Errorf("%s focused=%v: no %d-cell mask on screen", name, focused, len(secret))
+			}
+		}
+	})
+	// an EchoMode set by hand is a secret too: the plain prompt doesn't name the value
+	in := NewInput("Token", "", "", secret)
+	in.Model.EchoMode = textinput.EchoPassword
+	var out bytes.Buffer
+	if err := in.Ask(NewPrompter(strings.NewReader("\n"), &out)); err != nil || in.Value() != secret {
+		t.Fatalf("a blank answer did not keep the secret (err %v)", err)
+	}
+	if strings.Contains(out.String(), "hunter") || !strings.Contains(out.String(), "blank keeps the current one") {
+		t.Errorf("the prompt for a kept secret wrote its value or no hint (%d bytes)", out.Len())
+	}
+	// a typed secret from a pipe is read as given and never written back
+	out.Reset()
+	typed := NewInput("Token", "", "", "")
+	typed.Secret = true
+	if err := typed.Ask(NewPrompter(strings.NewReader(secret+"\n"), &out)); err != nil || typed.Value() != secret {
+		t.Fatalf("the piped secret was not read (err %v, %d characters)", err, len(typed.Value()))
+	}
+	if strings.Contains(out.String(), "hunter") {
+		t.Error("the plain prompt wrote the secret to its output")
 	}
 }

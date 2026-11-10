@@ -43,6 +43,8 @@ var clusterChoices = []ui.Option[string]{
 	{Name: "prod-us-east-1", Desc: "production", Value: "prod-us-east-1"},
 	{Name: "staging-eu-west-1", Desc: "current context", Value: "staging-eu-west-1"},
 	{Name: "dev-local", Desc: "kind on this machine", Value: "dev-local"},
+	{Name: "prod-eu-west-1", Desc: "production", Value: "prod-eu-west-1"},
+	{Name: "staging-us-east-1", Value: "staging-us-east-1"},
 }
 
 var authChoices = []ui.Option[string]{
@@ -79,8 +81,11 @@ func newSetup(t *theme.Theme) *setupFlow {
 	brand := t.AppName()
 	ns := ui.NewInput(t.Copy("Namespace"), "where your services run; blank means default", "default", "")
 	ns.Validate = validNamespace
+	// a kubeconfig holds more contexts than a glance takes in: typing narrows them
+	cluster := ui.NewSelect(t.Copy("Cluster"), "contexts in ~/.kube/config; type to filter", "staging-eu-west-1", clusterChoices...)
+	cluster.Filterable = true
 	return &setupFlow{
-		cluster:     ui.NewSelect(t.Copy("Cluster"), "contexts in ~/.kube/config", "staging-eu-west-1", clusterChoices...),
+		cluster:     cluster,
 		namespace:   ns,
 		auth:        ui.NewSelect(t.Copy("Sign in with"), "change it later with "+brand+" auth", "browser", authChoices...),
 		alerts:      ui.NewConfirm("Tell you when a deploy fails?", "a desktop notification and the terminal bell", "Turn on", "Not now", true),
@@ -169,6 +174,16 @@ func (m *app) next() tea.Cmd {
 // typing reports whether the focused field takes text.
 func (f *setupFlow) typing() bool {
 	return f != nil && f.step == stTarget && f.field == 1
+}
+
+// takesText reports whether printable keys are the focused field's: the namespace's
+// text, or a filterable select's filter. Help and the palette then move off them.
+func (f *setupFlow) takesText() bool {
+	if f == nil {
+		return false
+	}
+	c := f.choice()
+	return f.typing() || (c != nil && c.Filterable)
 }
 
 // confirm is the step's confirm, or nil.
@@ -319,19 +334,41 @@ func (m *app) setupActions(help action) []action {
 			escAct, help,
 		}
 	}
-	acts := []action{
-		do([]string{"enter"}, "enter", "next", true, next),
-		do([]string{"up", "k", "down", "j"}, m.t.G.UpDown, "choose", true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
-			if s := msg.String(); s == "up" || s == "k" {
-				m.setup.choice().Move(-1)
-			} else {
-				m.setup.choice().Move(1)
-			}
-			return nil
-		}),
+	// a filterable select: letters type the filter (app.key sends them there), so only
+	// the arrows move; esc clears a filter in force before it means back or quit
+	sel := f.choice()
+	moveKeys := []string{"up", "k", "down", "j"}
+	if sel.Filterable {
+		moveKeys = []string{"up", "down"}
 	}
-	if f.step == stTarget {
-		acts = append(acts, do([]string{"tab"}, "tab", "next field", false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.setup.field = 1; return nil }))
+	var acts, clear []action
+	if sel.Filtered() { // the way out of a filter comes before the arrows, so a narrow footer keeps it
+		clear = []action{
+			esc("clear filter", func(m *app) tea.Cmd { m.setup.choice().ClearFilter(); return nil }),
+			do([]string{"backspace"}, "backspace", "delete", false, func(m *app, msg tea.KeyPressMsg) tea.Cmd { m.setup.choice().Type(msg); return nil }),
+		}
+	}
+	if sel.Matches() > 0 { // a filter that leaves nothing highlights nothing to submit
+		acts = append(acts, do([]string{"enter"}, "enter", "next", true, next))
+		acts = append(acts, clear...)
+		acts = append(acts,
+			do(moveKeys, m.t.G.UpDown, "choose", true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
+				if s := msg.String(); s == "up" || s == "k" {
+					m.setup.choice().Move(-1)
+				} else {
+					m.setup.choice().Move(1)
+				}
+				return nil
+			}))
+		if f.step == stTarget {
+			acts = append(acts, do([]string{"tab"}, "tab", "next field", false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.setup.field = 1; return nil }))
+		}
+	}
+	switch {
+	case sel.Filtered() && sel.Matches() == 0:
+		return append(clear, help)
+	case sel.Filtered():
+		return append(acts, help)
 	}
 	return append(acts, escAct, help)
 }

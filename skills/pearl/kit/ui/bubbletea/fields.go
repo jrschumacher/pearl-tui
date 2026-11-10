@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/term"
 
 	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
@@ -23,8 +25,8 @@ import (
 // rendered text). focused=false draws the same cells, quieter, so a field under a
 // dialog or beside the focused one blurs, and focus never moves the text (law 5).
 //
-//	ui.NewInput(title, desc, placeholder, value)  Bubbles' textinput, themed focused and blurred; its error under it
-//	ui.NewSelect(title, desc, value, opts...)     one of a few options, each with a dim description column
+//	ui.NewInput(title, desc, placeholder, value)  Bubbles' textinput, themed focused and blurred; its error under it; Secret masks it
+//	ui.NewSelect(title, desc, value, opts...)     one of a few options, each with a dim description column; Filterable narrows them as the user types
 //	ui.NewConfirm(title, desc, yes, no, value)    two ui.Actions buttons, the action first
 //
 // Every row has the 2-cell gutter ui.Gutter draws, so a field, an ui.Actions row and a
@@ -67,12 +69,24 @@ func gutterW(t *theme.Theme) int { return lipgloss.Width(Gutter(t, true, t.S.Foc
 
 // Input is a one-line text field: Bubbles' textinput for the editing (cursor keys,
 // word moves, paste, scrolling a long value), the theme for every cell of it.
+//
+// Secret marks a password, token or key: View draws one mask per character, focused
+// and blurred, in the value's own ink (Bubbles' EchoCharacter, '*' unless the app sets
+// Model.EchoCharacter: no theme glyph is a mask in every brand, a bullet is ▸ or –
+// in some), and Ask reads it without echo. The kit never writes a secret's value: not
+// in View, not in the plain prompt's "blank keeps" hint. Validate's error is drawn as
+// written, so a secret's must not quote the value. Setting Model.EchoMode to anything
+// but EchoNormal marks the field secret too.
 type Input struct {
 	Title, Desc string
 	Validate    func(string) error // run by Submit; nil accepts anything
 	Err         error              // drawn under the field until the value changes
-	Model       textinput.Model    // set CharLimit or EchoMode on it; Prompt and styles are the kit's
+	Model       textinput.Model    // set CharLimit on it; Prompt and styles are the kit's
+	Secret      bool               // mask the value; Ask reads it without echo
 }
+
+// secret reports whether f's value is masked: Secret, or an EchoMode set by hand.
+func (f *Input) secret() bool { return f.Secret || f.Model.EchoMode != textinput.EchoNormal }
 
 // NewInput is an input holding value. Its cursor doesn't blink: a blink is a timer of
 // its own, and the app has one clock.
@@ -93,6 +107,9 @@ func (f Input) Value() string { return f.Model.Value() }
 func (f *Input) Update(msg tea.Msg) tea.Cmd {
 	before := f.Model.Value()
 	f.Model.Focus() // the app sends keys only to the focused field
+	if f.Secret {
+		f.Model.EchoMode = textinput.EchoPassword // word moves jump to the ends, as on any masked field
+	}
 	var cmd tea.Cmd
 	f.Model, cmd = f.Model.Update(msg)
 	if f.Model.Value() != before {
@@ -124,6 +141,9 @@ func (f *Input) View(t *theme.Theme, w int, focused bool) []string {
 		prompt = t.S.Prompt.Bold(true).Render(pr)
 	}
 	f.Model.Prompt = ""
+	if f.Secret {
+		f.Model.EchoMode = textinput.EchoPassword
+	}
 	f.Model.SetStyles(inputStyles(t))
 	f.Model.SetWidth(max(1, iw-lipgloss.Width(pr)-1)) // a cell for the cursor past the end
 	if focused {
@@ -170,12 +190,32 @@ type Option[T comparable] struct {
 
 // Select is one of a few options. Rows caps the options shown at once (0 shows them
 // all); past it the list scrolls with the highlight and draws a scrollbar.
+//
+// Filterable (off by default) lets typing narrow the options: the app hands the
+// focused select its printable keys and backspace with Type, the options shown are
+// those whose names hold the typed letters in order (ui.Fuzzy, any case), and the
+// highlight stays on a shown option, which is the value. While a filter is in force
+// its line (ui.Filter: the query, a caret while focused, "2 of 5") stands above the
+// options with a row of air under it, as over a list, so the field grows two rows at
+// the first letter typed; then it keeps its height as the options narrow, and a filter
+// that leaves nothing draws the kit's empty state in their place, never a blank. Say
+// that typing filters in the field's description ("…; type to filter"): the footer
+// can't name every letter.
+//
+// The keys, one rule: on a filterable select letters type (j and k too) and only the
+// arrow keys move the highlight; an unfilterable one keeps ↑↓ k j. Esc is two steps:
+// while Filtered, esc clears the filter (ClearFilter) and the field keeps the focus;
+// only with no filter does esc mean the app's back or cancel. With nothing matching
+// (Matches is 0) no option is highlighted, so the app offers no key that submits
+// until the filter changes; Value keeps the last highlighted option's meanwhile.
 type Select[T comparable] struct {
 	Title, Desc string
 	Options     []Option[T]
 	Sel         int // the highlighted option, which is the value
 	Rows        int
-	Top         int // the first option shown when Rows cuts the list
+	Top         int  // the first option shown when Rows cuts the list (of those the filter leaves)
+	Filterable  bool // typing narrows the options: Type, Filtered, ClearFilter
+	query       string
 }
 
 // NewSelect is a select with value highlighted (the first option when none holds it).
@@ -189,11 +229,86 @@ func NewSelect[T comparable](title, desc string, value T, opts ...Option[T]) Sel
 	return s
 }
 
-// Move steps the highlight by d, without wrapping.
+// visible are the indexes of the options the filter leaves, in order: all of them
+// with no filter.
+func (s Select[T]) visible() []int {
+	out := make([]int, 0, len(s.Options))
+	q := strings.ToLower(s.query)
+	for i, o := range s.Options {
+		if _, ok := Fuzzy(strings.ToLower(o.Name), q); ok {
+			out = append(out, i)
+		}
+	}
+	return out
+}
+
+// Move steps the highlight by d through the options shown, without wrapping.
 func (s *Select[T]) Move(d int) {
-	s.Sel = max(0, min(len(s.Options)-1, s.Sel+d))
+	v := s.visible()
+	if len(v) == 0 {
+		return
+	}
+	i := max(0, min(len(v)-1, max(0, slices.Index(v, s.Sel))+d))
+	s.Sel = v[i]
 	if s.Rows > 0 {
-		s.Top = Follow(s.Sel, s.Top, s.Rows, len(s.Options))
+		s.Top = Follow(i, s.Top, s.Rows, len(v))
+	}
+}
+
+// Type hands a filterable select a key the app routed to it: printable text extends
+// the filter, backspace takes its last character off. It reports whether the key was
+// the filter's (false for any other key, a backspace with no filter, or a select that
+// isn't Filterable), so the app can try its own bindings next.
+func (s *Select[T]) Type(msg tea.KeyPressMsg) bool {
+	if !s.Filterable {
+		return false
+	}
+	switch {
+	case msg.Code == tea.KeyBackspace && msg.Mod == 0:
+		r := []rune(s.query)
+		if len(r) == 0 {
+			return false
+		}
+		s.query = string(r[:len(r)-1])
+	case msg.Text != "" && msg.Mod&^tea.ModShift == 0:
+		s.query += msg.Text
+	default:
+		return false
+	}
+	s.keepShown()
+	return true
+}
+
+// Filtered reports whether a filter is in force: esc then clears it (ClearFilter)
+// rather than leaving the field.
+func (s Select[T]) Filtered() bool { return s.query != "" }
+
+// Query is the filter as typed.
+func (s Select[T]) Query() string { return s.query }
+
+// Matches is how many options the filter leaves (all of them with none).
+func (s Select[T]) Matches() int { return len(s.visible()) }
+
+// ClearFilter drops the filter; the highlight stays on the option it was on.
+func (s *Select[T]) ClearFilter() {
+	s.query = ""
+	s.keepShown()
+}
+
+// keepShown moves the highlight to the first option the filter leaves when the filter
+// hides the highlighted one, and keeps the scroll on it.
+func (s *Select[T]) keepShown() {
+	v := s.visible()
+	if len(v) == 0 {
+		return
+	}
+	i := slices.Index(v, s.Sel)
+	if i < 0 {
+		i, s.Sel = 0, v[0]
+	}
+	s.Top = 0
+	if s.Rows > 0 {
+		s.Top = Follow(i, s.Top, s.Rows, len(v))
 	}
 }
 
@@ -208,11 +323,38 @@ func (s Select[T]) Selected() Option[T] {
 // Value is the highlighted option's value.
 func (s Select[T]) Value() T { return s.Selected().Value }
 
-func (s Select[T]) shown() int {
+// shownOf is the option rows drawn when n options are left.
+func (s Select[T]) shownOf(n int) int {
 	if s.Rows > 0 {
-		return min(s.Rows, len(s.Options))
+		return min(s.Rows, n)
 	}
-	return len(s.Options)
+	return n
+}
+
+func (s Select[T]) shown() int { return s.shownOf(len(s.Options)) }
+
+// noMatch is the empty state a filter that leaves nothing draws in w cells, or none.
+func (s Select[T]) noMatch(t *theme.Theme, w int) []string {
+	if s.query == "" || len(s.Options) == 0 || len(s.visible()) > 0 {
+		return nil
+	}
+	return Empty(t, w, NoMark, "No option matches \""+s.query+"\"",
+		"None of the "+strconv.Itoa(len(s.Options))+" names has those letters in order.", "")
+}
+
+// optionRows is the rows the options take: as many as with no filter, so the field
+// keeps its height as the options narrow, or the empty state's when it needs more.
+func (s Select[T]) optionRows(t *theme.Theme, bodyW int) int {
+	return max(s.shown(), len(s.noMatch(t, bodyW)))
+}
+
+// bodyW is the cells the option rows take at inner width iw: two less for the
+// scrollbar when Rows cuts the unfiltered list, so the columns stay put as it narrows.
+func (s Select[T]) bodyW(iw int) int {
+	if s.shown() < len(s.Options) {
+		return iw - 2 // the scrollbar and a cell before it
+	}
+	return iw
 }
 
 // View draws the field in w cells. The highlighted option takes the theme's cursor and
@@ -223,11 +365,12 @@ func (s Select[T]) View(t *theme.Theme, w int, focused bool) []string {
 	g := t.G
 	iw := max(1, w-gutterW(t))
 	rows := fieldHead(t, s.Title, s.Desc, iw, focused)
-	n := s.shown()
-	bodyW := iw
-	if n < len(s.Options) {
-		bodyW -= 2 // the scrollbar and a cell before it
+	v := s.visible()
+	if s.query != "" { // the filter's line and a row of air, as over a list
+		rows = append(rows, Filter(t, s.query, focused, len(v), len(s.Options), iw), "")
 	}
+	n := s.shownOf(len(v))
+	bodyW := s.bodyW(iw)
 	cw := max(lipgloss.Width(g.Cursor), lipgloss.Width(t.BlurBar()))
 	lead := 0 // a chip pads its name a cell each side; plain names keep the column
 	if t.X.Selection == "fill" || t.X.Selection == "inverse" {
@@ -238,12 +381,10 @@ func (s Select[T]) View(t *theme.Theme, w int, focused bool) []string {
 		nameW = max(nameW, lipgloss.Width(o.Name))
 	}
 	nameW = min(nameW, max(1, bodyW-cw-1-2*lead))
-	sb := Scrollbar(t, n, len(s.Options), s.Top)
+	top := min(max(0, s.Top), max(0, len(v)-n))
+	sb := Scrollbar(t, n, len(v), top)
 	for r := range n {
-		i := s.Top + r
-		if n == len(s.Options) {
-			i = r
-		}
+		i := v[top+r]
 		o := s.Options[i]
 		mark, st := strings.Repeat(" ", cw), t.S.Soft.Padding(0, lead)
 		switch {
@@ -259,17 +400,27 @@ func (s Select[T]) View(t *theme.Theme, w int, focused bool) []string {
 		if room := bodyW - lipgloss.Width(row) - 2; o.Desc != "" && room >= 8 {
 			row += "  " + t.S.Subtle.Render(Trunc(t, o.Desc, room))
 		}
-		if n < len(s.Options) {
+		if bodyW < iw {
 			row = Fit(row, bodyW) + " " + sb[r]
 		}
 		rows = append(rows, row)
+	}
+	empty := s.noMatch(t, bodyW)
+	rows = append(rows, empty...)
+	for range s.optionRows(t, bodyW) - n - len(empty) {
+		rows = append(rows, "") // the rows the filter emptied: the field keeps its height
 	}
 	return prefix(rows, Gutter(t, focused, t.S.FocusBar), w)
 }
 
 // Height is the rows View draws at w.
 func (s Select[T]) Height(t *theme.Theme, w int) int {
-	return len(fieldHead(t, s.Title, s.Desc, max(1, w-gutterW(t)), true)) + s.shown()
+	iw := max(1, w-gutterW(t))
+	h := len(fieldHead(t, s.Title, s.Desc, iw, true)) + s.optionRows(t, s.bodyW(iw))
+	if s.query != "" {
+		h += 2 // the filter's line and its row of air
+	}
+	return h
 }
 
 // ---------------------------------------------------------------- confirm
@@ -319,14 +470,24 @@ func (c Confirm) Height(t *theme.Theme, w int) int {
 // TERM=dumb: no alt screen, no colour, no cursor movement, so a screen reader reads
 // each line once. A blank answer keeps the field's value; a wrong one says why and asks
 // again. One Prompter reads all of a flow's answers from in.
+//
+// A secret Input's answer is never echoed: when in is a terminal (an *os.File such as
+// os.Stdin) the Prompter turns the terminal's echo off for that one line and restores
+// it after, on an error too; from a pipe or a test it reads the line as given and
+// never prints it back. A line typed ahead of the question was echoed as it was typed,
+// before the Prompter could stop it, and is read from what is buffered. On a terminal
+// the secret's line ends only at enter (ctrl+d is ignored there), and a process killed
+// mid-answer (ctrl+c) ends before it can restore the echo: an app that asks a secret on
+// a terminal and catches SIGINT restores it in its handler (term.Restore).
 type Prompter struct {
 	in  *bufio.Reader
+	src io.Reader // in's source: a terminal's echo is turned off on it for a secret
 	out io.Writer
 }
 
 // NewPrompter reads answers from in and writes questions to out.
 func NewPrompter(in io.Reader, out io.Writer) *Prompter {
-	return &Prompter{in: bufio.NewReader(in), out: out}
+	return &Prompter{in: bufio.NewReader(in), src: in, out: out}
 }
 
 // Say writes one line of status between questions.
@@ -335,6 +496,11 @@ func (p *Prompter) Say(format string, a ...any) { fmt.Fprintf(p.out, format+"\n"
 // ask writes the title, any lines under it, and the question, and reads one answer,
 // trimmed; an input that ends before an answer is an error, never an endless re-ask.
 func (p *Prompter) ask(title, desc string, lines []string, question string) (string, error) {
+	return p.askLine(title, desc, lines, question, false)
+}
+
+// askLine is ask, reading a secret without echo when secret is set.
+func (p *Prompter) askLine(title, desc string, lines []string, question string, secret bool) (string, error) {
 	if desc != "" {
 		title += " (" + desc + ")"
 	}
@@ -343,7 +509,7 @@ func (p *Prompter) ask(title, desc string, lines []string, question string) (str
 		fmt.Fprintln(p.out, l)
 	}
 	fmt.Fprintf(p.out, "%s: ", question)
-	l, err := p.in.ReadString('\n')
+	l, err := p.readLine(secret)
 	if err != nil && (l == "" || !errors.Is(err, io.EOF)) {
 		fmt.Fprintln(p.out)
 		return "", fmt.Errorf("%s: no answer: %w", title, err)
@@ -351,16 +517,36 @@ func (p *Prompter) ask(title, desc string, lines []string, question string) (str
 	return strings.TrimSpace(l), nil
 }
 
-// Ask asks for f's value through p, until Validate passes.
+// readLine reads one answer. A secret from a terminal is read with its echo off (the
+// terminal's state restored however the read ends), and the newline the terminal no
+// longer echoes is written to out; a line already buffered was echoed when typed and is
+// read from the buffer, as is anything that is not a terminal.
+func (p *Prompter) readLine(secret bool) (string, error) {
+	if f, ok := p.src.(*os.File); ok && secret && p.in.Buffered() == 0 && term.IsTerminal(f.Fd()) {
+		b, err := term.ReadPassword(f.Fd()) // restores the echo on return, an error included
+		fmt.Fprintln(p.out)
+		if err == nil {
+			b = append(b, '\n')
+		}
+		return string(b), err
+	}
+	return p.in.ReadString('\n')
+}
+
+// Ask asks for f's value through p, until Validate passes. A Secret is read without
+// echo and its current value is never written: the hint says only that one is kept.
 func (f *Input) Ask(p *Prompter) error {
 	q := "Type a value"
-	if v := f.Value(); v != "" {
+	switch v := f.Value(); {
+	case v != "" && f.secret():
+		q += " (blank keeps the current one)"
+	case v != "":
 		q += " (blank keeps " + v + ")"
-	} else if f.Model.Placeholder != "" {
+	case f.Model.Placeholder != "":
 		q += " (blank means " + f.Model.Placeholder + ")"
 	}
 	for {
-		a, err := p.ask(f.Title, f.Desc, nil, q)
+		a, err := p.askLine(f.Title, f.Desc, nil, q, f.secret())
 		if err != nil {
 			return err
 		}
