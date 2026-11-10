@@ -226,6 +226,15 @@ func TestRules(t *testing.T) {
 		{"screens as models is not § Screens", "## Architecture\n### Screens as models\n#### list.go\n#### detail.go\n" + table("| list | list | enter open |", ""), nil},
 		{"blocks after § Screens are not screens", "### Screens\n#### list — every job\n### Motion\n#### hero\n#### rows\n" + table("| list | list | enter open |", ""), nil},
 
+		// S-SIZE: every work order says how big the step is
+		{"an order with no size line", "## Work orders\n### 1. craft: the list\nkeep: nothing stated\ndeliver: frames\n" + table("| list | list | enter open |", ""), map[string]int{"S-SIZE": 1}},
+		{"a size placeholder", "## Work orders\n### 1. craft: the list\nsize: <the files this step adds or changes, ~lines each; what it won't add>\n" + table("| list | list | enter open |", ""), map[string]int{"S-SIZE": 1}},
+		{"an empty size", "## Work orders\n### 1. craft: the list\nsize:\n" + table("| list | list | enter open |", ""), map[string]int{"S-SIZE": 1}},
+		{"a good size line", "## Work orders\n### 1. craft: the list\nsize: list.go ~200 lines, list_test.go ~80; no new package\n" + table("| list | list | enter open |", ""), nil},
+		{"two orders, one missing", "## Work orders\n### 1. craft: the list\nsize: list.go ~200 lines; nothing copied\n### 2. craft: the detail\ndeliver: frames\n## Decisions\n- x because y\n" + table("| list | list | enter open |", ""), map[string]int{"S-SIZE": 1}},
+		{"no work orders section", "### 1. craft: the list\ndeliver: frames\n" + table("| list | list | enter open |", ""), nil},
+		{"the template's own block is skipped", "## Work orders\n### 1. <command>: <goal in one line>\nsize: <the files this step adds or changes, ~lines each; what it won't add>\n" + table("| list | list | enter open |", ""), nil},
+
 		{"brand section ends at the next heading", "## Brand\n### Brand read\ntone: calm\n## Architecture\nregions ★ ★\n" + table("| list | list | enter open |", ""), nil},
 	}
 	for _, c := range cases {
