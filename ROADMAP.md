@@ -98,6 +98,43 @@ agreeing with your grades line for line.
 - **Design tokens interop**: export roles in the W3C Design Tokens (DTCG) format so a
   brand's web tokens and terminal theme can come from one source.
 
+### Frame checks that still need Go
+
+The 26 tests of `kit/harness/bubbletea`, judged by their bodies. *Frames* means decidable
+from `.ansi` frames and the theme JSON; *app* means it presses keys, reads the action
+tables, opens an overlay over a chosen page, re-themes and re-renders, or reads a rect the
+app reports (body, footer row, overlay); *theme* means it reads the resolved theme, no frame.
+A frame set holds no pairs: `confirm-80x24` does not say which page it opened over.
+
+| Test | Verdict | Covered by | What is missing |
+|---|---|---|---|
+| FrameNameIsRenderedSize | frames, part | F-WIDTH, F-TOOSMALL | the floor itself (minW×minH), and one too-small name for every asked size (FrameName): app |
+| Footprint | frames | F-WIDTH | only the sizes rendered: CI renders 80×24, 120×40; the harness adds the floor, 100×30, 200×60 |
+| ASCIIFallback | theme | F-ASCII, part | glyphs never drawn (an idle spinner frame); belongs in `palette check` |
+| Contrast | theme | F-CONTRAST, part | per-role floors (fg 7, fgMuted 4, primary 3…) need role identity: `palette check` |
+| NoUnstyledText | frames | none | F-UNSTYLED written and clean on all 63 kit renders, but it fires on `testdata/synthetic/sgr-mix.ansi` (default-fg text on a painted page), so the Python goldens would change: maintainer's call |
+| OverlaysInReducedProfiles | app | F-WIDTH (size) | Body, FootY and the overlay rect; a ruled or borderless dialog at 16 colours has no edge to find |
+| NoScrimAt16Colours | frames | F-CONTRAST (16-colour), part | it judges only a found dialog and the footer, and skips box and rule glyphs; the test judges every cell |
+| DialogsStayAboveTheFooter | app | none | FootY, overlay over each page, scrolling by key |
+| DialogPositionIsReadFromItsEdge | kit | n/a | tests the harness's own reader on ui.Dialog |
+| ScrollAllowanceIsChecked | kit | n/a | tests the harness's own scroll check on ui.Dialog |
+| OneFocusMarkerColumn | frames | F-FOCUS | the dialog's edge is found by shape, not reported: a borderless dialog's isn't; the two-ui.List case is a kit test |
+| ASCIIKeepsTextRunes | frames | F-ASCII (--unicode) | none |
+| OverlayKeepsThePageOffItsRows | app | none | the same page with and without the overlay, Body, FootY, focus cells |
+| OverlayFrameHasOneFocus | app | none | a re-render with `scrim: none`, Body, the overlay rect |
+| OverlayTablesMatchTheStates | app | none | Spec's tables, Overlay(), the app's source |
+| HelpOverAnOverlayNamesItsKeys | app | none | keys, action tables, HelpBody |
+| PressNamesKeys | harness | n/a | tests Press |
+| HelpIsHandled | app | none | keys and handlers |
+| ToastKeysAreHandled | app | none | the toast's action; its row text alone is in a frame |
+| GraceWindowsHold | app | none | keys, Toasts().Holding() |
+| TooSmallKeysAreTheTable | app | none | the toosmall action table; TUI.md's row could stand in, but `tuilint spec --frames` (S-GOLDEN) skips toosmall today |
+| ASCIIIsASCII | frames | F-ASCII | none |
+| ASCIIStatusDistinct | theme | none | resolved ASCII status glyphs: `palette check` |
+| WarningInkCarriesItsGlyph | app | none | a re-render with the warning on a sentinel ink: another role can share its hex |
+| NoTextOnItsFillAt16Colours | frames | F-CONTRAST (16-colour), part | as NoScrimAt16Colours: whole frame, decoration glyphs included |
+| WarningIsAFillWhereItsSlotIsFaint | app | none | a re-render with the warning pinned to magenta to find its cells |
+
 ## Phase 3: Industry gaps (bigger than this repo)
 
 These are problems no one has solved for terminals. The skill can only work around them
