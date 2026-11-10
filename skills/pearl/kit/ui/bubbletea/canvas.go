@@ -28,6 +28,11 @@ type Canvas struct {
 	// dialog and keeps the rest, the header; unset, Overlay clears everything outside
 	// the dialog there. Set it where you lay out the body: c.Body = body.
 	Body uv.Rectangle
+	// Keep is a pane beside the page that a dimmed dialog's band leaves standing: a
+	// sidebar is its own column, so where the scrim dims it the rows the dialog spans
+	// stay whole there instead of a hole cut through it. It counts only under a scrim
+	// and only when the dialog doesn't reach it; unset, the band runs across.
+	Keep uv.Rectangle
 }
 
 // NewCanvas makes a cleared canvas.

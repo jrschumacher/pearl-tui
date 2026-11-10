@@ -170,6 +170,8 @@ the pattern; interaction.md § Mouse and § Panes That Scroll say why.
   the rows of the page's body too, since at full ink a page under a confirm showed the
   reply's tail a second time: set `c.Body = body`, the rect you draw the body in, so the
   header stays (unset, everything goes but the dialog and the footer you redraw). A
+  sidebar is its own column: set `c.Keep` to its rect and a dimmed dialog that doesn't
+  reach it leaves it whole instead of cutting its band through the list. A
   popover anchored to its trigger (`anchor.X ≥ 0`, a completion list) clears only its
   own rows, so the line it completes stays.
 - Max ~64–70 cols wide; fullscreen below the minimum size.
