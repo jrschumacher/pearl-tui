@@ -155,7 +155,8 @@ strip. A flow belongs to a screen, not the app.
 ### Working with the person → *Consult `references/collaborate.md`*
 **DO** stop at the pick points (the brand read, the move and signature, a splash style, a
 layout two arrangements pass) with two to four rendered options, and end `init` and
-`shape` with a work order that quotes what the person said must stay.
+`shape` with a work order that quotes what the person said must stay and sizes the work
+in files and lines, so what comes back is a change a person can review.
 **DON'T** put a law or a key table to a vote, or describe a layout instead of showing it.
 
 ### Motion → *Consult `references/motion.md`*

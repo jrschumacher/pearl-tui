@@ -110,6 +110,7 @@ keep: "The service names stay exactly as kubectl prints them."
 reference: none
 method: the main screen's move at three options (-variant a|b|c), then the loop (verify.md)
 deliver: frames/ at 80×24 and 120×40, sheet-80.png, sheet-120.png, pick-move.png
+size: setup.go ~600 lines, setup_test.go ~300; no new package, nothing copied from the kit
 decide: the main screen's move; work stops at pick-move.png until it is picked
 
 ## Decisions
