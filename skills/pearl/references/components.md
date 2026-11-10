@@ -37,7 +37,7 @@ rest stays subtle. Don't rebuild Section for it. This is how regions separate.
 - Selection follows `expressions.selection`: `bar` (▌ + bold), `fill` (a full-width
   primary bar; every span carries the bg), `caret` (› + primary), `inverse`.
   `t.S.SelRow` is that selection's style and nothing else's: a badge or banner drawn in
-  it reads as a second focus, and the kept harness tests count its reverse video as
+  it reads as a second focus, and the harness tests count its reverse video as
   the page's focus mark under `fill` and `inverse`. Draw a badge with `ui.Tag`.
 - Blurred lists keep the selection visible in a quieter style and its own shape:
   `t.BlurBar()` (`glyphs.blurBar`, else `╎`, ASCII `:`) in fgSubtle, never the focus bar

@@ -13,7 +13,6 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -24,8 +23,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
-	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
@@ -40,7 +37,7 @@ var states = []string{"services", "services-toast", "services-undo", "services-f
 	"setup-target", "setup-namespace", "setup-invalid", "setup-auth", "setup-alerts", "setup-review", "setup-signin", "setup-failed", "setup-done"}
 
 // overlays are the states that open a dialog over a page, as setState names them. The
-// harness tests (showcase_test.go, overlay_test.go) open each over every overlayPages
+// harness tests (kit/harness/bubbletea, run by harness_test.go) open each over every overlayPages
 // state with openOverlay: replace both lists with your app's, keeping "help".
 var overlays = []string{"palette", "confirm", "help"}
 
@@ -233,7 +230,7 @@ func main() {
 	}
 	explicit := false
 	flag.Visit(func(fl *flag.Flag) { explicit = explicit || fl.Name == "profile" })
-	prof, err := renderProfile(*profile, explicit, os.Getenv("NO_COLOR"))
+	prof, err := ui.RenderProfile(*profile, explicit, os.Getenv("NO_COLOR"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
@@ -245,7 +242,7 @@ func main() {
 		w, h = frameSize(s, w, h)
 		c := m.render(w, h)
 		c.PaintBackground()
-		return downsample(c.String(), prof)
+		return ui.Downsample(c.String(), prof)
 	}
 	switch {
 	case *state != "":
@@ -256,7 +253,7 @@ func main() {
 			txt := ansi.Strip(render(s, *w, *h))
 			fw, fh := frameSize(s, *w, *h)
 			fmt.Printf("=== %s %dx%d\n%s\n", s, fw, fh, txt)
-			if err := checkSize(txt, s, *w, *h); err != nil {
+			if err := ui.CheckSize(txt, s, fw, fh); err != nil {
 				fmt.Fprintln(os.Stderr, "FAIL", err)
 				bad++
 			}
@@ -281,7 +278,8 @@ func main() {
 				}
 				written[name] = true
 				txt := render(s, sw, sh)
-				if err := checkSize(ansi.Strip(txt), s, sw, sh); err != nil {
+				fw, fh := frameSize(s, sw, sh)
+				if err := ui.CheckSize(ansi.Strip(txt), s, fw, fh); err != nil {
 					fmt.Fprintln(os.Stderr, "FAIL", err)
 					bad++
 				}
@@ -322,50 +320,6 @@ func frameSize(s string, w, h int) (int, int) {
 func frameName(s string, w, h int) string {
 	w, h = frameSize(s, w, h)
 	return fmt.Sprintf("%s-%dx%d.ansi", s, w, h)
-}
-
-func checkSize(txt, s string, w, h int) error {
-	w, h = frameSize(s, w, h)
-	rows := strings.Split(txt, "\n")
-	if len(rows) != h {
-		return fmt.Errorf("%s: %d rows, want %d", s, len(rows), h)
-	}
-	for i, r := range rows {
-		if n := lipgloss.Width(r); n != w {
-			return fmt.Errorf("%s: row %d is %d cells, want %d", s, i, n, w)
-		}
-	}
-	return nil
-}
-
-var profileNames = map[string]colorprofile.Profile{"truecolor": colorprofile.TrueColor, "ansi256": colorprofile.ANSI256,
-	"ansi": colorprofile.ANSI, "ascii": colorprofile.Ascii}
-
-// renderProfile is the profile renders are drawn for: -profile when given, else no
-// colour when NO_COLOR is true as strconv.ParseBool reads it (1, t, true…; "yes" or
-// "x" is not), which is exactly how colorprofile v0.4.3, and so Bubble Tea's
-// detection for the live program, reads it.
-func renderProfile(name string, explicit bool, noColor string) (colorprofile.Profile, error) {
-	if off, _ := strconv.ParseBool(noColor); !explicit && off {
-		return colorprofile.Ascii, nil
-	}
-	p, ok := profileNames[name]
-	if !ok {
-		return 0, fmt.Errorf("-profile %q: want truecolor, ansi256, ansi or ascii", name)
-	}
-	return p, nil
-}
-
-// downsample writes a truecolour frame through colorprofile, as Bubble Tea's renderer
-// does for a terminal at prof.
-func downsample(s string, prof colorprofile.Profile) string {
-	if prof == colorprofile.TrueColor {
-		return s
-	}
-	var b bytes.Buffer
-	wr := &colorprofile.Writer{Forward: &b, Profile: prof}
-	_, _ = wr.WriteString(s)
-	return b.String()
 }
 
 func parseSize(s string) (int, int) {

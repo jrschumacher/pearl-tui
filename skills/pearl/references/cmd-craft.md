@@ -23,7 +23,7 @@ binary carries the theme: no `-theme` flag, no path that breaks when it moves), 
 proves it passes in a fresh module. Follow its notes on skipping the
 `<closest>.json` line when `brand` ran first, on what to delete once your screens are
 in, and on a root model outside `package main` (an existing app's `internal/app`: the
-kept tests move beside it and change only their package clause). Then read
+`harness_test.go` moves beside it and changes only its package clause). Then read
 `cmd/<app>/{app.go,screens.go,main.go}`: the model, `render(w,h)`, the harness. A cold
 rebuild from these references loses half the idiom at once (the focus gutter, the
 filled-row backgrounds, the help truncation, the scrim order). The code already has
@@ -38,7 +38,7 @@ Before any real screen:
 - the theme from `themes/` (`themes.Default`, `theme.Parse`), `-theme` only overriding it
 - `render(w, h) *ui.Canvas` shared by `View` and the harness
 - `setState(name)` for every state in the spec, using fixtures, and beside it in
-  `main.go` the tables the kept harness tests read: `overlays` (the states that open a
+  `main.go` the tables the harness tests read: `overlays` (the states that open a
   dialog, `help` among them), `scrolls` (the overlays whose body may scroll at the
   floor, drawing its position: help, a write's verbatim body), `overlayPages` (the pages
   they open over), `unjudgedPages` (Huh-form pages whose focus can't blur, each with
@@ -47,7 +47,7 @@ Before any real screen:
   skip an overlay hides the bug it was written for
 - a help key in the action table of every overlay but help itself and every page that
   draws a focus mark (each of `overlayPages`): `? help`, or `ctrl+g help` where a
-  focused text box types `?`. The kept tests open help from each of them and fail the
+  focused text box types `?`. The harness tests open help from each of them and fail the
   one where no key does; leaving a focused page out of `overlayPages` to dodge that
   fails `TestOverlayTablesMatchTheStates` instead
 - flags: `-golden -w -h`, `-state`, `-out -sizes`, `-theme`, `-light`, `-ascii`,

@@ -24,7 +24,8 @@ skills/pearl/
   scripts/        wordmark, logo2cells (Python 3 + Pillow/numpy; brand-asset conversion only)
   kit/            Go module `…/pearl-tui/skills/pearl/kit`, which apps import: themes/*.json (the framework-neutral contract),
                   theme/bubbletea/ and ui/bubbletea/ (one framework's engine and components),
-                  cmd/showcase (the Bubble Tea reference app + harness)
+                  harness/bubbletea/ (the tests every app runs against itself, imported),
+                  cmd/showcase (the Bubble Tea reference app + its harness flags)
 .claude-plugin/   plugin.json + marketplace.json: the repo root is a Claude Code plugin that
                   bundles skills/pearl (default skills/ scan) and hooks/
 hooks/            hooks.json (PostToolUse on Edit|Write|MultiEdit) → tuilint-edit.sh, which
@@ -79,8 +80,8 @@ moss's `dialog: none` overlays, which have no edge for the linter to find). It a
 `kit/README.md`'s import block, as written, in a fresh module (its `go get` turned into
 a `replace` to the checkout), because a showcase test that names a kit path passes here
 and fails in every project that copied the showcase as its app, and then
-deletes the showcase's screens as the README says and runs the kept harness tests
-against `.github/kit-stub` (two pages, one overlay), because a kit test that names a
+deletes the showcase's screens as the README says and runs the harness
+(`kit/harness/bubbletea`, from the kept `harness_test.go`) against `.github/kit-stub` (two pages, one overlay), because a kit test that names a
 showcase state fails the same way; checks that
 every tool invocation in SKILL.md and `references/` names a real mode and flag (the
 `cmddoc` test in `tools/`), that every `references/cmd-*.md` has a row in SKILL.md's
@@ -119,7 +120,7 @@ The skill gets better from observed misses, not from adding prose.
 - **The kit is a dependency, so its exported names are an API.** Removing or renaming
   one breaks every app at its next `go get`: mark the commit `!` and say what replaces it.
 - **Every advertised key must be handled.** Keys live in one action table per state
-  (`kit/cmd/showcase/app.go`); `TestHelpIsHandled` enforces it. Don't add a footer
+  (`kit/cmd/showcase/app.go`); the harness's `HelpIsHandled` enforces it. Don't add a footer
   binding any other way.
 - **No literals in screens.** Colours and glyphs come from the theme. `tuilint code`
   fails on hex [C-HEX] and on a glyph (`·`, `▏`, `→`) [C-GLYPH] outside `theme/bubbletea/`
