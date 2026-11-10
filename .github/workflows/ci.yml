@@ -56,7 +56,7 @@ jobs:
           - theme: quire
             donor: theme/bubbletea/testdata/quire.json
           # halyard is a "fill" selection: the focused row, not a glyph, is the page's
-          # focus mark, which the stub's list page draws and the focus tests must find
+          # focus mark, which the skeleton's list page draws and the focus tests must find
           - theme: halyard
             donor: themes/halyard.json
     steps:
@@ -64,10 +64,19 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: skills/pearl/kit/go.mod
-          cache-dependency-path: skills/pearl/kit/go.sum
-      # The showcase's tests break silently in a project when one hard-codes a kit path;
-      # run the block a user runs, as written. The project imports theme and ui, holds one
-      # theme under its own name, and its binary draws that theme with no flag.
+          cache-dependency-path: |
+            skills/pearl/kit/go.sum
+            skills/pearl/tools/go.sum
+      - name: build the tools
+        run: |
+          go -C skills/pearl/tools build -o "$GITHUB_WORKSPACE/.tuitools/" ./cmd/...
+          echo "$GITHUB_WORKSPACE/.tuitools" >> "$GITHUB_PATH"
+      # A skeleton test that hard-codes a kit path, or names a state the README doesn't
+      # leave, breaks in every project and passes here; so run the block a user runs, as
+      # written, and nothing after it: the copied skeleton must pass vet, the tests (the
+      # kit's harness with this donor), tuilint code and -golden with no edits. The
+      # project imports theme and ui, holds one theme under its own name, and its binary
+      # draws that theme with no flag.
       - name: run kit/README.md's import block in a fresh module
         run: |
           skill="$GITHUB_WORKSPACE/skills/pearl"
@@ -84,28 +93,19 @@ jobs:
                   -e 's#<your/module>#example.com/brandapp#g' > "$RUNNER_TEMP/copy.sh"
           grep -q -- "-replace=$kit=" "$RUNNER_TEMP/copy.sh"
           cat "$RUNNER_TEMP/copy.sh"
+          # the block stays at most 5 commands (issue #54)
+          test "$(grep -cv '^[[:space:]]*$' "$RUNNER_TEMP/copy.sh")" -le 5
           sh -e "$RUNNER_TEMP/copy.sh"
           test ! -e internal   # theme and ui are imported, never copied
           test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
           go vet ./...
           test "$(ls themes/*.json)" = themes/brand.json
           go test ./...
-          go run ./cmd/brandapp -golden -w 80 -h 24 | grep -q ${{ matrix.theme }}
-      # The kit's harness tests must hold for an app that isn't the showcase: delete what
-      # the README says is the showcase's alone, put a two-page app with one overlay of
-      # its own in place of its screens (.github/kit-stub), keep harness_test.go (the
-      # adapter and the one test that runs the kit's harness package), and run it.
-      - name: the harness passes with the showcase's screens deleted
-        run: |
-          cd "$RUNNER_TEMP/brandapp/cmd/brandapp"
-          rm data.go screens_test.go helpers_test.go setup.go setup_test.go rollout.go rollout_test.go app.go screens.go main.go
-          cp "$GITHUB_WORKSPACE"/.github/kit-stub/*.go .
-          ls
-          cd ../..
-          test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
-          go vet ./...
-          go test ./cmd/...
-          go run ./cmd/brandapp -golden -w 80 -h 24 > /dev/null
+          tuilint code cmd themes
+          go run ./cmd/brandapp -golden -w 80 -h 24 > "$RUNNER_TEMP/golden.txt"
+          # the embedded brand's name in the header, with no -theme flag (a tracked
+          # wordmark spaces its letters: H A L Y A R D)
+          tr -d ' ' < "$RUNNER_TEMP/golden.txt" | grep -qi ${{ matrix.theme }}
 
   render-and-lint:
     name: render every theme + lint

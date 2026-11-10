@@ -49,7 +49,8 @@ pink-purple, emoji, rounded boxes around regions, "Loading..."
 ### Stack
 Go 1.26.7; charm.land/bubbletea/v2 v2.1.0, lipgloss/v2 v2.0.6, bubbles/v2 v2.2.1,
 ultraviolet v0.0.0-20261008173134-6b8d4baf91b4.
-The kit's theme/bubbletea and ui/bubbletea imported (go.mod requires the kit).
+The kit's theme/bubbletea and ui/bubbletea imported (go.mod requires the kit);
+the kit's skeleton (cmd/skeleton) copied as the app, its model moved to internal/app.
 
 ### Root model and regions
 One *model in internal/app; regions are structs drawn into rectangles (x,y w×h at 80×24):

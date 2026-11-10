@@ -25,7 +25,8 @@ skills/pearl/
   kit/            Go module `…/pearl-tui/skills/pearl/kit`, which apps import: themes/*.json (the framework-neutral contract),
                   theme/bubbletea/ and ui/bubbletea/ (one framework's engine and components),
                   harness/bubbletea/ (the tests every app runs against itself, imported),
-                  cmd/showcase (the Bubble Tea reference app + its harness flags)
+                  cmd/skeleton (the smallest app on the kit's shape, which a project copies),
+                  cmd/showcase (the Bubble Tea reference app + its harness flags: read, not copied)
 .claude-plugin/   plugin.json + marketplace.json: the repo root is a Claude Code plugin that
                   bundles skills/pearl (default skills/ scan) and hooks/
 hooks/            hooks.json (PostToolUse on Edit|Write|MultiEdit) → tuilint-edit.sh, which
@@ -78,11 +79,11 @@ entry means 0) through `tuilint frames --max-warnings`, so a new warning class f
 to raise an entry on purpose, justify the warning in the PR and edit the number (today only
 moss's `dialog: none` overlays, which have no edge for the linter to find). It also runs
 `kit/README.md`'s import block, as written, in a fresh module (its `go get` turned into
-a `replace` to the checkout), because a showcase test that names a kit path passes here
-and fails in every project that copied the showcase as its app, and then
-deletes the showcase's screens as the README says and runs the harness
-(`kit/harness/bubbletea`, from the kept `harness_test.go`) against `.github/kit-stub` (two pages, one overlay), because a kit test that names a
-showcase state fails the same way; checks that
+a `replace` to the checkout) with three donor themes, and holds the copied
+`cmd/skeleton` to `go vet`, `go test` (the harness, `kit/harness/bubbletea`, from its
+`harness_test.go`), `tuilint code` and `-golden` with no edit after the block, because a
+skeleton test that names a kit path, or a kit test that names a state the skeleton
+lacks, passes here and fails in every project that copied it; checks that
 every tool invocation in SKILL.md and `references/` names a real mode and flag (the
 `cmddoc` test in `tools/`), that every `references/cmd-*.md` has a row in SKILL.md's
 command table, and that `evals/evals.json` parses and its fixtures exist; and runs each
@@ -106,8 +107,9 @@ The skill gets better from observed misses, not from adding prose.
      test in the kit, or a structural pattern the kit forces; then shorten the prose
    - (c) prose can't express it → a tool only
    If most misses are (b), the skill is too long: cut before adding.
-4. **Make the kit pass it** (the kit is what apps import and the showcase is what agents
-   copy as their app, so the fix must live there).
+4. **Make the kit pass it** (the kit is what apps import, the skeleton is what agents
+   copy as their app and the showcase is what they read for a pattern, so the fix must
+   live there).
 5. **Edit the skill**, one change per cause.
 6. **Verify**: tests, lint, renders, and for visual or behavioural changes the critic
    loop (`references/verify.md`): render, look at the PNGs, run an adversarial critic
@@ -116,11 +118,11 @@ The skill gets better from observed misses, not from adding prose.
 ## Rules
 
 - **The kit must compile, pass its tests and lint clean at every commit.** Apps import
-  it, and a cold agent copies the showcase verbatim.
+  it, a cold agent copies the skeleton verbatim, and reads the showcase as the pattern.
 - **The kit is a dependency, so its exported names are an API.** Removing or renaming
   one breaks every app at its next `go get`: mark the commit `!` and say what replaces it.
 - **Every advertised key must be handled.** Keys live in one action table per state
-  (`kit/cmd/showcase/app.go`); the harness's `HelpIsHandled` enforces it. Don't add a footer
+  (`kit/cmd/skeleton/app.go`, `kit/cmd/showcase/app.go`); the harness's `HelpIsHandled` enforces it. Don't add a footer
   binding any other way.
 - **No literals in screens.** Colours and glyphs come from the theme. `tuilint code`
   fails on hex [C-HEX] and on a glyph (`·`, `▏`, `→`) [C-GLYPH] outside `theme/bubbletea/`
@@ -177,7 +179,7 @@ type(scope)!: description        e.g.  fix(kit): keep the focus bar on resize
   | Scope | Covers |
   |---|---|
   | `skill` | SKILL.md and `references/` |
-  | `kit` | the Go kit: `theme/<framework>/`, `ui/<framework>/`, `cmd/showcase` |
+  | `kit` | the Go kit: `theme/<framework>/`, `ui/<framework>/`, `cmd/skeleton`, `cmd/showcase` |
   | `themes` | `kit/themes/*.json` |
   | `tools` | the Go tools in `tools/` |
   | `scripts` | the Python brand-asset converters |

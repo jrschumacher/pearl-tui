@@ -129,6 +129,7 @@ skills/pearl/
 │   │                     alerts, toast, help/footer, tool calls, thinking, anim, progress,
 │   │                     sparkline, tree, field, empty states, canvas; Huh forms themed
 │   │                     from the brand, a stepper and a summary panel for wizards
+│   ├── cmd/skeleton/     the smallest app on the kit's shape: what a project copies
 │   └── cmd/showcase/     the Bubble Tea reference app (an ops dashboard and a first-run
 │                         setup wizard) + harness (-golden, -state, -out, -profile, -light,
 │                         -ascii, -first-run)

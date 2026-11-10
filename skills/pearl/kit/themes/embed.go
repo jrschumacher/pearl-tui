@@ -1,6 +1,6 @@
 // Package themes holds the theme JSON the binary carries. go:embed can't reach outside
 // its own package, so the directory that holds themes/<brand>.json is a package: the
-// kit's showcase and a project's cmd/<app> read Default and draw the brand with no
+// kit's skeleton and showcase and a project's cmd/<app> read Default and draw the brand with no
 // -theme flag, wherever the binary is run from.
 package themes
 
