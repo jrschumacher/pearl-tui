@@ -3,7 +3,7 @@ package palette
 import (
 	"testing"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
 
 // The warning never leaves yellow, even with both yellows held: it shares 3, never the

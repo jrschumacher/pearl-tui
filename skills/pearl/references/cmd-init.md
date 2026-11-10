@@ -167,11 +167,11 @@ rows: <spinners for row-level work>; idle: nothing moves
 ### Stack
 Go 1.26.7; charm.land/bubbletea/v2 v2.1.0, lipgloss/v2 v2.0.6, bubbles/v2 v2.2.1,
 huh/v2 v2.0.3; ultraviolet v0.0.0-20261008173134-6b8d4baf91b4.
-The kit's theme/bubbletea and ui/bubbletea copied into internal/theme and internal/ui;
-the showcase into cmd/<app>.
+The kit's theme/bubbletea and ui/bubbletea imported (go.mod requires the kit);
+the showcase copied into cmd/<app>.
 
 ### Root model and regions
-One *model in cmd/<app> (where the kit's copy block puts the harness and its tests);
+One *model in cmd/<app> (where the kit's README block puts the harness and its tests);
 regions are structs drawn into rectangles (x,y w×h at 80×24):
 
     header   0,0    80×1

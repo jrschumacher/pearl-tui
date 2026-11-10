@@ -21,8 +21,9 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
    user gave a screen to match, write its terms in TUI.md § Reference now and ask about
    its conflicts with the laws in one message (`verify.md` § Hold It To The Reference):
    from here on it is the target, not an ingredient list.
-2. **Add the harness from the kit.** Copy `theme/bubbletea` and `ui/bubbletea` with the
-   README block (`cmd-craft.md` §1; skip `cmd/showcase`, the app exists), then lift
+2. **Add the harness from the kit.** Import `theme/bubbletea` and `ui/bubbletea` with the
+   README block's `go get` (`cmd-craft.md` §1; skip the `cmd/showcase` and theme lines
+   when the app and its theme exist; never copy the two packages in), then lift
    `main.go`'s harness (`render(w, h)`, `setState`, `states`, `overlays`, `scrolls`,
    `overlayPages`, `unjudgedPages`, `openOverlay`, the `-golden`/`-out` flags) into the
    app's package and give the app's model the names the harness tests read

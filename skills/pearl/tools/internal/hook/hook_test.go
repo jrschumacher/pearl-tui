@@ -328,3 +328,25 @@ func TestOptedIn(t *testing.T) {
 		})
 	}
 }
+
+// An app that imports the kit opts in by its go.mod: no TUI.md, no theme package of its own.
+func TestRequiresKit(t *testing.T) {
+	for gomod, want := range map[string]bool{
+		"module x\n\nrequire " + KitModule + " v1.0.0\n":                   true,
+		"module x\n\nrequire (\n\t" + KitModule + " v1.0.0 // indirect\n)": true,
+		"module " + KitModule + "\n":                                       false,
+		"module x\n\n// " + KitModule + "\n":                               false,
+		"module x\n\nrequire charm.land/bubbletea/v2 v2.1.0\n":             false,
+	} {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gomod), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if got := requiresKit(dir); got != want {
+			t.Errorf("requiresKit(%q) = %v, want %v", gomod, got, want)
+		}
+		if got := OptedIn(dir); got != want {
+			t.Errorf("OptedIn(%q) = %v, want %v", gomod, got, want)
+		}
+	}
+}

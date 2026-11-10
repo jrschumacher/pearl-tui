@@ -6,8 +6,8 @@ import (
 	"github.com/charmbracelet/colorprofile"
 	uv "github.com/charmbracelet/ultraviolet"
 
-	"example.com/brandapp/internal/theme"
-	"example.com/brandapp/internal/ui"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/ui/bubbletea"
 )
 
 // A minimal app on the kit's shape: two pages (a list and an item's detail) and one

@@ -11,7 +11,7 @@ import (
 	hspinner "charm.land/huh/v2/spinner"
 	"charm.land/lipgloss/v2"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
 
 // Huh forms, themed from the brand. Huh keeps its own mechanics and layout

@@ -1,4 +1,4 @@
-module tuikit
+module github.com/jrschumacher/pearl-tui/skills/pearl/kit
 
 go 1.26.7
 

@@ -4,15 +4,17 @@ Verified against `charm.land/bubbletea/v2 v2.1.0`, `charm.land/lipgloss/v2 v2.0.
 `charm.land/bubbles/v2 v2.2.1`, `charm.land/huh/v2 v2.0.3` and Ultraviolet
 `v0.0.0-20261008173134-6b8d4baf91b4` (October 2026). The kit's `go.mod` pins Go 1.26.7
 (`GOTOOLCHAIN=auto` fetches it; no library needs it). Your training data is mostly v1: the import paths,
-`View()` and the key messages all changed. Copy from the kit, which compiles.
+`View()` and the key messages all changed. Build on the kit, which compiles.
 
 ## Pin These
 
 ```
-go get charm.land/bubbletea/v2@v2.1.0 charm.land/lipgloss/v2@v2.0.6 charm.land/bubbles/v2@v2.2.1 \
-       charm.land/huh/v2@v2.0.3 github.com/charmbracelet/ultraviolet@v0.0.0-20261008173134-6b8d4baf91b4
-# huh is required once you copy the kit's ui/bubbletea (form.go); optional: charm.land/glamour/v2@v2.0.1
+go get github.com/jrschumacher/pearl-tui/skills/pearl/kit@v<version>   # <version>: SKILL.md's metadata.version
+# optional: charm.land/glamour/v2@v2.0.1
 ```
+
+The kit's `go.mod` requires the versions above, so importing it brings them; an app
+that doesn't import the kit pins them itself.
 
 Never `github.com/charmbracelet/bubbletea` (v1) in new code [C-V1].
 
@@ -221,8 +223,8 @@ at the floor (help, and a write's verbatim body), and `overlayPages` the pages t
 over (`unjudgedPages` the Huh-form pages whose focus can't blur, with why);
 `openOverlay` opens one over the page shown. The harness tests read these tables, hold
 them to the states,
-and name no state of the showcase's but `help` and `toosmall`, so a copied app keeps
-them whole (`kit/README.md`).
+and name no state of the showcase's but `help` and `toosmall`, so an app built on a
+copy of the showcase keeps them whole (`kit/README.md`).
 `View` and the harness share one `render(w, h)`, so the PNG is the program. See
 `kit/cmd/showcase/main.go`. A `_test.go` renders every state at the floor (60×18 in
 the kit, still a full layout; `TUI.md` § Size floor may raise it), 80×24, 100×30,
@@ -237,10 +239,11 @@ cmd/<app>/main.go        flags, harness, tea.NewProgram
 cmd/<app>/app.go         the root model: state, Update, the action tables, the clock
 cmd/<app>/screens.go     render(w,h): every region into its rectangle, overlays last
 cmd/<app>/fixtures.go    realistic data for every state (replaces the showcase's data.go)
-cmd/<app>/*_test.go      the footprint, contrast and behaviour tests, copied with the kit
-internal/theme/          the kit's theme package (copied); themes/<brand>.json, embedded by themes/embed.go
-internal/ui/             the kit's components (copied), plus your own
+cmd/<app>/*_test.go      the footprint, contrast and behaviour tests, copied with the showcase
+themes/<brand>.json      the one theme, embedded by themes/embed.go
+go.mod                   requires the kit: its theme and ui packages are imported, never copied
 ```
 
-One package, `cmd/<app>`, because that is where `kit/README.md`'s copy block puts the
+A component the kit lacks is a file in `cmd/<app>`, drawn with `theme` and `ui.Canvas`.
+One package, `cmd/<app>`, because that is where `kit/README.md`'s block puts the
 showcase and its tests: a model in `internal/app` splits the harness from its states.

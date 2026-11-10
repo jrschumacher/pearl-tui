@@ -22,7 +22,7 @@ skills/pearl/
   tools/          Go module `tuitools`: cellshot, tuilint, tuivet, palette, diversity (the build loop),
                   feedback (files an issue here from a user's agent)
   scripts/        wordmark, logo2cells (Python 3 + Pillow/numpy; brand-asset conversion only)
-  kit/            Go module `tuikit`: themes/*.json (the framework-neutral contract),
+  kit/            Go module `…/pearl-tui/skills/pearl/kit`, which apps import: themes/*.json (the framework-neutral contract),
                   theme/bubbletea/ and ui/bubbletea/ (one framework's engine and components),
                   cmd/showcase (the Bubble Tea reference app + harness)
 .claude-plugin/   plugin.json + marketplace.json: the repo root is a Claude Code plugin that
@@ -44,7 +44,9 @@ read) lives at the repo root; skill-creator takes the path.
 reports. Claude Code pins plugin installs to it: a commit on `main` reaches plugin users
 only when a release bumps all three, together, with a `CHANGELOG.md` entry; CI's
 plugin job fails unless the three and the top `## <version>` heading agree. Tags are
-`v<version>`, made after the release PR merges.
+`v<version>` and `skills/pearl/kit/v<version>`, both made after the release PR merges:
+the second is the one Go resolves, since the kit is a module in a subdirectory, and
+`go get <kit>@v<version>` in `kit/README.md` fails without it.
 
 ## Commands
 
@@ -74,8 +76,9 @@ is held to `.github/tuilint-baseline.json` (`"<theme>-<variant>": warnings`; a m
 entry means 0) through `tuilint frames --max-warnings`, so a new warning class fails CI;
 to raise an entry on purpose, justify the warning in the PR and edit the number (today only
 moss's `dialog: none` overlays, which have no edge for the linter to find). It also runs
-`kit/README.md`'s copy block, as written, in a fresh module, because a kit test that
-names a kit path passes here and fails in every project that copied the kit, and then
+`kit/README.md`'s import block, as written, in a fresh module (its `go get` turned into
+a `replace` to the checkout), because a showcase test that names a kit path passes here
+and fails in every project that copied the showcase as its app, and then
 deletes the showcase's screens as the README says and runs the kept harness tests
 against `.github/kit-stub` (two pages, one overlay), because a kit test that names a
 showcase state fails the same way; checks that
@@ -102,7 +105,8 @@ The skill gets better from observed misses, not from adding prose.
      test in the kit, or a structural pattern the kit forces; then shorten the prose
    - (c) prose can't express it → a tool only
    If most misses are (b), the skill is too long: cut before adding.
-4. **Make the kit pass it** (the kit is what agents copy, so the fix must live there).
+4. **Make the kit pass it** (the kit is what apps import and the showcase is what agents
+   copy as their app, so the fix must live there).
 5. **Edit the skill**, one change per cause.
 6. **Verify**: tests, lint, renders, and for visual or behavioural changes the critic
    loop (`references/verify.md`): render, look at the PNGs, run an adversarial critic
@@ -110,8 +114,10 @@ The skill gets better from observed misses, not from adding prose.
 
 ## Rules
 
-- **The kit must compile, pass its tests and lint clean at every commit.** A cold agent
-  copies it verbatim.
+- **The kit must compile, pass its tests and lint clean at every commit.** Apps import
+  it, and a cold agent copies the showcase verbatim.
+- **The kit is a dependency, so its exported names are an API.** Removing or renaming
+  one breaks every app at its next `go get`: mark the commit `!` and say what replaces it.
 - **Every advertised key must be handled.** Keys live in one action table per state
   (`kit/cmd/showcase/app.go`); `TestHelpIsHandled` enforces it. Don't add a footer
   binding any other way.
@@ -129,8 +135,8 @@ The skill gets better from observed misses, not from adding prose.
   `bubbles/v2 v2.2.1`, `huh/v2 v2.0.3`, Ultraviolet `v0.0.0-20261008173134-6b8d4baf91b4`.
   To bump: update `kit/go.mod`, run everything above, and update
   `references/bubbletea-architecture.md`, whose API claims are verified against these
-  versions, the `go get` line in `kit/README.md`'s copy block, and the stack line in
-  `references/cmd-init.md`'s TUI.md template.
+  versions, its `go get` line, and the stack line in `references/cmd-init.md`'s TUI.md
+  template. Apps get these versions through the kit's `go.mod`.
 - **Fictional brands only** in `kit/themes/`. No real companies' marks or palettes, apart
   from the clearly labelled Charmtone study (`charm.json`).
 - **SKILL.md frontmatter** stays within the Agent Skills spec: `name` (must equal the
