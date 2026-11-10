@@ -229,6 +229,7 @@ first-run setup (`go run ./cmd/showcase -first-run`, harness states `setup-*`).
 |---|---|---|
 | one line of text, checked on enter | `ui.NewInput(title, desc, placeholder, value)`; `.Validate`, `.Submit()`, `.Value()`; `.Secret` masks it | printable keys, `backspace`, `←→ home end` → `.Update(msg)` |
 | one of a few options | `ui.NewSelect(title, desc, value, opts...)` with `ui.Option{Name, Desc, Value}`; `.Rows` caps it | `↑↓ k j` → `.Move(±1)` |
+| one of many, narrowed by typing | the same, `.Filterable = true`; `.Filtered()`, `.Matches()`, `.ClearFilter()` | printable keys, `backspace` → `.Type(msg)`; `↑↓` only → `.Move(±1)`; `esc` → `.ClearFilter()` while `.Filtered()` |
 | yes or no | `ui.NewConfirm(title, desc, "Turn on", "Not now", value)`; `.Value()`, `.Set(v)` | `←→ h l` → `.Acts.Move(±1)`; `y n` → `.Set` |
 
 ```
@@ -255,6 +256,12 @@ numbered choice, blank keeps the value, a wrong answer says why and asks again.
 blurred (`*`, Bubbles' `EchoCharacter`), and `.Ask` reads it with the terminal's echo
 off and never prints it back, so the value is on no screen and in no scrollback. The
 kit composes no text with the value; write the secret's `Validate` errors without it.
+
+**A select of more options than a glance takes in is `Filterable`:** letters (`j` and
+`k` too) narrow it by `ui.Fuzzy` under a `ui.Filter` line, the arrows alone move, and
+`esc` is two steps, clearing a filter in force before it means back, as over a list, so
+`esc` never leaves a step the user is still narrowing. Say "type to filter" in its
+description; offer no `enter` while `.Matches()` is 0 (the kit's empty state shows).
 
 **Why the kit's own, not Huh:** Huh v2.0.3 was released 2026-03-10, its main branch has
 had no commit since 2026-08-12, and it requires Bubbles v2.1.1 and Bubble Tea v2.0.8 on

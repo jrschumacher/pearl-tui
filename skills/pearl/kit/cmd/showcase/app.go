@@ -353,8 +353,12 @@ func (m *app) key(msg tea.KeyPressMsg) tea.Cmd {
 	}
 	// a focused input takes every printable key first: no letter, colon or
 	// question mark can fire a command while the user is typing
-	if m.screen == scrSetup && m.ov == ovNone && m.setup.typing() && msg.Text != "" && msg.Mod&^tea.ModShift == 0 {
+	if m.screen == scrSetup && m.ov == ovNone && m.setup.takesText() && msg.Text != "" && msg.Mod&^tea.ModShift == 0 {
 		m.last, m.setup.escArmed = "type", false
+		if c := m.setup.choice(); c != nil { // a filterable select: letters narrow it
+			c.Type(msg)
+			return nil
+		}
 		return m.setup.namespace.Update(msg) // the kit's input does the editing
 	}
 	if p := m.textTarget(); p != nil && msg.Text != "" && msg.Mod == 0 {
@@ -473,7 +477,7 @@ func (m *app) toastAction() *action {
 	if !ok || n.Key.Help().Key == "" || n.Act == nil || m.ov != ovNone || m.w < minW || m.h < minH {
 		return nil
 	}
-	if m.textTarget() != nil || (m.screen == scrSetup && m.setup.typing()) {
+	if m.textTarget() != nil || (m.screen == scrSetup && m.setup.takesText()) {
 		return nil
 	}
 	for _, a := range m.stateActions() {
@@ -499,7 +503,7 @@ func (m *app) actions() []action {
 func (m *app) stateActions() []action {
 	quit := action{bind([]string{"q"}, "q", "quit"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return tea.Sequence(m.toasts.Flush(), tea.Quit) }}
 	// with a text input focused, help and the palette move off printable keys
-	typing := m.textTarget() != nil || (m.screen == scrSetup && m.setup.typing())
+	typing := m.textTarget() != nil || (m.screen == scrSetup && m.setup.takesText())
 	helpKeys, paletteKeys := []string{"?"}, []string{"ctrl+p", ":"}
 	if typing {
 		helpKeys, paletteKeys = []string{"ctrl+g"}, []string{"ctrl+p"}

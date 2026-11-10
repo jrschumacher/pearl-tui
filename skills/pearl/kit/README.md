@@ -47,7 +47,7 @@ ui/bubbletea/   canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                 anim.go     FrameInterval, Anim (brand spinner or the Crush scramble), Spinner,
                             Busy (the one-cell working mark for a status column)
                 field.go    Field: the two-glyph brand backdrop
-                fields.go   the kit's form fields: Input (Bubbles' textinput; Secret masks it), Select and Option,
+                fields.go   the kit's form fields: Input (Bubbles' textinput; Secret masks it), Select (Filterable) and Option,
                             Confirm, each drawn into a rectangle with its Height; Prompter
                             (their plain prompts for ACCESSIBLE=1), Accessible
                 form.go     Actions (button rows), BubblesSpinner, Settle; no Huh: ui links none
