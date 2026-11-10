@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
@@ -267,5 +268,52 @@ func TestPrompter(t *testing.T) {
 	}
 	if err := kept.Ask(NewPrompter(strings.NewReader(""), &out)); err == nil {
 		t.Error("an input with no answer left asked forever or passed")
+	}
+}
+
+// A secret input draws a mask for each character, focused and blurred, in every theme
+// and under ASCII, and never the value; the plain prompt never writes it either. The
+// messages here name lengths, never the value, so a failure can't print it.
+func TestInputSecretIsMasked(t *testing.T) {
+	const secret = "hunter2-tok"
+	eachTheme(t, func(name string, th *theme.Theme) {
+		in := NewInput("Token", "from your profile", "paste a token", "")
+		in.Secret = true
+		for _, r := range secret {
+			in.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
+		}
+		if in.Value() != secret {
+			t.Fatalf("%s: typed %d characters, the value holds %d", name, len(secret), len(in.Value()))
+		}
+		mask := strings.Repeat(string(in.Model.EchoCharacter), len(secret))
+		for _, focused := range []bool{true, false} {
+			txt := ansi.Strip(strings.Join(in.View(th, 60, focused), "\n"))
+			if strings.Contains(txt, "hunter") || strings.Contains(txt, "tok") {
+				t.Errorf("%s focused=%v: the secret's text is on screen", name, focused)
+			}
+			if !strings.Contains(txt, mask) {
+				t.Errorf("%s focused=%v: no %d-cell mask on screen", name, focused, len(secret))
+			}
+		}
+	})
+	// an EchoMode set by hand is a secret too: the plain prompt doesn't name the value
+	in := NewInput("Token", "", "", secret)
+	in.Model.EchoMode = textinput.EchoPassword
+	var out bytes.Buffer
+	if err := in.Ask(NewPrompter(strings.NewReader("\n"), &out)); err != nil || in.Value() != secret {
+		t.Fatalf("a blank answer did not keep the secret (err %v)", err)
+	}
+	if strings.Contains(out.String(), "hunter") || !strings.Contains(out.String(), "blank keeps the current one") {
+		t.Errorf("the prompt for a kept secret wrote its value or no hint (%d bytes)", out.Len())
+	}
+	// a typed secret from a pipe is read as given and never written back
+	out.Reset()
+	typed := NewInput("Token", "", "", "")
+	typed.Secret = true
+	if err := typed.Ask(NewPrompter(strings.NewReader(secret+"\n"), &out)); err != nil || typed.Value() != secret {
+		t.Fatalf("the piped secret was not read (err %v, %d characters)", err, len(typed.Value()))
+	}
+	if strings.Contains(out.String(), "hunter") {
+		t.Error("the plain prompt wrote the secret to its output")
 	}
 }

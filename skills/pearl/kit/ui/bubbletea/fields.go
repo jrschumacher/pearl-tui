@@ -12,6 +12,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/term"
 
 	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
@@ -23,7 +24,7 @@ import (
 // rendered text). focused=false draws the same cells, quieter, so a field under a
 // dialog or beside the focused one blurs, and focus never moves the text (law 5).
 //
-//	ui.NewInput(title, desc, placeholder, value)  Bubbles' textinput, themed focused and blurred; its error under it
+//	ui.NewInput(title, desc, placeholder, value)  Bubbles' textinput, themed focused and blurred; its error under it; Secret masks it
 //	ui.NewSelect(title, desc, value, opts...)     one of a few options, each with a dim description column
 //	ui.NewConfirm(title, desc, yes, no, value)    two ui.Actions buttons, the action first
 //
@@ -67,12 +68,24 @@ func gutterW(t *theme.Theme) int { return lipgloss.Width(Gutter(t, true, t.S.Foc
 
 // Input is a one-line text field: Bubbles' textinput for the editing (cursor keys,
 // word moves, paste, scrolling a long value), the theme for every cell of it.
+//
+// Secret marks a password, token or key: View draws one mask per character, focused
+// and blurred, in the value's own ink (Bubbles' EchoCharacter, '*' unless the app sets
+// Model.EchoCharacter: no theme glyph is a mask in every brand, a bullet is ▸ or –
+// in some), and Ask reads it without echo. The kit never writes a secret's value: not
+// in View, not in the plain prompt's "blank keeps" hint. Validate's error is drawn as
+// written, so a secret's must not quote the value. Setting Model.EchoMode to anything
+// but EchoNormal marks the field secret too.
 type Input struct {
 	Title, Desc string
 	Validate    func(string) error // run by Submit; nil accepts anything
 	Err         error              // drawn under the field until the value changes
-	Model       textinput.Model    // set CharLimit or EchoMode on it; Prompt and styles are the kit's
+	Model       textinput.Model    // set CharLimit on it; Prompt and styles are the kit's
+	Secret      bool               // mask the value; Ask reads it without echo
 }
+
+// secret reports whether f's value is masked: Secret, or an EchoMode set by hand.
+func (f *Input) secret() bool { return f.Secret || f.Model.EchoMode != textinput.EchoNormal }
 
 // NewInput is an input holding value. Its cursor doesn't blink: a blink is a timer of
 // its own, and the app has one clock.
@@ -93,6 +106,9 @@ func (f Input) Value() string { return f.Model.Value() }
 func (f *Input) Update(msg tea.Msg) tea.Cmd {
 	before := f.Model.Value()
 	f.Model.Focus() // the app sends keys only to the focused field
+	if f.Secret {
+		f.Model.EchoMode = textinput.EchoPassword // word moves jump to the ends, as on any masked field
+	}
 	var cmd tea.Cmd
 	f.Model, cmd = f.Model.Update(msg)
 	if f.Model.Value() != before {
@@ -124,6 +140,9 @@ func (f *Input) View(t *theme.Theme, w int, focused bool) []string {
 		prompt = t.S.Prompt.Bold(true).Render(pr)
 	}
 	f.Model.Prompt = ""
+	if f.Secret {
+		f.Model.EchoMode = textinput.EchoPassword
+	}
 	f.Model.SetStyles(inputStyles(t))
 	f.Model.SetWidth(max(1, iw-lipgloss.Width(pr)-1)) // a cell for the cursor past the end
 	if focused {
@@ -319,14 +338,24 @@ func (c Confirm) Height(t *theme.Theme, w int) int {
 // TERM=dumb: no alt screen, no colour, no cursor movement, so a screen reader reads
 // each line once. A blank answer keeps the field's value; a wrong one says why and asks
 // again. One Prompter reads all of a flow's answers from in.
+//
+// A secret Input's answer is never echoed: when in is a terminal (an *os.File such as
+// os.Stdin) the Prompter turns the terminal's echo off for that one line and restores
+// it after, on an error too; from a pipe or a test it reads the line as given and
+// never prints it back. A line typed ahead of the question was echoed as it was typed,
+// before the Prompter could stop it, and is read from what is buffered. On a terminal
+// the secret's line ends only at enter (ctrl+d is ignored there), and a process killed
+// mid-answer (ctrl+c) ends before it can restore the echo: an app that asks a secret on
+// a terminal and catches SIGINT restores it in its handler (term.Restore).
 type Prompter struct {
 	in  *bufio.Reader
+	src io.Reader // in's source: a terminal's echo is turned off on it for a secret
 	out io.Writer
 }
 
 // NewPrompter reads answers from in and writes questions to out.
 func NewPrompter(in io.Reader, out io.Writer) *Prompter {
-	return &Prompter{in: bufio.NewReader(in), out: out}
+	return &Prompter{in: bufio.NewReader(in), src: in, out: out}
 }
 
 // Say writes one line of status between questions.
@@ -335,6 +364,11 @@ func (p *Prompter) Say(format string, a ...any) { fmt.Fprintf(p.out, format+"\n"
 // ask writes the title, any lines under it, and the question, and reads one answer,
 // trimmed; an input that ends before an answer is an error, never an endless re-ask.
 func (p *Prompter) ask(title, desc string, lines []string, question string) (string, error) {
+	return p.askLine(title, desc, lines, question, false)
+}
+
+// askLine is ask, reading a secret without echo when secret is set.
+func (p *Prompter) askLine(title, desc string, lines []string, question string, secret bool) (string, error) {
 	if desc != "" {
 		title += " (" + desc + ")"
 	}
@@ -343,7 +377,7 @@ func (p *Prompter) ask(title, desc string, lines []string, question string) (str
 		fmt.Fprintln(p.out, l)
 	}
 	fmt.Fprintf(p.out, "%s: ", question)
-	l, err := p.in.ReadString('\n')
+	l, err := p.readLine(secret)
 	if err != nil && (l == "" || !errors.Is(err, io.EOF)) {
 		fmt.Fprintln(p.out)
 		return "", fmt.Errorf("%s: no answer: %w", title, err)
@@ -351,16 +385,36 @@ func (p *Prompter) ask(title, desc string, lines []string, question string) (str
 	return strings.TrimSpace(l), nil
 }
 
-// Ask asks for f's value through p, until Validate passes.
+// readLine reads one answer. A secret from a terminal is read with its echo off (the
+// terminal's state restored however the read ends), and the newline the terminal no
+// longer echoes is written to out; a line already buffered was echoed when typed and is
+// read from the buffer, as is anything that is not a terminal.
+func (p *Prompter) readLine(secret bool) (string, error) {
+	if f, ok := p.src.(*os.File); ok && secret && p.in.Buffered() == 0 && term.IsTerminal(f.Fd()) {
+		b, err := term.ReadPassword(f.Fd()) // restores the echo on return, an error included
+		fmt.Fprintln(p.out)
+		if err == nil {
+			b = append(b, '\n')
+		}
+		return string(b), err
+	}
+	return p.in.ReadString('\n')
+}
+
+// Ask asks for f's value through p, until Validate passes. A Secret is read without
+// echo and its current value is never written: the hint says only that one is kept.
 func (f *Input) Ask(p *Prompter) error {
 	q := "Type a value"
-	if v := f.Value(); v != "" {
+	switch v := f.Value(); {
+	case v != "" && f.secret():
+		q += " (blank keeps the current one)"
+	case v != "":
 		q += " (blank keeps " + v + ")"
-	} else if f.Model.Placeholder != "" {
+	case f.Model.Placeholder != "":
 		q += " (blank means " + f.Model.Placeholder + ")"
 	}
 	for {
-		a, err := p.ask(f.Title, f.Desc, nil, q)
+		a, err := p.askLine(f.Title, f.Desc, nil, q, f.secret())
 		if err != nil {
 			return err
 		}

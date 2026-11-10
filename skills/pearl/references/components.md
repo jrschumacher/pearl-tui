@@ -227,7 +227,7 @@ first-run setup (`go run ./cmd/showcase -first-run`, harness states `setup-*`).
 
 | Field | Kit | Keys the app routes to it |
 |---|---|---|
-| one line of text, checked on enter | `ui.NewInput(title, desc, placeholder, value)`; `.Validate`, `.Submit()`, `.Value()` | printable keys, `backspace`, `←→ home end` → `.Update(msg)` |
+| one line of text, checked on enter | `ui.NewInput(title, desc, placeholder, value)`; `.Validate`, `.Submit()`, `.Value()`; `.Secret` masks it | printable keys, `backspace`, `←→ home end` → `.Update(msg)` |
 | one of a few options | `ui.NewSelect(title, desc, value, opts...)` with `ui.Option{Name, Desc, Value}`; `.Rows` caps it | `↑↓ k j` → `.Move(±1)` |
 | yes or no | `ui.NewConfirm(title, desc, "Turn on", "Not now", value)`; `.Value()`, `.Set(v)` | `←→ h l` → `.Acts.Move(±1)`; `y n` → `.Set` |
 
@@ -250,6 +250,11 @@ input's error stands on the row under it (`× a namespace is lowercase letters�
 goes when the value changes. With `ACCESSIBLE=1` (`ui.Accessible`) ask the same fields
 with `ui.NewPrompter(in, out)` and each field's `.Ask(p)`: one question per line, a
 numbered choice, blank keeps the value, a wrong answer says why and asks again.
+
+**A token, password or key is `Secret: true`:** one mask per character focused and
+blurred (`*`, Bubbles' `EchoCharacter`), and `.Ask` reads it with the terminal's echo
+off and never prints it back, so the value is on no screen and in no scrollback. The
+kit composes no text with the value; write the secret's `Validate` errors without it.
 
 **Why the kit's own, not Huh:** Huh v2.0.3 was released 2026-03-10, its main branch has
 had no commit since 2026-08-12, and it requires Bubbles v2.1.1 and Bubble Tea v2.0.8 on
