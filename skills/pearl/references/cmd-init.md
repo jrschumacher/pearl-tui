@@ -233,6 +233,7 @@ keep: "<what the person said must stay, word for word>"   (one line each; none: 
 reference: none   (or exact: <axes> and inspiration: <the rest>, from § Reference)
 method: <the pick points in this step and how they're shown>; the loop (verify.md)
 deliver: <the files to review: frames, sheets, GIFs>
+size: <the files this step adds or changes, ~lines each; what it won't add>
 decide: <the pick point the person chooses, or nothing; build it>
 
 ## Decisions

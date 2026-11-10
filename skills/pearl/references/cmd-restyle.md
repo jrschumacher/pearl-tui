@@ -12,7 +12,31 @@ else leaves the richness missing.
 
 **Keep the libraries that work.** Huh for forms, Bubbles for lists and inputs, Glamour
 for markdown: theme them from the brand theme (`components.md` § Forms And Wizards) and draw them
-inside your own chrome. Rebuilding a working widget costs behaviour you'll then get wrong.
+inside your own chrome. Rebuilding a working widget costs behaviour you'll then get wrong,
+and lines somebody has to review.
+
+## Start From What The App Has
+
+A restyle adds a theme and a harness to an app that works. It does not add a second
+foundation beside the first. Before step 2, write these into the work order's `size:`
+line (`collaborate.md` § Work Orders Carry The Conversation):
+
+- **What exists**, listed: the libraries' own components in use, the app's helpers, its
+  colour mapping, its root model, its tests. Each is reused unless you can name what it
+  can't do. A kit component comes in for a named gap, one line each.
+- **One style mapping.** `ui.HuhTheme` is the whole mapping of the theme onto Huh. A
+  feature that needs a difference states that difference; it never copies the mapping.
+- **One rule, each delivery its own.** Where the app has a rich UI and a plain one (a
+  line-by-line fallback), a rule both follow (what is valid, when to retry, what a
+  result means) is one function both call. How keys and messages arrive stays separate:
+  no shared wizard engine, no second copy of the draft.
+- **What goes.** When a layout or screen is replaced, list its callers and delete what
+  has none left, with any test that only kept it alive. A branch whose condition is
+  never true is deleted, not kept for later.
+
+**DON'T** wrap a library's widget, read its rendered text, or redraw part of it to match
+the kit: where it falls short of the theme, say so in § Decisions and leave it native
+(`bubbletea-architecture.md` § Huh v2).
 
 0. **Read `TUI.md` first.** If it's missing and the job is one screen, run `init`'s
    short form, saying what you assumed; otherwise suggest `init` and stop: restyling

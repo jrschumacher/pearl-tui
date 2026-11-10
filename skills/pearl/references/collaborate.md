@@ -57,6 +57,7 @@ keep: "A pasted token is never shown again after it's pasted."
 reference: none   (or exact: <axes> and inspiration: <the rest>, from § Reference)
 method: pick the step column's form at three options (-variant), then the loop (verify.md)
 deliver: frames/ at 80×24 and 120×40, sheet-80.png, sheet-120.png, pick-steps.png
+size: setup.go ~600 lines, setup_test.go ~300; no new package, nothing copied from the kit
 decide: the step column's form; work stops at the sheet until it is picked
 ```
 
@@ -69,5 +70,13 @@ stay in the order above." (sign in, where data goes, collect, alerts, review, co
 copied into an order drifts from the one the next command edits.
 **DO** rewrite the orders at every hand-off and delete the ones done, then print the
 next one in the hand-off, ready to paste, instead of a bare `Next: craft`.
+**DO** write `size:` before the work: the files the step adds or changes, a line count
+for each, and what it won't add. A person reviews what an agent builds, and 10,000 lines
+for a five-step wizard is a change nobody can review. Size it from the kit's own: its
+first-run wizard (five input steps, a review, a sign-in wait) is 560 lines and 326 of
+tests, and an app's whole harness is one 77-line file. At the hand-off put
+`git diff --shortstat` beside the `size:` line, production, tests and docs apart, and
+say in one line what any file past twice its number holds. It is a check on the plan,
+not a quota: never drop a test to meet it.
 **DON'T** write a `decide:` the skill decides (keys, contrast): `decide:` names a pick
 point, or `nothing; build it`.
