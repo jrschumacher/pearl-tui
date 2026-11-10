@@ -121,9 +121,10 @@ The skill gets better from observed misses, not from adding prose.
   an ASCII twin.
 - **Libraries go through the kit's theme.** Huh forms are built with `ui.NewForm` and
   spinners with `ui.HuhSpinner` / `ui.BubblesSpinner`; `tuilint code` fails a bare
-  `huh.NewForm` or an unstyled spinner [C-HUHTHEME]. Huh v2.0.3's quirks and the kit's
-  workarounds are in `references/bubbletea-architecture.md`; each has a test, so don't
-  undo one.
+  `huh.NewForm` or an unstyled spinner [C-HUHTHEME]. The kit themes a library through its
+  public API and stops there: no wrapped field, no reading a form's rendered text, no
+  redrawing part of it. What Huh does that the theme can't change is listed in
+  `references/bubbletea-architecture.md`, with what an app does about it.
 - **Pinned versions.** `charm.land/bubbletea/v2 v2.1.0`, `lipgloss/v2 v2.0.6`,
   `bubbles/v2 v2.2.1`, `huh/v2 v2.0.3`, Ultraviolet `v0.0.0-20261008173134-6b8d4baf91b4`.
   To bump: update `kit/go.mod`, run everything above, and update

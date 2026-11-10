@@ -41,16 +41,16 @@ const (
 // the counter runs past the review: sign-in and finishing are steps too
 var setupNames = []string{"Cluster", "Sign-in", "Alerts", "Review", "Connect", "Finish"}
 
-var clusterChoices = []ui.Choice[string]{
-	{Name: "prod-us-east-1", Desc: "production, 41 services", Value: "prod-us-east-1"},
-	{Name: "staging-eu-west-1", Desc: "current context, 38 services", Value: "staging-eu-west-1"},
-	{Name: "dev-local", Desc: "kind, 6 services", Value: "dev-local"},
+var clusterChoices = []huh.Option[string]{
+	huh.NewOption("prod-us-east-1", "prod-us-east-1"),
+	huh.NewOption("staging-eu-west-1", "staging-eu-west-1"),
+	huh.NewOption("dev-local", "dev-local"),
 }
 
-var authChoices = []ui.Choice[string]{
-	{Name: "Browser", Desc: "SSO in your browser; best on a laptop", Value: "browser"},
-	{Name: "Device code", Desc: "approve on another device; for SSH", Value: "device"},
-	{Name: "Access token", Desc: "paste one from the web console", Value: "token"},
+var authChoices = []huh.Option[string]{
+	huh.NewOption("Browser", "browser"),
+	huh.NewOption("Device code", "device"),
+	huh.NewOption("Access token", "token"),
 }
 
 const deviceCode = "WXKD-4PQM"
@@ -59,7 +59,6 @@ type setupFlow struct {
 	step    setupStep
 	reached setupStep // the furthest step entered: values of earlier steps are decisions
 	form    *huh.Form
-	fw, fh  int // the size the form was laid out at
 
 	cluster, namespace, auth string
 	alerts, makeDefault      bool
@@ -99,7 +98,6 @@ func (m *app) goStep(s setupStep) tea.Cmd {
 	f.step, f.failed, f.escArmed = s, false, false
 	f.reached = max(f.reached, s)
 	f.form = m.buildForm(s)
-	f.fw, f.fh = 0, 0
 	switch s {
 	case stReview:
 		// the expected forward choice is the default; each button says what it does: a bare
@@ -128,29 +126,32 @@ func (m *app) startSignin() tea.Cmd {
 	)
 }
 
-// buildForm is one step's Huh form, built from the kit (ui.NewForm,
-// ui.NewInput, ui.Confirm, ui.Options), never from huh.New* directly.
+// buildForm is one step's Huh form: Huh's own fields in ui.NewForm, which
+// gives them the theme. Each confirm names its action first and opens on the
+// value the flow already holds.
 func (m *app) buildForm(s setupStep) *huh.Form {
 	t, f := m.t, m.setup
 	brand := t.AppName()
 	var g *huh.Group
 	switch s {
 	case stTarget:
-		g = huh.NewGroup(
-			huh.NewSelect[string]().Title(t.Copy("Cluster")).Description("contexts in ~/.kube/config").
-				Options(ui.Options(clusterChoices...)...).Value(&f.cluster),
-			ui.NewInput(t).Title(t.Copy("Namespace")).Description("where your services run; blank means default").
-				Placeholder("default").Value(&f.namespace).Validate(validNamespace),
+		// the input has a group of its own: Huh's theme reaches only a focused
+		// input, so one left blurred beside another field draws in Bubbles' defaults
+		return ui.NewForm(t, 60, 12,
+			huh.NewGroup(huh.NewSelect[string]().Title(t.Copy("Cluster")).Description("contexts in ~/.kube/config").
+				Options(clusterChoices...).Value(&f.cluster)),
+			huh.NewGroup(huh.NewInput().Prompt(t.G.Prompt+" ").Title(t.Copy("Namespace")).Description("where your services run; blank means default").
+				Placeholder("default").Value(&f.namespace).Validate(validNamespace)),
 		)
 	case stAuth:
 		g = huh.NewGroup(huh.NewSelect[string]().Title(t.Copy("Sign in with")).
 			Description("change it later with " + brand + " auth").
-			Options(ui.Options(authChoices...)...).Value(&f.auth))
+			Options(authChoices...).Value(&f.auth))
 	case stAlerts:
-		g = huh.NewGroup(ui.Confirm(t, "Tell you when a deploy fails?", "Turn on", "Not now", f.alerts, &f.alerts).
+		g = huh.NewGroup(huh.NewConfirm().Title("Tell you when a deploy fails?").Affirmative("Turn on").Negative("Not now").Value(&f.alerts).
 			Description("a desktop notification and the terminal bell"))
 	case stDone:
-		g = huh.NewGroup(ui.Confirm(t, "Make "+f.cluster+" your default cluster?", "Yes", "No", f.makeDefault, &f.makeDefault).
+		g = huh.NewGroup(huh.NewConfirm().Title("Make " + f.cluster + " your default cluster?").Affirmative("Yes").Negative("No").Value(&f.makeDefault).
 			Description(brand + " commands use it when you don't pass --cluster"))
 	default:
 		return nil
@@ -195,7 +196,7 @@ func (f *setupFlow) typing() bool {
 	if f == nil || f.form == nil {
 		return false
 	}
-	_, ok := f.form.GetFocusedField().(*ui.Input)
+	_, ok := f.form.GetFocusedField().(*huh.Input)
 	return ok
 }
 
@@ -368,7 +369,7 @@ func (m *app) summary() []ui.SummaryRow {
 	auth := f.auth
 	for _, c := range authChoices {
 		if c.Value == f.auth {
-			auth = c.Name
+			auth = c.Key
 		}
 	}
 	return []ui.SummaryRow{
@@ -420,10 +421,11 @@ func (m *app) setupView(c *ui.Canvas, r uv.Rectangle) {
 	if f.form != nil {
 		top := main.Min.Y + len(rows)
 		fr := uv.Rect(main.Min.X, top, w, max(0, main.Max.Y-top))
-		if f.fw != fr.Dx() || f.fh != fr.Dy() {
-			ui.Resize(f.form, fr.Dx(), fr.Dy())
-			f.fw, f.fh = fr.Dx(), fr.Dy()
-		}
+		// every draw, not only on a resize: Huh leaves room for a group's error rows
+		// when WithHeight runs, so a height set before the error drew it off the bottom.
+		// One row short of the rectangle: Huh v2.0.3 draws the blank row above the
+		// errors past the height it was given.
+		f.form.WithWidth(fr.Dx()).WithHeight(fr.Dy() - 1)
 		c.Draw(f.form.View(), fr)
 	}
 

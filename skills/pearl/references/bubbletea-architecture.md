@@ -90,35 +90,36 @@ func (m *model) View() tea.View {                            // returns tea.View
 
 ### Huh v2
 
-Use Huh for input mechanics and the kit's `ui/bubbletea/form.go` for everything it
-renders. Never `huh.NewForm` bare: `tuilint code` fails it [C-HUHTHEME] and Huh's
-defaults render.
+Huh keeps its own mechanics and layout: typing, focus order, validation, sizing, button
+alignment. The kit gives it only the theme, through Huh's public theme API. Never
+`huh.NewForm` bare: `tuilint code` fails it [C-HUHTHEME] and Huh's defaults render.
+Don't wrap a field, read a form's rendered text to size it, or redraw part of it to
+match the kit's look: a wrapper pins the app to one Huh release and costs more than the
+difference it hides. Where Huh falls short of the theme, report it to Huh.
 
-- `ui.NewForm(t, w, h, groups...)` themes the form from `*theme.Theme` (`ui.HuhTheme`),
-  sets the kit's keys (`ui.FormKeys`) and honours `ACCESSIBLE=1` (`ui.Accessible`).
+- `ui.NewForm(t, w, h, groups...)` is `huh.NewForm` with the theme (`ui.HuhTheme`),
+  Huh's help line off (the footer is the help) and `ACCESSIBLE=1` honoured
+  (`ui.Accessible`). Fields are Huh's own: `huh.NewInput`, `huh.NewSelect`,
+  `huh.NewConfirm`.
 - `(*huh.Form).Update` returns `(huh.Model, tea.Cmd)` and `View()` returns a string, so a
   form is not a `tea.Model`: `f, cmd := m.form.Update(msg); m.form = f.(*huh.Form)`, and
   draw `m.form.View()` into a rectangle. Send it every non-key message too: Huh moves
   focus with commands (`NextField`), not in `Update`.
-- `ui.Resize(f, w, h)` after a size change; `ui.Settle(update, cmd)` in tests to run
-  Huh's follow-up commands. It runs them at once and drops whatever doesn't answer within
+- Size it with its own `WithWidth` and `WithHeight`; `ui.Settle(update, cmd)` in tests to
+  run Huh's follow-up commands. It runs them at once and drops whatever doesn't answer within
   `ui.SettleWait` (40 ms: timers, blinks, ticks), so a test that waits on a tick must
   send the tick's message itself.
 
-Huh v2.0.3 quirks the kit already works around (each is a test; don't undo it):
+What Huh v2.0.3 does that the theme can't change, and what to do in the app:
 
-| Quirk | Workaround |
+| Huh | In the app |
 |---|---|
-| assumes a light terminal until a `BackgroundColorMsg` reaches the form | `HuhTheme` ignores `isDark` and uses the resolved kit theme |
+| assumes a light terminal until a `BackgroundColorMsg` reaches the form | nothing: `HuhTheme` returns the resolved theme whatever `isDark` says |
 | a field keeps the first theme it's given | rebuild the step's form on a theme change |
-| a blurred `huh.Input` is unthemed and keeps its `> ` prompt (two `>` on screen) | `ui.NewInput` draws the blurred row itself |
-| `Confirm` buttons are centred | `ui.Confirm` aligns them left; order is action first |
-| the viewport fills only on `Update`, sized with the default theme | `ui.Resize` sends a no-op and sizes to content |
-| validation errors land rows below the field, or off screen | `ui.Resize` counts the error rows; the theme indents them with the fail glyph |
-| `/` on a select opens an unthemed filter; Huh binds its own `ctrl+c` | `ui.FormKeys` turns both off; the app owns quit |
-| no descriptions beside options | `ui.Options(ui.Choice{Name, Desc, Value}...)` |
+| its theme reaches only a focused `huh.Input`; a blurred one draws in Bubbles' default colours | give a text input a group of its own, so it is never on screen blurred |
+| leaves room for a group's error rows only when `WithHeight` runs, and draws one row past the height | call `WithHeight` on every draw, with one row less than the rectangle |
 | the spinner is `#F780E2`, says "Loading...", no gap before the title | `ui.HuhSpinner(t, title)`; `ui.BubblesSpinner(t)` for Bubbles |
-| accessible prompts print theme colours as raw escapes | `NewForm` uses Huh's colourless base theme when accessible |
+| accessible prompts print theme colours as raw escapes | nothing: `NewForm` uses Huh's colourless base theme when accessible |
 | the input's cursor blink runs its own timer | accepted: the one exception to one frame clock |
 | `Select.Value` before `Options` selects nothing | call `Options` first |
 

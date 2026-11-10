@@ -46,7 +46,7 @@ ui/bubbletea/   canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                 anim.go     FrameInterval, Anim (brand spinner or the Crush scramble), Spinner,
                             Busy (the one-cell working mark for a status column)
                 field.go    Field: the two-glyph brand backdrop
-                form.go     Huh, themed: HuhTheme, NewForm, Resize, NewInput, Confirm, Options,
+                form.go     Huh, themed and otherwise its own: HuhTheme, NewForm,
                             Actions (button rows), HuhSpinner, BubblesSpinner, Settle, Accessible
                 steps.go    Steps (Count, Row, List), Summary, SummaryStrip: wizard chrome
 themes/         ink (the fallback: theme.Default() as a file, TestInkIsTheDefault keeps them equal),
@@ -145,9 +145,9 @@ go get charm.land/bubbletea/v2@v2.1.0 charm.land/lipgloss/v2@v2.0.6 \
 go mod tidy && go test ./...
 ```
 
-Huh is pinned too: `ui/bubbletea/form.go` (`internal/ui/form.go` once copied) works
-around v2.0.3's quirks, each with a test, and a newer Huh can change them. CI runs this
-block in a fresh module on every change.
+Huh is pinned with the rest: `ui/bubbletea/form.go` (`internal/ui/form.go` once copied)
+only themes it, through Huh's public theme API. CI runs this block in a fresh module on
+every change.
 
 The rewrite drops `/bubbletea` from the imports: the project holds one framework's
 packages flat, as `internal/theme` and `internal/ui`, with the same package names.

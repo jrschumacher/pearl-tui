@@ -165,7 +165,9 @@ func (m *app) setupState(s string, frame int) {
 		return
 	}
 	if s == "setup-namespace" || s == "setup-invalid" { // the input focused, typed into: one cursor, one prompt
-		f.form.Update(huh.NextField())
+		// the input is the form's second group: Huh gets there by a command
+		upd := func(msg tea.Msg) tea.Cmd { _, c := f.form.Update(msg); return c }
+		ui.Settle(upd, upd(huh.NextField()))
 		typed := "payments"
 		if s == "setup-invalid" {
 			typed = "Payments EU" // Huh validates on enter and keeps focus here

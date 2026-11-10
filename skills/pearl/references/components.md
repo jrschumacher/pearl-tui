@@ -213,7 +213,7 @@ The gutter bar (`ui.Gutter`) marks the focused field and spans all its rows. Rad
 description beside each option. Errors appear under the field in error colour, with
 words. The primary button is filled because Enter triggers it, and the footer says so.
 
-## Forms And Wizards — `ui.NewForm`, `ui.Confirm`, `ui.Steps`, `ui.Summary`
+## Forms And Wizards — `ui.NewForm`, `ui.Steps`, `ui.Summary`
 
 Huh does the input; the kit does the look and the frame around it. The reference is the
 showcase's first-run setup (`go run ./cmd/showcase -first-run`, harness states `setup-*`).
@@ -226,9 +226,9 @@ H A L Y A R D                                         setup / 2/6 Sign-in
 ◆ Cluster ── ▲ Sign-in ── △ Alerts ── △ Review ── △ Connect ── △ Finish
 Sign-in ──────────────────── staging-eu-west-1   Summary ──────── DRAFT
 ▌ Sign in with                                   Cluster
-▌ ▸ Browser        SSO in your browser            staging-eu-west-1
-▌   Device code    approve on another device      Sign-in        default
-▌   Access token   paste one from the console     Browser
+▌ ▸ Browser                                       staging-eu-west-1
+▌   Device code                                   Sign-in        default
+▌   Access token                                  Browser
 ```
 
 - **The frame is yours:** header bar with `Steps.Count()` ("2/6 Sign-in"), the step row
@@ -242,7 +242,7 @@ Sign-in ──────────────────── staging-eu-
   edit", "Discard setup")`), and so does a review whose act is what the flow is for (a
   purchase, a booking). Only a review that destroys or replaces what's running (a deploy,
   a rollback) is the confirmation with focus on its safe button (`interaction.md`
-  § Confirm By Consequence, rung 3). Every button names what it does: no bare `Cancel`. `ui.Confirm(t, title, action, negative, def, &v)` for yes/no, action first.
+  § Confirm By Consequence, rung 3). Every button names what it does: no bare `Cancel`. A yes/no is `huh.NewConfirm` with the action as its affirmative.
 - **Waits say what to do if nothing happens**: the URL to open by hand, the code, elapsed
   time, `esc cancel sign-in`; a timeout becomes a failure state with Retry.
 - **Esc goes back** from step 2 on; on step 1 it asks before dropping typed input.
