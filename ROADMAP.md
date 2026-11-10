@@ -23,7 +23,7 @@ repository. Items move from here into issues when someone picks them up.
   second scoring 12 of the 13 assertions the spec case then had (now split into cases 7
   and 8) and linting clean. Each miss is now an eval
   case, a lint rule (F-DEFAULT for Huh's colours, C-HUHTHEME, the `tuilint spec` rules)
-  or kit code (`ui.NewForm`, the wizard).
+  or kit code (`huhform.NewForm`, the wizard).
 - **Not yet verified:** a re-run of that restyle with the fixes, and a cold eval baseline:
   no case in `evals/evals.json` has been run without the skill. The init cases carry an
   `answers.md` fixture so they run unattended under skill-creator's one-turn runner.

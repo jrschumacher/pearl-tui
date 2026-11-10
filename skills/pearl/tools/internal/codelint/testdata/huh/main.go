@@ -8,7 +8,9 @@ import (
 	"charm.land/huh/v2"
 	huhspinner "charm.land/huh/v2/spinner"
 
+	"example.com/huh/huhform"
 	"example.com/huh/theme"
+	"example.com/huh/ui"
 )
 
 func group() *huh.Group {
@@ -132,7 +134,17 @@ func spinners() {
 	_ = spinner.New(opts...).View()
 }
 
+// the kit's themed helpers (huhform.NewForm, huhform.Spinner, ui.BubblesSpinner): nothing to flag
+
+func kitHelpers() {
+	_ = huhform.NewForm(group()).Run()
+	_ = huhform.Spinner("Deploying").Run()
+	s := ui.BubblesSpinner()
+	_ = s.View()
+}
+
 func main() {
+	kitHelpers()
 	m := newModel()
 	m.brand()
 	_, _ = m.Update(nil)

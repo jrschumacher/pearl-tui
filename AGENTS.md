@@ -131,7 +131,7 @@ The skill gets better from observed misses, not from adding prose.
   default, and the showcase imports no Huh: Huh is the optional path, for an app that
   already has Huh forms or needs a field the kit lacks, because Huh's theme can't reach a
   blurred input and Huh lags the Bubbles and Bubble Tea the kit pins. Huh forms are built
-  with `ui.NewForm` and spinners with `ui.HuhSpinner` / `ui.BubblesSpinner`;
+  with `huhform.NewForm` and spinners with `huhform.Spinner` / `ui.BubblesSpinner`;
   `tuilint code` fails a bare `huh.NewForm` or an unstyled spinner [C-HUHTHEME]. The kit themes a library through its
   public API and stops there: no wrapped field, no reading a form's rendered text, no
   redrawing part of it. What Huh does that the theme can't change is listed in

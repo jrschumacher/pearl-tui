@@ -9,7 +9,6 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/charmbracelet/x/ansi"
 
 	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
@@ -60,12 +59,12 @@ func testTheme(t *testing.T, ascii bool) *theme.Theme {
 	return theme.Resolve(f, true, ascii)
 }
 
-// Both spinners turn the brand's frames in the theme's working ink (S.Working:
+// The Bubbles spinner turns the brand's frames in the theme's working ink (S.Working:
 // the focus ink, so fg under focus "fg", or the role expressions.spinner names),
-// never Bubbles' Line or Huh's #F780E2 Dot. Every kit theme and quire (focus fg),
+// never Bubbles' Line (huhform has the same test for Huh's). Every kit theme and quire (focus fg),
 // each as written and with focus forced to fg: a project whose one theme sets
 // focus fg failed this test out of the box when it compared against primary.
-func TestSpinnersAreThemed(t *testing.T) {
+func TestBubblesSpinnerIsThemed(t *testing.T) {
 	files := append(testThemes(t), quirePath(t))
 	for _, f := range files {
 		tf, err := theme.Load(f)
@@ -82,17 +81,6 @@ func TestSpinnersAreThemed(t *testing.T) {
 			}
 			if v := bs.View(); v != th.S.Working.Render(th.G.Spinner[0]) {
 				t.Errorf("%s: bubbles spinner renders %q, want the working ink %q", name, v, th.S.Working.Render(th.G.Spinner[0]))
-			}
-			hs := HuhSpinner(th, "Connecting to staging")
-			v := hs.View()
-			if !strings.HasPrefix(ansi.Strip(v), th.G.Spinner[0]+" Connecting") {
-				t.Errorf("%s: huh spinner renders %q", name, ansi.Strip(v))
-			}
-			if got, want := firstInk(v), firstInk(th.S.Working.Render(th.G.Spinner[0])); !sameColor(got, want) {
-				t.Errorf("%s: huh spinner frame is %v, want the working ink %v", name, got, want)
-			}
-			if strings.Contains(v, "247;128;226") || strings.Contains(ansi.Strip(v), "Loading") {
-				t.Errorf("%s: huh spinner kept a default: %q", name, v)
 			}
 		}
 	}

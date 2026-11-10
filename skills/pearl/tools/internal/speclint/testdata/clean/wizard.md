@@ -20,7 +20,7 @@ themes/keelson.json   (palette derive from #3B2A1E #C8962E)
 ## Architecture
 
 ### Forms
-Huh v2 for the template and options steps, themed with the kit's `ui.NewForm`.
+Huh v2 for the template and options steps, themed with the kit's `huhform.NewForm`.
 
 ### States and keys
 One action table per state; footer and dispatcher both read it. A state that binds a

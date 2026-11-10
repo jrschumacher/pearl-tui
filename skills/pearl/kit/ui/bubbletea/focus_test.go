@@ -76,26 +76,22 @@ func TestFocusFgKeepsPrimaryOffChrome(t *testing.T) {
 				kit.Ladder = nil
 				items := []Item{{Title: "The long read", State: "busy"}, {Title: "Weekly notes"}}
 				steps := Steps{Names: []string{"Account", "Feeds", "Done"}, Cur: 1}
-				huh := HuhStyles(th).Focused
 				chrome := map[string]string{
-					"focus bar":        Gutter(th, true, th.S.FocusBar),
-					"list cursor":      strings.Join(List(th, items, 0, 0, 40, 2, true), "\n"),
-					"focused button":   Button(th, "Subscribe", true, false, 0),
-					"steps":            steps.Row(th, 60),
-					"steps list":       strings.Join(steps.List(th), "\n"),
-					"ladder":           strings.Join(Ladder(theme.ResolveProfile(kit, m.dark, m.ascii, m.p), 0), "\n"),
-					"marks":            Mark(th, "current") + Mark(th, "partial") + Mark(th, "todo") + Mark(th, "done"),
-					"tabs":             strings.Join(Tabs(th, []string{"Inbox", "Saved"}, 0, nil), "\n"),
-					"wordmark":         Wordmark(th, "quire"),
-					"header":           strings.Join(Header(th, 60, 24, "quire", "inbox"), "\n"),
-					"spinner":          Spinner(th, 0),
-					"progress":         Progress(th, 0.5, 20),
-					"user turn":        strings.Join(UserMessage(th, "summarise this", 40, false), "\n"),
-					"dialog":           Dialog(th, 40, 0, "Unsubscribe?", []string{"You can come back."}, "", ""),
-					"huh selector":     huh.SelectSelector.Render() + huh.SelectedPrefix.Render() + huh.NextIndicator.Render(),
-					"huh focus border": huh.Base.Render("field"),
-					"huh prompt":       huh.TextInput.Prompt.Render("›") + huh.TextInput.Cursor.Render(" "),
-					"footer":           strings.Join(Footer(th, 60, "", []key.Binding{key.NewBinding(key.WithKeys("j"), key.WithHelp("j", "next"))}, ""), "\n"),
+					"focus bar":      Gutter(th, true, th.S.FocusBar),
+					"list cursor":    strings.Join(List(th, items, 0, 0, 40, 2, true), "\n"),
+					"focused button": Button(th, "Subscribe", true, false, 0),
+					"steps":          steps.Row(th, 60),
+					"steps list":     strings.Join(steps.List(th), "\n"),
+					"ladder":         strings.Join(Ladder(theme.ResolveProfile(kit, m.dark, m.ascii, m.p), 0), "\n"),
+					"marks":          Mark(th, "current") + Mark(th, "partial") + Mark(th, "todo") + Mark(th, "done"),
+					"tabs":           strings.Join(Tabs(th, []string{"Inbox", "Saved"}, 0, nil), "\n"),
+					"wordmark":       Wordmark(th, "quire"),
+					"header":         strings.Join(Header(th, 60, 24, "quire", "inbox"), "\n"),
+					"spinner":        Spinner(th, 0),
+					"progress":       Progress(th, 0.5, 20),
+					"user turn":      strings.Join(UserMessage(th, "summarise this", 40, false), "\n"),
+					"dialog":         Dialog(th, 40, 0, "Unsubscribe?", []string{"You can come back."}, "", ""),
+					"footer":         strings.Join(Footer(th, 60, "", []key.Binding{key.NewBinding(key.WithKeys("j"), key.WithHelp("j", "next"))}, ""), "\n"),
 				}
 				for what, s := range chrome {
 					if hits := primaryCells(th, s, m.p); len(hits) > 0 {

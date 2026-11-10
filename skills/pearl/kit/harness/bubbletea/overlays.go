@@ -330,7 +330,7 @@ func sameRGB(a, b color.Color) bool {
 // test, and its help over the menu named the screen's keys; leaving it out of overlays
 // would hide it as well, and so would moving a page into unjudgedPages: an entry needs
 // a reason, is never the main screen (states[0]), is only allowed in an app that builds
-// a Huh form (ui.NewForm), and, unless its reason names Huh, must keep a focus mark
+// a Huh form (huhform.NewForm), and, unless its reason names Huh, must keep a focus mark
 // beside some overlay (else it blurs, and belongs in overlayPages).
 func testOverlayTablesMatchTheStates(t *testing.T) {
 	for _, list := range [][]string{sp.Overlays, sp.OverlayPages, slices.Collect(maps.Keys(sp.UnjudgedPages))} {
@@ -349,10 +349,10 @@ func testOverlayTablesMatchTheStates(t *testing.T) {
 	if !slices.Contains(sp.Scrolls, "help") {
 		t.Errorf("sp.Scrolls has no \"help\": the keys overlay's body grows with the app and sp.Scrolls at the floor")
 	}
-	// unjudgedPages is for a Huh form's pages, and every Huh form goes through ui.NewForm
+	// unjudgedPages is for a Huh form's pages, and every Huh form goes through huhform.NewForm
 	// (tuilint code, C-HUHTHEME): an app that never builds one has nothing to leave out
 	if len(sp.UnjudgedPages) > 0 && !buildsAForm(t) {
-		t.Errorf("sp.UnjudgedPages lists %d pages, but no .go file here calls ui.NewForm: only a Huh form's page can't be drawn blurred; judge them in sp.OverlayPages", len(sp.UnjudgedPages))
+		t.Errorf("sp.UnjudgedPages lists %d pages, but no .go file here calls huhform.NewForm: only a Huh form's page can't be drawn blurred; judge them in sp.OverlayPages", len(sp.UnjudgedPages))
 	}
 	for s, why := range sp.UnjudgedPages {
 		switch {
@@ -387,7 +387,7 @@ func testOverlayTablesMatchTheStates(t *testing.T) {
 	}
 }
 
-// buildsAForm reports whether a non-test .go file of the app calls ui.NewForm.
+// buildsAForm reports whether a non-test .go file of the app calls huhform.NewForm.
 func buildsAForm(t *testing.T) bool {
 	t.Helper()
 	files, err := filepath.Glob("*.go")
@@ -398,7 +398,7 @@ func buildsAForm(t *testing.T) bool {
 		if strings.HasSuffix(f, "_test.go") {
 			continue
 		}
-		if b, err := os.ReadFile(f); err == nil && strings.Contains(string(b), "ui.NewForm(") {
+		if b, err := os.ReadFile(f); err == nil && strings.Contains(string(b), "huhform.NewForm(") {
 			return true
 		}
 	}

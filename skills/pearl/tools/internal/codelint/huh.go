@@ -145,13 +145,13 @@ func runHuhTheme(pass *analysis.Pass) (any, error) {
 		case t.escaped:
 			continue
 		case m.kind == huhForm:
-			msg = "huh form without WithTheme: it renders Huh's default colours, not the brand"
+			msg = "huh form without WithTheme: it renders Huh's default colours, not the brand; huhform.NewForm(t, w, h, groups...) themes it"
 		case m.kind == huhField && t.ran:
 			msg = "huh." + m.name + " run without WithTheme: it renders Huh's default colours, not the brand"
 		case m.kind == huhSpinner:
-			msg = "huh spinner without WithTheme: it renders Huh's default fuchsia #F780E2, not the brand"
+			msg = "huh spinner without WithTheme: it renders Huh's default fuchsia #F780E2, not the brand; huhform.Spinner(t, title) themes it"
 		case m.kind == bubblesSpinner:
-			msg = "spinner.New without spinner.WithStyle or a .Style: it renders unstyled, not in the brand's accent"
+			msg = "spinner.New without spinner.WithStyle or a .Style: it renders unstyled, not in the brand's accent; ui.BubblesSpinner(t) is the themed one"
 		default:
 			continue
 		}

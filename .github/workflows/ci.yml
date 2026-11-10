@@ -24,6 +24,8 @@ jobs:
       - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./...
       - run: go test ./...
+      # an app that imports ui but has no Huh form must not link Huh: the Huh helpers live in ui/bubbletea/huhform
+      - run: "! go list -deps ./ui/bubbletea | grep -q charm.land/huh"
 
   tools:
     name: tools (go vet + test)
