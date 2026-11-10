@@ -259,8 +259,9 @@ the showcase used to work around.
 
 **Use Huh when the app already has Huh forms, or needs a field the kit lacks (a
 multi-select, a file picker, options that change as the user types, a multi-line text
-area, a note field); theme it with `ui.NewForm`** (`bubbletea-architecture.md` § Huh
-v2). A restyle keeps working Huh forms (`cmd-restyle.md`).
+area, a note field); theme it with `huhform.NewForm`** (`bubbletea-architecture.md` § Huh
+v2). A restyle keeps working Huh forms (`cmd-restyle.md`). An app that uses Huh imports
+`…/kit/ui/bubbletea/huhform`; an app that doesn't never links Huh.
 
 - **DO** keep each field in the app's state for the whole flow, so going back shows what
   was typed. **DON'T** rebuild a step's fields from copies of their values: the copy and

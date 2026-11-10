@@ -85,7 +85,7 @@ Round 2, architecture (screens always; the rest only what the code didn't answer
 2. **Forms.** Default: the kit's fields (`ui.NewInput`, `ui.NewSelect`,
    `ui.NewConfirm`, `ui/bubbletea/fields.go`), because they theme a blurred field and
    keep an error under its field, where Huh's theme can't reach. An app that already has
-   Huh forms keeps them, themed through `ui.NewForm` (`ui/bubbletea/form.go`), and so
+   Huh forms keeps them, themed through `huhform.NewForm` (`ui/bubbletea/huhform`), and so
    does a field the kit lacks (a multi-select, a file picker).
 3. **Slow work and the floor.** What is async (network, builds, streaming), can it be
    cancelled, and the smallest terminal. Default: every call is a `tea.Cmd` with a cancel;
@@ -185,7 +185,7 @@ focus: list | detail        overlays: palette, confirm, help (front one gets key
 
 ### Forms
 The kit's fields (ui.Input, ui.Select, ui.Confirm) for <setup, config, confirm>.
-Huh: <none | the existing forms that stay on it, themed with the kit's `ui.NewForm`, and why>.
+Huh: <none | the existing forms that stay on it, themed with the kit's `huhform.NewForm`, and why>.
 
 ### Components
 Bubbles: <textarea, viewport, …>. Kit ui: <List, Table, Dialog, Footer, …>.
@@ -222,7 +222,7 @@ Below <floor; 60×18 unless the product raises it>: ui.TooSmall. Below 110 colum
 
 ### Accessible and non-TTY
 ACCESSIBLE=1 or --accessible: no alt screen, the fields asked through ui.Prompter (a
-Huh form: WithAccessible(true), which ui.NewForm sets), status as new lines. stdout not a TTY: <--json | plain output>, never escape codes.
+Huh form: WithAccessible(true), which huhform.NewForm sets), status as new lines. stdout not a TTY: <--json | plain output>, never escape codes.
 
 ## First slice
 <the main loop's 2–3 screens, every state of those, rendered from fixtures through the harness; no integration>

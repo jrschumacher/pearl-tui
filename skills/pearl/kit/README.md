@@ -49,8 +49,9 @@ ui/bubbletea/   canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                 fields.go   the kit's form fields: Input (Bubbles' textinput), Select and Option,
                             Confirm, each drawn into a rectangle with its Height; Prompter
                             (their plain prompts for ACCESSIBLE=1), Accessible
-                form.go     Huh, the optional path for an app with Huh forms: HuhTheme, NewForm,
-                            HuhSpinner; and Actions (button rows), BubblesSpinner, Settle
+                form.go     Actions (button rows), BubblesSpinner, Settle; no Huh: ui links none
+                huhform/    Huh, the optional path for an app with Huh forms: Theme, Styles,
+                            NewForm, Spinner (an app that never imports it never links Huh)
                 steps.go    Steps (Count, Row, List), Summary, SummaryStrip: wizard chrome
                 frame.go    RenderProfile, Downsample, CheckSize: what an app's harness flags need
 harness/bubbletea/
@@ -157,8 +158,10 @@ go mod tidy && go test ./...
 
 The kit's `go.mod` carries the versions it is tested with (Bubble Tea, Lip Gloss, Bubbles,
 Huh, Ultraviolet), so `go get` brings them: don't pin them again. Forms use the kit's
-fields (`fields.go`); `form.go` only themes Huh, through Huh's public theme API, for an
-app that already has Huh forms. CI runs this block in a fresh module on every
+fields (`fields.go`); `ui/bubbletea/huhform` only themes Huh, through Huh's public theme
+API, for an app that already has Huh forms. An app that uses Huh imports
+`github.com/jrschumacher/pearl-tui/skills/pearl/kit/ui/bubbletea/huhform`; one that doesn't never links
+Huh (CI checks that `ui` imports none). CI runs this block in a fresh module on every
 change, against the checkout.
 
 What is copied is yours to rewrite: `cmd/showcase` is the app's skeleton (the root
@@ -208,7 +211,7 @@ Once your screens are in, delete what is the showcase's alone:
   page that draws a focus mark is in `overlayPages` or renders as one that is.
   `unjudgedPages` (state → reason, repeated in TUI.md § Decisions) is only for a page
   whose focus the kit can't draw blurred, a Huh form's field: the test fails any entry
-  in an app that never calls `ui.NewForm`, an empty reason, your main screen
+  in an app that never calls `huhform.NewForm`, an empty reason, your main screen
   (`states[0]`), and a page whose focus does blur (unless its reason names Huh).
   `scrolls` is for a dialog whose body must be shown whole and has no length bound (a
   write's verbatim text): it may scroll at the floor, and `TestDialogsStayAboveTheFooter`
@@ -252,7 +255,7 @@ moves with it: the tables, `setState`, `openOverlay`, `frameSize` and `frameName
 `main.go`. The package exports the old `main` as `func Main()`, and
 `cmd/<app>/main.go` shrinks to `func main() { app.Main() }`. Keep that package two
 levels below the project root, since the tests read `../../themes/*.json`. When
-`unjudgedPages` is non-empty, the `ui.NewForm` call must be in that package too: the
+`unjudgedPages` is non-empty, the `huhform.NewForm` call must be in that package too: the
 test that checks its entries reads only the package's own `*.go` files.
 
 Then delete each import `go vet ./...` reports unused. CI deletes these files from a

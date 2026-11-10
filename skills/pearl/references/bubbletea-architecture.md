@@ -98,7 +98,10 @@ Bubbles' `textinput` and the kit's buttons, themed focused and blurred, with no
 commands of their own to route. The showcase's wizard runs on them and doesn't import
 Huh. This section is for an app that already has Huh forms, or needs a field the kit
 lacks (a multi-select, a file picker, options that change as the user types): it keeps
-Huh, themed through `ui.NewForm`.
+Huh, themed through `huhform.NewForm`. An app that uses Huh imports
+`github.com/jrschumacher/pearl-tui/skills/pearl/kit/ui/bubbletea/huhform`; an app that doesn't never links Huh
+(`ui` imports none). These were `NewForm`, `HuhTheme`, `HuhStyles` and `HuhSpinner` in `ui`; they are
+now `huhform.NewForm`, `huhform.Theme`, `huhform.Styles` and `huhform.Spinner`.
 
 Huh keeps its own mechanics and layout: typing, focus order, validation, sizing, button
 alignment. The kit gives it only the theme, through Huh's public theme API. Never
@@ -107,7 +110,7 @@ Don't wrap a field, read a form's rendered text to size it, or redraw part of it
 match the kit's look: a wrapper pins the app to one Huh release and costs more than the
 difference it hides. Where Huh falls short of the theme, report it to Huh.
 
-- `ui.NewForm(t, w, h, groups...)` is `huh.NewForm` with the theme (`ui.HuhTheme`),
+- `huhform.NewForm(t, w, h, groups...)` is `huh.NewForm` with the theme (`huhform.Theme`),
   Huh's help line off (the footer is the help) and `ACCESSIBLE=1` honoured
   (`ui.Accessible`). Fields are Huh's own: `huh.NewInput`, `huh.NewSelect`,
   `huh.NewConfirm`.
@@ -128,12 +131,12 @@ Huh (the kit's fields have none of these gaps):
 
 | Huh | In the app |
 |---|---|
-| assumes a light terminal until a `BackgroundColorMsg` reaches the form | nothing: `HuhTheme` returns the resolved theme whatever `isDark` says |
+| assumes a light terminal until a `BackgroundColorMsg` reaches the form | nothing: `huhform.Theme` returns the resolved theme whatever `isDark` says |
 | a field keeps the first theme it's given | rebuild the step's form on a theme change |
 | its theme reaches only a focused `huh.Input`; a blurred one draws in Bubbles' default colours | give a text input a group of its own, so it is never on screen blurred |
 | leaves room for a group's error rows only when `WithHeight` runs, and draws one row past the height | call `WithHeight` on every draw, with one row less than the rectangle |
-| the spinner is `#F780E2`, says "Loading...", no gap before the title | `ui.HuhSpinner(t, title)`; `ui.BubblesSpinner(t)` for Bubbles |
-| accessible prompts print theme colours as raw escapes | nothing: `NewForm` uses Huh's colourless base theme when accessible |
+| the spinner is `#F780E2`, says "Loading...", no gap before the title | `huhform.Spinner(t, title)`; `ui.BubblesSpinner(t)` for Bubbles |
+| accessible prompts print theme colours as raw escapes | nothing: `huhform.NewForm` uses Huh's colourless base theme when accessible |
 | the input's cursor blink runs its own timer | accepted: the one exception to one frame clock (`ui.Input`'s cursor doesn't blink) |
 | `Select.Value` before `Options` selects nothing | call `Options` first |
 
