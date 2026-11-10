@@ -96,6 +96,9 @@ func testOverlayKeepsThePageOffItsRows(t *testing.T) {
 					base := m.Render(sz[0], sz[1])
 					focusCells := FocusMarks(m, base)
 					for _, s := range sp.Overlays {
+						if sp.ChangesPage != nil && sp.ChangesPage(s, page) {
+							continue // the page under this overlay isn't the page before it
+						}
 						m.SetState(page)
 						m.OpenOverlay(s)
 						c := m.Render(sz[0], sz[1])

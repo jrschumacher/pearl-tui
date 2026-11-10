@@ -87,6 +87,10 @@ type Spec struct {
 	// is fixed, below the floor), and FrameName the file its frame is written to.
 	FrameSize func(s string, w, h int) (int, int)
 	FrameName func(s string, w, h int) string
+	// ChangesPage reports an overlay that changes the page it opens over, so the page
+	// under it isn't the page before it: a refusal that ends the send the composer was
+	// showing. OverlayKeepsThePageOffItsRows skips that pair. Nil for none.
+	ChangesPage func(overlay, page string) bool
 	// ANSI16 is more states to hold to the 16-colour checks, beside OverlayPages and
 	// Overlays: a page that draws a status or a fill no other state does.
 	ANSI16 []string

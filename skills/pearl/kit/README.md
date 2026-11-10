@@ -217,6 +217,9 @@ which they read through two things in that file:
 
 - `spec` (`harness.Spec`): your tables, your floor (`minW`/`minH`), `frameSize` and
   `frameName`, and `New`, which wraps `newApp` in `harnessApp`;
+- in `spec`, optionally, `ChangesPage(overlay, page)`: true for an overlay that changes
+  the page it opens over (a refusal that ends the send the composer was showing), the one
+  pair the overlay-over-page test then skips;
 - `harnessApp`, which gives the root model the methods of `harness.App`: `Theme`,
   `SetProfile`, `Render`, `SetState`, `OpenOverlay`, `Overlay` ("" for none, "help" for
   the keys overlay), `CloseOverlay`, `OverlayRect`, `Body`, `FootY`, `Key`, `Actions`
