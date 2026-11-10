@@ -92,11 +92,13 @@ func (m *model) View() tea.View {                            // returns tea.View
 
 ### Huh v2
 
-The kit's own fields (`ui.NewInput`, `ui.NewSelect`, `ui.NewConfirm`; `components.md`
-§ Forms And Wizards) are the default for a form: they are plain structs on Bubbles'
-`textinput` and the kit's buttons, themed focused and blurred, and the showcase's wizard
-runs on them. `ui.NewForm` is for an app that already has Huh forms; the rest of this
-section is for that app.
+**Huh is the optional path.** A new form uses the kit's fields (`ui.NewInput`,
+`ui.NewSelect`, `ui.NewConfirm`; `components.md` § Forms And Wizards): plain structs on
+Bubbles' `textinput` and the kit's buttons, themed focused and blurred, with no
+commands of their own to route. The showcase's wizard runs on them and doesn't import
+Huh. This section is for an app that already has Huh forms, or needs a field the kit
+lacks (a multi-select, a file picker, options that change as the user types): it keeps
+Huh, themed through `ui.NewForm`.
 
 Huh keeps its own mechanics and layout: typing, focus order, validation, sizing, button
 alignment. The kit gives it only the theme, through Huh's public theme API. Never
@@ -113,22 +115,26 @@ difference it hides. Where Huh falls short of the theme, report it to Huh.
   form is not a `tea.Model`: `f, cmd := m.form.Update(msg); m.form = f.(*huh.Form)`, and
   draw `m.form.View()` into a rectangle. Send it every non-key message too: Huh moves
   focus with commands (`NextField`), not in `Update`.
+- A reply from a dismissed form can reach the form under it, because Huh moves focus by
+  commands: check which form a reply belongs to (a generation number, as the showcase's
+  sign-in does) before forwarding it (issue #96).
 - Size it with its own `WithWidth` and `WithHeight`; `ui.Settle(update, cmd)` in tests to
   run Huh's follow-up commands. It runs them at once and drops whatever doesn't answer within
   `ui.SettleWait` (40 ms: timers, blinks, ticks), so a test that waits on a tick must
   send the tick's message itself.
 
-What Huh v2.0.3 does that the theme can't change, and what to do in the app:
+What Huh v2.0.3 does that the theme can't change, and what to do in the app if you use
+Huh (the kit's fields have none of these gaps):
 
 | Huh | In the app |
 |---|---|
 | assumes a light terminal until a `BackgroundColorMsg` reaches the form | nothing: `HuhTheme` returns the resolved theme whatever `isDark` says |
 | a field keeps the first theme it's given | rebuild the step's form on a theme change |
-| its theme reaches only a focused `huh.Input`; a blurred one draws in Bubbles' default colours | if you use Huh: give a text input a group of its own, so it is never on screen blurred (the kit's `ui.Input` has no such gap) |
-| leaves room for a group's error rows only when `WithHeight` runs, and draws one row past the height | if you use Huh: call `WithHeight` on every draw, with one row less than the rectangle (`ui.Input` draws its error under the field, inside its `Height`) |
+| its theme reaches only a focused `huh.Input`; a blurred one draws in Bubbles' default colours | give a text input a group of its own, so it is never on screen blurred |
+| leaves room for a group's error rows only when `WithHeight` runs, and draws one row past the height | call `WithHeight` on every draw, with one row less than the rectangle |
 | the spinner is `#F780E2`, says "Loading...", no gap before the title | `ui.HuhSpinner(t, title)`; `ui.BubblesSpinner(t)` for Bubbles |
 | accessible prompts print theme colours as raw escapes | nothing: `NewForm` uses Huh's colourless base theme when accessible |
-| the input's cursor blink runs its own timer | accepted: the one exception to one frame clock |
+| the input's cursor blink runs its own timer | accepted: the one exception to one frame clock (`ui.Input`'s cursor doesn't blink) |
 | `Select.Value` before `Options` selects nothing | call `Options` first |
 
 - Rebuild the form when a choice changes which fields exist. Bound values must be
