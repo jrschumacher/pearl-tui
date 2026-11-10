@@ -1,4 +1,4 @@
-package main
+package harness
 
 import (
 	"fmt"
@@ -22,7 +22,7 @@ import (
 // testThemes finds the theme JSONs two levels up: kit/themes here, and the project's
 // themes/ once the showcase is copied to cmd/<app> (kit/README.md). Finding none fails,
 // so a copied test never passes by testing nothing.
-func testThemes(t *testing.T) []string {
+func Themes(t *testing.T) []string {
 	t.Helper()
 	files, _ := filepath.Glob("../../themes/*.json")
 	if len(files) == 0 {
@@ -33,9 +33,9 @@ func testThemes(t *testing.T) []string {
 
 // testTheme loads the named theme where it exists (the kit) and the project's own
 // first theme where it doesn't.
-func testTheme(t *testing.T, name string) theme.File {
+func ThemeFile(t *testing.T, name string) theme.File {
 	t.Helper()
-	files := testThemes(t)
+	files := Themes(t)
 	path := files[0]
 	for _, f := range files {
 		if filepath.Base(f) == name {
@@ -53,30 +53,30 @@ func testTheme(t *testing.T, name string) theme.File {
 // so the too-small frame (always 50×14 in the kit, below its 60×18 floor) named
 // toosmall-80x24 failed F-WIDTH. The too-small frame is one size whatever was asked,
 // below the app's floor (minW×minH), and is named for it.
-func TestFrameNameIsRenderedSize(t *testing.T) {
-	m := newApp(testTheme(t, "halyard.json"), true, false)
-	for _, s := range states {
+func testFrameNameIsRenderedSize(t *testing.T) {
+	m := sp.New(ThemeFile(t, "halyard.json"), true, false)
+	for _, s := range sp.States {
 		for _, sz := range [][2]int{{80, 24}, {120, 40}} {
-			name := frameName(s, sz[0], sz[1])
+			name := sp.FrameName(s, sz[0], sz[1])
 			var w, h int
 			if _, err := fmt.Sscanf(name[len(s):], "-%dx%d.ansi", &w, &h); err != nil {
 				t.Fatalf("%s: %v", name, err)
 			}
-			m.setState(s)
-			rw, rh := frameSize(s, sz[0], sz[1])
-			rows := strings.Split(ansi.Strip(m.render(rw, rh).String()), "\n")
+			m.SetState(s)
+			rw, rh := sp.FrameSize(s, sz[0], sz[1])
+			rows := strings.Split(ansi.Strip(m.Render(rw, rh).String()), "\n")
 			if len(rows) != h || lipgloss.Width(rows[0]) != w {
 				t.Errorf("%s holds %dx%d", name, lipgloss.Width(rows[0]), len(rows))
 			}
 		}
 	}
-	tw, th := frameSize("toosmall", 120, 40)
-	if tw >= minW && th >= minH {
-		t.Errorf("the too-small frame renders at %dx%d, not below the floor %dx%d", tw, th, minW, minH)
+	tw, th := sp.FrameSize("toosmall", 120, 40)
+	if tw >= sp.MinW && th >= sp.MinH {
+		t.Errorf("the too-small frame renders at %dx%d, not below the floor %dx%d", tw, th, sp.MinW, sp.MinH)
 	}
 	want := fmt.Sprintf("toosmall-%dx%d.ansi", tw, th)
 	for _, sz := range [][2]int{{80, 24}, {120, 40}} {
-		if got := frameName("toosmall", sz[0], sz[1]); got != want {
+		if got := sp.FrameName("toosmall", sz[0], sz[1]); got != want {
 			t.Errorf("too-small frame asked at %dx%d named %s, want %s", sz[0], sz[1], got, want)
 		}
 	}
@@ -85,13 +85,13 @@ func TestFrameNameIsRenderedSize(t *testing.T) {
 // Every state, every theme, both modes, ASCII, at the sizes people actually
 // use: each frame must be exactly W×H cells. One row at W+1 wraps and tears
 // the whole screen, and it is invisible in code review.
-func TestFootprint(t *testing.T) {
-	files := testThemes(t)
+func testFootprint(t *testing.T) {
+	files := Themes(t)
 	// the app's floor (TUI.md § Size floor; 60×18 in the kit) and the sizes above it: a
 	// size under the floor draws the too-small screen, which -golden checks
-	sizes := [][2]int{{minW, minH}}
+	sizes := [][2]int{{sp.MinW, sp.MinH}}
 	for _, sz := range [][2]int{{80, 24}, {100, 30}, {120, 40}, {200, 60}} {
-		if sz[0] >= minW && sz[1] >= minH && sz != [2]int{minW, minH} {
+		if sz[0] >= sp.MinW && sz[1] >= sp.MinH && sz != [2]int{sp.MinW, sp.MinH} {
 			sizes = append(sizes, sz)
 		}
 	}
@@ -101,14 +101,14 @@ func TestFootprint(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, mode := range []struct{ dark, ascii bool }{{true, false}, {false, false}, {true, true}} {
-			m := newApp(tf, mode.dark, mode.ascii)
-			for _, s := range states {
+			m := sp.New(tf, mode.dark, mode.ascii)
+			for _, s := range sp.States {
 				if s == "toosmall" {
 					continue
 				}
 				for _, sz := range sizes {
-					m.setState(s)
-					out := ansi.Strip(m.render(sz[0], sz[1]).String())
+					m.SetState(s)
+					out := ansi.Strip(m.Render(sz[0], sz[1]).String())
 					rows := strings.Split(out, "\n")
 					if len(rows) != sz[1] {
 						t.Errorf("%s %s %dx%d: %d rows", filepath.Base(f), s, sz[0], sz[1], len(rows))
@@ -127,8 +127,8 @@ func TestFootprint(t *testing.T) {
 }
 
 // The ASCII set must not leak a non-ASCII glyph from the theme's vocabulary.
-func TestASCIIFallback(t *testing.T) {
-	files := testThemes(t)
+func testASCIIFallback(t *testing.T) {
+	files := Themes(t)
 	for _, f := range files {
 		tf, _ := theme.Load(f)
 		th := theme.Resolve(tf, true, true)
@@ -145,8 +145,8 @@ func TestASCIIFallback(t *testing.T) {
 }
 
 // Contrast floors on every theme's resolved palette (both modes).
-func TestContrast(t *testing.T) {
-	files := testThemes(t)
+func testContrast(t *testing.T) {
+	files := Themes(t)
 	for _, f := range files {
 		tf, _ := theme.Load(f)
 		for _, dark := range []bool{true, false} {
@@ -184,14 +184,14 @@ func TestContrast(t *testing.T) {
 // Every visible glyph carries an explicit foreground from the theme. Unstyled
 // text takes the terminal's default fg, which no palette check ever saw (on a
 // painted light background it can vanish).
-func TestNoUnstyledText(t *testing.T) {
-	files := testThemes(t)
+func testNoUnstyledText(t *testing.T) {
+	files := Themes(t)
 	for _, f := range files {
 		tf, _ := theme.Load(f)
-		m := newApp(tf, true, false)
-		for _, s := range states {
-			m.setState(s)
-			c := m.render(120, 40)
+		m := sp.New(tf, true, false)
+		for _, s := range sp.States {
+			m.SetState(s)
+			c := m.Render(120, 40)
 			b := c.Bounds()
 			for y := b.Min.Y; y < b.Max.Y; y++ {
 				for x := b.Min.X; x < b.Max.X; x++ {
@@ -217,8 +217,8 @@ func TestNoUnstyledText(t *testing.T) {
 // reply's tail under its edge at full ink. A cleared cell takes the page's background,
 // not the one it had: a red 502s strip or a FAILING chip emptied by the clear stayed a
 // solid block beside the dialog, and a selection band left a grey stub at its left.
-func TestOverlaysInReducedProfiles(t *testing.T) {
-	for _, f := range testThemes(t) {
+func testOverlaysInReducedProfiles(t *testing.T) {
+	for _, f := range Themes(t) {
 		tf, err := theme.Load(f)
 		if err != nil {
 			t.Fatal(err)
@@ -230,29 +230,29 @@ func TestOverlaysInReducedProfiles(t *testing.T) {
 			ascii               bool
 		}{{"-profile ansi", "ansi", "", true, colorprofile.ANSI, false}, {"NO_COLOR=1", "truecolor", "1", false, colorprofile.Ascii, false},
 			{"-ascii -profile ansi", "ansi", "", true, colorprofile.ANSI, true}} {
-			prof, err := renderProfile(pr.flag, pr.explicit, pr.noColor)
+			prof, err := ui.RenderProfile(pr.flag, pr.explicit, pr.noColor)
 			if err != nil || prof != pr.p {
 				t.Fatalf("%s: renderProfile = %v %v, want %v", pr.name, prof, err, pr.p)
 			}
 			for _, dark := range []bool{true, false} {
-				m := newApp(tf, dark, pr.ascii)
-				m.profile = prof
-				for _, s := range overlays {
-					m.setState(s)
-					if m.t.Profile != prof {
-						t.Fatalf("%s %s: theme resolved for %v, want %v", filepath.Base(f), s, m.t.Profile, prof)
+				m := sp.New(tf, dark, pr.ascii)
+				m.SetProfile(prof)
+				for _, s := range sp.Overlays {
+					m.SetState(s)
+					if m.Theme().Profile != prof {
+						t.Fatalf("%s %s: theme resolved for %v, want %v", filepath.Base(f), s, m.Theme().Profile, prof)
 					}
-					c := m.render(80, 24)
+					c := m.Render(80, 24)
 					c.PaintBackground()
-					if err := checkSize(ansi.Strip(downsample(c.String(), prof)), s, 80, 24); err != nil {
+					if err := ui.CheckSize(ansi.Strip(ui.Downsample(c.String(), prof)), s, 80, 24); err != nil {
 						t.Errorf("%s %s dark=%v: %v", filepath.Base(f), pr.name, dark, err)
 					}
-					if x, y, ok := pageBeside(c, m.ovRect, 80); ok {
+					if x, y, ok := pageBeside(c, m.OverlayRect(), 80); ok {
 						t.Errorf("%s %s %s dark=%v: no scrim, and the page shows %q at %d,%d beside the dialog", filepath.Base(f), s, pr.name, dark, c.CellAt(x, y).Content, x, y)
 					}
-					r, body := m.ovRect, hiddenBody(c)
+					r, body := m.OverlayRect(), hiddenBody(c)
 				rows:
-					for y := range m.footY {
+					for y := range m.FootY() {
 						for x := range 80 {
 							if !(y >= r.Min.Y && y < r.Max.Y) && !uv.Pos(x, y).In(body) || uv.Pos(x, y).In(r) {
 								continue
@@ -262,8 +262,8 @@ func TestOverlaysInReducedProfiles(t *testing.T) {
 								t.Errorf("%s %s %s dark=%v: no scrim, and the page's body shows %q at %d,%d beside the dialog", filepath.Base(f), s, pr.name, dark, cell.Content, x, y)
 								break rows
 							}
-							if cell != nil && !sameRGB(cell.Style.Bg, m.t.P.Bg) {
-								t.Errorf("%s %s %s dark=%v: a cleared cell at %d,%d keeps a background %v, not the page's %v", filepath.Base(f), s, pr.name, dark, x, y, cell.Style.Bg, m.t.P.Bg)
+							if cell != nil && !sameRGB(cell.Style.Bg, m.Theme().P.Bg) {
+								t.Errorf("%s %s %s dark=%v: a cleared cell at %d,%d keeps a background %v, not the page's %v", filepath.Base(f), s, pr.name, dark, x, y, cell.Style.Bg, m.Theme().P.Bg)
 								break rows
 							}
 						}
@@ -279,7 +279,7 @@ func TestOverlaysInReducedProfiles(t *testing.T) {
 // confirm). No text cell on an overlay frame (each of overlays) at -profile ansi draws in
 // its background's slot, for any theme, in either mode; the dialog is judged too, since
 // its own text is fg on bgPanel.
-func TestNoScrimAt16Colours(t *testing.T) {
+func testNoScrimAt16Colours(t *testing.T) {
 	slot := func(c color.Color, def color.Color) int {
 		if c == nil {
 			c = def
@@ -289,17 +289,17 @@ func TestNoScrimAt16Colours(t *testing.T) {
 		}
 		return -1
 	}
-	for _, f := range testThemes(t) {
+	for _, f := range Themes(t) {
 		tf, err := theme.Load(f)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, dark := range []bool{true, false} {
-			for _, s := range overlays {
-				m := newApp(tf, dark, false)
-				m.profile = colorprofile.ANSI
-				m.setState(s)
-				c := m.render(80, 24)
+			for _, s := range sp.Overlays {
+				m := sp.New(tf, dark, false)
+				m.SetProfile(colorprofile.ANSI)
+				m.SetState(s)
+				c := m.Render(80, 24)
 				c.PaintBackground()
 				hidden := 0
 				for y := 0; y < 24; y++ {
@@ -308,7 +308,7 @@ func TestNoScrimAt16Colours(t *testing.T) {
 						if cell == nil || strings.TrimSpace(cell.Content) == "" {
 							continue
 						}
-						if slot(cell.Style.Fg, m.t.P.Fg) == slot(cell.Style.Bg, m.t.P.Bg) {
+						if slot(cell.Style.Fg, m.Theme().P.Fg) == slot(cell.Style.Bg, m.Theme().P.Bg) {
 							hidden++
 						}
 					}
@@ -318,34 +318,6 @@ func TestNoScrimAt16Colours(t *testing.T) {
 				}
 			}
 		}
-	}
-}
-
-// -profile wins; without it NO_COLOR means no colour when strconv.ParseBool says true,
-// exactly as colorprofile reads it for the live program.
-func TestRenderProfile(t *testing.T) {
-	for _, c := range []struct {
-		name     string
-		explicit bool
-		noColor  string
-		want     colorprofile.Profile
-	}{
-		{"truecolor", false, "", colorprofile.TrueColor},
-		{"truecolor", false, "1", colorprofile.Ascii},
-		{"truecolor", false, "true", colorprofile.Ascii},
-		{"truecolor", false, "0", colorprofile.TrueColor},
-		{"truecolor", false, "false", colorprofile.TrueColor},
-		{"truecolor", false, "yes", colorprofile.TrueColor},
-		{"truecolor", false, "x", colorprofile.TrueColor},
-		{"ansi", true, "1", colorprofile.ANSI},
-		{"ansi256", true, "", colorprofile.ANSI256},
-	} {
-		if got, err := renderProfile(c.name, c.explicit, c.noColor); err != nil || got != c.want {
-			t.Errorf("renderProfile(%q, %v, %q) = %v %v, want %v", c.name, c.explicit, c.noColor, got, err, c.want)
-		}
-	}
-	if _, err := renderProfile("sixteen", true, ""); err == nil {
-		t.Error("renderProfile(sixteen) accepted")
 	}
 }
 
@@ -370,7 +342,7 @@ func (p dialogPos) String() string {
 	if p.lines {
 		return fmt.Sprintf("lines %d–%d of %d", p.first, p.last, p.total)
 	}
-	return fmt.Sprintf("↑ %d / … %d", p.up, p.below)
+	return fmt.Sprintf("%d above / %d below", p.up, p.below)
 }
 
 var dialogLinesRe = regexp.MustCompile(`lines (\d+)[–-](\d+) of (\d+)`)
@@ -436,7 +408,7 @@ func rectRows(c *ui.Canvas, r uv.Rectangle) []string {
 // footerText is the plain text of the footer's rows, from fy down: what the app's
 // keys say. A check of the footer reads only these; a help dialog over a page with a
 // scroll key names "scroll" in its own body.
-func footerText(c *ui.Canvas, fy int) string {
+func FooterText(c *ui.Canvas, fy int) string {
 	rows := strings.Split(ansi.Strip(c.String()), "\n")
 	return strings.Join(rows[min(len(rows), max(0, fy)):], "\n")
 }
@@ -449,38 +421,38 @@ func footerText(c *ui.Canvas, fy int) string {
 // and only a dialog in scrolls may be cut at the floor: a rollback confirmation cut
 // there hid its consequences ("… 2 more"). Only the dialog's own cells are read
 // (readPos): the page under it may cut rows of its own.
-func TestDialogsStayAboveTheFooter(t *testing.T) {
-	for _, f := range testThemes(t) {
+func testDialogsStayAboveTheFooter(t *testing.T) {
+	for _, f := range Themes(t) {
 		tf, err := theme.Load(f)
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, sz := range [][2]int{{max(80, minW), max(24, minH)}, {minW, minH}} {
+		for _, sz := range [][2]int{{max(80, sp.MinW), max(24, sp.MinH)}, {sp.MinW, sp.MinH}} {
 			w, h := sz[0], sz[1]
-			for _, page := range overlayPages {
-				for _, s := range overlays {
-					m := newApp(tf, true, false)
-					m.setState(page)
-					m.openOverlay(s)
-					dialogFits(t, fmt.Sprintf("%s %s over %s %dx%d", filepath.Base(f), s, page, w, h), m, s, w, h)
+			for _, page := range sp.OverlayPages {
+				for _, s := range sp.Overlays {
+					m := sp.New(tf, true, false)
+					m.SetState(page)
+					m.OpenOverlay(s)
+					DialogFits(t, fmt.Sprintf("%s %s over %s %dx%d", filepath.Base(f), s, page, w, h), m, s, w, h)
 				}
 			}
 			// the help body scrolls when cut: a "more" row at the bottom, then one above
-			m := newApp(tf, true, false)
-			m.setState("help")
-			c := m.render(w, h)
-			fy := m.footY
-			p, foot := readPos(m.t, c, m.ovRect), footerText(c, fy)
-			if len(m.helpBody()) > m.helpRows() {
+			m := sp.New(tf, true, false)
+			m.SetState("help")
+			c := m.Render(w, h)
+			fy := m.FootY()
+			p, foot := readPos(m.Theme(), c, m.OverlayRect()), FooterText(c, fy)
+			if len(m.HelpBody()) > m.HelpRows() {
 				if !p.hides() {
-					t.Errorf("%s help %dx%d: %d rows of keys in %d, and the dialog draws no position", filepath.Base(f), w, h, len(m.helpBody()), m.helpRows())
+					t.Errorf("%s help %dx%d: %d rows of keys in %d, and the dialog draws no position", filepath.Base(f), w, h, len(m.HelpBody()), m.HelpRows())
 				}
-				m.key(press("down"))
-				if p2 := readPos(m.t, m.render(w, h), m.ovRect); p2.up != 1 && !(p2.lines && p2.first == 2) {
+				m.Key(Press("down"))
+				if p2 := readPos(m.Theme(), m.Render(w, h), m.OverlayRect()); p2.up != 1 && !(p2.lines && p2.first == 2) {
 					t.Errorf("%s help %dx%d: after down the position is %v, want one row scrolled off", filepath.Base(f), w, h, p2)
 				}
 				if !strings.Contains(foot, "scroll") {
-					t.Errorf("%s help %dx%d: the body scrolls but the footer doesn't say so", filepath.Base(f), w, h)
+					t.Errorf("%s help %dx%d: the body sp.Scrolls but the footer doesn't say so", filepath.Base(f), w, h)
 				}
 			} else if strings.Contains(foot, "scroll") {
 				t.Errorf("%s help %dx%d: the body fits but the footer offers scroll", filepath.Base(f), w, h)
@@ -490,29 +462,29 @@ func TestDialogsStayAboveTheFooter(t *testing.T) {
 }
 
 // dialogFits judges the overlay s that m draws at w×h (TestDialogsStayAboveTheFooter).
-func dialogFits(t *testing.T, name string, m *app, s string, w, h int) {
+func DialogFits(t *testing.T, name string, m App, s string, w, h int) {
 	t.Helper()
-	c := m.render(w, h)
-	fy := m.footY // the app's own footer row, as render drew it
-	if m.ovRect.Max.Y > fy {
-		t.Errorf("%s: the dialog's last row is %d, the footer starts at %d", name, m.ovRect.Max.Y-1, fy)
+	c := m.Render(w, h)
+	fy := m.FootY() // the app's own footer row, as render drew it
+	if m.OverlayRect().Max.Y > fy {
+		t.Errorf("%s: the dialog's last row is %d, the footer starts at %d", name, m.OverlayRect().Max.Y-1, fy)
 	}
-	if m.ovRect.Dy() <= fy-5 && m.ovRect.Max.Y > fy-1 {
-		t.Errorf("%s: the dialog fits with air (%d rows) but ends on row %d, against the footer at %d", name, m.ovRect.Dy(), m.ovRect.Max.Y-1, fy)
+	if m.OverlayRect().Dy() <= fy-5 && m.OverlayRect().Max.Y > fy-1 {
+		t.Errorf("%s: the dialog fits with air (%d rows) but ends on row %d, against the footer at %d", name, m.OverlayRect().Dy(), m.OverlayRect().Max.Y-1, fy)
 	}
-	if m.ovRect.Dy() == 0 {
+	if m.OverlayRect().Dy() == 0 {
 		t.Errorf("%s: no dialog drawn", name)
 	}
-	p := readPos(m.t, c, m.ovRect)
-	if p.hides() && !strings.Contains(footerText(c, fy), "scroll") {
+	p := readPos(m.Theme(), c, m.OverlayRect())
+	if p.hides() && !strings.Contains(FooterText(c, fy), "scroll") {
 		t.Errorf("%s: the body is cut (%v) with no scroll key in the footer", name, p)
 	}
-	if p.hides() && !slices.Contains(scrolls, s) {
-		t.Errorf("%s: a dialog that isn't in scrolls is cut at the floor (%v): make it fit, or, if its body must be shown whole and has no length bound, list it in scrolls:\n%s", name, p, strings.Join(rectRows(c, m.ovRect), "\n"))
+	if p.hides() && !slices.Contains(sp.Scrolls, s) {
+		t.Errorf("%s: a dialog that isn't in sp.Scrolls is cut at the floor (%v): make it fit, or, if its body must be shown whole and has no length bound, list it in sp.Scrolls:\n%s", name, p, strings.Join(rectRows(c, m.OverlayRect()), "\n"))
 	}
-	if slices.Contains(scrolls, s) {
+	if slices.Contains(sp.Scrolls, s) {
 		key := scrollKey(m)
-		if err := scrollsToItsEnd(m.t, func() (*ui.Canvas, uv.Rectangle) { c := m.render(w, h); return c, m.ovRect }, func() { m.key(press(key)) }); err != nil {
+		if err := scrollsToItsEnd(m.Theme(), func() (*ui.Canvas, uv.Rectangle) { c := m.Render(w, h); return c, m.OverlayRect() }, func() { m.Key(Press(key)) }); err != nil {
 			t.Errorf("%s: %v", name, err)
 		}
 	}
@@ -520,13 +492,13 @@ func dialogFits(t *testing.T, name string, m *app, s string, w, h int) {
 
 // scrollKey is the key that scrolls the open overlay's body down: a key of the action
 // whose help says "scroll", down or j or pgdown first; down when none says so.
-func scrollKey(m *app) string {
-	for _, a := range m.actions() {
-		if !strings.Contains(a.b.Help().Desc, "scroll") {
+func scrollKey(m App) string {
+	for _, a := range m.Actions() {
+		if !strings.Contains(a.B.Help().Desc, "scroll") {
 			continue
 		}
 		for _, k := range []string{"down", "j", "pgdown", "space"} {
-			if slices.Contains(a.b.Keys(), k) {
+			if slices.Contains(a.B.Keys(), k) {
 				return k
 			}
 		}
@@ -590,8 +562,8 @@ func scrollsToItsEnd(th *theme.Theme, render func() (*ui.Canvas, uv.Rectangle), 
 // A position is read where the kit draws it: Clip's markers as rows of their own, and
 // "lines a–b of n" only in the bottom edge. A verbatim body that quotes "see lines
 // 12-20 of 300 in budget.go", or says "one more line", hides nothing.
-func TestDialogPositionIsReadFromItsEdge(t *testing.T) {
-	th := theme.ResolveProfile(testTheme(t, "charm.json"), true, false, colorprofile.TrueColor)
+func testDialogPositionIsReadFromItsEdge(t *testing.T) {
+	th := theme.ResolveProfile(ThemeFile(t, "charm.json"), true, false, colorprofile.TrueColor)
 	body := []string{"see lines 12-20 of 300 in budget.go", "and one more line", th.G.Ellipsis + " 2 more apples"}
 	cv := ui.NewCanvas(th, 80, 24)
 	r := cv.Overlay(ui.Dialog(th, 60, 0, "Send reply?", body, "", ""), nil)
@@ -609,8 +581,8 @@ func TestDialogPositionIsReadFromItsEdge(t *testing.T) {
 // ui.DialogLines in its edge and reaches its end passes, and one that scrolls with no
 // position, or stops short, fails. A write confirm whose verbatim body has no length
 // bound scrolls; what the kept tests hold is that nothing is hidden without a position.
-func TestScrollAllowanceIsChecked(t *testing.T) {
-	th := theme.ResolveProfile(testTheme(t, "charm.json"), true, false, colorprofile.TrueColor)
+func testScrollAllowanceIsChecked(t *testing.T) {
+	th := theme.ResolveProfile(ThemeFile(t, "charm.json"), true, false, colorprofile.TrueColor)
 	body := make([]string, 30)
 	for i := range body {
 		body[i] = fmt.Sprintf("line %d of the reply, one more line to read", i+1)
@@ -658,39 +630,39 @@ func TestScrollAllowanceIsChecked(t *testing.T) {
 // a palette kept the focus bar in fgSubtle, so the frame showed two | columns (Law 5); the
 // blurred row now takes Theme.BlurBar, : under ASCII. Every showcase state is checked
 // (its services list is a ui.Table), and so is a blurred ui.List beside a focused one.
-func TestOneFocusMarkerColumn(t *testing.T) {
-	for _, f := range testThemes(t) {
+func testOneFocusMarkerColumn(t *testing.T) {
+	for _, f := range Themes(t) {
 		tf, err := theme.Load(f)
 		if err != nil {
 			t.Fatal(err)
 		}
-		m := newApp(tf, true, true)
-		mode := m.t.X.Selection
+		m := sp.New(tf, true, true)
+		mode := m.Theme().X.Selection
 		if mode != "bar" && mode != "caret" {
 			continue // fill and inverse mark the row, not a column
 		}
-		focus := m.t.G.FocusBar
+		focus := m.Theme().G.FocusBar
 		if mode == "caret" {
-			focus = m.t.G.Cursor
+			focus = m.Theme().G.Cursor
 		}
 		check := func(what string, c *ui.Canvas, edge uv.Rectangle) {
 			if cols := markerColumns(c, focus, edge); len(cols) > 1 {
 				t.Errorf("%s %s -ascii: the focus marker %q stands in %d columns %v (column: rows), want one: a blurred selection takes Theme.BlurBar (%q)",
-					filepath.Base(f), what, focus, len(cols), cols, m.t.BlurBar())
+					filepath.Base(f), what, focus, len(cols), cols, m.Theme().BlurBar())
 			}
 		}
-		for _, s := range states {
+		for _, s := range sp.States {
 			for _, sz := range [][2]int{{80, 24}, {120, 40}} {
-				m.setState(s)
-				c := m.render(sz[0], sz[1])
-				check(fmt.Sprintf("%s %dx%d", s, sz[0], sz[1]), c, m.ovRect)
+				m.SetState(s)
+				c := m.Render(sz[0], sz[1])
+				check(fmt.Sprintf("%s %dx%d", s, sz[0], sz[1]), c, m.OverlayRect())
 			}
 		}
 		// two panes of ui.List: the sidebar blurred, the main list focused
 		items := []ui.Item{{Title: "api"}, {Title: "worker"}, {Title: "queue"}}
-		c := ui.NewCanvas(m.t, 60, 3)
-		c.Draw(strings.Join(ui.List(m.t, items, 1, 0, 24, 3, false), "\n"), ui.Rect(0, 0, 24, 3))
-		c.Draw(strings.Join(ui.List(m.t, items, 2, 0, 30, 3, true), "\n"), ui.Rect(28, 0, 30, 3))
+		c := ui.NewCanvas(m.Theme(), 60, 3)
+		c.Draw(strings.Join(ui.List(m.Theme(), items, 1, 0, 24, 3, false), "\n"), ui.Rect(0, 0, 24, 3))
+		c.Draw(strings.Join(ui.List(m.Theme(), items, 2, 0, 30, 3, true), "\n"), ui.Rect(28, 0, 30, 3))
 		c.ASCIIfy()
 		check("two lists", c, uv.Rectangle{})
 	}
@@ -730,19 +702,19 @@ func markerColumns(c *ui.Canvas, mark string, edge uv.Rectangle) map[int][]int {
 // sweep drew every rune outside its twin tables as "?", and a unit read as a question
 // that F-ASCII could not see. No "?" may appear in an ASCII frame where the unicode
 // frame has none: every state, every theme, at 80×24 and 120×40.
-func TestASCIIKeepsTextRunes(t *testing.T) {
-	for _, f := range testThemes(t) {
+func testASCIIKeepsTextRunes(t *testing.T) {
+	for _, f := range Themes(t) {
 		tf, err := theme.Load(f)
 		if err != nil {
 			t.Fatal(err)
 		}
-		m, a := newApp(tf, true, false), newApp(tf, true, true)
-		for _, s := range states {
+		m, a := sp.New(tf, true, false), sp.New(tf, true, true)
+		for _, s := range sp.States {
 			for _, sz := range [][2]int{{80, 24}, {120, 40}} {
-				w, h := frameSize(s, sz[0], sz[1])
-				m.setState(s)
-				a.setState(s)
-				uni, asc := ansi.Strip(m.render(w, h).String()), ansi.Strip(a.render(w, h).String())
+				w, h := sp.FrameSize(s, sz[0], sz[1])
+				m.SetState(s)
+				a.SetState(s)
+				uni, asc := ansi.Strip(m.Render(w, h).String()), ansi.Strip(a.Render(w, h).String())
 				if strings.Count(asc, "?") != strings.Count(uni, "?") {
 					t.Errorf("%s %s %dx%d: the ASCII frame draws a \"?\" the unicode frame has not:\n%s", filepath.Base(f), s, w, h, asc)
 				}

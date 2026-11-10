@@ -14,7 +14,7 @@ Bubble Tea v2. Import it; don't re-derive it from the references.
   `theme` and `ui`, imported as `github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea` and `…/ui/bubbletea`.
 - `cmd/showcase` is the Bubble Tea showcase: the reference app and its harness. It
   stays two levels below the module root, where a copied app's `cmd/<app>` sits, because
-  its kept tests read `../../themes/*.json` in both places.
+  the harness reads `../../themes/*.json` in both places.
 
 A project imports one framework's packages and copies only `cmd/showcase`, as the
 skeleton of its own app (§ Using it in a project).
@@ -49,6 +49,10 @@ ui/bubbletea/   canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                 form.go     Huh, themed and otherwise its own: HuhTheme, NewForm,
                             Actions (button rows), HuhSpinner, BubblesSpinner, Settle, Accessible
                 steps.go    Steps (Count, Row, List), Summary, SummaryStrip: wizard chrome
+                frame.go    RenderProfile, Downsample, CheckSize: what an app's harness flags need
+harness/bubbletea/
+                the tests every app runs against itself: an app implements harness.App,
+                fills a harness.Spec and calls harness.Run from one test
 themes/         ink (the fallback: theme.Default() as a file, TestInkIsTheDefault keeps them equal),
                 charm (a Crush study), ferrous, lumen, halyard, moss, cartridge, terrarium;
                 embed.go embeds them (themes.Default: the one theme, or ink among several)
@@ -91,20 +95,24 @@ or meaning the kit can't draw (`theme.CheckLadder`).
   `ACCESSIBLE=1` runs the same fields as plain prompts.
 - `main.go`: the harness (`-golden`, `-state`, `-out`, `-sizes`, `-theme`, `-light`,
   `-ascii`, `-profile`, `-frame`), `setState` for every named state, and the app's
-  tables the harness tests read: `states`, `overlays` (the states that open a dialog,
+  tables the harness reads: `states`, `overlays` (the states that open a dialog,
   `help` among them), `scrolls` (the overlays whose body may scroll at the floor, `help`
   among them), `overlayPages` (the states that draw a selection, a focused field
   or a caret), `unjudgedPages` (such states left out, each with why) and `openOverlay`.
-- The harness tests, which read those tables and name no showcase state:
-  `showcase_test.go` (the footprint at 5 sizes and the app's floor × every theme × 3
-  modes, contrast floors, no unstyled cells, frame names, every overlay at 16 colours,
-  NO_COLOR and ASCII, dialogs above the footer, one focus column, ASCII keeps text),
-  `overlay_test.go` (the tables match the states; every overlay over every page: the
-  page keeps its rows, one focus, help names the overlay's keys and a page's), `behaviour_test.go` (every advertised key is handled,
+- `harness_test.go`: the app as the kit's harness reads it (`spec`: the tables and
+  the floor; `harnessApp`: the root model behind `harness.App`) and the one test,
+  `TestHarness`, that runs the kit's `harness/bubbletea` package against it. That
+  package holds the tests, which name no showcase state: `frames.go` (the footprint at
+  5 sizes and the app's floor × every theme × 3 modes, contrast floors, no unstyled
+  cells, frame names, every overlay at 16 colours, NO_COLOR and ASCII, dialogs above
+  the footer, one focus column, ASCII keeps text), `overlays.go` (the tables match the
+  states; every overlay over every page: the page keeps its rows, one focus, help names
+  the overlay's keys and a page's), `behaviour.go` (every advertised key is handled,
   every key a toast names is in the table and works and a dialog takes it away, a grace
   window holds its send until undo, quit or its end and no other key cuts it short,
   the too-small screen's keys, ASCII is ASCII with distinct status glyphs) and
-  `ansi16_test.go` (warning glyphs and inks at 16 colours).
+  `ansi16.go` (warning glyphs and inks at 16 colours). `go test -run
+  TestHarness/HelpIsHandled` runs one.
 - The showcase's own tests: `screens_test.go` (actions target the selection, inputs
   take letters, one frame clock, the refresh clock survives a rate change or pause,
   deploys finish, rollbacks don't repeat, layout holds under focus, breakpoints, tab
@@ -169,16 +177,17 @@ embeds it and `cmd/<app>/main.go` draws it with no `-theme` flag (`themes.Defaul
 so the binary carries the brand wherever it is run from.
 
 Then build your root model in `cmd/<app>` on the showcase's shape (action tables,
-`render`, `setState`, harness flags, the test files) and replace its screens with yours.
+`render`, `setState`, harness flags, `harness_test.go`) and replace its screens with yours.
 Rewrite the package doc at the top of `main.go` first: it still says what the showcase is.
 Once your screens are in, delete what is the showcase's alone:
 
-- `data.go`, its fixtures (yours are `fixtures.go`), and `screens_test.go`, its tests.
+- `data.go`, its fixtures (yours are `fixtures.go`), and `screens_test.go` and
+  `helpers_test.go`, its tests and the helpers only they call.
   Rewrite on your states the ones whose law you share (one clock, typing never
   commands, actions target the selection; a grace window's send observed as a command
   that runs once, as `TestGraceWindow` does with `advance` and `runCmd`; and, if a
   palette command raises a toast with a key, its key checked as
-  `TestShowcaseToastKeysAreHandled` does: the kept `TestToastKeysAreHandled` reaches
+  `TestShowcaseToastKeysAreHandled` does: the harness's `ToastKeysAreHandled` reaches
   the toasts your keys raise, not your commands').
 - `rollout.go` and `rollout_test.go`, the panes screen, with its wiring (`scrRollout`,
   `roll`, `pane`, `panes`, `wheel`, `now`, the Deploys `enter`, the `rollout` states and
@@ -202,16 +211,22 @@ Once your screens are in, delete what is the showcase's alone:
   `ui.DialogLines` set into its bottom edge with `ui.DialogStatus`) and to reaching the
   body's end by its scroll key. Every other overlay must fit the floor.
 
-Keep `showcase_test.go`, `overlay_test.go`, `behaviour_test.go` and `ansi16_test.go`
-whole. They read your tables and these from your app:
+Keep `harness_test.go`: 77 lines, and the only harness code in your project. Its
+`TestHarness` runs the kit's tests (imported, `harness/bubbletea`) against your app,
+which they read through two things in that file:
 
-- `newApp`, `render`, `key`, `helpBody`, `helpRows`, `minW`/`minH` (your floor), and
-  `actions()`, whose entries carry the binding as `b` and whether the footer shows it
-  as `show`;
-- `toastAction()`, the key the showing toast offers in this state or nil, and the
-  field `toasts` (`ui.Toasts`): an app that raises no toast keeps both and returns nil;
-- the fields `t`, `profile`, `ov`, `last`, `ovRect`, `body` and `footY`, and the
-  overlay values `ovNone` and `ovHelp`;
+- `spec` (`harness.Spec`): your tables, your floor (`minW`/`minH`), `frameSize` and
+  `frameName`, and `New`, which wraps `newApp` in `harnessApp`;
+- `harnessApp`, which gives the root model the methods of `harness.App`: `Theme`,
+  `SetProfile`, `Render`, `SetState`, `OpenOverlay`, `Overlay` ("" for none, "help" for
+  the keys overlay), `CloseOverlay`, `OverlayRect`, `Body`, `FootY`, `Key`, `Actions`
+  and `ToastAction` (each entry its binding and whether the footer shows it; an app that
+  raises no toast returns nil), `Toasts`, `Last` (the description of the last action
+  `Key` ran), `HelpBody` and `HelpRows`. Change a method's body when your model names a
+  field differently; the tests never see the field.
+
+The tests also hold the app to:
+
 - the canvas's `Body`, set in `render` to the body's rect (`c.Body = body`, the same
   rect as `m.body`): where the page can't be dimmed a centred dialog hides its rows and
   keeps the header (unset, the header goes too), and the tests fail a `Body` that
@@ -222,12 +237,11 @@ whole. They read your tables and these from your app:
   ink, or under a `fill`/`inverse` selection `t.S.SelRow`'s reverse video, which is
   therefore the selection's style only (a badge in it reads as a focus).
 
-The four are `package main` because they sit beside the root model in `cmd/<app>`. An
-app whose root model lives elsewhere (an existing app's `internal/app`) moves them
-beside it and changes their package clause (`package app`), and that is the only edit
-they take. What they read moves with them: the tables, `setState` and `openOverlay`
-from `main.go`, with its `frameSize`, `frameName`, `checkSize`, `renderProfile` and
-`downsample`. The package exports the old `main` as `func Main()`, and
+`harness_test.go` is `package main` because it sits beside the root model in
+`cmd/<app>`. An app whose root model lives elsewhere (an existing app's `internal/app`)
+moves it beside the model and changes its package clause (`package app`). What it reads
+moves with it: the tables, `setState`, `openOverlay`, `frameSize` and `frameName` from
+`main.go`. The package exports the old `main` as `func Main()`, and
 `cmd/<app>/main.go` shrinks to `func main() { app.Main() }`. Keep that package two
 levels below the project root, since the tests read `../../themes/*.json`. When
 `unjudgedPages` is non-empty, the `ui.NewForm` call must be in that package too: the
@@ -235,5 +249,5 @@ test that checks its entries reads only the package's own `*.go` files.
 
 Then delete each import `go vet ./...` reports unused. CI deletes these files from a
 copy, puts a two-page app with one overlay of its own in place of the screens
-(`.github/kit-stub`) and runs the kept tests with three donors, so they hold for an app
-that isn't the showcase.
+(`.github/kit-stub`) and runs `TestHarness` with three donors, so the harness holds for
+an app that isn't the showcase.

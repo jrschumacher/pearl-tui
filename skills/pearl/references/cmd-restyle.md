@@ -26,11 +26,11 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
    when the app and its theme exist; never copy the two packages in), then lift
    `main.go`'s harness (`render(w, h)`, `setState`, `states`, `overlays`, `scrolls`,
    `overlayPages`, `unjudgedPages`, `openOverlay`, the `-golden`/`-out` flags) into the
-   app's package and give the app's model the names the harness tests read
-   (`kit/README.md`), then copy `showcase_test.go`, `overlay_test.go`,
-   `behaviour_test.go` and `ansi16_test.go` whole. Written by hand, the harness loses the
-   kit's tests (`TestHelpIsHandled`, footprint, contrast). Fix footprint failures before
-   anything visual.
+   app's package, then copy `harness_test.go` (77 lines) and point its `harnessApp`
+   methods at the app's model (`kit/README.md`): its `TestHarness` runs the kit's tests,
+   imported, against the app. Written by hand, the harness loses those tests
+   (`HelpIsHandled`, footprint, contrast). Never copy the kit's test files into the
+   app. Fix footprint failures before anything visual.
 3. **Migrate to v2** if it's on v1 (`bubbletea-architecture.md`): import paths,
    `View() tea.View`, `tea.KeyPressMsg`, the AltScreen/mouse view fields, Lip Gloss
    colours, Bubbles style setters. Use the official upgrade guides for the mechanics. The
