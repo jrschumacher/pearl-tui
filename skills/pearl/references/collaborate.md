@@ -71,8 +71,9 @@ copied into an order drifts from the one the next command edits.
 **DO** rewrite the orders at every hand-off and delete the ones done, then print the
 next one in the hand-off, ready to paste, instead of a bare `Next: craft`.
 **DO** write `size:` before the work: the files the step adds or changes, a line count
-for each, and what it won't add. A person reviews what an agent builds, and 10,000 lines
-for a five-step wizard is a change nobody can review. Size it from the kit's own: its
+for each, and what it won't add (`tuilint spec` warns on an order without one
+[S-SIZE]). A person reviews what an agent builds, and 10,000 lines for a five-step
+wizard is a change nobody can review. Size it from the kit's own: its
 first-run wizard (five input steps, a review, a sign-in wait) is 560 lines and 326 of
 tests, and an app's whole harness is one 77-line file. At the hand-off put
 `git diff --shortstat` beside the `size:` line, production, tests and docs apart, and
