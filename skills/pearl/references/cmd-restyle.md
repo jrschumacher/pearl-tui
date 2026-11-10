@@ -53,11 +53,13 @@ the kit: where it falls short of the theme, say so in § Decisions and leave it 
    its conflicts with the laws in one message (`verify.md` § Hold It To The Reference):
    from here on it is the target, not an ingredient list.
 2. **Add the harness from the kit.** Import `theme/bubbletea` and `ui/bubbletea` with the
-   README block's `go get` (`cmd-craft.md` §1; skip the `cmd/showcase` and theme lines
-   when the app and its theme exist; never copy the two packages in), then lift
-   `main.go`'s harness (`render(w, h)`, `setState`, `states`, `overlays`, `scrolls`,
-   `overlayPages`, `unjudgedPages`, `openOverlay`, the `-golden`/`-out` flags) into the
-   app's package, then copy `harness_test.go` (77 lines) and point its `harnessApp`
+   README block's `go get` (`cmd-craft.md` §1; skip the `cmd/skeleton` and theme lines
+   when the app and its theme exist; never copy the two packages in), then lift the
+   harness from the skeleton's `main.go` (`kit/cmd/skeleton`, the smallest one to lift
+   from: `setState`, `states`, `overlays`, `scrolls`, `overlayPages`, `unjudgedPages`,
+   `openOverlay`, `frameSize`, `frameName`, the `-golden`/`-out` flags) and its
+   `render(w, h)` shape into the app's package, then copy its `harness_test.go` (about
+   70 lines) and point its `harnessApp`
    methods at the app's model (`kit/README.md`): its `TestHarness` runs the kit's tests,
    imported, against the app. Written by hand, the harness loses those tests
    (`HelpIsHandled`, footprint, contrast). Never copy the kit's test files into the

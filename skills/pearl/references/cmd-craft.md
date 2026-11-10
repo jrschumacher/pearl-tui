@@ -17,17 +17,19 @@ screen by screen.
 
 Run the block in `kit/README.md` § Using it in a project, as written: it imports
 `theme/bubbletea` and `ui/bubbletea` with `go get` (the kit is a dependency: never copy
-those two packages into the project) and copies `cmd/showcase` (as `cmd/<app>`, tests
-included) and the donor theme as `themes/<brand>.json` with `themes/embed.go` (the
-binary carries the theme: no `-theme` flag, no path that breaks when it moves), and CI
-proves it passes in a fresh module. Follow its notes on skipping the
-`<closest>.json` line when `brand` ran first, on what to delete once your screens are
-in, and on a root model outside `package main` (an existing app's `internal/app`: the
-`harness_test.go` moves beside it and changes only its package clause). Then read
-`cmd/<app>/{app.go,screens.go,main.go}`: the model, `render(w,h)`, the harness. A cold
-rebuild from these references loses half the idiom at once (the focus gutter, the
-filled-row backgrounds, the help truncation, the scrim order). The code already has
-them.
+those two packages into the project) and copies `cmd/skeleton` (as `cmd/<app>`, its
+harness test included) and the donor theme as `themes/<brand>.json` with
+`themes/embed.go` (the binary carries the theme: no `-theme` flag, no path that breaks
+when it moves); CI proves the result passes its tests, `tuilint code` and `-golden` in a
+fresh module with nothing deleted. Skip the `<closest>.json` line when `brand` ran
+first; for a root model outside `package main` (an existing app's `internal/app`) follow
+the README's note. Then read `cmd/<app>/{main.go,app.go,screens.go}`: the tables, the
+model with its action tables, `render(w,h)`, and grow your screens into them. For a
+pattern the skeleton lacks (a wizard, scrolling panes, toasts with undo, a grace window)
+read the showcase (`kit/cmd/showcase`: `setup.go`, `rollout.go`, `app.go`) and build it
+on your states; never copy the showcase in. A cold rebuild from these references loses
+half the idiom at once (the focus gutter, the filled-row backgrounds, the help
+truncation, the scrim order). The code already has them.
 
 ## 2. Skeleton First, With The Harness
 
@@ -52,7 +54,7 @@ Before any real screen:
   one where no key does; leaving a focused page out of `overlayPages` to dodge that
   fails `TestOverlayTablesMatchTheStates` instead
 - flags: `-golden -w -h`, `-state`, `-out -sizes`, `-theme`, `-light`, `-ascii`,
-  `-profile`, `-frame`
+  `-profile` (the skeleton's), and `-frame` once something animates (the showcase's)
 - `_test.go` asserting the footprint at the floor `TUI.md` § Size floor names (60×18 in
   the kit) and the four sizes above it (80×24, 100×30, 120×40, 200×60), and `toosmall`
   one size below it (50×14 in the kit, checked by `-golden`/`-out`)

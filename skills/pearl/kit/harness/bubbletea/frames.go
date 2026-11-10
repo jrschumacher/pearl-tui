@@ -20,7 +20,7 @@ import (
 )
 
 // testThemes finds the theme JSONs two levels up: kit/themes here, and the project's
-// themes/ once the showcase is copied to cmd/<app> (kit/README.md). Finding none fails,
+// themes/ once the skeleton is copied to cmd/<app> (kit/README.md). Finding none fails,
 // so a copied test never passes by testing nothing.
 func Themes(t *testing.T) []string {
 	t.Helper()

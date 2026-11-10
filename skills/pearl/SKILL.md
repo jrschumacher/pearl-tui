@@ -27,7 +27,7 @@ The laws, the brand read, colour, layout, the confirm ladder and the verify loop
 framework-neutral: they judge cells, and `cellshot`, `tuilint frames`, `palette` and
 `diversity` read `.ansi` frames and theme files whatever drew them. Bubble Tea v2 (Go,
 with Lip Gloss and Bubbles, and Huh where an app has it) is the one framework the kit (`kit/theme/bubbletea`,
-`kit/ui/bubbletea`, `kit/cmd/showcase`) and `tuilint code` support today. Its references:
+`kit/ui/bubbletea`, `kit/cmd/skeleton`, `kit/cmd/showcase`) and `tuilint code` support today. Its references:
 `bubbletea-architecture.md` whole, and the sections a mixed reference names in its
 italic *Bubble Tea:* line (`idiom.md`, `components.md`, `interaction.md`, `brand.md`,
 `anti-patterns.md`, `cmd-init.md`, `cmd-craft.md`, `cmd-restyle.md`, `medium.md`,
@@ -45,12 +45,13 @@ supports only Bubble Tea today; its design references still read as guidance the
 2. **Load the command's reference** from the table below, plus the domain references it
    names. Load nothing else up front.
 3. **Start from the kit, never from prose.** `kit/` is a compiling Bubble Tea v2 module:
-   `theme/bubbletea/` (engine), `ui/bubbletea/` (components), `cmd/showcase/` (a full
-   reference app with the harness), `themes/` (eight themes: ink, the default, and seven
-   brands). Import `theme` and `ui` as a dependency and copy only the showcase, as the
-   skeleton of the app (`kit/README.md` § Using it in a project): a copied kit is 12,000
-   lines nobody reviews, and a cold rebuild from descriptions loses half the idiom at
-   once.
+   `theme/bubbletea/` (engine), `ui/bubbletea/` (components), `cmd/skeleton/` (the
+   smallest app on the kit's shape, with the harness), `cmd/showcase/` (a full reference
+   app), `themes/` (eight themes: ink, the default, and seven brands). Import `theme` and
+   `ui` as a dependency, copy only the skeleton as the app (`kit/README.md` § Using it in
+   a project: five lines, nothing to delete after), and read the showcase for a worked
+   example of a pattern: a copied kit is 12,000 lines nobody reviews, and a cold rebuild
+   from descriptions loses half the idiom at once.
 4. **Build the tools** once per project, into the project's own `.tuitools/`, from the
    project root: `go -C <dir holding this file>/tools build -o "$PWD/.tuitools/" ./cmd/...`
    (absolute, because `go -C` resolves a relative `-o` in the tools directory), then
@@ -261,7 +262,9 @@ a `TUI.md`: fix what it reports.
 state × five sizes and asserts the footprint and contrast. `go run ./cmd/showcase
 -theme themes/halyard.json` runs the reference app. Its `-out` flag writes every state
 for `cellshot`. A project imports `theme/bubbletea` and `ui/bubbletea` with the README
-block (`go get`, at the skill's version) and copies `cmd/showcase` as its own `cmd/<app>`.
+block (`go get`, at the skill's version) and copies `cmd/skeleton` as its own `cmd/<app>`;
+the showcase is the worked example to read (a wizard in `setup.go`, panes in
+`rollout.go`, toasts and the grace window in `app.go`), never to copy.
 
 You can build terminal interfaces people screenshot and share. The libraries are
 capable of it, and Crush proves it. The difference is decisions: make them in the brand

@@ -238,11 +238,12 @@ at the floor (help, and a write's verbatim body), and `overlayPages` the pages t
 over (`unjudgedPages` the Huh-form pages whose focus can't blur, with why);
 `openOverlay` opens one over the page shown. The harness tests read these tables, hold
 them to the states,
-and name no state of the showcase's but `help` and `toosmall`: they are the kit's
+and name no state of an app's but `help` and `toosmall`: they are the kit's
 `harness/bubbletea` package, which an app imports and runs from the one test in its
 `harness_test.go` (`kit/README.md`).
 `View` and the harness share one `render(w, h)`, so the PNG is the program. See
-`kit/cmd/showcase/main.go`. A `_test.go` renders every state at the floor (60×18 in
+`kit/cmd/skeleton/main.go`, the smallest app that has all of it (`kit/cmd/showcase/main.go`
+has the same at full size). A `_test.go` renders every state at the floor (60×18 in
 the kit, still a full layout; `TUI.md` § Size floor may raise it), 80×24, 100×30,
 120×40 and 200×60 in every theme and mode and asserts the footprint
 (`kit/harness/bubbletea/frames.go`, the floor read from `minW`/`minH`); `toosmall` is skipped there
@@ -254,7 +255,7 @@ and checked by `-golden`/`-out` one size below the floor (50×14 in the kit).
 cmd/<app>/main.go        flags, harness, tea.NewProgram
 cmd/<app>/app.go         the root model: state, Update, the action tables, the clock
 cmd/<app>/screens.go     render(w,h): every region into its rectangle, overlays last
-cmd/<app>/fixtures.go    realistic data for every state (replaces the showcase's data.go)
+cmd/<app>/fixtures.go    realistic data for every state, in your domain's shape
 cmd/<app>/harness_test.go  runs the kit's footprint, contrast and behaviour tests on this app
 cmd/<app>/*_test.go      your own tests: what your screens do
 themes/<brand>.json      the one theme, embedded by themes/embed.go
@@ -262,5 +263,8 @@ go.mod                   requires the kit: its theme and ui packages are importe
 ```
 
 A component the kit lacks is a file in `cmd/<app>`, drawn with `theme` and `ui.Canvas`.
-One package, `cmd/<app>`, because that is where `kit/README.md`'s block puts the
-showcase and its tests: a model in `internal/app` splits the harness from its states.
+This is the layout of `kit/cmd/skeleton`, which `kit/README.md`'s block copies as
+`cmd/<app>` and which passes the harness as copied; grow your screens into it, and read
+the showcase for a pattern it lacks (a wizard, panes, toasts). One package,
+`cmd/<app>`, because that is where the block puts the skeleton and its tests: a model in
+`internal/app` splits the harness from its states.
