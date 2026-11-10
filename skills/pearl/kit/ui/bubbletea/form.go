@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"os"
 	"strings"
 	"time"
 
@@ -14,7 +13,9 @@ import (
 	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
 
-// Huh forms, themed from the brand. Huh keeps its own mechanics and layout
+// Huh forms, themed from the brand: the optional path, for an app that already has Huh
+// forms. A new form uses the kit's own fields (fields.go: Input, Select, Confirm),
+// which theme a blurred input and keep an error under its field. Huh keeps its own mechanics and layout
 // (typing, cursors, validation, focus order, sizing, accessible prompts); the
 // kit only gives it the theme's colours, glyphs and button shape through
 // Huh's public theme API. Left on its default theme, Huh draws Charm's palette
@@ -30,13 +31,6 @@ import (
 //
 // It lives in ui, not theme: theme is the dependency-free contract any renderer
 // reads; Huh is one consumer of it, like every other component here.
-
-// Accessible reports whether the user asked for the accessible mode: plain
-// line-by-line prompts, no alt screen, no spinners. ACCESSIBLE is the
-// variable Huh documents; TERM=dumb is how Huh itself decides.
-func Accessible() bool {
-	return os.Getenv("ACCESSIBLE") != "" || os.Getenv("TERM") == "dumb"
-}
 
 // HuhTheme maps the resolved theme onto Huh. It ignores Huh's isDark flag:
 // Huh assumes a light terminal until a tea.BackgroundColorMsg reaches the

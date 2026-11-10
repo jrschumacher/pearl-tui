@@ -215,13 +215,17 @@ The gutter bar (`ui.Gutter`) marks the focused field and spans all its rows. Rad
 description beside each option. Errors appear under the field in error colour, with
 words. The primary button is filled because Enter triggers it, and the footer says so.
 
-## Forms And Wizards — `ui.NewForm`, `ui.Steps`, `ui.Summary`
+## Forms And Wizards — `ui.Input`, `ui.Select`, `ui.Confirm`, `ui.Steps`, `ui.Summary`
 
-Huh does the input; the kit does the look and the frame around it. The reference is the
+The kit's fields do the input (`ui.NewInput`, `ui.NewSelect`, `ui.NewConfirm`, in
+`fields.go`); the app owns them, routes keys to the focused one from its action table and
+draws each with `View(t, w, focused)`, `Height(t, w)` rows. The reference is the
 showcase's first-run setup (`go run ./cmd/showcase -first-run`, harness states `setup-*`).
-Huh field titles are the app's text: the kit re-cases only its own fixed copy (`t.Copy`
-for labels such as tab names in `labelCase`, `t.Sentence` for a sentence such as "Canceled."
-in `titleCase`), so write a field's title in the brand's case.
+An app that already has Huh forms keeps them, through `ui.NewForm`
+(`bubbletea-architecture.md` § Huh v2). Field titles are the app's text: the kit re-cases
+only its own fixed copy (`t.Copy` for labels such as tab names in `labelCase`,
+`t.Sentence` for a sentence such as "Canceled." in `titleCase`), so write a field's title
+in the brand's case, or pass it through `t.Copy` as the showcase does.
 
 ```
 H A L Y A R D                                         setup / 2/6 Sign-in
@@ -244,7 +248,7 @@ Sign-in ──────────────────── staging-eu-
   edit", "Discard setup")`), and so does a review whose act is what the flow is for (a
   purchase, a booking). Only a review that destroys or replaces what's running (a deploy,
   a rollback) is the confirmation with focus on its safe button (`interaction.md`
-  § Confirm By Consequence, rung 3). Every button names what it does: no bare `Cancel`. A yes/no is `huh.NewConfirm` with the action as its affirmative.
+  § Confirm By Consequence, rung 3). Every button names what it does: no bare `Cancel`. A yes/no is `ui.NewConfirm(title, desc, "Turn on", "Not now", value)`: the action first.
 - **Waits say what to do if nothing happens**: the URL to open by hand, the code, elapsed
   time, `esc cancel sign-in`; a timeout becomes a failure state with Retry.
 - **Esc goes back** from step 2 on; on step 1 it asks before dropping typed input.

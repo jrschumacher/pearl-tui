@@ -22,7 +22,6 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/huh/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
@@ -50,11 +49,11 @@ var overlays = []string{"palette", "confirm", "help"}
 var scrolls = []string{"help"}
 
 // overlayPages are the states an overlay is opened over in the tests: every screen
-// that draws a selection, a focused field or a caret. (Not the setup wizard: a Huh
-// form has no way to draw its focused field blurred short of Field.Blur, which
-// validates it.)
+// that draws a selection, a focused field or a caret: the setup wizard's too, whose
+// fields (ui.Select, ui.Input, ui.Confirm) draw blurred under a dialog.
 var overlayPages = []string{"services", "deploys", "rollout", "rollout-scrolled", "assistant", "deploy", "deploy-review", "services-toast", "services-undo",
-	"services-filter", "services-filtered"}
+	"services-filter", "services-filtered",
+	"setup-target", "setup-namespace", "setup-invalid", "setup-auth", "setup-alerts", "setup-review", "setup-failed", "setup-done"}
 
 // unjudgedPages are the states that draw a focus mark that an overlay can't blur, kept
 // out of overlayPages, each with its reason (repeat it in TUI.md § Decisions). Only a
@@ -63,19 +62,7 @@ var overlayPages = []string{"services", "deploys", "rollout", "rollout-scrolled"
 // needs no entry: the tests find the twin.
 // TestOverlayTablesMatchTheStates fails an empty reason, the main screen and an entry
 // whose focus does blur under every overlay.
-var unjudgedPages = map[string]string{
-	"setup-target":    huhFocus,
-	"setup-namespace": huhFocus,
-	"setup-invalid":   huhFocus,
-	"setup-auth":      huhFocus,
-	"setup-alerts":    huhFocus,
-	"setup-review":    huhFocus,
-	"setup-failed":    huhFocus,
-	"setup-done":      huhFocus,
-}
-
-// huhFocus is why the wizard's pages are unjudged.
-const huhFocus = "a Huh form: its focused field can't be drawn blurred short of Field.Blur, which validates it"
+var unjudgedPages = map[string]string{}
 
 // openOverlay opens the overlay s over whatever page m shows, as its key would.
 func (m *app) openOverlay(s string) {
@@ -162,22 +149,20 @@ func (m *app) setupState(s string, frame int) {
 		return
 	}
 	if s == "setup-namespace" || s == "setup-invalid" { // the input focused, typed into: one cursor, one prompt
-		// the input is the form's second group: Huh gets there by a command
-		upd := func(msg tea.Msg) tea.Cmd { _, c := f.form.Update(msg); return c }
-		ui.Settle(upd, upd(huh.NextField()))
+		m.key(tea.KeyPressMsg{Code: tea.KeyTab}) // the cluster's select to the namespace
 		typed := "payments"
 		if s == "setup-invalid" {
-			typed = "Payments EU" // Huh validates on enter and keeps focus here
+			typed = "Payments EU" // enter checks it, and the field keeps the focus
 		}
 		for _, r := range typed {
-			f.form.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
+			m.key(tea.KeyPressMsg{Code: r, Text: string(r)})
 		}
 		if s == "setup-invalid" {
-			f.form.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+			m.key(tea.KeyPressMsg{Code: tea.KeyEnter})
 		}
 		return
 	}
-	f.namespace = "payments"
+	f.namespace.Model.SetValue("payments")
 	steps := map[string]setupStep{"setup-auth": stAuth, "setup-alerts": stAlerts, "setup-review": stReview,
 		"setup-signin": stSignin, "setup-failed": stSignin, "setup-done": stDone}
 	for st := stAuth; st <= steps[s]; st++ {

@@ -259,7 +259,9 @@ func testOverlayFrameHasOneFocus(t *testing.T) {
 // quieter mark an unfocused page keeps, not a focus. Under a "fill" or "inverse"
 // selection the focused row is the mark: its cells in the selection's reverse video
 // (a blurred one keeps a bgSubtle band), or a list page in such a theme drew no mark
-// at all and the focus tests judged nothing.
+// at all and the focus tests judged nothing. A glyph whose ASCII twin takes several
+// cells (→ as "->", » as ">>") is the mark in every cell of the twin: read as one cell,
+// a select's "->" cursor and an input's ">>" prompt were no focus at all.
 func FocusMarks(m App, c *ui.Canvas) []uv.Position {
 	t := m.Theme()
 	marks := []struct {
@@ -278,14 +280,32 @@ func FocusMarks(m App, c *ui.Canvas) []uv.Position {
 			if cell == nil || next == nil {
 				continue
 			}
-			// a mark stands before a blank, or, the cursor, before a bracket button's "["
-			blank := strings.TrimSpace(next.Content) == ""
 			for _, mk := range marks {
-				if !blank && (mk.g != t.G.Cursor || next.Content != "[") {
+				// a mark of several cells is an ASCII twin ("->" for →, ">>" for »): every
+				// cell of it is the mark
+				rs := []rune(mk.g)
+				n := len(rs)
+				if n < 2 || !ascii(mk.g) {
+					n = 1
+				}
+				spelt := mk.g != "" && sameRGB(cell.Style.Fg, mk.st.GetForeground())
+				for i := 0; spelt && i < n; i++ {
+					want := mk.g
+					if n > 1 {
+						want = string(rs[i])
+					}
+					spelt = CellText(c, x+i, y) == want
+				}
+				if !spelt {
 					continue
 				}
-				if mk.g != "" && cell.Content == mk.g && sameRGB(cell.Style.Fg, mk.st.GetForeground()) {
-					out = append(out, uv.Pos(x, y))
+				// a mark stands before a blank, or, the cursor, before a bracket button's "["
+				after := CellText(c, x+n, y)
+				if strings.TrimSpace(after) != "" && (mk.g != t.G.Cursor || after != "[") {
+					continue
+				}
+				for i := range n {
+					out = append(out, uv.Pos(x+i, y))
 				}
 			}
 		}
@@ -530,4 +550,14 @@ func helpNames(m App) []string {
 		}
 	}
 	return named
+}
+
+// ascii reports whether s is all ASCII: a mark of several cells is a twin only then.
+func ascii(s string) bool {
+	for _, r := range s {
+		if r > 0x7e {
+			return false
+		}
+	}
+	return true
 }

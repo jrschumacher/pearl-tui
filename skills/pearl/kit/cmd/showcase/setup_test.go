@@ -16,8 +16,8 @@ import (
 )
 
 // drive presses keys the way a running program would deliver them: each
-// key, then every message its commands produce (Huh moves between fields
-// by Cmd, not in Update).
+// key, then every message its commands produce (a sign-in's result, a toast's
+// clock), the timers dropped.
 func drive(m *app, keys ...string) {
 	for _, k := range keys {
 		cmd := m.key(press(k))
@@ -118,7 +118,7 @@ func TestSetupCounterAdvancesPastReview(t *testing.T) {
 	step("5/6 " + m.t.Copy("Connect"))
 	m.Update(signedInMsg{m.setup.gen})
 	step("6/6 " + m.t.Copy("Finish"))
-	if m.setup.namespace != "pay" || m.setup.auth != "device" || !m.setup.alerts {
+	if m.setup.namespace.Value() != "pay" || m.setup.auth.Value() != "device" || !m.setup.alerts.Value() {
 		t.Fatalf("values lost on the way: %+v", *m.setup)
 	}
 	drive(m, "enter")
@@ -132,7 +132,7 @@ func TestSetupCounterAdvancesPastReview(t *testing.T) {
 func TestSetupEscKeepsInput(t *testing.T) {
 	m := fixture(t, "setup-namespace")
 	drive(m, "esc")
-	if m.screen != scrSetup || m.setup.namespace != "payments" {
+	if m.screen != scrSetup || m.setup.namespace.Value() != "payments" {
 		t.Fatal("one esc with typed input left setup")
 	}
 	if n, ok := m.toasts.Current(); !ok || !strings.Contains(n.Label+n.Msg, "ESC AGAIN") {
@@ -145,8 +145,8 @@ func TestSetupEscKeepsInput(t *testing.T) {
 
 	a := fixture(t, "setup-alerts")
 	drive(a, "esc", "esc")
-	if a.setup.step != stTarget || a.setup.namespace != "payments" {
-		t.Fatalf("back to step %d lost the namespace %q", a.setup.step, a.setup.namespace)
+	if a.setup.step != stTarget || a.setup.namespace.Value() != "payments" {
+		t.Fatalf("back to step %d lost the namespace %q", a.setup.step, a.setup.namespace.Value())
 	}
 	if !strings.Contains(screenText(a, 120, 40), "payments") {
 		t.Fatal("the rebuilt first step does not show the typed namespace")
@@ -173,8 +173,8 @@ func TestSetupStaleSignin(t *testing.T) {
 	}
 }
 
-// The select cursor and an input prompt never show at once, and a blurred
-// input draws no prompt glyph at all.
+// The select cursor and an input prompt never show at once on the step that has both
+// fields, and a blurred input draws no prompt glyph at all.
 func TestSetupOneCursor(t *testing.T) {
 	files := testThemes(t)
 	for _, f := range files {
@@ -182,9 +182,8 @@ func TestSetupOneCursor(t *testing.T) {
 		m := newApp(tf, true, false)
 		for _, s := range []string{"setup-target", "setup-namespace"} {
 			m.setState(s)
-			g := m.t.G
-			m.render(120, 40) // lays the form out
-			body := ansi.Strip(m.setup.form.View())
+			g, sf := m.t.G, m.setup
+			body := ansi.Strip(strings.Join(append(sf.cluster.View(m.t, 60, sf.field == 0), sf.namespace.View(m.t, 60, sf.field == 1)...), "\n"))
 			cursors := strings.Count(body, g.Cursor+" ") // the select's selector
 			prompts := strings.Count(body, g.Prompt+" ")
 			if g.Cursor == g.Prompt {
@@ -250,9 +249,9 @@ func TestSetupNoDefaultColours(t *testing.T) {
 	}
 }
 
-// lines hands a reader out one line per Read, like a terminal does. Huh's
-// accessible prompts make a new bufio.Scanner per question, so a reader
-// that returns everything at once feeds only the first one.
+// lines hands a reader out one line per Read, like a terminal does: the
+// prompts must read one answer per question from one reader, never buffer
+// the next question's answer away.
 type lines struct{ rest []string }
 
 func (l *lines) Read(p []byte) (int, error) {
@@ -288,7 +287,7 @@ func TestAccessibleSetup(t *testing.T) {
 }
 
 // The wizard's own copy follows the brand's case like the kit's: its step names and the
-// Huh field titles go through t.Copy, so a labelCase lower brand (quire) draws
+// field titles go through t.Copy, so a labelCase lower brand (quire) draws
 // "cluster", "sign-in", "namespace", and a sentence-case one keeps them as written. A
 // title of several words is a label too: quire's "sign in with" once drew "Sign in with"
 // beside "cluster" and "namespace", because t.Copy took any text with a space for a
@@ -299,9 +298,9 @@ func TestSetupCopyFollowsTheme(t *testing.T) {
 		t.Skip("quire.json is the kit's; a copied project has its own themes")
 	}
 	for _, c := range []struct {
-		name            string
-		f               theme.File
-		step, huh, auth string
+		name              string
+		f                 theme.File
+		step, field, auth string
 	}{
 		{"quire", q, "cluster", "namespace", "sign in with"},
 		{"sentence", testTheme(t, "halyard.json"), "Cluster", "Namespace", "Sign in with"},
@@ -317,7 +316,7 @@ func TestSetupCopyFollowsTheme(t *testing.T) {
 		m := newApp(c.f, true, false)
 		m.setState("setup-namespace")
 		frame := ansi.Strip(m.render(100, 30).String())
-		for _, want := range []string{c.step, c.huh} {
+		for _, want := range []string{c.step, c.field} {
 			if !strings.Contains(frame, want) {
 				t.Errorf("%s: setup frame lacks %q:\n%s", c.name, want, frame)
 			}

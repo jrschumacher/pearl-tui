@@ -92,6 +92,12 @@ func (m *model) View() tea.View {                            // returns tea.View
 
 ### Huh v2
 
+The kit's own fields (`ui.NewInput`, `ui.NewSelect`, `ui.NewConfirm`; `components.md`
+§ Forms And Wizards) are the default for a form: they are plain structs on Bubbles'
+`textinput` and the kit's buttons, themed focused and blurred, and the showcase's wizard
+runs on them. `ui.NewForm` is for an app that already has Huh forms; the rest of this
+section is for that app.
+
 Huh keeps its own mechanics and layout: typing, focus order, validation, sizing, button
 alignment. The kit gives it only the theme, through Huh's public theme API. Never
 `huh.NewForm` bare: `tuilint code` fails it [C-HUHTHEME] and Huh's defaults render.
@@ -118,8 +124,8 @@ What Huh v2.0.3 does that the theme can't change, and what to do in the app:
 |---|---|
 | assumes a light terminal until a `BackgroundColorMsg` reaches the form | nothing: `HuhTheme` returns the resolved theme whatever `isDark` says |
 | a field keeps the first theme it's given | rebuild the step's form on a theme change |
-| its theme reaches only a focused `huh.Input`; a blurred one draws in Bubbles' default colours | give a text input a group of its own, so it is never on screen blurred |
-| leaves room for a group's error rows only when `WithHeight` runs, and draws one row past the height | call `WithHeight` on every draw, with one row less than the rectangle |
+| its theme reaches only a focused `huh.Input`; a blurred one draws in Bubbles' default colours | if you use Huh: give a text input a group of its own, so it is never on screen blurred (the kit's `ui.Input` has no such gap) |
+| leaves room for a group's error rows only when `WithHeight` runs, and draws one row past the height | if you use Huh: call `WithHeight` on every draw, with one row less than the rectangle (`ui.Input` draws its error under the field, inside its `Height`) |
 | the spinner is `#F780E2`, says "Loading...", no gap before the title | `ui.HuhSpinner(t, title)`; `ui.BubblesSpinner(t)` for Bubbles |
 | accessible prompts print theme colours as raw escapes | nothing: `NewForm` uses Huh's colourless base theme when accessible |
 | the input's cursor blink runs its own timer | accepted: the one exception to one frame clock |
