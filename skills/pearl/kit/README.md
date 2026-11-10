@@ -46,8 +46,11 @@ ui/bubbletea/   canvas.go   Canvas: draw into rectangles, Scrim, Backfill, Paint
                 anim.go     FrameInterval, Anim (brand spinner or the Crush scramble), Spinner,
                             Busy (the one-cell working mark for a status column)
                 field.go    Field: the two-glyph brand backdrop
-                form.go     Huh, themed and otherwise its own: HuhTheme, NewForm,
-                            Actions (button rows), HuhSpinner, BubblesSpinner, Settle, Accessible
+                fields.go   the kit's form fields: Input (Bubbles' textinput), Select and Option,
+                            Confirm, each drawn into a rectangle with its Height; Prompter
+                            (their plain prompts for ACCESSIBLE=1), Accessible
+                form.go     Huh, the optional path for an app with Huh forms: HuhTheme, NewForm,
+                            HuhSpinner; and Actions (button rows), BubblesSpinner, Settle
                 steps.go    Steps (Count, Row, List), Summary, SummaryStrip: wizard chrome
                 frame.go    RenderProfile, Downsample, CheckSize: what an app's harness flags need
 harness/bubbletea/
@@ -89,10 +92,11 @@ or meaning the kit can't draw (`theme.CheckLadder`).
   routed to the pane under the pointer (`ui.Hit`) through a `ui.WheelGate`, a click that
   focuses, `tab` between panes, `←→` offered only while the focused pane is wide, mouse
   on for this screen alone (`View.MouseMode`), and help's Mouse section.
-- `setup.go`: the first-run wizard on Huh (`-first-run`): one themed Huh form per input
-  step, kit screens for review and sign-in, a step row that counts past the review, a
-  summary that marks defaults, and keys only reaching Huh through the action table.
-  `ACCESSIBLE=1` runs the same fields as plain prompts.
+- `setup.go`: the first-run wizard on the kit's fields (`-first-run`): a select and an
+  input on one screen, a select with a description column, two confirms, kit screens
+  for review and sign-in, a step row that counts past the review, a summary that marks
+  defaults, and keys only reaching a field through the action table. `ACCESSIBLE=1`
+  asks the same fields as plain prompts (`ui.Prompter`).
 - `main.go`: the harness (`-golden`, `-state`, `-out`, `-sizes`, `-theme`, `-light`,
   `-ascii`, `-profile`, `-frame`), `setState` for every named state, and the app's
   tables the harness reads: `states`, `overlays` (the states that open a dialog,
@@ -123,8 +127,8 @@ or meaning the kit can't draw (`theme.CheckLadder`).
   scrolls the pane under the pointer and never the selection, shift+wheel goes
   sideways, `←→` only while wide, a resize clamps, a burst is one notch, help's Mouse
   section) and `setup_test.go` (the wizard's review defaults to Continue,
-  button order, the step count past review, esc keeps input, no Huh default colour in
-  any frame, the accessible transcript).
+  button order, the step count past review, esc keeps input, no Bubbles or Huh default
+  colour in any frame, the accessible transcript).
 
 ```sh
 go test ./...
@@ -152,8 +156,9 @@ go mod tidy && go test ./...
 ```
 
 The kit's `go.mod` carries the versions it is tested with (Bubble Tea, Lip Gloss, Bubbles,
-Huh, Ultraviolet), so `go get` brings them: don't pin them again. `form.go` only themes
-Huh, through Huh's public theme API. CI runs this block in a fresh module on every
+Huh, Ultraviolet), so `go get` brings them: don't pin them again. Forms use the kit's
+fields (`fields.go`); `form.go` only themes Huh, through Huh's public theme API, for an
+app that already has Huh forms. CI runs this block in a fresh module on every
 change, against the checkout.
 
 What is copied is yours to rewrite: `cmd/showcase` is the app's skeleton (the root

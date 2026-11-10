@@ -48,7 +48,7 @@ pink-purple, emoji, rounded boxes around regions, "Loading..."
 
 ### Stack
 Go 1.26.7; charm.land/bubbletea/v2 v2.1.0, lipgloss/v2 v2.0.6, bubbles/v2 v2.2.1,
-huh/v2 v2.0.3; ultraviolet v0.0.0-20261008173134-6b8d4baf91b4.
+ultraviolet v0.0.0-20261008173134-6b8d4baf91b4.
 The kit's theme/bubbletea and ui/bubbletea imported (go.mod requires the kit).
 
 ### Root model and regions
@@ -62,8 +62,8 @@ One *model in internal/app; regions are structs drawn into rectangles (x,y w×h 
 focus: list | detail        overlays: palette, confirm, help (front one gets keys)
 
 ### Forms
-Huh v2 for the deploy form, themed with the kit's `ui.NewForm` from *theme.Theme.
-Hand-written: none.
+The kit's fields (ui.Input, ui.Select, ui.Confirm) for the deploy form.
+Huh: none.
 
 ### Components
 Bubbles: textinput (palette filter), viewport (logs). Kit ui: List, Table, Dialog, Footer.
@@ -96,8 +96,8 @@ Below 60×18: ui.TooSmall. Below 110 columns: the detail pane collapses to a sum
 Below 30 rows: the sparkline row goes.
 
 ### Accessible and non-TTY
-ACCESSIBLE=1 or --accessible: no alt screen, Huh WithAccessible(true), status as new
-lines. stdout not a TTY: --json, never escape codes.
+ACCESSIBLE=1 or --accessible: no alt screen, the fields asked through ui.Prompter,
+status as new lines. stdout not a TTY: --json, never escape codes.
 
 ## First slice
 services, deploy and confirm rendered from fixtures through the harness, every state at

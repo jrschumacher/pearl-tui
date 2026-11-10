@@ -215,22 +215,74 @@ The gutter bar (`ui.Gutter`) marks the focused field and spans all its rows. Rad
 description beside each option. Errors appear under the field in error colour, with
 words. The primary button is filled because Enter triggers it, and the footer says so.
 
-## Forms And Wizards — `ui.NewForm`, `ui.Steps`, `ui.Summary`
+## Forms And Wizards — `ui.Input`, `ui.Select`, `ui.Confirm`, `ui.Steps`, `ui.Summary`
 
-Huh does the input; the kit does the look and the frame around it. The reference is the
-showcase's first-run setup (`go run ./cmd/showcase -first-run`, harness states `setup-*`).
-Huh field titles are the app's text: the kit re-cases only its own fixed copy (`t.Copy`
-for labels such as tab names in `labelCase`, `t.Sentence` for a sentence such as "Canceled."
-in `titleCase`), so write a field's title in the brand's case.
+### The Kit's Fields By Default, Huh Where It Already Is
+
+A new form uses the kit's fields (`ui/bubbletea/fields.go`). Each is a plain struct the
+app owns: it routes keys to the focused one from its action table, moves focus between
+them itself, and draws each with `View(t, w, focused)` in `Height(t, w)` rows, so it
+lays a step out without reading rendered text. The reference is the showcase's
+first-run setup (`go run ./cmd/showcase -first-run`, harness states `setup-*`).
+
+| Field | Kit | Keys the app routes to it |
+|---|---|---|
+| one line of text, checked on enter | `ui.NewInput(title, desc, placeholder, value)`; `.Validate`, `.Submit()`, `.Value()` | printable keys, `backspace`, `←→ home end` → `.Update(msg)` |
+| one of a few options | `ui.NewSelect(title, desc, value, opts...)` with `ui.Option{Name, Desc, Value}`; `.Rows` caps it | `↑↓ k j` → `.Move(±1)` |
+| yes or no | `ui.NewConfirm(title, desc, "Turn on", "Not now", value)`; `.Value()`, `.Set(v)` | `←→ h l` → `.Acts.Move(±1)`; `y n` → `.Set` |
+
+```
+▎ Cluster                                   ← title bold, description muted
+▎ contexts in ~/.kube/config
+▎   prod-us-east-1      production          ← descriptions in one dim column
+▎ ▸ staging-eu-west-1   current context     ← the cursor and the theme's selection
+▎   dev-local           kind on this machine
+
+  Namespace                                 ← blurred: same cells, quieter, no prompt
+  where your services run; blank means default
+    payments
+```
+
+Focused, the field takes the gutter bar and its marks (the select's cursor, the input's
+prompt and cursor); blurred, the same cells in quieter ink with `Theme.BlurBar` where the
+cursor stood, so one field on screen is the focus and focus never moves the text. An
+input's error stands on the row under it (`× a namespace is lowercase letters…`) and
+goes when the value changes. With `ACCESSIBLE=1` (`ui.Accessible`) ask the same fields
+with `ui.NewPrompter(in, out)` and each field's `.Ask(p)`: one question per line, a
+numbered choice, blank keeps the value, a wrong answer says why and asks again.
+
+**Why the kit's own, not Huh:** Huh v2.0.3 was released 2026-03-10, its main branch has
+had no commit since 2026-08-12, and it requires Bubbles v2.1.1 and Bubble Tea v2.0.8 on
+main (v2.0.0 and v2.0.2 in the release) while the kit runs v2.2.1 and v2.1.0. Its theme
+API cannot reach a blurred input or keep an error inside the form's height, the two gaps
+the showcase used to work around.
+
+**Use Huh when the app already has Huh forms, or needs a field the kit lacks (a
+multi-select, a file picker, options that change as the user types, a multi-line text
+area, a note field); theme it with `ui.NewForm`** (`bubbletea-architecture.md` § Huh
+v2). A restyle keeps working Huh forms (`cmd-restyle.md`).
+
+- **DO** keep each field in the app's state for the whole flow, so going back shows what
+  was typed. **DON'T** rebuild a step's fields from copies of their values: the copy and
+  the field drift.
+- **DO** put two fields on one step when they decide one thing (a cluster and its
+  namespace), `tab`/`shift+tab` between them. **DON'T** write a form engine (groups, a
+  field interface, navigation tables): a wizard is one step per screen, and the app
+  moves between steps.
+
+Field titles are the app's text: the kit re-cases only its own fixed copy (`t.Copy` for
+labels such as tab names in `labelCase`, `t.Sentence` for a sentence such as "Canceled."
+in `titleCase`), so write a field's title in the brand's case, or pass it through
+`t.Copy` as the showcase does.
 
 ```
 H A L Y A R D                                         setup / 2/6 Sign-in
 ◆ Cluster ── ▲ Sign-in ── △ Alerts ── △ Review ── △ Connect ── △ Finish
 Sign-in ──────────────────── staging-eu-west-1   Summary ──────── DRAFT
 ▌ Sign in with                                   Cluster
-▌ ▸ Browser                                       staging-eu-west-1
-▌   Device code                                   Sign-in        default
-▌   Access token                                  Browser
+▌ ▸ Browser       single sign-on in a tab          staging-eu-west-1
+▌   Device code   approve on another device      Sign-in        default
+▌   Access token  paste one from your profile    Browser
 ```
 
 - **The frame is yours:** header bar with `Steps.Count()` ("2/6 Sign-in"), the step row
@@ -244,7 +296,7 @@ Sign-in ──────────────────── staging-eu-
   edit", "Discard setup")`), and so does a review whose act is what the flow is for (a
   purchase, a booking). Only a review that destroys or replaces what's running (a deploy,
   a rollback) is the confirmation with focus on its safe button (`interaction.md`
-  § Confirm By Consequence, rung 3). Every button names what it does: no bare `Cancel`. A yes/no is `huh.NewConfirm` with the action as its affirmative.
+  § Confirm By Consequence, rung 3). Every button names what it does: no bare `Cancel`. A yes/no is `ui.NewConfirm(title, desc, "Turn on", "Not now", value)`: the action first.
 - **Waits say what to do if nothing happens**: the URL to open by hand, the code, elapsed
   time, `esc cancel sign-in`; a timeout becomes a failure state with Retry.
 - **Esc goes back** from step 2 on; on step 1 it asks before dropping typed input.

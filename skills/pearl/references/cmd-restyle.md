@@ -10,10 +10,12 @@ that make the kit's own screens look designed, landed in small steps that each k
 running. A recolour is not a restyle: swapping a wizard's colours and keeping everything
 else leaves the richness missing.
 
-**Keep the libraries that work.** Huh for forms, Bubbles for lists and inputs, Glamour
-for markdown: theme them from the brand theme (`components.md` § Forms And Wizards) and draw them
-inside your own chrome. Rebuilding a working widget costs behaviour you'll then get wrong,
-and lines somebody has to review.
+**Keep the libraries that work.** Huh for the forms the app already has, Bubbles for
+lists and inputs, Glamour for markdown: theme them from the brand theme (`components.md`
+§ Forms And Wizards) and draw them inside your own chrome. Rebuilding a working widget
+costs behaviour you'll then get wrong, and lines somebody has to review. An existing Huh
+form stays on Huh, themed with `ui.NewForm`: the kit's fields are the default for a new
+form, not a reason to migrate one that works.
 
 ## Start From What The App Has
 
@@ -26,6 +28,11 @@ line (`collaborate.md` § Work Orders Carry The Conversation):
   can't do. A kit component comes in for a named gap, one line each.
 - **One style mapping.** `ui.HuhTheme` is the whole mapping of the theme onto Huh. A
   feature that needs a difference states that difference; it never copies the mapping.
+- **Huh forms stay Huh forms.** Move one to the kit's fields (`ui.NewInput`,
+  `ui.NewSelect`, `ui.NewConfirm`) only when the user asks, or when a Huh gap blocks the
+  design (`bubbletea-architecture.md` § Huh v2: a blurred input beside another field,
+  an error that must stay inside the form's height), and say which in § Decisions.
+  A migration nobody asked for is a rewrite of working input code.
 - **One rule, each delivery its own.** Where the app has a rich UI and a plain one (a
   line-by-line fallback), a rule both follow (what is valid, when to retry, what a
   result means) is one function both call. How keys and messages arrive stays separate:

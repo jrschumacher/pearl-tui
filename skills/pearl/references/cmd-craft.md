@@ -41,8 +41,9 @@ Before any real screen:
   `main.go` the tables the harness tests read: `overlays` (the states that open a
   dialog, `help` among them), `scrolls` (the overlays whose body may scroll at the
   floor, drawing its position: help, a write's verbatim body), `overlayPages` (the pages
-  they open over), `unjudgedPages` (Huh-form pages whose focus can't blur, each with
-  why, never the main screen) and `openOverlay`. The tests then judge every overlay
+  they open over, a form's steps among them), `unjudgedPages` (only for an app on Huh:
+  a Huh form's pages, whose focus can't blur, each with why, never the main screen) and
+  `openOverlay`. The tests then judge every overlay
   over every page with no edit, and hold the tables to the states; a test rewritten to
   skip an overlay hides the bug it was written for
 - a help key in the action table of every overlay but help itself and every page that
@@ -63,7 +64,10 @@ Run `-golden` at both sizes. It must pass while the screens are still stubs.
 For each screen in `TUI.md` § First slice, in that order, then the `Then:` list: draw the
 fixed chrome, then the body into rectangles from its § Screens block at both sizes
 (`layout.md` § Use The Room); use the components it names; add the states; wire the keys
-and the help. Name in its § Screens block the frame its identity shows on; the main
+and the help. A form is the kit's fields (`ui.NewInput`, `ui.NewSelect`,
+`ui.NewConfirm`; `components.md` § Forms And Wizards), kept in the model and drawn
+blurred under a dialog like any page; Huh only where the app already has it or needs a
+field the kit lacks, and `TUI.md` § Forms says which. Name in its § Screens block the frame its identity shows on; the main
 screen's default frame (nothing pressed) draws the read's move and signature (`brand.md`
 §6, question 2), and once it renders, the read's `skeleton:` line says what that frame
 shows, axis by axis: fix the frame where it misses the move, and the line where it

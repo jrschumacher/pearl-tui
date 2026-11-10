@@ -174,7 +174,7 @@ func newApp(f theme.File, dark, ascii bool) *app {
 	m.btn = 1
 	m.silenced = map[string]bool{}
 	m.refresh.rate = 2 // every 5 s
-	m.setup = newSetup()
+	m.setup = newSetup(m.t)
 	m.now = time.Now
 	return m
 }
@@ -274,19 +274,12 @@ func (m *app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// theme adds edges where that happens, so it must know the profile
 		m.profile = msg.Profile
 		m.resolve(m.t.Dark)
-		if m.screen == scrSetup && m.setup.form != nil {
-			return m, m.goStep(m.setup.step)
-		}
 	case tea.KeyboardEnhancementsMsg:
 		// shift+enter is told apart from enter: help draws it rather than its fallback
 		m.keys = msg.SupportsKeyDisambiguation()
 		m.resolve(m.t.Dark)
 	case tea.BackgroundColorMsg:
-		m.resolve(msg.IsDark())
-		if m.screen == scrSetup && m.setup.form != nil {
-			// Huh keeps the first theme a field is given: rebuild the step
-			return m, m.goStep(m.setup.step)
-		}
+		m.resolve(msg.IsDark()) // the setup fields take the theme on every draw: nothing to rebuild
 	case connectedMsg:
 		var cmd tea.Cmd
 		if m.screen == scrSplash {
@@ -334,11 +327,9 @@ func (m *app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		cmd := m.key(msg)
 		return m, tea.Batch(cmd, m.startClock())
-	default:
-		// everything else a Huh form asked for (its next-field messages,
-		// the cursor blink) goes back to the form
-		if m.screen == scrSetup {
-			return m, tea.Batch(m.toForm(msg), m.startClock())
+	case tea.PasteMsg:
+		if m.screen == scrSetup && m.ov == ovNone && m.setup.typing() {
+			return m, m.setup.namespace.Update(msg)
 		}
 	}
 	return m, nil
@@ -364,7 +355,7 @@ func (m *app) key(msg tea.KeyPressMsg) tea.Cmd {
 	// question mark can fire a command while the user is typing
 	if m.screen == scrSetup && m.ov == ovNone && m.setup.typing() && msg.Text != "" && msg.Mod&^tea.ModShift == 0 {
 		m.last, m.setup.escArmed = "type", false
-		return m.toForm(msg) // the Huh input does the editing
+		return m.setup.namespace.Update(msg) // the kit's input does the editing
 	}
 	if p := m.textTarget(); p != nil && msg.Text != "" && msg.Mod == 0 {
 		*p += msg.Text
