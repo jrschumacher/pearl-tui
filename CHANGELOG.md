@@ -5,6 +5,36 @@ What changed in the skill, its kit and its tools, by release. The commit history
 needs to know when updating. Versions follow SKILL.md's `metadata.version`, which the
 plugin manifests repeat.
 
+## 1.0.0-rc.4
+
+A new app starts from 626 lines, not the showcase's 6,000, and its forms need no Huh.
+
+**Breaking, for an app built on rc.3.** An app with Huh forms imports
+`…/kit/ui/bubbletea/huhform` and renames four calls: `ui.NewForm` → `huhform.NewForm`,
+`ui.HuhTheme` → `huhform.Theme`, `ui.HuhStyles` → `huhform.Styles`, `ui.HuhSpinner` →
+`huhform.Spinner`. An app without Huh forms changes nothing, and no longer links Huh.
+
+- **Copy the skeleton, not the showcase.** `kit/cmd/skeleton` is the app a project
+  copies as `cmd/<app>`: a list, an item's page, a confirm that opens on Cancel, the
+  keys overlay and the harness. `kit/README.md` § Using it in a project is five
+  commands with nothing to delete after; CI runs them as written with three themes.
+  `cmd/showcase` stays as the worked example to read (#108).
+- **The kit's own form fields.** `ui.NewInput`, `ui.NewSelect` and `ui.NewConfirm`
+  draw into a rectangle, themed focused and blurred, and `ui.NewPrompter` asks the same
+  questions as plain lines under `ACCESSIBLE=1`. The showcase's wizard is built on
+  them (#106).
+- **A secret input and a select that filters.** `Input.Secret` masks a password or
+  token and reads it with the terminal's echo off in the plain prompt.
+  `Select.Filterable` narrows the options as the user types: letters type, the arrows
+  move, and `esc` clears the filter before it means back (#109).
+- **Huh is optional.** Its helpers live in `kit/ui/bubbletea/huhform`, for an app that
+  already has Huh forms; `ui` imports no Huh, and CI holds it to that (#106, #107).
+- **A work order states its size.** `tuilint spec` warns [S-SIZE] on a work order with
+  no `size:` line, so a pull request's size is agreed before it is written (#103).
+- **Two more frame checks.** `tuilint frames` fails [F-FOCUS] on ASCII frames with
+  more than one focus column and [F-TOOSMALL] on a too-small frame that isn't below
+  the floor (#105).
+
 ## 1.0.0-rc.3
 
 An app built with the skill no longer carries the kit. A first pull request used to
