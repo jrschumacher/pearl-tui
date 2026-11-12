@@ -499,7 +499,10 @@ func (p *Prompter) ask(title, desc string, lines []string, question string) (str
 	return p.askLine(title, desc, lines, question, false)
 }
 
-// askLine is ask, reading a secret without echo when secret is set.
+// askLine is ask, reading a secret without echo when secret is set. A secret's answer
+// loses only its line ending, never its spaces: a space is a legal character of a
+// client secret or a passphrase, and the rich field keeps it, so the plain prompt must
+// give the same value. Only an empty line is blank; a line of spaces is an answer.
 func (p *Prompter) askLine(title, desc string, lines []string, question string, secret bool) (string, error) {
 	if desc != "" {
 		title += " (" + desc + ")"
@@ -513,6 +516,9 @@ func (p *Prompter) askLine(title, desc string, lines []string, question string, 
 	if err != nil && (l == "" || !errors.Is(err, io.EOF)) {
 		fmt.Fprintln(p.out)
 		return "", fmt.Errorf("%s: no answer: %w", title, err)
+	}
+	if secret {
+		return strings.TrimSuffix(strings.TrimSuffix(l, "\n"), "\r"), nil
 	}
 	return strings.TrimSpace(l), nil
 }
@@ -535,6 +541,8 @@ func (p *Prompter) readLine(secret bool) (string, error) {
 
 // Ask asks for f's value through p, until Validate passes. A Secret is read without
 // echo and its current value is never written: the hint says only that one is kept.
+// A Secret's answer is taken as typed, its leading and trailing spaces included, as
+// the rich field takes it; any other input's answer is trimmed.
 func (f *Input) Ask(p *Prompter) error {
 	q := "Type a value"
 	switch v := f.Value(); {
