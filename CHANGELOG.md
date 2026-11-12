@@ -26,7 +26,8 @@ A new app starts from 626 lines, not the showcase's 6,000, and its forms need no
 - **A secret input and a select that filters.** `Input.Secret` masks a password or
   token and reads it with the terminal's echo off in the plain prompt.
   `Select.Filterable` narrows the options as the user types: letters type, the arrows
-  move, and `esc` clears the filter before it means back (#109).
+  move, and `esc` clears the filter before it means back (#109). The plain prompt takes a
+  secret as typed, spaces at either end included, as the rich field does (#112).
 - **Huh is optional.** Its helpers live in `kit/ui/bubbletea/huhform`, for an app that
   already has Huh forms; `ui` imports no Huh, and CI holds it to that (#106, #107).
 - **A work order states its size.** `tuilint spec` warns [S-SIZE] on a work order with
