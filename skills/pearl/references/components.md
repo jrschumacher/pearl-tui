@@ -254,7 +254,8 @@ numbered choice, blank keeps the value, a wrong answer says why and asks again.
 
 **A token, password or key is `Secret: true`:** one mask per character focused and
 blurred (`*`, Bubbles' `EchoCharacter`), and `.Ask` reads it with the terminal's echo
-off and never prints it back, so the value is on no screen and in no scrollback. The
+off and never prints it back, so the value is on no screen and in no scrollback. It
+takes the answer as typed, spaces at either end included, as the rich field does. The
 kit composes no text with the value; write the secret's `Validate` errors without it.
 
 **A select of more options than a glance takes in is `Filterable`:** letters (`j` and

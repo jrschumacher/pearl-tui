@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"image/color"
+	"io"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -455,5 +456,50 @@ func TestInputSecretIsMasked(t *testing.T) {
 	}
 	if strings.Contains(out.String(), "hunter") {
 		t.Error("the plain prompt wrote the secret to its output")
+	}
+}
+
+// A secret's spaces are part of it (a client secret may hold any of %x20-7E): the plain
+// prompt gives the value the rich field gives, takes off the line ending only, and
+// treats only an empty line as "keep the current one" (#111).
+func TestSecretAskKeepsItsSpaces(t *testing.T) {
+	for _, secret := range []string{" secret ", "   ", " secret ", "no-spaces"} {
+		rich := NewInput("Token", "", "", "")
+		rich.Secret = true
+		for _, r := range secret {
+			rich.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
+		}
+		for _, eol := range []string{"\n", "\r\n", ""} { // a line, a Windows line, an input that ends
+			plain := NewInput("Token", "", "", "old")
+			plain.Secret = true
+			var out bytes.Buffer
+			if err := plain.Ask(NewPrompter(strings.NewReader(secret+eol), &out)); err != nil {
+				t.Fatalf("%q%q: %v", secret, eol, err)
+			}
+			if plain.Value() != secret {
+				t.Errorf("%q%q: the plain prompt gave %q", secret, eol, plain.Value())
+			}
+			if plain.Value() != rich.Value() {
+				t.Errorf("%q%q: plain %q, rich %q", secret, eol, plain.Value(), rich.Value())
+			}
+			if strings.TrimSpace(secret) != "" && strings.Contains(out.String(), strings.TrimSpace(secret)) {
+				t.Errorf("%q: the prompt wrote the secret", secret)
+			}
+		}
+	}
+	// only an empty line keeps the value; the next question still gets its own line
+	a, b := NewInput("First", "", "", "kept"), NewInput("Second", "", "", "")
+	a.Secret, b.Secret = true, true
+	p := NewPrompter(strings.NewReader("\r\n  two  \n"), io.Discard)
+	if err := a.Ask(p); err != nil || a.Value() != "kept" {
+		t.Errorf("an empty line: value %q, err %v; want the current one kept", a.Value(), err)
+	}
+	if err := b.Ask(p); err != nil || b.Value() != "  two  " {
+		t.Errorf("the second answer: %q, err %v", b.Value(), err)
+	}
+	// an input that isn't a secret is still trimmed
+	n := NewInput("Namespace", "", "", "")
+	if err := n.Ask(NewPrompter(strings.NewReader("  prod  \n"), io.Discard)); err != nil || n.Value() != "prod" {
+		t.Errorf("a plain input: %q, err %v; want it trimmed", n.Value(), err)
 	}
 }
