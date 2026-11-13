@@ -32,6 +32,13 @@ A new app starts from 626 lines, not the showcase's 6,000, and its forms need no
   already has Huh forms; `ui` imports no Huh, and CI holds it to that (#106, #107).
 - **A work order states its size.** `tuilint spec` warns [S-SIZE] on a work order with
   no `size:` line, so a pull request's size is agreed before it is written (#103).
+- **Eyes on an app with no harness.** `tuicap` (`skills/pearl/capture`, its own module)
+  runs any binary in a pty from a tape and writes its screens as the `.ansi` frames
+  `cellshot`, `tuilint frames` and the critic read, with the flow and the terminal
+  sequences it used; `-level privacy` keeps the layout and redacts the words. `restyle`
+  captures every flow before touching code and replays the tapes before it reports
+  done. `tuilint frames` fails [F-FOOTWRAP] on a key footer that wraps to a second row
+  and warns [F-SPREAD] on content spread down the height (#94).
 - **Two more frame checks.** `tuilint frames` fails [F-FOCUS] on ASCII frames with
   more than one focus column and [F-TOOSMALL] on a too-small frame that isn't below
   the floor (#105).
