@@ -11,8 +11,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme/bubbletea"
-	"tuikit/ui/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/ui/bubbletea"
 )
 
 // The rollout's tests drive the root model with the messages a terminal sends (wheel

@@ -82,9 +82,11 @@ Round 2, architecture (screens always; the rest only what the code didn't answer
    about. Default: one line per screen with its job (`services — see what is
    deployed`), one per command you found, plus each flow the docs describe that has
    no screen yet (an export, a background sync).
-2. **Forms.** Default: Huh v2 for input mechanics (select, input, confirm), themed from
-   the brand theme through the kit's `ui.NewForm` (`ui/bubbletea/form.go`), because
-   Huh's own theme is the indigo every Huh demo ships.
+2. **Forms.** Default: the kit's fields (`ui.NewInput`, `ui.NewSelect`,
+   `ui.NewConfirm`, `ui/bubbletea/fields.go`), because they theme a blurred field and
+   keep an error under its field, where Huh's theme can't reach. An app that already has
+   Huh forms keeps them, themed through `huhform.NewForm` (`ui/bubbletea/huhform`), and so
+   does a field the kit lacks (a multi-select, a file picker).
 3. **Slow work and the floor.** What is async (network, builds, streaming), can it be
    cancelled, and the smallest terminal. Default: every call is a `tea.Cmd` with a cancel;
    60×18 floor, designed at 80×24.
@@ -166,12 +168,12 @@ rows: <spinners for row-level work>; idle: nothing moves
 
 ### Stack
 Go 1.26.7; charm.land/bubbletea/v2 v2.1.0, lipgloss/v2 v2.0.6, bubbles/v2 v2.2.1,
-huh/v2 v2.0.3; ultraviolet v0.0.0-20261008173134-6b8d4baf91b4.
-The kit's theme/bubbletea and ui/bubbletea copied into internal/theme and internal/ui;
-the showcase into cmd/<app>.
+ultraviolet v0.0.0-20261008173134-6b8d4baf91b4; huh/v2 v2.0.3 <only while the app keeps Huh forms>.
+The kit's theme/bubbletea and ui/bubbletea imported (go.mod requires the kit);
+the kit's skeleton (cmd/skeleton) copied into cmd/<app>; the showcase read, never copied.
 
 ### Root model and regions
-One *model in cmd/<app> (where the kit's copy block puts the harness and its tests);
+One *model in cmd/<app> (where the kit's README block puts the harness and its tests);
 regions are structs drawn into rectangles (x,y w×h at 80×24):
 
     header   0,0    80×1
@@ -182,8 +184,8 @@ regions are structs drawn into rectangles (x,y w×h at 80×24):
 focus: list | detail        overlays: palette, confirm, help (front one gets keys)
 
 ### Forms
-Huh v2 for <setup, config, confirm>, themed with the kit's `ui.NewForm` from
-*theme.Theme. Hand-written: <field, because Huh can't show it>.
+The kit's fields (ui.Input, ui.Select, ui.Confirm) for <setup, config, confirm>.
+Huh: <none | the existing forms that stay on it, themed with the kit's `huhform.NewForm`, and why>.
 
 ### Components
 Bubbles: <textarea, viewport, …>. Kit ui: <List, Table, Dialog, Footer, …>.
@@ -219,8 +221,8 @@ largest: <realistic worst case, e.g. 50k log lines, 5k rows> → <virtual list |
 Below <floor; 60×18 unless the product raises it>: ui.TooSmall. Below 110 columns: <what collapses>. Below 30 rows: <what>.
 
 ### Accessible and non-TTY
-ACCESSIBLE=1 or --accessible: no alt screen, Huh WithAccessible(true), status as new
-lines. stdout not a TTY: <--json | plain output>, never escape codes.
+ACCESSIBLE=1 or --accessible: no alt screen, the fields asked through ui.Prompter (a
+Huh form: WithAccessible(true), which huhform.NewForm sets), status as new lines. stdout not a TTY: <--json | plain output>, never escape codes.
 
 ## First slice
 <the main loop's 2–3 screens, every state of those, rendered from fixtures through the harness; no integration>
@@ -233,6 +235,7 @@ keep: "<what the person said must stay, word for word>"   (one line each; none: 
 reference: none   (or exact: <axes> and inspiration: <the rest>, from § Reference)
 method: <the pick points in this step and how they're shown>; the loop (verify.md)
 deliver: <the files to review: frames, sheets, GIFs>
+size: <the files this step adds or changes, ~lines each; what it won't add>
 decide: <the pick point the person chooses, or nothing; build it>
 
 ## Decisions

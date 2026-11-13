@@ -9,8 +9,8 @@ import (
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/ultraviolet/layout"
 
-	"tuikit/theme/bubbletea"
-	"tuikit/ui/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/ui/bubbletea"
 )
 
 const (

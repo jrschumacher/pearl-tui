@@ -75,6 +75,13 @@
 //	                 action row (filled spans, [ bracketed ] labels) in the 4 rows over the
 //	                 bottom with a quarter of the height or more blank above it, across its
 //	                 own columns. Not on a splash*, intro* or wordmark* frame
+//	F-FOCUS     [P1] (with --ascii and --theme) the theme's focus mark (its focus bar's ASCII
+//	                 twin under "selection": "bar", its cursor's under "caret") alone before
+//	                 rows in more than one column: a blurred selection kept the focus mark
+//	                 instead of the blur mark; a dialog's side edges are not marks
+//	F-TOOSMALL  [P1] a toosmall-<W>x<H>.ansi frame at least as wide and as tall as the
+//	                 narrowest and shortest other frame linted with it: the too-small screen
+//	                 draws only below the app's floor
 package framelint
 
 import (
@@ -147,6 +154,10 @@ else is a rune the ASCII sweep had no twin for, which reads as a question.
                    apart, evenly (within a row), or an action row stranded at the bottom a
                    quarter of the height under its content: pack from the top
                    (not on a splash*/intro*/wordmark* frame)
+  F-FOCUS     [P1] (with --ascii and --theme) the theme's focus mark (bar or caret) before rows
+                   in two or more columns: a blurred selection takes the blur mark (":")
+  F-TOOSMALL  [P1] a toosmall-WxH frame not narrower or shorter than every other frame linted:
+                   the too-small screen draws only below the app's floor
 `
 
 var sevOrder = map[string]int{"P0": 0, "P1": 1, "P2": 2}
@@ -223,11 +234,15 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		bg = hexc(v)
 	}
 	var pal *Palette
+	focus := "" // F-FOCUS's mark: in an ASCII render, the column a theme marks focus with
 	if p, ok := opts["theme"]; ok {
 		var err error
 		if pal, err = LoadPalette(p); err != nil {
 			fmt.Fprintf(stderr, "tuilint frames: theme: %v\n", err)
 			return 2
+		}
+		if ascii {
+			focus = FocusMark(p)
 		}
 	}
 	var spec *Spec
@@ -273,7 +288,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 				h = fh
 			}
 		}
-		fs := lintText(p, string(data), w, h, pal, bg, ascii, spec)
+		fs := lintText(p, string(data), w, h, pal, bg, ascii, spec, focus)
 		if hasUni {
 			up := uni
 			if uniDir {
@@ -286,6 +301,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		}
 		findings = append(findings, fs...)
 	}
+	findings = append(findings, LintTooSmall(paths)...)
 	fmt.Fprintf(stdout, "linted %d frame(s)\n", len(paths))
 	return Report(findings, opts["json"], maxWarnings, stdout, stderr)
 }
@@ -304,6 +320,50 @@ func sizeFromName(path string) (int, int, bool) {
 	w, _ := strconv.Atoi(m[1])
 	h, _ := strconv.Atoi(m[2])
 	return w, h, w > 0 && h > 0
+}
+
+// LintTooSmall is F-TOOSMALL: a too-small frame (toosmall-<W>x<H>.ansi) that is not
+// below the other frames linted with it. The too-small screen draws only below the
+// app's floor, and every other state's frame is drawn at or above it, so the floor's
+// width or height, and the too-small frame's with it, is under the smallest of theirs.
+// A too-small screen named for a size its app's pages are drawn at is a floor set too
+// high or a too-small frame rendered at the size asked (toosmall-80x24 beside
+// services-80x24). Sizes come from the file names (F-WIDTH holds a frame to its name);
+// a frame without one, or a run with no other frame, is not judged.
+func LintTooSmall(paths []string) []Finding {
+	minW, minH, others := 0, 0, false
+	type small struct {
+		name string
+		w, h int
+	}
+	var smalls []small
+	for _, p := range paths {
+		w, h, ok := sizeFromName(p)
+		if !ok {
+			continue
+		}
+		name := filepath.Base(p)
+		if sizeSuffix.ReplaceAllString(name, "") == "toosmall" {
+			smalls = append(smalls, small{name, w, h})
+			continue
+		}
+		if !others || w < minW {
+			minW = w
+		}
+		if !others || h < minH {
+			minH = h
+		}
+		others = true
+	}
+	var out []Finding
+	for _, s := range smalls {
+		if others && s.w >= minW && s.h >= minH {
+			out = append(out, Finding{"F-TOOSMALL", "P1", s.name, "frame",
+				fmt.Sprintf("the too-small frame is %dx%d, at least as wide as the narrowest other frame (%d) and as tall as the shortest (%d): the too-small screen draws only below the app's floor; render it there and name it for the size it holds",
+					s.w, s.h, minW, minH)})
+		}
+	}
+	return out
 }
 
 // expand turns directories into their *.ansi files (sorted, dotfiles skipped,

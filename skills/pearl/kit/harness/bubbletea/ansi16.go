@@ -1,10 +1,9 @@
-package main
+package harness
 
 import (
 	"fmt"
 	"image/color"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 	"unicode"
@@ -12,22 +11,22 @@ import (
 	"github.com/charmbracelet/colorprofile"
 	uv "github.com/charmbracelet/ultraviolet"
 
-	"tuikit/theme/bubbletea"
-	"tuikit/ui/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/ui/bubbletea"
 )
 
 // ansi16States are the states #51's sheets judge: every page that draws a selection
 // (a warning beside a success and the selection, a form) and every overlay (a filled
 // selection in a dialog), from the app's own lists. The showcase adds its status ladder
 // and its wizard's brand title and filled header (screens_test.go).
-var ansi16States = append(slices.Clone(overlayPages), overlays...)
+var ansi16States []string
 
 // renderState draws state at w×h for theme f.
-func renderState(f theme.File, dark bool, prof colorprofile.Profile, state string, w, h int) (*app, *ui.Canvas) {
-	m := newApp(f, dark, false)
-	m.profile = prof
-	m.setState(state)
-	c := m.render(w, h)
+func RenderState(f theme.File, dark bool, prof colorprofile.Profile, state string, w, h int) (App, *ui.Canvas) {
+	m := sp.New(f, dark, false)
+	m.SetProfile(prof)
+	m.SetState(state)
+	c := m.Render(w, h)
 	c.PaintBackground()
 	return m, c
 }
@@ -39,9 +38,9 @@ func renderState(f theme.File, dark bool, prof colorprofile.Profile, state strin
 // mark, the yellow of the selection bar beside it. A run with a word in it (DEGRADED,
 // PROD) says what it is. The warning is set to a colour no other role has, so the test
 // finds the warning's own cells at any profile.
-func TestWarningInkCarriesItsGlyph(t *testing.T) {
-	const sentinel = "#010203"
-	for _, path := range testThemes(t) {
+func testWarningInkCarriesItsGlyph(t *testing.T) {
+	const sentinel = theme.TestInk
+	for _, path := range Themes(t) {
 		tf, err := theme.Load(path)
 		if err != nil {
 			t.Fatal(err)
@@ -55,7 +54,7 @@ func TestWarningInkCarriesItsGlyph(t *testing.T) {
 		for _, dark := range []bool{true, false} {
 			for _, state := range ansi16States {
 				for _, size := range [][2]int{{80, 24}, {120, 40}} {
-					m, c := renderState(tf, dark, colorprofile.TrueColor, state, size[0], size[1])
+					m, c := RenderState(tf, dark, colorprofile.TrueColor, state, size[0], size[1])
 					where := fmt.Sprintf("%s dark=%v %s %dx%d", filepath.Base(path), dark, state, size[0], size[1])
 					isWarn := func(cell *uv.Cell) bool {
 						return cell != nil && cell.Style.Fg != nil && cell.Style.Attrs&uv.AttrReverse == 0 && sameHex(cell.Style.Fg, sentinel)
@@ -66,7 +65,7 @@ func TestWarningInkCarriesItsGlyph(t *testing.T) {
 						flush := func() {
 							if len(run) > 0 && !glyph && !word {
 								t.Errorf("%s: row %d, columns %d-%d draw in the warning's ink with no %q beside them: %q",
-									where, y, run[0], run[len(run)-1], m.t.G.Warn, strings.TrimRight(rowText(c, y), " "))
+									where, y, run[0], run[len(run)-1], m.Theme().G.Warn, strings.TrimRight(RowText(c, y), " "))
 							}
 							run, glyph, word, gap = nil, false, false, 0
 						}
@@ -79,7 +78,7 @@ func TestWarningInkCarriesItsGlyph(t *testing.T) {
 							switch {
 							case text != "" && isWarn(cell):
 								run = append(run, x)
-								glyph = glyph || text == m.t.G.Warn
+								glyph = glyph || text == m.Theme().G.Warn
 								word = word || strings.IndexFunc(text, unicode.IsLetter) >= 0
 								gap = 0
 							case text == "" && len(run) > 0 && gap == 0:
@@ -107,15 +106,15 @@ func sameHex(c color.Color, hex string) bool {
 // black on a light page (#51) drew halyard's header bar, whose ink is a near-black, black
 // on black. No text cell, in any of #51's states, draws in its background's slot at 16
 // colours.
-func TestNoTextOnItsFillAt16Colours(t *testing.T) {
-	for _, path := range testThemes(t) {
+func testNoTextOnItsFillAt16Colours(t *testing.T) {
+	for _, path := range Themes(t) {
 		tf, err := theme.Load(path)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, dark := range []bool{true, false} {
 			for _, state := range ansi16States {
-				m, c := renderState(tf, dark, colorprofile.ANSI, state, 80, 24)
+				m, c := RenderState(tf, dark, colorprofile.ANSI, state, 80, 24)
 				hidden := 0
 				for y := range 24 {
 					for x := range 80 {
@@ -123,10 +122,10 @@ func TestNoTextOnItsFillAt16Colours(t *testing.T) {
 						if cell == nil || strings.TrimSpace(cell.Content) == "" {
 							continue
 						}
-						if slot16(cell.Style.Fg, m.t.P.Fg) == slot16(cell.Style.Bg, m.t.P.Bg) {
+						if Slot16(cell.Style.Fg, m.Theme().P.Fg) == Slot16(cell.Style.Bg, m.Theme().P.Bg) {
 							hidden++
 							if hidden == 1 {
-								t.Errorf("%s dark=%v %s: %q at %d,%d draws in its background's slot: %q", filepath.Base(path), dark, state, cell.Content, x, y, strings.TrimRight(rowText(c, y), " "))
+								t.Errorf("%s dark=%v %s: %q at %d,%d draws in its background's slot: %q", filepath.Base(path), dark, state, cell.Content, x, y, strings.TrimRight(RowText(c, y), " "))
 							}
 						}
 					}
@@ -137,7 +136,7 @@ func TestNoTextOnItsFillAt16Colours(t *testing.T) {
 }
 
 // slot16 is the 16-colour slot a cell's colour draws as, def when the cell sets none.
-func slot16(c, def color.Color) int {
+func Slot16(c, def color.Color) int {
 	if c == nil {
 		c = def
 	}
@@ -150,8 +149,8 @@ func slot16(c, def color.Color) int {
 // alone: the warning is a fill there (theme.Styles.Warn), a yellow cell with a dark ink.
 // The warning's own cells are found by a second render with the warning pinned to
 // magenta: other roles that land on yellow (an accent) stay put.
-func TestWarningIsAFillWhereItsSlotIsFaint(t *testing.T) {
-	for _, path := range testThemes(t) {
+func testWarningIsAFillWhereItsSlotIsFaint(t *testing.T) {
+	for _, path := range Themes(t) {
 		tf, err := theme.Load(path)
 		if err != nil {
 			t.Fatal(err)
@@ -172,12 +171,12 @@ func TestWarningIsAFillWhereItsSlotIsFaint(t *testing.T) {
 			probe := map[bool]int{true: 13, false: 5}[dark]
 			moved.ANSI16[mode]["warning"] = probe
 			for _, state := range ansi16States {
-				m, c := renderState(tf, dark, colorprofile.ANSI, state, 80, 24)
-				if theme.Contrast16(m.t.P.Warning, m.t.P.Bg) >= 3 {
+				m, c := RenderState(tf, dark, colorprofile.ANSI, state, 80, 24)
+				if theme.Contrast16(m.Theme().P.Warning, m.Theme().P.Bg) >= 3 {
 					continue
 				}
-				_, c2 := renderState(moved, dark, colorprofile.ANSI, state, 80, 24)
-				warn := theme.Slot16(m.t.P.Warning)
+				_, c2 := RenderState(moved, dark, colorprofile.ANSI, state, 80, 24)
+				warn := theme.Slot16(m.Theme().P.Warning)
 				found := 0
 				for y := range 24 {
 					for x := range 80 {
@@ -185,13 +184,13 @@ func TestWarningIsAFillWhereItsSlotIsFaint(t *testing.T) {
 						if cell == nil || probed == nil || strings.TrimSpace(cell.Content) == "" || cell.Style.Attrs&uv.AttrReverse != 0 {
 							continue
 						}
-						if slot16(probed.Style.Fg, m.t.P.Fg) != probe || slot16(cell.Style.Fg, m.t.P.Fg) != warn {
+						if Slot16(probed.Style.Fg, m.Theme().P.Fg) != probe || Slot16(cell.Style.Fg, m.Theme().P.Fg) != warn {
 							continue // not the warning's ink
 						}
 						found++
-						if slot16(cell.Style.Bg, m.t.P.Bg) != warn && found < 3 {
+						if Slot16(cell.Style.Bg, m.Theme().P.Bg) != warn && found < 3 {
 							t.Errorf("%s dark=%v %s: %q at %d,%d draws in the warning's ANSI %d as text on ANSI %d, %.2f:1: %q", filepath.Base(path), dark, state,
-								cell.Content, x, y, warn, slot16(cell.Style.Bg, m.t.P.Bg), theme.Contrast16(m.t.P.Warning, m.t.P.Bg), strings.TrimRight(rowText(c, y), " "))
+								cell.Content, x, y, warn, Slot16(cell.Style.Bg, m.Theme().P.Bg), theme.Contrast16(m.Theme().P.Warning, m.Theme().P.Bg), strings.TrimRight(RowText(c, y), " "))
 						}
 					}
 				}

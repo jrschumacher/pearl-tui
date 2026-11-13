@@ -150,4 +150,10 @@
 //	                  all, so the budget went stale. A gap (gap, gutter, margin, spacer) is
 //	                  blank by design; a region with any text in it is not reported, even when
 //	                  the text is another region's that moved into it.
+//	S-SIZE       [P2] a work order (a heading under `Work orders`) with no `size:` line, or one
+//	                  that is empty or still the template's `<…>`: a person reviews what the step
+//	                  builds, so name the files it adds or changes, ~lines each, and what it won't
+//	                  add (references/collaborate.md § Work Orders Carry The Conversation). The
+//	                  template's own block, still headed `<command>`, and a spec with no `Work
+//	                  orders` section are not read.
 package speclint

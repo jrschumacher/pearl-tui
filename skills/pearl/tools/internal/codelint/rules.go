@@ -16,7 +16,7 @@ import (
 	"golang.org/x/text/width"
 	"golang.org/x/tools/go/analysis"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
 
 func program(pass *analysis.Pass) *Program { return pass.ResultOf[ModelAnalyzer].(*Program) }
@@ -614,7 +614,7 @@ func runEllipsis(pass *analysis.Pass) (any, error) {
 
 // themePath reports a package path that is a theme package: its last element is
 // "theme" (a project's <module>/internal/theme), or its parent's is (one framework's
-// theme under theme/<framework>, the kit's tuikit/theme/bubbletea), or it names the
+// theme under theme/<framework>, the kit's github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea), or it names the
 // --theme-pkg fragment.
 func themePath(pkg string) bool {
 	if pkg == "" {

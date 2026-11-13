@@ -13,7 +13,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 	"tuitools/internal/tuimd"
 )
 
@@ -856,8 +856,9 @@ var (
 	sgr16   = regexp.MustCompile(`\x1b\[(?:[0-9:]*;)*(?:3[0-7]|4[0-7]|9[0-7]|10[0-7])(?:;[0-9:]*)*m`)
 )
 
-// lintText lints one frame's text, named by the file's base name. ascii adds F-ASCII.
-func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii bool, spec *Spec) []Finding {
+// lintText lints one frame's text, named by the file's base name. ascii adds F-ASCII,
+// and with focus (the theme's ASCII focus mark, FocusMark) F-FOCUS.
+func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii bool, spec *Spec, focus string) []Finding {
 	f := parseText(text)
 	out := LintFrame(filepath.Base(path), f, cols, rows, pal, bg)
 	out = append(out, LintTab(filepath.Base(path), normText(text))...)
@@ -869,6 +870,7 @@ func lintText(path, text string, cols, rows int, pal *Palette, bg RGB, ascii boo
 	}
 	if ascii {
 		out = append(out, LintASCII(filepath.Base(path), f)...)
+		out = append(out, LintFocusColumns(filepath.Base(path), f, focus)...)
 		twin, _ := theme.ASCIITwin(theme.Ellipsis)
 		ellipses = append(ellipses, twin)
 	}
@@ -911,6 +913,75 @@ func LintTab(name, text string) []Finding {
 	return []Finding{{"F-TAB", "P1", name, fmt.Sprintf("r%dc%d", strings.Count(text[:i], "\n"), x),
 		fmt.Sprintf("%d raw tabs in the frame: lipgloss measures a tab as 0 cells and a terminal advances it to the next 8-column stop, so the row tears; expand tabs (ui.ExpandTabs) before fitting",
 			strings.Count(text, "\t"))}}
+}
+
+// FocusMark is the glyph that marks the focused row in an ASCII frame of the theme at
+// path, as the kit resolves it: the focus bar's twin under "selection": "bar", the
+// cursor's under "caret"; "" under fill and inverse (the row is the mark, not a column)
+// or when the theme does not load as one.
+func FocusMark(path string) string {
+	tf, err := theme.Load(path)
+	if err != nil {
+		return ""
+	}
+	th := theme.Resolve(tf, true, true)
+	switch th.X.Selection {
+	case "bar":
+		return th.G.FocusBar
+	case "caret":
+		return th.G.Cursor
+	}
+	return ""
+}
+
+// LintFocusColumns is F-FOCUS: in an ASCII frame (what NO_COLOR and TERM=linux read,
+// where shape is all a focus has), the theme's focus mark stands alone before a row
+// ("  | name": a blank on each side, text two cells on) in more than one column. A list
+// blurred beside a focused one, or behind a dialog, that keeps the focus mark instead of
+// the blur mark (Theme.BlurBar, ":" under ASCII) shows two focuses (Law 5). A dialog's
+// side edges (an ASCII +--+ box's | columns) are not marks. One finding per frame.
+func LintFocusColumns(name string, f Frame, mark string) []Finding {
+	if mark == "" {
+		return nil
+	}
+	at := func(y, x int) string {
+		if x < 0 || x >= len(f.Rows[y]) || f.Rows[y][x].Ch == "" {
+			return " "
+		}
+		return f.Rows[y][x].Ch
+	}
+	var edge *region
+	if len(f.Rows) > 0 {
+		edge = findDialog(f, frameCorners(f))
+	}
+	cols := map[int][]int{}
+	var order []int
+	for y, row := range f.Rows {
+		for x := range row {
+			if at(y, x) != mark || at(y, x-1) != " " || at(y, x+1) != " " || at(y, x+2) == " " {
+				continue
+			}
+			if edge != nil && (x == edge.x0 || x == edge.x1) {
+				continue
+			}
+			if _, ok := cols[x]; !ok {
+				order = append(order, x)
+			}
+			cols[x] = append(cols[x], y)
+		}
+	}
+	if len(cols) < 2 {
+		return nil
+	}
+	slices.Sort(order)
+	var where []string
+	for _, x := range order {
+		where = append(where, fmt.Sprintf("column %d rows %s", x, pyIntList(cols[x])))
+	}
+	x := order[1]
+	return []Finding{{"F-FOCUS", "P1", name, fmt.Sprintf("r%dc%d", cols[x][0], x),
+		fmt.Sprintf("the focus mark %q stands before rows in %d columns (%s): one focus per frame; a blurred selection takes the blur mark (glyphs.blurBar, \":\" under ASCII)",
+			mark, len(cols), strings.Join(where, "; "))}}
 }
 
 // LintASCIIQuestion is F-ASCII's second half: a "?" in the ASCII frame where the

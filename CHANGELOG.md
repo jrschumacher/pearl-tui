@@ -5,6 +5,78 @@ What changed in the skill, its kit and its tools, by release. The commit history
 needs to know when updating. Versions follow SKILL.md's `metadata.version`, which the
 plugin manifests repeat.
 
+## 1.0.0-rc.4
+
+A new app starts from 626 lines, not the showcase's 6,000, and its forms need no Huh.
+
+**Breaking, for an app built on rc.3.** An app with Huh forms imports
+`…/kit/ui/bubbletea/huhform` and renames four calls: `ui.NewForm` → `huhform.NewForm`,
+`ui.HuhTheme` → `huhform.Theme`, `ui.HuhStyles` → `huhform.Styles`, `ui.HuhSpinner` →
+`huhform.Spinner`. An app without Huh forms changes nothing, and no longer links Huh.
+
+- **Copy the skeleton, not the showcase.** `kit/cmd/skeleton` is the app a project
+  copies as `cmd/<app>`: a list, an item's page, a confirm that opens on Cancel, the
+  keys overlay and the harness. `kit/README.md` § Using it in a project is five
+  commands with nothing to delete after; CI runs them as written with three themes.
+  `cmd/showcase` stays as the worked example to read (#108).
+- **The kit's own form fields.** `ui.NewInput`, `ui.NewSelect` and `ui.NewConfirm`
+  draw into a rectangle, themed focused and blurred, and `ui.NewPrompter` asks the same
+  questions as plain lines under `ACCESSIBLE=1`. The showcase's wizard is built on
+  them (#106).
+- **A secret input and a select that filters.** `Input.Secret` masks a password or
+  token and reads it with the terminal's echo off in the plain prompt.
+  `Select.Filterable` narrows the options as the user types: letters type, the arrows
+  move, and `esc` clears the filter before it means back (#109). The plain prompt takes a
+  secret as typed, spaces at either end included, as the rich field does (#112).
+- **Huh is optional.** Its helpers live in `kit/ui/bubbletea/huhform`, for an app that
+  already has Huh forms; `ui` imports no Huh, and CI holds it to that (#106, #107).
+- **A work order states its size.** `tuilint spec` warns [S-SIZE] on a work order with
+  no `size:` line, so a pull request's size is agreed before it is written (#103).
+- **Two more frame checks.** `tuilint frames` fails [F-FOCUS] on ASCII frames with
+  more than one focus column and [F-TOOSMALL] on a too-small frame that isn't below
+  the floor (#105).
+
+## 1.0.0-rc.3
+
+An app built with the skill no longer carries the kit. A first pull request used to
+open with about 12,000 lines of copied theme and components and 1,777 of copied tests
+before a screen of its own; CI's stand-in app is now 543 Go lines in all. Every change
+came from moving a real app, welp, onto it: its diff was about +230 / −12,000.
+
+**Breaking, for an app built on rc.2 or earlier.** Delete `internal/theme` and
+`internal/ui`, `go get github.com/jrschumacher/pearl-tui/skills/pearl/kit@v1.0.0-rc.3`,
+point the imports at `…/kit/theme/bubbletea` and `…/kit/ui/bubbletea`, replace the four
+copied harness test files with a `harness_test.go`, and move off the Huh helpers below
+(`kit/README.md` § Using it in a project).
+
+- **Import the kit.** The kit is the Go module
+  `github.com/jrschumacher/pearl-tui/skills/pearl/kit`. A project `go get`s `theme` and
+  `ui` and copies only `cmd/showcase`, as its app's skeleton, and its one theme. The lint
+  hook opts in a project whose `go.mod` requires the kit (#98).
+- **Run the harness, don't copy it.** `showcase_test.go`, `overlay_test.go`,
+  `behaviour_test.go` and `ansi16_test.go` are the package `kit/harness/bubbletea`. An
+  app keeps one 77-line `harness_test.go`: an adapter over its root model
+  (`harness.App`), its tables (`harness.Spec`) and one test, `TestHarness`, that runs
+  the kit's 26 checks. `Spec.ChangesPage` names an overlay that rightly changes the
+  page under it (#99, #100).
+- **Huh is themed, not overridden.** `ui.NewForm` gives a form the theme through Huh's
+  public theme API and nothing else. Removed: `ui.NewInput`, `ui.Input`, `ui.Confirm`,
+  `ui.Resize`, `ui.FormKeys`, `ui.Options`, `ui.Choice`; use `huh.NewInput`,
+  `huh.NewConfirm`, the form's `WithWidth` and `WithHeight`, and `huh.NewOption`. What
+  Huh v2.0.3 does that its theme can't change (a blurred input, an error row past the
+  form's height) is listed in `references/bubbletea-architecture.md` with what an app
+  does about it, in plain Huh calls (#98).
+- **Frame helpers in the kit.** `ui.RenderProfile`, `ui.Downsample` and `ui.CheckSize`
+  replace the copies each app's `main.go` carried (#99).
+- **A sidebar stays whole beside a dialog.** `Canvas.Keep` names a pane that a dimmed
+  dialog's band leaves standing when the dialog doesn't reach it (#98).
+- **Size the work before building it.** A work order gains a `size:` line: the files a
+  step adds or changes, lines for each, and what it won't add, checked against
+  `git diff --shortstat` at the hand-off. `restyle` opens with § Start From What The App
+  Has: reuse what exists unless you can name what it can't do, keep one style mapping,
+  share a rule between a rich and a plain UI without a wizard engine, and delete what a
+  replaced screen leaves without callers (#101).
+
 ## 1.0.0-rc.2
 
 The skill now plans each screen from the product's job and data, argues the plan with

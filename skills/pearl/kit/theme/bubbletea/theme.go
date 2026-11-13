@@ -1263,3 +1263,7 @@ func Hex(s string) color.Color {
 	}
 	return lipgloss.Color(s)
 }
+
+// TestInk is a colour no theme uses: a test sets a role to it to find that role's own
+// cells in a frame, at any profile.
+const TestInk = "#010203"

@@ -34,7 +34,7 @@ drifts), contact sheets in both modes, a passing diversity lint. Read
    --style …`. Logo, if the splash needs it: `scripts/logo2cells.py` and then
    `cell-art.md`. Motif glyph and its ASCII fallback.
 6. **Write the JSON** (contract in `brand.md` §4). Start from the kit theme closest in
-   spirit, then change every axis the read says to. Once `craft` has run the copy block,
+   spirit, then change every axis the read says to. Once `craft` has run the README block,
    that donor is already `themes/<brand>.json`: edit it in place, and keep `themes/` to
    that one file, since `diversity` and the kit's tests count every JSON there as a brand.
 7. **Render** the kit showcase (or the app) with the theme: dark, light, ascii, at 80×24
@@ -70,7 +70,7 @@ Next: `shape` (no screen spec yet) | `craft` (§ Screens is filled).
 ## Done Means
 
 - The theme renders every state at both sizes in both modes, the footprint passes
-  (`go test`, or the showcase's `-golden` before the kit is copied), and
+  (`go test`, or the showcase's `-golden` before the project exists), and
   `palette check` is OK.
 - The diversity lint passes against the baselines.
 - With colour stripped (`-profile ascii`), the screen is still recognisably this brand.

@@ -8,29 +8,27 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/ultraviolet/layout"
 
-	"tuikit/theme/bubbletea"
-	"tuikit/ui/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/ui/bubbletea"
 )
 
-// The first-run setup wizard: connect a cluster. Huh does the input mechanics
-// (the selects, the namespace field, the confirms); the kit does everything
-// around them: the brand header, a step row that keeps counting after the
-// form ends, a summary that tells defaults from decisions, a sign-in wait with
-// a way out, and the keys, from the same action table as every other screen.
+// The first-run setup wizard: connect a cluster. The kit's fields do the input
+// (ui.Select, ui.Input, ui.Confirm); the app does everything around them: the brand
+// header, a step row that keeps counting after the inputs end, a summary that tells
+// defaults from decisions, a sign-in wait with a way out, and the keys, from the same
+// action table as every other screen.
 //
-// One Huh form per input step, rebuilt when the step is entered: the values
-// live in setupFlow (Huh binds pointers to them), so going back never loses
-// what was typed. Review and sign-in have no input, so they are kit screens.
+// The fields live in setupFlow for the whole flow, so going back never loses what was
+// typed. Review and sign-in have no input; their buttons are ui.Actions.
 
 type setupStep int
 
 const (
-	stTarget setupStep = iota // cluster (select) + namespace (input)
+	stTarget setupStep = iota // cluster (select) + namespace (input), one screen
 	stAuth                    // how to sign in (select with descriptions)
 	stAlerts                  // notifications (confirm)
 	stReview                  // summary + Continue / Back to edit / Discard setup
@@ -41,16 +39,18 @@ const (
 // the counter runs past the review: sign-in and finishing are steps too
 var setupNames = []string{"Cluster", "Sign-in", "Alerts", "Review", "Connect", "Finish"}
 
-var clusterChoices = []ui.Choice[string]{
-	{Name: "prod-us-east-1", Desc: "production, 41 services", Value: "prod-us-east-1"},
-	{Name: "staging-eu-west-1", Desc: "current context, 38 services", Value: "staging-eu-west-1"},
-	{Name: "dev-local", Desc: "kind, 6 services", Value: "dev-local"},
+var clusterChoices = []ui.Option[string]{
+	{Name: "prod-us-east-1", Desc: "production", Value: "prod-us-east-1"},
+	{Name: "staging-eu-west-1", Desc: "current context", Value: "staging-eu-west-1"},
+	{Name: "dev-local", Desc: "kind on this machine", Value: "dev-local"},
+	{Name: "prod-eu-west-1", Desc: "production", Value: "prod-eu-west-1"},
+	{Name: "staging-us-east-1", Value: "staging-us-east-1"},
 }
 
-var authChoices = []ui.Choice[string]{
-	{Name: "Browser", Desc: "SSO in your browser; best on a laptop", Value: "browser"},
-	{Name: "Device code", Desc: "approve on another device; for SSH", Value: "device"},
-	{Name: "Access token", Desc: "paste one from the web console", Value: "token"},
+var authChoices = []ui.Option[string]{
+	{Name: "Browser", Desc: "single sign-on in a tab", Value: "browser"},
+	{Name: "Device code", Desc: "approve on another device", Value: "device"},
+	{Name: "Access token", Desc: "paste one from your profile", Value: "token"},
 }
 
 const deviceCode = "WXKD-4PQM"
@@ -58,11 +58,11 @@ const deviceCode = "WXKD-4PQM"
 type setupFlow struct {
 	step    setupStep
 	reached setupStep // the furthest step entered: values of earlier steps are decisions
-	form    *huh.Form
-	fw, fh  int // the size the form was laid out at
 
-	cluster, namespace, auth string
-	alerts, makeDefault      bool
+	cluster, auth       ui.Select[string]
+	namespace           ui.Input
+	alerts, makeDefault ui.Confirm
+	field               int // stTarget's focused field: 0 the cluster, 1 the namespace
 
 	acts     ui.Actions // review: Continue / Back to edit / Discard setup. failed sign-in: Retry / Back
 	since    int        // frame the sign-in started
@@ -75,9 +75,22 @@ type setupFlow struct {
 type signedInMsg struct{ gen int }
 type signinTimeoutMsg struct{ gen int }
 
-// the defaults are what the user gets by pressing enter all the way through
-func newSetup() *setupFlow {
-	return &setupFlow{cluster: "staging-eu-west-1", auth: "browser", alerts: true, makeDefault: true}
+// the defaults are what the user gets by pressing enter all the way through. Field
+// titles are the app's copy, in the brand's case (t.Copy) like the kit's own labels.
+func newSetup(t *theme.Theme) *setupFlow {
+	brand := t.AppName()
+	ns := ui.NewInput(t.Copy("Namespace"), "where your services run; blank means default", "default", "")
+	ns.Validate = validNamespace
+	// a kubeconfig holds more contexts than a glance takes in: typing narrows them
+	cluster := ui.NewSelect(t.Copy("Cluster"), "contexts in ~/.kube/config; type to filter", "staging-eu-west-1", clusterChoices...)
+	cluster.Filterable = true
+	return &setupFlow{
+		cluster:     cluster,
+		namespace:   ns,
+		auth:        ui.NewSelect(t.Copy("Sign in with"), "change it later with "+brand+" auth", "browser", authChoices...),
+		alerts:      ui.NewConfirm("Tell you when a deploy fails?", "a desktop notification and the terminal bell", "Turn on", "Not now", true),
+		makeDefault: ui.NewConfirm("", brand+" commands use it when you don't pass --cluster", "Yes", "No", true),
+	}
 }
 
 func (f *setupFlow) steps(t *theme.Theme) ui.Steps {
@@ -89,17 +102,15 @@ func (f *setupFlow) steps(t *theme.Theme) ui.Steps {
 }
 
 func (m *app) openSetup() tea.Cmd {
-	m.screen, m.setup = scrSetup, newSetup()
+	m.screen, m.setup = scrSetup, newSetup(m.t)
 	return m.goStep(stTarget)
 }
 
-// goStep enters a step: builds its form (or its buttons) from the values so far.
+// goStep enters a step with its first field focused, or its buttons.
 func (m *app) goStep(s setupStep) tea.Cmd {
 	f := m.setup
-	f.step, f.failed, f.escArmed = s, false, false
+	f.step, f.failed, f.escArmed, f.field = s, false, false, 0
 	f.reached = max(f.reached, s)
-	f.form = m.buildForm(s)
-	f.fw, f.fh = 0, 0
 	switch s {
 	case stReview:
 		// the expected forward choice is the default; each button says what it does: a bare
@@ -107,9 +118,8 @@ func (m *app) goStep(s setupStep) tea.Cmd {
 		f.acts = ui.NewActions(0, "Continue", "Back to edit", "Discard setup")
 	case stSignin:
 		return m.startSignin()
-	}
-	if f.form != nil {
-		return f.form.Init()
+	case stDone:
+		f.makeDefault.Title = "Make " + f.cluster.Value() + " your default cluster?"
 	}
 	return nil
 }
@@ -128,36 +138,6 @@ func (m *app) startSignin() tea.Cmd {
 	)
 }
 
-// buildForm is one step's Huh form, built from the kit (ui.NewForm,
-// ui.NewInput, ui.Confirm, ui.Options), never from huh.New* directly.
-func (m *app) buildForm(s setupStep) *huh.Form {
-	t, f := m.t, m.setup
-	brand := t.AppName()
-	var g *huh.Group
-	switch s {
-	case stTarget:
-		g = huh.NewGroup(
-			huh.NewSelect[string]().Title(t.Copy("Cluster")).Description("contexts in ~/.kube/config").
-				Options(ui.Options(clusterChoices...)...).Value(&f.cluster),
-			ui.NewInput(t).Title(t.Copy("Namespace")).Description("where your services run; blank means default").
-				Placeholder("default").Value(&f.namespace).Validate(validNamespace),
-		)
-	case stAuth:
-		g = huh.NewGroup(huh.NewSelect[string]().Title(t.Copy("Sign in with")).
-			Description("change it later with " + brand + " auth").
-			Options(ui.Options(authChoices...)...).Value(&f.auth))
-	case stAlerts:
-		g = huh.NewGroup(ui.Confirm(t, "Tell you when a deploy fails?", "Turn on", "Not now", f.alerts, &f.alerts).
-			Description("a desktop notification and the terminal bell"))
-	case stDone:
-		g = huh.NewGroup(ui.Confirm(t, "Make "+f.cluster+" your default cluster?", "Yes", "No", f.makeDefault, &f.makeDefault).
-			Description(brand + " commands use it when you don't pass --cluster"))
-	default:
-		return nil
-	}
-	return ui.NewForm(t, 60, 12, g)
-}
-
 func validNamespace(s string) error {
 	for _, r := range s {
 		if !(r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == '-') {
@@ -167,44 +147,65 @@ func validNamespace(s string) error {
 	return nil
 }
 
-// toForm hands a message to the step's form, and moves on when it completes.
-func (m *app) toForm(msg tea.Msg) tea.Cmd {
+// next submits the focused field: the cluster moves on to the namespace, the namespace
+// must pass its check, and a step's last field enters the next step.
+func (m *app) next() tea.Cmd {
 	f := m.setup
-	if f == nil || f.form == nil {
-		return nil
-	}
-	_, cmd := f.form.Update(msg)
-	if f.form.State != huh.StateCompleted {
-		return cmd
-	}
 	switch f.step {
 	case stTarget:
-		return tea.Batch(cmd, m.goStep(stAuth))
+		if f.field == 0 {
+			f.field = 1
+			return nil
+		}
+		if !f.namespace.Submit() {
+			return nil // the error shows under the field, which keeps the focus
+		}
+		return m.goStep(stAuth)
 	case stAuth:
-		return tea.Batch(cmd, m.goStep(stAlerts))
+		return m.goStep(stAlerts)
 	case stAlerts:
-		return tea.Batch(cmd, m.goStep(stReview))
+		return m.goStep(stReview)
 	case stDone:
-		return tea.Batch(cmd, m.finishSetup(true))
+		return m.finishSetup(true)
 	}
-	return cmd
+	return nil
 }
 
 // typing reports whether the focused field takes text.
 func (f *setupFlow) typing() bool {
-	if f == nil || f.form == nil {
-		return false
-	}
-	_, ok := f.form.GetFocusedField().(*ui.Input)
-	return ok
+	return f != nil && f.step == stTarget && f.field == 1
 }
 
-func (f *setupFlow) focusedConfirm() *huh.Confirm {
-	if f.form == nil {
-		return nil
+// takesText reports whether printable keys are the focused field's: the namespace's
+// text, or a filterable select's filter. Help and the palette then move off them.
+func (f *setupFlow) takesText() bool {
+	if f == nil {
+		return false
 	}
-	c, _ := f.form.GetFocusedField().(*huh.Confirm)
-	return c
+	c := f.choice()
+	return f.typing() || (c != nil && c.Filterable)
+}
+
+// confirm is the step's confirm, or nil.
+func (f *setupFlow) confirm() *ui.Confirm {
+	switch f.step {
+	case stAlerts:
+		return &f.alerts
+	case stDone:
+		return &f.makeDefault
+	}
+	return nil
+}
+
+// choice is the focused select, or nil.
+func (f *setupFlow) choice() *ui.Select[string] {
+	switch {
+	case f.step == stTarget && f.field == 0:
+		return &f.cluster
+	case f.step == stAuth:
+		return &f.auth
+	}
+	return nil
 }
 
 func (m *app) finishSetup(connected bool) tea.Cmd {
@@ -213,130 +214,163 @@ func (m *app) finishSetup(connected bool) tea.Cmd {
 	switch {
 	case !connected:
 		return m.say("info", "SKIPPED", "Nothing was saved "+m.t.G.Sep+" run "+m.t.AppName()+" connect any time")
-	case f.makeDefault:
-		return m.say("ok", "CONNECTED", f.cluster+" is your default cluster "+m.t.G.Sep+" 38 services")
+	case f.makeDefault.Value():
+		return m.say("ok", "CONNECTED", f.cluster.Value()+" is your default cluster "+m.t.G.Sep+" 38 services")
 	default:
-		return m.say("ok", "CONNECTED", f.cluster+" "+m.t.G.Sep+" pass --cluster to use it")
+		return m.say("ok", "CONNECTED", f.cluster.Value()+" "+m.t.G.Sep+" pass --cluster to use it")
 	}
 }
 
-// setupActions is the action table for the wizard: one per step, and per
-// focused field inside a form step. Keys reach Huh only through it, so the
-// footer is the whole truth about what a key does.
+// setupActions is the action table for the wizard: one per step, and per focused
+// field. Keys reach a field only through it, so the footer is the whole truth about
+// what a key does.
 func (m *app) setupActions(help action) []action {
 	f := m.setup
-	fwd := func(keys []string, k, desc string, show bool) action {
-		return action{bind(keys, k, desc), show, func(m *app, msg tea.KeyPressMsg) tea.Cmd { return m.toForm(msg) }}
+	do := func(keys []string, k, desc string, show bool, fn func(m *app, msg tea.KeyPressMsg) tea.Cmd) action {
+		return action{bind(keys, k, desc), show, fn}
 	}
-	esc := func(desc string, do func(m *app) tea.Cmd) action {
-		return action{bind([]string{"esc"}, "esc", desc), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return do(m) }}
+	next := func(m *app, _ tea.KeyPressMsg) tea.Cmd { return m.next() }
+	esc := func(desc string, fn func(m *app) tea.Cmd) action {
+		return do([]string{"esc"}, "esc", desc, true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return fn(m) })
 	}
 	back := func(to setupStep) action {
 		return esc("back", func(m *app) tea.Cmd { return m.goStep(to) })
 	}
+	// left and right move between buttons: a review's, a failed sign-in's, a confirm's
+	switchKeys := []string{"left", "right", "h", "l", "tab", "shift+tab"}
+	switchBtn := func(acts func(m *app) *ui.Actions) action {
+		return do(switchKeys, m.t.G.LeftRight, "switch", true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
+			if s := msg.String(); s == "left" || s == "h" || s == "shift+tab" {
+				acts(m).Move(-1)
+			} else {
+				acts(m).Move(1)
+			}
+			return nil
+		})
+	}
+	setupActs := func(m *app) *ui.Actions { return &m.setup.acts }
 
 	switch f.step {
 	case stReview:
-		enter := strings.ToLower(f.acts.Selected())
 		return []action{
-			{bind([]string{"enter"}, "enter", enter), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return m.reviewChoose() }},
-			{bind([]string{"left", "right", "h", "l", "tab", "shift+tab"}, m.t.G.LeftRight, "switch"), true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
-				if s := msg.String(); s == "left" || s == "h" || s == "shift+tab" {
-					m.setup.acts.Move(-1)
-				} else {
-					m.setup.acts.Move(1)
-				}
-				return nil
-			}},
-			{bind([]string{"e"}, "e", "edit"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return m.goStep(stTarget) }},
+			do([]string{"enter"}, "enter", strings.ToLower(f.acts.Selected()), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return m.reviewChoose() }),
+			switchBtn(setupActs),
+			do([]string{"e"}, "e", "edit", false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return m.goStep(stTarget) }),
 			back(stAlerts), help,
 		}
 	case stSignin:
 		if f.failed {
 			return []action{
-				{bind([]string{"enter"}, "enter", strings.ToLower(f.acts.Selected())), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
+				do([]string{"enter"}, "enter", strings.ToLower(f.acts.Selected()), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
 					if m.setup.acts.Sel == 0 {
 						return m.startSignin()
 					}
 					return m.goStep(stReview)
-				}},
-				{bind([]string{"left", "right", "h", "l", "tab", "shift+tab"}, m.t.G.LeftRight, "switch"), true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
-					if s := msg.String(); s == "left" || s == "h" || s == "shift+tab" {
-						m.setup.acts.Move(-1)
-					} else {
-						m.setup.acts.Move(1)
-					}
-					return nil
-				}},
-				{bind([]string{"r"}, "r", "retry"), false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return m.startSignin() }},
+				}),
+				switchBtn(setupActs),
+				do([]string{"r"}, "r", "retry", false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { return m.startSignin() }),
 				back(stReview), help,
 			}
 		}
 		acts := []action{esc("cancel sign-in", func(m *app) tea.Cmd {
 			m.setup.gen++ // the pending result is now stale
-			return tea.Batch(m.say("info", "CANCELED", "Sign-in canceled "+m.t.G.Sep+" nothing was sent to "+m.setup.cluster), m.goStep(stReview))
+			return tea.Batch(m.say("info", "CANCELED", "Sign-in canceled "+m.t.G.Sep+" nothing was sent to "+m.setup.cluster.Value()), m.goStep(stReview))
 		})}
-		if f.auth != "token" {
+		if f.auth.Value() != "token" {
 			acts = append(acts,
-				action{bind([]string{"c"}, "c", "copy code"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
+				do([]string{"c"}, "c", "copy code", true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
 					return tea.Batch(m.say("ok", "COPIED", deviceCode), tea.SetClipboard(deviceCode))
-				}},
-				action{bind([]string{"o"}, "o", "open page"), true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
+				}),
+				do([]string{"o"}, "o", "open page", true, func(m *app, _ tea.KeyPressMsg) tea.Cmd {
 					return m.say("info", "OPENED", m.signinURL())
-				}})
+				}))
 		}
 		return append(acts, help)
 	}
 
-	// a form step: the keys depend on the focused field
+	// a step of fields: the keys depend on the focused one
 	var escAct action
 	switch f.step {
 	case stTarget:
 		escAct = esc("quit setup", func(m *app) tea.Cmd {
-			if m.setup.namespace != "" && !m.setup.escArmed {
+			if m.setup.namespace.Value() != "" && !m.setup.escArmed {
 				m.setup.escArmed = true // never drop typed input on one key
 				return m.say("warning", "ESC AGAIN", "to discard what you typed and leave setup")
 			}
 			return m.finishSetup(false)
 		})
 	case stDone:
-		escAct = esc("skip", func(m *app) tea.Cmd { m.setup.makeDefault = false; return m.finishSetup(true) })
+		escAct = esc("skip", func(m *app) tea.Cmd { m.setup.makeDefault.Set(false); return m.finishSetup(true) })
 	default:
 		escAct = back(f.step - 1)
 	}
-	prev := fwd([]string{"shift+tab"}, "shift+tab", "previous field", false)
-	switch {
+	switch c := f.confirm(); {
 	case f.typing():
+		// printable keys type (app.key sends them here before any action)
+		edit := func(m *app, msg tea.KeyPressMsg) tea.Cmd { return m.setup.namespace.Update(msg) }
 		return []action{
-			fwd([]string{"enter"}, "enter", "next", true),
-			fwd([]string{"tab"}, "tab", "next field", false), prev,
-			fwd([]string{"backspace"}, "backspace", "delete", false),
-			fwd([]string{"left", "right", "home", "end"}, m.t.G.LeftRight, "move", false),
+			do([]string{"enter"}, "enter", "next", true, next),
+			do([]string{"shift+tab"}, "shift+tab", "previous field", false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.setup.field = 0; return nil }),
+			do([]string{"backspace"}, "backspace", "delete", false, edit),
+			do([]string{"left", "right", "home", "end"}, m.t.G.LeftRight, "move", false, edit),
 			escAct, help,
 		}
-	case f.focusedConfirm() != nil:
-		c := f.focusedConfirm()
-		yes, _ := c.GetValue().(bool)
-		enter := "confirm"
-		if f.step == stAlerts {
-			enter = map[bool]string{true: "turn on", false: "not now"}[yes]
-		} else {
-			enter = map[bool]string{true: "yes", false: "no"}[yes]
+	case c != nil:
+		answer := func(v bool) func(m *app, _ tea.KeyPressMsg) tea.Cmd {
+			return func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.setup.confirm().Set(v); return m.next() }
 		}
 		return []action{
-			fwd([]string{"enter"}, "enter", enter, true),
-			fwd([]string{"left", "right", "h", "l"}, m.t.G.LeftRight, "switch", true),
-			fwd([]string{"y"}, "y", "yes", false),
-			fwd([]string{"n"}, "n", "no", false),
-			prev, escAct, help,
+			do([]string{"enter"}, "enter", strings.ToLower(c.Acts.Selected()), true, next),
+			do([]string{"left", "right", "h", "l"}, m.t.G.LeftRight, "switch", true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
+				if s := msg.String(); s == "left" || s == "h" {
+					m.setup.confirm().Acts.Move(-1)
+				} else {
+					m.setup.confirm().Acts.Move(1)
+				}
+				return nil
+			}),
+			do([]string{"y"}, "y", "yes", false, answer(true)),
+			do([]string{"n"}, "n", "no", false, answer(false)),
+			escAct, help,
 		}
 	}
-	return []action{
-		fwd([]string{"enter"}, "enter", "next", true),
-		fwd([]string{"up", "k", "down", "j"}, m.t.G.UpDown, "choose", true),
-		fwd([]string{"tab"}, "tab", "next field", false), prev,
-		escAct, help,
+	// a filterable select: letters type the filter (app.key sends them there), so only
+	// the arrows move; esc clears a filter in force before it means back or quit
+	sel := f.choice()
+	moveKeys := []string{"up", "k", "down", "j"}
+	if sel.Filterable {
+		moveKeys = []string{"up", "down"}
 	}
+	var acts, clear []action
+	if sel.Filtered() { // the way out of a filter comes before the arrows, so a narrow footer keeps it
+		clear = []action{
+			esc("clear filter", func(m *app) tea.Cmd { m.setup.choice().ClearFilter(); return nil }),
+			do([]string{"backspace"}, "backspace", "delete", false, func(m *app, msg tea.KeyPressMsg) tea.Cmd { m.setup.choice().Type(msg); return nil }),
+		}
+	}
+	if sel.Matches() > 0 { // a filter that leaves nothing highlights nothing to submit
+		acts = append(acts, do([]string{"enter"}, "enter", "next", true, next))
+		acts = append(acts, clear...)
+		acts = append(acts,
+			do(moveKeys, m.t.G.UpDown, "choose", true, func(m *app, msg tea.KeyPressMsg) tea.Cmd {
+				if s := msg.String(); s == "up" || s == "k" {
+					m.setup.choice().Move(-1)
+				} else {
+					m.setup.choice().Move(1)
+				}
+				return nil
+			}))
+		if f.step == stTarget {
+			acts = append(acts, do([]string{"tab"}, "tab", "next field", false, func(m *app, _ tea.KeyPressMsg) tea.Cmd { m.setup.field = 1; return nil }))
+		}
+	}
+	switch {
+	case sel.Filtered() && sel.Matches() == 0:
+		return append(clear, help)
+	case sel.Filtered():
+		return append(acts, help)
+	}
+	return append(acts, escAct, help)
 }
 
 func (m *app) reviewChoose() tea.Cmd {
@@ -349,39 +383,35 @@ func (m *app) reviewChoose() tea.Cmd {
 	return m.finishSetup(false)
 }
 
-func (m *app) signinURL() string { return "https://login." + m.t.AppName() + ".example/device" }
+func (m *app) signinURL() string { return signinURL(m.t) }
+
+func signinURL(t *theme.Theme) string { return "https://login." + t.AppName() + ".example/device" }
 
 // summary is what the flow will do, telling decisions from defaults: a value
 // is a decision once the user has moved past the field that sets it.
 func (m *app) summary() []ui.SummaryRow {
 	f := m.setup
 	past := func(s setupStep) bool { return f.reached > s }
-	clusterSet := past(stTarget) || (f.step == stTarget && f.typing())
-	ns := f.namespace
+	clusterSet := past(stTarget) || f.typing()
+	ns := f.namespace.Value()
 	if ns == "" {
 		ns = "default"
 	}
 	alerts := "off"
-	if f.alerts {
+	if f.alerts.Value() {
 		alerts = "on for failed deploys"
 	}
-	auth := f.auth
-	for _, c := range authChoices {
-		if c.Value == f.auth {
-			auth = c.Name
-		}
-	}
 	return []ui.SummaryRow{
-		{Label: "Cluster", Value: f.cluster, Set: clusterSet},
-		{Label: "Namespace", Value: ns, Set: past(stTarget) && f.namespace != ""},
-		{Label: "Sign-in", Value: auth, Set: past(stAuth)},
+		{Label: "Cluster", Value: f.cluster.Value(), Set: clusterSet},
+		{Label: "Namespace", Value: ns, Set: past(stTarget) && f.namespace.Value() != ""},
+		{Label: "Sign-in", Value: f.auth.Selected().Name, Set: past(stAuth)},
 		{Label: "Alerts", Value: alerts, Set: past(stAlerts)},
 	}
 }
 
 // ---------------------------------------------------------------- render
 
-// setupView lays the wizard out: the form at a measure, the summary in the
+// setupView lays the wizard out: the fields at a measure, the summary in the
 // rest of the width up to a cap. Below 100 columns the summary is a strip.
 func (m *app) setupView(c *ui.Canvas, r uv.Rectangle) {
 	t, f := m.t, m.setup
@@ -407,25 +437,25 @@ func (m *app) setupView(c *ui.Canvas, r uv.Rectangle) {
 		}
 		rows = append(rows, "")
 	}
+	focused := m.ov == ovNone // under a dialog no field has the focus
 	switch f.step {
+	case stTarget:
+		rows = append(rows, f.cluster.View(t, w, focused && f.field == 0)...)
+		rows = append(append(rows, ""), f.namespace.View(t, w, focused && f.field == 1)...)
+	case stAuth:
+		rows = append(rows, f.auth.View(t, w, focused)...)
+	case stAlerts:
+		rows = append(rows, f.alerts.View(t, w, focused)...)
 	case stReview:
-		rows = append(rows, m.reviewRows(w)...)
+		rows = append(rows, m.reviewRows(w, focused)...)
 	case stSignin:
-		rows = append(rows, m.signinRows(w)...)
+		rows = append(rows, m.signinRows(w, focused)...)
 	case stDone:
-		rows = append(rows, ui.Tag(t, "ok", "CONNECTED")+" "+t.S.Base.Render(f.cluster)+
-			t.S.Muted.Render(ui.Trunc(t, " as mara@"+t.AppName()+".example "+t.G.Sep+" 38 services", max(0, w-lipgloss.Width(f.cluster)-12))), "")
+		rows = append(rows, ui.Tag(t, "ok", "CONNECTED")+" "+t.S.Base.Render(f.cluster.Value())+
+			t.S.Muted.Render(ui.Trunc(t, " as mara@"+t.AppName()+".example "+t.G.Sep+" 38 services", max(0, w-lipgloss.Width(f.cluster.Value())-12))), "")
+		rows = append(rows, f.makeDefault.View(t, w, focused)...)
 	}
 	c.Draw(strings.Join(rows, "\n"), main)
-	if f.form != nil {
-		top := main.Min.Y + len(rows)
-		fr := uv.Rect(main.Min.X, top, w, max(0, main.Max.Y-top))
-		if f.fw != fr.Dx() || f.fh != fr.Dy() {
-			ui.Resize(f.form, fr.Dx(), fr.Dy())
-			f.fw, f.fh = fr.Dx(), fr.Dy()
-		}
-		c.Draw(f.form.View(), fr)
-	}
 
 	tag := ui.Tag(t, "muted", "DRAFT")
 	if f.saved {
@@ -452,18 +482,18 @@ func (m *app) setupCopy() (title, info, intro string) {
 	case stTarget:
 		return "Connect a cluster", "", "Pick the cluster " + brand + " watches. Add more later with " + brand + " connect."
 	case stAuth:
-		return "Sign-in", f.cluster, ""
+		return "Sign-in", f.cluster.Value(), ""
 	case stAlerts:
-		return "Alerts", f.cluster, ""
+		return "Alerts", f.cluster.Value(), ""
 	case stReview:
 		return "Review", "nothing saved yet", ""
 	case stSignin:
-		return "Sign in to " + f.cluster, "", ""
+		return "Sign in to " + f.cluster.Value(), "", ""
 	}
 	return "Connected", "", ""
 }
 
-func (m *app) reviewRows(w int) []string {
+func (m *app) reviewRows(w int, focused bool) []string {
 	t, f := m.t, m.setup
 	var kv [][2]string
 	for _, r := range m.summary() {
@@ -477,18 +507,18 @@ func (m *app) reviewRows(w int) []string {
 	for i := range rows {
 		rows[i] = "  " + ui.Trunc(t, rows[i], w-2)
 	}
-	return append(rows, "", f.acts.View(t, true))
+	return append(rows, "", f.acts.View(t, focused))
 }
 
 // nextRows is the review's side panel: what Continue will do.
 func (m *app) nextRows(w int) []string {
 	t, f := m.t, m.setup
-	how := map[string]string{"browser": "open SSO in your browser", "device": "show a code to approve elsewhere", "token": "check your access token"}[f.auth]
+	how := map[string]string{"browser": "open SSO in your browser", "device": "show a code to approve elsewhere", "token": "check your access token"}[f.auth.Value()]
 	rows := []string{ui.Section(t, "What happens next", w, ""), ""}
 	items := []string{
 		t.S.Soft.Render(how),
 		t.S.Soft.Render("save the context ") + t.S.Subtle.Render("~/.config/"+t.AppName()),
-		t.S.Soft.Render("watch 38 services ") + t.S.Subtle.Render("on "+f.cluster),
+		t.S.Soft.Render("watch 38 services ") + t.S.Subtle.Render("on "+f.cluster.Value()),
 	}
 	for i, it := range items { // cut with the ellipsis, never clipped by the panel edge
 		items[i] = ui.Trunc(t, it, max(1, w-lipgloss.Width(t.G.TreeMid)-1))
@@ -496,24 +526,25 @@ func (m *app) nextRows(w int) []string {
 	return append(rows, ui.Tree(t, items)...)
 }
 
-func (m *app) signinRows(w int) []string {
+func (m *app) signinRows(w int, focused bool) []string {
 	t, f := m.t, m.setup
 	secs := (m.frame - f.since) * int(ui.FrameInterval.Milliseconds()) / 1000
+	cluster, auth := f.cluster.Value(), f.auth.Value()
 	if f.failed {
 		return []string{
 			ui.Alert(t, "error", "TIMED OUT", "No approval within 5 min; the code expired.", w), "",
-			t.S.Soft.Render(ui.Trunc(t, "Nothing was saved on "+f.cluster+". Retry for a new code,", w)),
+			t.S.Soft.Render(ui.Trunc(t, "Nothing was saved on "+cluster+". Retry for a new code,", w)),
 			t.S.Soft.Render(ui.Trunc(t, "or go back and choose another way to sign in.", w)), "",
-			f.acts.View(t, true),
+			f.acts.View(t, focused),
 		}
 	}
-	wait := map[string]string{"browser": "Waiting for you to approve in the browser", "device": "Waiting for approval", "token": "Checking your token"}[f.auth]
+	wait := map[string]string{"browser": "Waiting for you to approve in the browser", "device": "Waiting for approval", "token": "Checking your token"}[auth]
 	rows := []string{ui.Spinner(t, m.frame/2) + " " + t.S.Soft.Render(ui.Trunc(t, wait, w-8)) + t.S.Subtle.Render("  "+itoa(secs)+"s"), ""}
-	if f.auth == "token" {
+	if auth == "token" {
 		return rows
 	}
 	lead := "If the browser didn't open, go to"
-	if f.auth == "device" {
+	if auth == "device" {
 		lead = "On any device, go to"
 	}
 	url := m.signinURL()
@@ -529,32 +560,32 @@ func (m *app) signinRows(w int) []string {
 
 // ---------------------------------------------------------------- accessible
 
-// runAccessibleSetup is the same flow for ACCESSIBLE=1: Huh's plain prompts
-// (the same fields, built by the same buildForm), then status as new lines,
-// never repainted: no spinner, no timer, no alt screen.
+// runAccessibleSetup is the same flow for ACCESSIBLE=1: the same fields asked as plain
+// prompts (ui.Prompter), then status as new lines, never repainted: no spinner, no
+// timer, no alt screen, no colour.
 func runAccessibleSetup(t *theme.Theme, in io.Reader, out io.Writer, wait time.Duration) error {
-	m := newApp(theme.File{}, t.Dark, t.ASCII)
-	m.t, m.setup = t, newSetup()
-	for _, s := range []setupStep{stTarget, stAuth, stAlerts} {
-		if err := m.buildForm(s).WithInput(in).WithOutput(out).Run(); err != nil {
+	f, p := newSetup(t), ui.NewPrompter(in, out)
+	for _, ask := range []func(*ui.Prompter) error{f.cluster.Ask, f.namespace.Ask, f.auth.Ask, f.alerts.Ask} {
+		if err := ask(p); err != nil {
 			return err
 		}
 	}
-	f := m.setup
-	fmt.Fprintf(out, "Signing in to %s.\n", f.cluster)
-	if f.auth != "token" {
-		fmt.Fprintf(out, "Go to %s and enter the code %s.\n", m.signinURL(), deviceCode)
+	cluster := f.cluster.Value()
+	p.Say("Signing in to %s.", cluster)
+	if f.auth.Value() != "token" {
+		p.Say("Go to %s and enter the code %s.", signinURL(t), deviceCode)
 	}
-	fmt.Fprintln(out, "Waiting for approval.")
+	p.Say("Waiting for approval.")
 	time.Sleep(wait)
-	fmt.Fprintf(out, "Signed in to %s as mara@%s.example. 38 services.\n", f.cluster, t.AppName())
-	if err := m.buildForm(stDone).WithInput(in).WithOutput(out).Run(); err != nil {
+	p.Say("Signed in to %s as mara@%s.example. 38 services.", cluster, t.AppName())
+	f.makeDefault.Title = "Make " + cluster + " your default cluster?"
+	if err := f.makeDefault.Ask(p); err != nil {
 		return err
 	}
-	if f.makeDefault {
-		fmt.Fprintf(out, "Saved. %s is your default cluster.\n", f.cluster)
+	if f.makeDefault.Value() {
+		p.Say("Saved. %s is your default cluster.", cluster)
 	} else {
-		fmt.Fprintf(out, "Saved. Pass --cluster %s to use it.\n", f.cluster)
+		p.Say("Saved. Pass --cluster %s to use it.", cluster)
 	}
 	return nil
 }

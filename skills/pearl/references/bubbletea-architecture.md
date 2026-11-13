@@ -4,15 +4,17 @@ Verified against `charm.land/bubbletea/v2 v2.1.0`, `charm.land/lipgloss/v2 v2.0.
 `charm.land/bubbles/v2 v2.2.1`, `charm.land/huh/v2 v2.0.3` and Ultraviolet
 `v0.0.0-20261008173134-6b8d4baf91b4` (October 2026). The kit's `go.mod` pins Go 1.26.7
 (`GOTOOLCHAIN=auto` fetches it; no library needs it). Your training data is mostly v1: the import paths,
-`View()` and the key messages all changed. Copy from the kit, which compiles.
+`View()` and the key messages all changed. Build on the kit, which compiles.
 
 ## Pin These
 
 ```
-go get charm.land/bubbletea/v2@v2.1.0 charm.land/lipgloss/v2@v2.0.6 charm.land/bubbles/v2@v2.2.1 \
-       charm.land/huh/v2@v2.0.3 github.com/charmbracelet/ultraviolet@v0.0.0-20261008173134-6b8d4baf91b4
-# huh is required once you copy the kit's ui/bubbletea (form.go); optional: charm.land/glamour/v2@v2.0.1
+go get github.com/jrschumacher/pearl-tui/skills/pearl/kit@v<version>   # <version>: SKILL.md's metadata.version
+# optional: charm.land/glamour/v2@v2.0.1
 ```
+
+The kit's `go.mod` requires the versions above, so importing it brings them; an app
+that doesn't import the kit pins them itself.
 
 Never `github.com/charmbracelet/bubbletea` (v1) in new code [C-V1].
 
@@ -90,36 +92,52 @@ func (m *model) View() tea.View {                            // returns tea.View
 
 ### Huh v2
 
-Use Huh for input mechanics and the kit's `ui/bubbletea/form.go` for everything it
-renders. Never `huh.NewForm` bare: `tuilint code` fails it [C-HUHTHEME] and Huh's
-defaults render.
+**Huh is the optional path.** A new form uses the kit's fields (`ui.NewInput`,
+`ui.NewSelect`, `ui.NewConfirm`; `components.md` § Forms And Wizards): plain structs on
+Bubbles' `textinput` and the kit's buttons, themed focused and blurred, with no
+commands of their own to route. The showcase's wizard runs on them and doesn't import
+Huh. This section is for an app that already has Huh forms, or needs a field the kit
+lacks (a multi-select, a file picker, options that change as the user types): it keeps
+Huh, themed through `huhform.NewForm`. An app that uses Huh imports
+`github.com/jrschumacher/pearl-tui/skills/pearl/kit/ui/bubbletea/huhform`; an app that doesn't never links Huh
+(`ui` imports none). These were `NewForm`, `HuhTheme`, `HuhStyles` and `HuhSpinner` in `ui`; they are
+now `huhform.NewForm`, `huhform.Theme`, `huhform.Styles` and `huhform.Spinner`.
 
-- `ui.NewForm(t, w, h, groups...)` themes the form from `*theme.Theme` (`ui.HuhTheme`),
-  sets the kit's keys (`ui.FormKeys`) and honours `ACCESSIBLE=1` (`ui.Accessible`).
+Huh keeps its own mechanics and layout: typing, focus order, validation, sizing, button
+alignment. The kit gives it only the theme, through Huh's public theme API. Never
+`huh.NewForm` bare: `tuilint code` fails it [C-HUHTHEME] and Huh's defaults render.
+Don't wrap a field, read a form's rendered text to size it, or redraw part of it to
+match the kit's look: a wrapper pins the app to one Huh release and costs more than the
+difference it hides. Where Huh falls short of the theme, report it to Huh.
+
+- `huhform.NewForm(t, w, h, groups...)` is `huh.NewForm` with the theme (`huhform.Theme`),
+  Huh's help line off (the footer is the help) and `ACCESSIBLE=1` honoured
+  (`ui.Accessible`). Fields are Huh's own: `huh.NewInput`, `huh.NewSelect`,
+  `huh.NewConfirm`.
 - `(*huh.Form).Update` returns `(huh.Model, tea.Cmd)` and `View()` returns a string, so a
   form is not a `tea.Model`: `f, cmd := m.form.Update(msg); m.form = f.(*huh.Form)`, and
   draw `m.form.View()` into a rectangle. Send it every non-key message too: Huh moves
   focus with commands (`NextField`), not in `Update`.
-- `ui.Resize(f, w, h)` after a size change; `ui.Settle(update, cmd)` in tests to run
-  Huh's follow-up commands. It runs them at once and drops whatever doesn't answer within
+- A reply from a dismissed form can reach the form under it, because Huh moves focus by
+  commands: check which form a reply belongs to (a generation number, as the showcase's
+  sign-in does) before forwarding it (issue #96).
+- Size it with its own `WithWidth` and `WithHeight`; `ui.Settle(update, cmd)` in tests to
+  run Huh's follow-up commands. It runs them at once and drops whatever doesn't answer within
   `ui.SettleWait` (40 ms: timers, blinks, ticks), so a test that waits on a tick must
   send the tick's message itself.
 
-Huh v2.0.3 quirks the kit already works around (each is a test; don't undo it):
+What Huh v2.0.3 does that the theme can't change, and what to do in the app if you use
+Huh (the kit's fields have none of these gaps):
 
-| Quirk | Workaround |
+| Huh | In the app |
 |---|---|
-| assumes a light terminal until a `BackgroundColorMsg` reaches the form | `HuhTheme` ignores `isDark` and uses the resolved kit theme |
+| assumes a light terminal until a `BackgroundColorMsg` reaches the form | nothing: `huhform.Theme` returns the resolved theme whatever `isDark` says |
 | a field keeps the first theme it's given | rebuild the step's form on a theme change |
-| a blurred `huh.Input` is unthemed and keeps its `> ` prompt (two `>` on screen) | `ui.NewInput` draws the blurred row itself |
-| `Confirm` buttons are centred | `ui.Confirm` aligns them left; order is action first |
-| the viewport fills only on `Update`, sized with the default theme | `ui.Resize` sends a no-op and sizes to content |
-| validation errors land rows below the field, or off screen | `ui.Resize` counts the error rows; the theme indents them with the fail glyph |
-| `/` on a select opens an unthemed filter; Huh binds its own `ctrl+c` | `ui.FormKeys` turns both off; the app owns quit |
-| no descriptions beside options | `ui.Options(ui.Choice{Name, Desc, Value}...)` |
-| the spinner is `#F780E2`, says "Loading...", no gap before the title | `ui.HuhSpinner(t, title)`; `ui.BubblesSpinner(t)` for Bubbles |
-| accessible prompts print theme colours as raw escapes | `NewForm` uses Huh's colourless base theme when accessible |
-| the input's cursor blink runs its own timer | accepted: the one exception to one frame clock |
+| its theme reaches only a focused `huh.Input`; a blurred one draws in Bubbles' default colours | give a text input a group of its own, so it is never on screen blurred |
+| leaves room for a group's error rows only when `WithHeight` runs, and draws one row past the height | call `WithHeight` on every draw, with one row less than the rectangle |
+| the spinner is `#F780E2`, says "Loading...", no gap before the title | `huhform.Spinner(t, title)`; `ui.BubblesSpinner(t)` for Bubbles |
+| accessible prompts print theme colours as raw escapes | nothing: `huhform.NewForm` uses Huh's colourless base theme when accessible |
+| the input's cursor blink runs its own timer | accepted: the one exception to one frame clock (`ui.Input`'s cursor doesn't blink) |
 | `Select.Value` before `Options` selects nothing | call `Options` first |
 
 - Rebuild the form when a choice changes which fields exist. Bound values must be
@@ -168,7 +186,7 @@ func (m *model) key(msg tea.KeyPressMsg) tea.Cmd {
 ```
 
 Then a test presses every key of every action in every harness state and asserts it
-reached that action (`kit/cmd/showcase/behaviour_test.go`, `TestHelpIsHandled`). Text
+reached that action (`kit/harness/bubbletea/behaviour.go`, `TestHarness/HelpIsHandled`). Text
 inputs have no single-letter actions, so letters type. The `?` overlay lists every
 action, including the ones not in the footer.
 
@@ -220,13 +238,15 @@ at the floor (help, and a write's verbatim body), and `overlayPages` the pages t
 over (`unjudgedPages` the Huh-form pages whose focus can't blur, with why);
 `openOverlay` opens one over the page shown. The harness tests read these tables, hold
 them to the states,
-and name no state of the showcase's but `help` and `toosmall`, so a copied app keeps
-them whole (`kit/README.md`).
+and name no state of an app's but `help` and `toosmall`: they are the kit's
+`harness/bubbletea` package, which an app imports and runs from the one test in its
+`harness_test.go` (`kit/README.md`).
 `View` and the harness share one `render(w, h)`, so the PNG is the program. See
-`kit/cmd/showcase/main.go`. A `_test.go` renders every state at the floor (60×18 in
+`kit/cmd/skeleton/main.go`, the smallest app that has all of it (`kit/cmd/showcase/main.go`
+has the same at full size). A `_test.go` renders every state at the floor (60×18 in
 the kit, still a full layout; `TUI.md` § Size floor may raise it), 80×24, 100×30,
 120×40 and 200×60 in every theme and mode and asserts the footprint
-(`showcase_test.go`, the floor read from `minW`/`minH`); `toosmall` is skipped there
+(`kit/harness/bubbletea/frames.go`, the floor read from `minW`/`minH`); `toosmall` is skipped there
 and checked by `-golden`/`-out` one size below the floor (50×14 in the kit).
 
 ## Project Layout
@@ -235,11 +255,16 @@ and checked by `-golden`/`-out` one size below the floor (50×14 in the kit).
 cmd/<app>/main.go        flags, harness, tea.NewProgram
 cmd/<app>/app.go         the root model: state, Update, the action tables, the clock
 cmd/<app>/screens.go     render(w,h): every region into its rectangle, overlays last
-cmd/<app>/fixtures.go    realistic data for every state (replaces the showcase's data.go)
-cmd/<app>/*_test.go      the footprint, contrast and behaviour tests, copied with the kit
-internal/theme/          the kit's theme package (copied); themes/<brand>.json, embedded by themes/embed.go
-internal/ui/             the kit's components (copied), plus your own
+cmd/<app>/fixtures.go    realistic data for every state, in your domain's shape
+cmd/<app>/harness_test.go  runs the kit's footprint, contrast and behaviour tests on this app
+cmd/<app>/*_test.go      your own tests: what your screens do
+themes/<brand>.json      the one theme, embedded by themes/embed.go
+go.mod                   requires the kit: its theme and ui packages are imported, never copied
 ```
 
-One package, `cmd/<app>`, because that is where `kit/README.md`'s copy block puts the
-showcase and its tests: a model in `internal/app` splits the harness from its states.
+A component the kit lacks is a file in `cmd/<app>`, drawn with `theme` and `ui.Canvas`.
+This is the layout of `kit/cmd/skeleton`, which `kit/README.md`'s block copies as
+`cmd/<app>` and which passes the harness as copied; grow your screens into it, and read
+the showcase for a pattern it lacks (a wizard, panes, toasts). One package,
+`cmd/<app>`, because that is where the block puts the skeleton and its tests: a model in
+`internal/app` splits the harness from its states.

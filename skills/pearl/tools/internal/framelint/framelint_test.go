@@ -1528,3 +1528,104 @@ func TestANSI256PinsAreInThePalette(t *testing.T) {
 		t.Error("the same frames judged without the pins: no F-OFFPAL, so the fixture no longer tests them")
 	}
 }
+
+// F-FOCUS: one focus per frame in shape (Law 5). In an ASCII frame of a theme whose
+// selection is a bar or a caret, its mark ("|" for charm's bar, ">" for lumen's caret)
+// stands before rows in one column at most. testdata/kit/charm-ascii is a render from
+// before the blurred list took Theme.BlurBar: the list behind the palette kept its "|"
+// beside the palette's own. A dialog's side edges are not marks, a fill theme marks the
+// row and is not judged, and without --ascii the rule doesn't run, so the Python-era
+// goldens are untouched.
+func TestFocusColumns(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, text string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	one := write("one-24x3.ansi", "  | api                 \n    worker              \n    queue               \n")
+	two := write("two-24x3.ansi", "  | api     : api       \n    worker    | worker  \n    queue     queue     \n")
+	// a dialog's left edge with one cell of padding ("| x") beside the focused row in it
+	boxed := write("boxed-24x5.ansi", "    +-------------+     \n    | | rollback  |     \n    | x restart   |     \n    | x reload    |     \n    +-------------+     \n")
+	caret := write("caret-24x3.ansi", "  > api                 \n    worker   > queue    \n                        \n")
+	hits := func(args ...string) []Finding {
+		fs, _, _ := run(t, args...)
+		var out []Finding
+		for _, f := range fs {
+			if f.Rule == "F-FOCUS" {
+				out = append(out, f)
+			}
+		}
+		return out
+	}
+	charm, lumen, halyard := "testdata/themes/charm.json", "testdata/themes/lumen.json", "testdata/themes/halyard.json"
+	if h := hits(one, boxed, "--ascii", "--theme", charm); len(h) != 0 {
+		t.Errorf("one focus column, and a dialog's edge: %+v", h)
+	}
+	h := hits(two, "--ascii", "--theme", charm)
+	if len(h) != 1 || h[0].Sev != "P1" || h[0].Where != "r1c14" || !strings.Contains(h[0].Msg, "2 columns") ||
+		!strings.Contains(h[0].Msg, "column 2 rows [0]; column 14 rows [1]") {
+		t.Errorf("a blurred list that kept the focus bar: %+v", h)
+	}
+	if h := hits(two, "--theme", charm); len(h) != 0 {
+		t.Errorf("without --ascii: %+v", h)
+	}
+	if h := hits(two, "--ascii"); len(h) != 0 {
+		t.Errorf("without --theme there is no mark to look for: %+v", h)
+	}
+	if h := hits(two, "--ascii", "--theme", halyard); len(h) != 0 {
+		t.Errorf("a fill theme marks the row, not a column: %+v", h)
+	}
+	if h := hits(caret, "--ascii", "--theme", lumen); len(h) != 1 || !strings.Contains(h[0].Msg, `">"`) {
+		t.Errorf("a caret theme's cursor in two columns: %+v", h)
+	}
+	if h := hits("testdata/kit/charm-ascii/palette-80x24.ansi", "--ascii", "--theme", charm); len(h) != 1 {
+		t.Errorf("the list behind the palette kept its focus bar: %+v", h)
+	}
+}
+
+// F-TOOSMALL: the too-small screen draws only below the app's floor, so its frame is
+// narrower or shorter than every other frame linted with it, whose sizes the names
+// give. A too-small screen rendered at the size asked (toosmall-80x24 beside
+// services-80x24) fails; the kit's toosmall-50x14 beside 80x24 and 120x40 frames, one
+// narrower but as tall, and a run of the too-small frame alone do not.
+func TestTooSmallIsSmaller(t *testing.T) {
+	frame := func(dir, name string, w, h int) {
+		row := "  " + strings.Repeat("x", w-4) + "  \n"
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(strings.Repeat(row, h)), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	hits := func(args ...string) []Finding {
+		fs, _, _ := run(t, args...)
+		var out []Finding
+		for _, f := range fs {
+			if f.Rule == "F-TOOSMALL" {
+				out = append(out, f)
+			}
+		}
+		return out
+	}
+	ok := t.TempDir()
+	frame(ok, "services-80x24.ansi", 80, 24)
+	frame(ok, "services-120x40.ansi", 120, 40)
+	frame(ok, "toosmall-50x14.ansi", 50, 14)
+	frame(ok, "toosmall-79x40.ansi", 79, 40)
+	if h := hits(ok); len(h) != 0 {
+		t.Errorf("too-small frames below the floor: %+v", h)
+	}
+	if h := hits(filepath.Join(ok, "toosmall-50x14.ansi")); len(h) != 0 {
+		t.Errorf("a too-small frame linted alone: %+v", h)
+	}
+	bad := t.TempDir()
+	frame(bad, "services-80x24.ansi", 80, 24)
+	frame(bad, "services-120x40.ansi", 120, 40)
+	frame(bad, "toosmall-80x24.ansi", 80, 24)
+	h := hits(bad)
+	if len(h) != 1 || h[0].Sev != "P1" || h[0].File != "toosmall-80x24.ansi" ||
+		!strings.Contains(h[0].Msg, "80x24, at least as wide as the narrowest other frame (80) and as tall as the shortest (24)") {
+		t.Errorf("a too-small frame at a size the pages draw at: %+v", h)
+	}
+}

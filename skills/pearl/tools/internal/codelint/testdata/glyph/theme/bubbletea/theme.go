@@ -1,5 +1,5 @@
 // Package theme is one framework's theme in the kit's layout (theme/<framework>, the
-// kit's tuikit/theme/bubbletea): the package is still named theme, its path ends in the
+// kit's github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea): the package is still named theme, its path ends in the
 // framework. Its glyph literals are the theme's, and its Ellipsis is the bare constant
 // C-ELLIPSIS fails outside the ui package, as the theme/ package's is.
 package theme

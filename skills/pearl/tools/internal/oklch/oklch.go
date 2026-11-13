@@ -8,7 +8,7 @@
 // Hypot) are Go's, which can differ from the C library's by an ulp; at 8-bit hex
 // precision that has not changed an output on any input we compared (see the tests).
 //
-// Contrast is the kit's own (tuikit/theme/bubbletea's Contrast), so the checker and
+// Contrast is the kit's own (github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea's Contrast), so the checker and
 // the engine share one definition.
 package oklch
 
@@ -19,7 +19,7 @@ import (
 	"math"
 	"strings"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
 
 // Runtime copies of constants, so divisions round the way Python's do (a Go constant

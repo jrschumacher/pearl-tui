@@ -5,19 +5,20 @@ import (
 	"image/color"
 	"io"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme/bubbletea"
-	"tuikit/ui/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/ui/bubbletea"
 )
 
 // drive presses keys the way a running program would deliver them: each
-// key, then every message its commands produce (Huh moves between fields
-// by Cmd, not in Update).
+// key, then every message its commands produce (a sign-in's result, a toast's
+// clock), the timers dropped.
 func drive(m *app, keys ...string) {
 	for _, k := range keys {
 		cmd := m.key(press(k))
@@ -118,7 +119,7 @@ func TestSetupCounterAdvancesPastReview(t *testing.T) {
 	step("5/6 " + m.t.Copy("Connect"))
 	m.Update(signedInMsg{m.setup.gen})
 	step("6/6 " + m.t.Copy("Finish"))
-	if m.setup.namespace != "pay" || m.setup.auth != "device" || !m.setup.alerts {
+	if m.setup.namespace.Value() != "pay" || m.setup.auth.Value() != "device" || !m.setup.alerts.Value() {
 		t.Fatalf("values lost on the way: %+v", *m.setup)
 	}
 	drive(m, "enter")
@@ -132,7 +133,7 @@ func TestSetupCounterAdvancesPastReview(t *testing.T) {
 func TestSetupEscKeepsInput(t *testing.T) {
 	m := fixture(t, "setup-namespace")
 	drive(m, "esc")
-	if m.screen != scrSetup || m.setup.namespace != "payments" {
+	if m.screen != scrSetup || m.setup.namespace.Value() != "payments" {
 		t.Fatal("one esc with typed input left setup")
 	}
 	if n, ok := m.toasts.Current(); !ok || !strings.Contains(n.Label+n.Msg, "ESC AGAIN") {
@@ -145,8 +146,8 @@ func TestSetupEscKeepsInput(t *testing.T) {
 
 	a := fixture(t, "setup-alerts")
 	drive(a, "esc", "esc")
-	if a.setup.step != stTarget || a.setup.namespace != "payments" {
-		t.Fatalf("back to step %d lost the namespace %q", a.setup.step, a.setup.namespace)
+	if a.setup.step != stTarget || a.setup.namespace.Value() != "payments" {
+		t.Fatalf("back to step %d lost the namespace %q", a.setup.step, a.setup.namespace.Value())
 	}
 	if !strings.Contains(screenText(a, 120, 40), "payments") {
 		t.Fatal("the rebuilt first step does not show the typed namespace")
@@ -173,8 +174,10 @@ func TestSetupStaleSignin(t *testing.T) {
 	}
 }
 
-// The select cursor and an input prompt never show at once, and a blurred
-// input draws no prompt glyph at all.
+// The select cursor and an input prompt never show at once on the step that has both
+// fields, and a blurred input draws no prompt glyph at all. The cluster's filter line is
+// the select's own input, as the palette's is (letters to the query, arrows to the
+// highlight), so it is left out of the count; with no filter in force it isn't drawn.
 func TestSetupOneCursor(t *testing.T) {
 	files := testThemes(t)
 	for _, f := range files {
@@ -182,9 +185,16 @@ func TestSetupOneCursor(t *testing.T) {
 		m := newApp(tf, true, false)
 		for _, s := range []string{"setup-target", "setup-namespace"} {
 			m.setState(s)
-			g := m.t.G
-			m.render(120, 40) // lays the form out
-			body := ansi.Strip(m.setup.form.View())
+			g, sf := m.t.G, m.setup
+			var kept []string
+			for _, r := range append(sf.cluster.View(m.t, 60, sf.field == 0), sf.namespace.View(m.t, 60, sf.field == 1)...) {
+				if r = ansi.Strip(r); !strings.Contains(r, " of "+itoa(len(sf.cluster.Options))) {
+					kept = append(kept, r)
+				} else if sf.field != 0 {
+					t.Errorf("%s %s: the blurred cluster draws its filter line: %q", filepath.Base(f), s, r)
+				}
+			}
+			body := strings.Join(kept, "\n")
 			cursors := strings.Count(body, g.Cursor+" ") // the select's selector
 			prompts := strings.Count(body, g.Prompt+" ")
 			if g.Cursor == g.Prompt {
@@ -195,6 +205,58 @@ func TestSetupOneCursor(t *testing.T) {
 				t.Errorf("%s %s: %d cursors and %d prompts, want one in all", filepath.Base(f), s, cursors, prompts)
 			}
 		}
+	}
+}
+
+// The cluster select filters as the user types (#104): letters narrow it, j and k
+// included, while only the arrows move; esc clears a filter in force and keeps the
+// user on the step, and only the next esc means quit setup. A filter that leaves
+// nothing offers no enter, since nothing is highlighted to submit.
+func TestSetupClusterFilter(t *testing.T) {
+	offers := func(m *app, desc string) bool {
+		return slices.ContainsFunc(m.actions(), func(a action) bool { return a.b.Help().Desc == desc })
+	}
+	m := fixture(t, "setup-target")
+	drive(m, "s", "t", "g", "j", "k")
+	if q := m.setup.cluster.Query(); q != "stgjk" {
+		t.Fatalf("typed stgjk into the cluster, its filter is %q", q)
+	}
+	drive(m, "backspace", "backspace")
+	if m.setup.cluster.Matches() != 2 {
+		t.Fatalf("stg leaves %d clusters, want the two staging ones", m.setup.cluster.Matches())
+	}
+	drive(m, "down")
+	if v := m.setup.cluster.Value(); v != "staging-us-east-1" {
+		t.Fatalf("down through the filtered clusters reached %q", v)
+	}
+	if !offers(m, "clear filter") || offers(m, "quit setup") {
+		t.Fatal("with a filter in force esc must offer to clear it, not to quit")
+	}
+	drive(m, "esc")
+	if m.screen != scrSetup || m.setup.step != stTarget || m.setup.cluster.Filtered() {
+		t.Fatalf("esc with a filter: screen %d step %d filtered %v; want the filter cleared, the step kept", m.screen, m.setup.step, m.setup.cluster.Filtered())
+	}
+	if v := m.setup.cluster.Value(); v != "staging-us-east-1" {
+		t.Fatalf("clearing the filter lost the choice: %q", v)
+	}
+	drive(m, "esc")
+	if m.screen != scrServices {
+		t.Fatal("esc with no filter should leave setup")
+	}
+
+	n := fixture(t, "setup-nomatch")
+	if n.setup.cluster.Matches() != 0 || offers(n, "next") || !offers(n, "clear filter") {
+		t.Fatalf("a filter that leaves nothing: %d matches, enter offered %v", n.setup.cluster.Matches(), offers(n, "next"))
+	}
+	if txt := screenText(n, 80, 24); !strings.Contains(txt, "No option matches") {
+		t.Errorf("a filter that leaves nothing draws no empty state:\n%s", txt)
+	}
+	// the other selects are not filterable: j still moves the sign-in choice
+	a := fixture(t, "setup-auth")
+	before := a.setup.auth.Value()
+	drive(a, "j")
+	if a.setup.auth.Value() == before || a.setup.auth.Filtered() {
+		t.Error("j on the sign-in select no longer moves it")
 	}
 }
 
@@ -250,9 +312,9 @@ func TestSetupNoDefaultColours(t *testing.T) {
 	}
 }
 
-// lines hands a reader out one line per Read, like a terminal does. Huh's
-// accessible prompts make a new bufio.Scanner per question, so a reader
-// that returns everything at once feeds only the first one.
+// lines hands a reader out one line per Read, like a terminal does: the
+// prompts must read one answer per question from one reader, never buffer
+// the next question's answer away.
 type lines struct{ rest []string }
 
 func (l *lines) Read(p []byte) (int, error) {
@@ -288,7 +350,7 @@ func TestAccessibleSetup(t *testing.T) {
 }
 
 // The wizard's own copy follows the brand's case like the kit's: its step names and the
-// Huh field titles go through t.Copy, so a labelCase lower brand (quire) draws
+// field titles go through t.Copy, so a labelCase lower brand (quire) draws
 // "cluster", "sign-in", "namespace", and a sentence-case one keeps them as written. A
 // title of several words is a label too: quire's "sign in with" once drew "Sign in with"
 // beside "cluster" and "namespace", because t.Copy took any text with a space for a
@@ -299,9 +361,9 @@ func TestSetupCopyFollowsTheme(t *testing.T) {
 		t.Skip("quire.json is the kit's; a copied project has its own themes")
 	}
 	for _, c := range []struct {
-		name            string
-		f               theme.File
-		step, huh, auth string
+		name              string
+		f                 theme.File
+		step, field, auth string
 	}{
 		{"quire", q, "cluster", "namespace", "sign in with"},
 		{"sentence", testTheme(t, "halyard.json"), "Cluster", "Namespace", "Sign in with"},
@@ -317,7 +379,7 @@ func TestSetupCopyFollowsTheme(t *testing.T) {
 		m := newApp(c.f, true, false)
 		m.setState("setup-namespace")
 		frame := ansi.Strip(m.render(100, 30).String())
-		for _, want := range []string{c.step, c.huh} {
+		for _, want := range []string{c.step, c.field} {
 			if !strings.Contains(frame, want) {
 				t.Errorf("%s: setup frame lacks %q:\n%s", c.name, want, frame)
 			}

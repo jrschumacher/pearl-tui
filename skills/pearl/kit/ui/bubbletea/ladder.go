@@ -3,7 +3,7 @@ package ui
 import (
 	"charm.land/lipgloss/v2"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
 
 // Mark is a status slot's glyph in its role: the one colour each rung of the ladder has

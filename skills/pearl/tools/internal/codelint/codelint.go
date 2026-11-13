@@ -29,6 +29,7 @@
 //	C-HUHTHEME  [P1] a huh.NewForm (or a Huh field run on its own) never given WithTheme, or given a
 //	                 stock Huh theme; a Huh spinner without WithTheme; a Bubbles spinner.New without
 //	                 spinner.WithStyle or a .Style: each renders the library's colours, not the brand
+//	                 (huhform.NewForm, huhform.Spinner and ui.BubblesSpinner, in the kit, are themed)
 //	C-FASTTICK  [P2] tea.Tick/Every faster than 33ms
 //	C-PRINT     [P2] fmt.Print* reachable from a running model (Init, Update, View or their Cmds)
 //	C-KEYS      [P2] key strings matched inline and no key.Binding anywhere in the program

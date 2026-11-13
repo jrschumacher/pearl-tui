@@ -25,9 +25,11 @@ skills/pearl/
                   .ansi frames, a flow and a sequence log, in full or privacy mode (eyes on an
                   app with no harness)
   scripts/        wordmark, logo2cells (Python 3 + Pillow/numpy; brand-asset conversion only)
-  kit/            Go module `tuikit`: themes/*.json (the framework-neutral contract),
+  kit/            Go module `…/pearl-tui/skills/pearl/kit`, which apps import: themes/*.json (the framework-neutral contract),
                   theme/bubbletea/ and ui/bubbletea/ (one framework's engine and components),
-                  cmd/showcase (the Bubble Tea reference app + harness)
+                  harness/bubbletea/ (the tests every app runs against itself, imported),
+                  cmd/skeleton (the smallest app on the kit's shape, which a project copies),
+                  cmd/showcase (the Bubble Tea reference app + its harness flags: read, not copied)
 .claude-plugin/   plugin.json + marketplace.json: the repo root is a Claude Code plugin that
                   bundles skills/pearl (default skills/ scan) and hooks/
 hooks/            hooks.json (PostToolUse on Edit|Write|MultiEdit) → tuilint-edit.sh, which
@@ -43,11 +45,13 @@ prompts and graded assertions, which a cold agent under evaluation must not be a
 read) lives at the repo root; skill-creator takes the path.
 
 `version` in `.claude-plugin/plugin.json` and `marketplace.json` is the release
-(`1.0.0-rc.1` today) and equals SKILL.md's `metadata.version`, which the `feedback` tool
+(`1.0.0-rc.4` today) and equals SKILL.md's `metadata.version`, which the `feedback` tool
 reports. Claude Code pins plugin installs to it: a commit on `main` reaches plugin users
 only when a release bumps all three, together, with a `CHANGELOG.md` entry; CI's
 plugin job fails unless the three and the top `## <version>` heading agree. Tags are
-`v<version>`, made after the release PR merges.
+`v<version>` and `skills/pearl/kit/v<version>`, both made after the release PR merges:
+the second is the one Go resolves, since the kit is a module in a subdirectory, and
+`go get <kit>@v<version>` in `kit/README.md` fails without it.
 
 ## Commands
 
@@ -78,11 +82,12 @@ is held to `.github/tuilint-baseline.json` (`"<theme>-<variant>": warnings`; a m
 entry means 0) through `tuilint frames --max-warnings`, so a new warning class fails CI;
 to raise an entry on purpose, justify the warning in the PR and edit the number (today only
 moss's `dialog: none` overlays, which have no edge for the linter to find). It also runs
-`kit/README.md`'s copy block, as written, in a fresh module, because a kit test that
-names a kit path passes here and fails in every project that copied the kit, and then
-deletes the showcase's screens as the README says and runs the kept harness tests
-against `.github/kit-stub` (two pages, one overlay), because a kit test that names a
-showcase state fails the same way; checks that
+`kit/README.md`'s import block, as written, in a fresh module (its `go get` turned into
+a `replace` to the checkout) with three donor themes, and holds the copied
+`cmd/skeleton` to `go vet`, `go test` (the harness, `kit/harness/bubbletea`, from its
+`harness_test.go`), `tuilint code` and `-golden` with no edit after the block, because a
+skeleton test that names a kit path, or a kit test that names a state the skeleton
+lacks, passes here and fails in every project that copied it; checks that
 every tool invocation in SKILL.md and `references/` names a real mode and flag (the
 `cmddoc` test in `tools/`), that every `references/cmd-*.md` has a row in SKILL.md's
 command table, and that `evals/evals.json` parses and its fixtures exist; and runs each
@@ -106,7 +111,9 @@ The skill gets better from observed misses, not from adding prose.
      test in the kit, or a structural pattern the kit forces; then shorten the prose
    - (c) prose can't express it → a tool only
    If most misses are (b), the skill is too long: cut before adding.
-4. **Make the kit pass it** (the kit is what agents copy, so the fix must live there).
+4. **Make the kit pass it** (the kit is what apps import, the skeleton is what agents
+   copy as their app and the showcase is what they read for a pattern, so the fix must
+   live there).
 5. **Edit the skill**, one change per cause.
 6. **Verify**: tests, lint, renders, and for visual or behavioural changes the critic
    loop (`references/verify.md`): render, look at the PNGs, run an adversarial critic
@@ -114,27 +121,35 @@ The skill gets better from observed misses, not from adding prose.
 
 ## Rules
 
-- **The kit must compile, pass its tests and lint clean at every commit.** A cold agent
-  copies it verbatim.
+- **The kit must compile, pass its tests and lint clean at every commit.** Apps import
+  it, a cold agent copies the skeleton verbatim, and reads the showcase as the pattern.
+- **The kit is a dependency, so its exported names are an API.** Removing or renaming
+  one breaks every app at its next `go get`: mark the commit `!` and say what replaces it.
 - **Every advertised key must be handled.** Keys live in one action table per state
-  (`kit/cmd/showcase/app.go`); `TestHelpIsHandled` enforces it. Don't add a footer
+  (`kit/cmd/skeleton/app.go`, `kit/cmd/showcase/app.go`); the harness's `HelpIsHandled` enforces it. Don't add a footer
   binding any other way.
 - **No literals in screens.** Colours and glyphs come from the theme. `tuilint code`
   fails on hex [C-HEX] and on a glyph (`·`, `▏`, `→`) [C-GLYPH] outside `theme/bubbletea/`
   and `ui/bubbletea/canvas.go`'s twin table; a new glyph is a `theme.Glyphs` field with
   an ASCII twin.
-- **Libraries go through the kit's theme.** Huh forms are built with `ui.NewForm` and
-  spinners with `ui.HuhSpinner` / `ui.BubblesSpinner`; `tuilint code` fails a bare
-  `huh.NewForm` or an unstyled spinner [C-HUHTHEME]. Huh v2.0.3's quirks and the kit's
-  workarounds are in `references/bubbletea-architecture.md`; each has a test, so don't
-  undo one.
+- **Libraries go through the kit's theme.** A form uses the kit's own fields
+  (`ui.NewInput`, `ui.NewSelect`, `ui.NewConfirm`, `kit/ui/bubbletea/fields.go`) by
+  default, and the showcase imports no Huh: Huh is the optional path, for an app that
+  already has Huh forms or needs a field the kit lacks, because Huh's theme can't reach a
+  blurred input and Huh lags the Bubbles and Bubble Tea the kit pins. Huh forms are built
+  with `huhform.NewForm` and spinners with `huhform.Spinner` / `ui.BubblesSpinner`;
+  `tuilint code` fails a bare `huh.NewForm` or an unstyled spinner [C-HUHTHEME]. The kit themes a library through its
+  public API and stops there: no wrapped field, no reading a form's rendered text, no
+  redrawing part of it. What Huh does that the theme can't change is listed in
+  `references/bubbletea-architecture.md`, with what an app does about it.
 - **Pinned versions.** `charm.land/bubbletea/v2 v2.1.0`, `lipgloss/v2 v2.0.6`,
   `bubbles/v2 v2.2.1`, `huh/v2 v2.0.3`, Ultraviolet `v0.0.0-20261008173134-6b8d4baf91b4`.
   To bump: update `kit/go.mod`, run everything above, and update
   `references/bubbletea-architecture.md`, whose API claims are verified against these
-  versions, the `go get` line in `kit/README.md`'s copy block, and the stack line in
-  `references/cmd-init.md`'s TUI.md template. `capture/go.mod` pins Ultraviolet to the
-  kit's commit too, so its emulator's cells are the kit canvas's: bump them together.
+  versions, its `go get` line, and the stack line in `references/cmd-init.md`'s TUI.md
+  template. Apps get these versions through the kit's `go.mod`. `capture/go.mod` pins
+  Ultraviolet to the kit's commit too, so its emulator's cells are the kit canvas's: bump
+  them together.
 - **Fictional brands only** in `kit/themes/`. No real companies' marks or palettes, apart
   from the clearly labelled Charmtone study (`charm.json`).
 - **SKILL.md frontmatter** stays within the Agent Skills spec: `name` (must equal the
@@ -175,7 +190,7 @@ type(scope)!: description        e.g.  fix(kit): keep the focus bar on resize
   | Scope | Covers |
   |---|---|
   | `skill` | SKILL.md and `references/` |
-  | `kit` | the Go kit: `theme/<framework>/`, `ui/<framework>/`, `cmd/showcase` |
+  | `kit` | the Go kit: `theme/<framework>/`, `ui/<framework>/`, `cmd/skeleton`, `cmd/showcase` |
   | `themes` | `kit/themes/*.json` |
   | `tools` | the Go tools in `tools/` |
   | `scripts` | the Python brand-asset converters |

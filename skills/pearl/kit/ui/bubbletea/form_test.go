@@ -9,11 +9,8 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/huh/v2"
-	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 )
 
 // testThemes finds the theme JSONs two levels up: in the kit (ui/bubbletea/../../themes)
@@ -62,12 +59,12 @@ func testTheme(t *testing.T, ascii bool) *theme.Theme {
 	return theme.Resolve(f, true, ascii)
 }
 
-// Both spinners turn the brand's frames in the theme's working ink (S.Working:
+// The Bubbles spinner turns the brand's frames in the theme's working ink (S.Working:
 // the focus ink, so fg under focus "fg", or the role expressions.spinner names),
-// never Bubbles' Line or Huh's #F780E2 Dot. Every kit theme and quire (focus fg),
+// never Bubbles' Line (huhform has the same test for Huh's). Every kit theme and quire (focus fg),
 // each as written and with focus forced to fg: a project whose one theme sets
 // focus fg failed this test out of the box when it compared against primary.
-func TestSpinnersAreThemed(t *testing.T) {
+func TestBubblesSpinnerIsThemed(t *testing.T) {
 	files := append(testThemes(t), quirePath(t))
 	for _, f := range files {
 		tf, err := theme.Load(f)
@@ -85,61 +82,7 @@ func TestSpinnersAreThemed(t *testing.T) {
 			if v := bs.View(); v != th.S.Working.Render(th.G.Spinner[0]) {
 				t.Errorf("%s: bubbles spinner renders %q, want the working ink %q", name, v, th.S.Working.Render(th.G.Spinner[0]))
 			}
-			hs := HuhSpinner(th, "Connecting to staging")
-			v := hs.View()
-			if !strings.HasPrefix(ansi.Strip(v), th.G.Spinner[0]+" Connecting") {
-				t.Errorf("%s: huh spinner renders %q", name, ansi.Strip(v))
-			}
-			if got, want := firstInk(v), firstInk(th.S.Working.Render(th.G.Spinner[0])); !sameColor(got, want) {
-				t.Errorf("%s: huh spinner frame is %v, want the working ink %v", name, got, want)
-			}
-			if strings.Contains(v, "247;128;226") || strings.Contains(ansi.Strip(v), "Loading") {
-				t.Errorf("%s: huh spinner kept a default: %q", name, v)
-			}
 		}
-	}
-}
-
-// A blurred input shows its value behind blank prompt cells; focused, the
-// prompt glyph comes back in the same cells, so the text never moves.
-func TestInputBlurredHasNoPrompt(t *testing.T) {
-	th := testTheme(t, false)
-	v := "payments"
-	in := NewInput(th).Title("Namespace").Value(&v)
-	in.WithWidth(40)
-	rows := strings.Split(ansi.Strip(in.View()), "\n")
-	last := rows[len(rows)-1]
-	if strings.Contains(last, th.G.Prompt) || !strings.Contains(last, "payments") {
-		t.Fatalf("blurred input row %q", last)
-	}
-	in.Focus()
-	rows = strings.Split(ansi.Strip(in.View()), "\n")
-	focused := rows[len(rows)-1]
-	col := func(r string) int { return lipgloss.Width(r[:strings.Index(r, "payments")]) }
-	if col(focused) != col(last) {
-		t.Fatalf("focus moved the text: %q vs %q", focused, last)
-	}
-}
-
-// Confirm puts the action first, aligned left, with the stated default.
-func TestConfirmOrderAndDefault(t *testing.T) {
-	th := testTheme(t, false)
-	var v bool
-	c := Confirm(th, "Delete it?", "Delete", "Keep", false, &v)
-	f := NewForm(th, 60, 8, huh.NewGroup(c))
-	f.Init()
-	txt := ansi.Strip(f.View())
-	row := ""
-	for _, l := range strings.Split(txt, "\n") {
-		if strings.Contains(l, "Delete") && strings.Contains(l, "Keep") {
-			row = l
-		}
-	}
-	if row == "" || strings.Index(row, "Delete") > strings.Index(row, "Keep") || strings.Index(row, "Delete") > 8 {
-		t.Fatalf("button row %q: want Delete first, left in the field's column", row)
-	}
-	if v {
-		t.Fatal("the default was false")
 	}
 }
 

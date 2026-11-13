@@ -4,7 +4,7 @@ package main
 // deploys, the deploy form, the assistant, the ladder, the palette's commands). They
 // name its states and data, so a copied app deletes this file with data.go and
 // setup.go once its screens are in (kit/README.md); the harness tests it keeps
-// (showcase_test.go, overlay_test.go, behaviour_test.go, ansi16_test.go) read the app's
+// (the kit's harness package, run by harness_test.go) read the app's
 // own tables: states, setState, overlays, overlayPages, openOverlay and the action tables.
 
 import (
@@ -24,13 +24,9 @@ import (
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 
-	"tuikit/theme/bubbletea"
-	"tuikit/ui/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/ui/bubbletea"
 )
-
-// The 16-colour tests (ansi16_test.go) also judge every status mark (ladder) and a
-// brand title over a filled header (setup-signin), which only the showcase draws.
-func init() { ansi16States = append(ansi16States, "ladder", "setup-signin") }
 
 // The ladder's reading keeps its text under -ascii: a unit (21.5°C), a product (3×4)
 // and a name with an accent (Zoë) read 21.5 C, 3x4 and Zoe, where the sweep drew "?"

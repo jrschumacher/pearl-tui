@@ -48,8 +48,9 @@ pink-purple, emoji, rounded boxes around regions, "Loading..."
 
 ### Stack
 Go 1.26.7; charm.land/bubbletea/v2 v2.1.0, lipgloss/v2 v2.0.6, bubbles/v2 v2.2.1,
-huh/v2 v2.0.3; ultraviolet v0.0.0-20261008173134-6b8d4baf91b4.
-The kit's theme/bubbletea and ui/bubbletea copied into internal/theme and internal/ui.
+ultraviolet v0.0.0-20261008173134-6b8d4baf91b4.
+The kit's theme/bubbletea and ui/bubbletea imported (go.mod requires the kit);
+the kit's skeleton (cmd/skeleton) copied as the app, its model moved to internal/app.
 
 ### Root model and regions
 One *model in internal/app; regions are structs drawn into rectangles (x,y w×h at 80×24):
@@ -62,8 +63,8 @@ One *model in internal/app; regions are structs drawn into rectangles (x,y w×h 
 focus: list | detail        overlays: palette, confirm, help (front one gets keys)
 
 ### Forms
-Huh v2 for the deploy form, themed with the kit's `ui.NewForm` from *theme.Theme.
-Hand-written: none.
+The kit's fields (ui.Input, ui.Select, ui.Confirm) for the deploy form.
+Huh: none.
 
 ### Components
 Bubbles: textinput (palette filter), viewport (logs). Kit ui: List, Table, Dialog, Footer.
@@ -96,8 +97,8 @@ Below 60×18: ui.TooSmall. Below 110 columns: the detail pane collapses to a sum
 Below 30 rows: the sparkline row goes.
 
 ### Accessible and non-TTY
-ACCESSIBLE=1 or --accessible: no alt screen, Huh WithAccessible(true), status as new
-lines. stdout not a TTY: --json, never escape codes.
+ACCESSIBLE=1 or --accessible: no alt screen, the fields asked through ui.Prompter,
+status as new lines. stdout not a TTY: --json, never escape codes.
 
 ## First slice
 services, deploy and confirm rendered from fixtures through the harness, every state at
@@ -110,6 +111,7 @@ keep: "The service names stay exactly as kubectl prints them."
 reference: none
 method: the main screen's move at three options (-variant a|b|c), then the loop (verify.md)
 deliver: frames/ at 80×24 and 120×40, sheet-80.png, sheet-120.png, pick-move.png
+size: setup.go ~600 lines, setup_test.go ~300; no new package, nothing copied from the kit
 decide: the main screen's move; work stops at pick-move.png until it is picked
 
 ## Decisions

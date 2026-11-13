@@ -1,10 +1,10 @@
 ---
 name: pearl
-description: Design and build terminal UIs that look as considered as Charm's Crush and unmistakably like the product's own brand. The design laws are framework-neutral; the kit and code lint support Bubble Tea v2 (Go, with Lip Gloss, Bubbles and Huh) today. Use when the user wants to build, design, redesign, restyle, theme, brand, critique, audit, polish, harden or animate a TUI, CLI dashboard, interactive CLI, terminal wizard, chat/agent interface, splash screen, terminal logo or wordmark; for any Bubble Tea, Lip Gloss, Bubbles, Huh or Charm work; or to port a v1 Bubble Tea app to v2. Covers column budgets, colour roles and contrast, glyphs, focus and keys, empty/loading/error states, motion, cell art, a theme contract per brand, and a render-lint-critique loop that lets you see the terminal first. Ships a compile-verified Bubble Tea kit, an ANSI-to-PNG renderer, a palette tool and a slop linter. Not for web UIs, nor yet for TUI frameworks other than Bubble Tea (ratatui, Textual, Ink, tview).
+description: Design and build terminal UIs that look as considered as Charm's Crush and unmistakably like the product's own brand. The design laws are framework-neutral; the kit and code lint support Bubble Tea v2 (Go, with Lip Gloss and Bubbles; Huh supported, not required) today. Use when the user wants to build, design, redesign, restyle, theme, brand, critique, audit, polish, harden or animate a TUI, CLI dashboard, interactive CLI, terminal wizard, chat/agent interface, splash screen, terminal logo or wordmark; for any Bubble Tea, Lip Gloss, Bubbles, Huh or Charm work; or to port a v1 Bubble Tea app to v2. Covers column budgets, colour roles and contrast, glyphs, focus and keys, empty/loading/error states, motion, cell art, a theme contract per brand, and a render-lint-critique loop that lets you see the terminal first. Ships a compile-verified Bubble Tea kit, an ANSI-to-PNG renderer, a palette tool and a slop linter. Not for web UIs, nor yet for TUI frameworks other than Bubble Tea (ratatui, Textual, Ink, tview).
 license: MIT
 compatibility: Go ≥ 1.26.7 (Bubble Tea v2.1, Lip Gloss v2.0.6, Bubbles v2.2). Python 3 with Pillow and numpy only for the wordmark and logo converters.
 metadata:
-  version: "1.0.0-rc.2"
+  version: "1.0.0-rc.4"
 ---
 
 # Pearl
@@ -26,8 +26,8 @@ to all three. A half-applied idiom reads as noise.
 The laws, the brand read, colour, layout, the confirm ladder and the verify loop are
 framework-neutral: they judge cells, and `cellshot`, `tuilint frames`, `palette` and
 `diversity` read `.ansi` frames and theme files whatever drew them. Bubble Tea v2 (Go,
-with Lip Gloss, Bubbles and Huh) is the one framework the kit (`kit/theme/bubbletea`,
-`kit/ui/bubbletea`, `kit/cmd/showcase`) and `tuilint code` support today. Its references:
+with Lip Gloss and Bubbles, and Huh where an app has it) is the one framework the kit (`kit/theme/bubbletea`,
+`kit/ui/bubbletea`, `kit/cmd/skeleton`, `kit/cmd/showcase`) and `tuilint code` support today. Its references:
 `bubbletea-architecture.md` whole, and the sections a mixed reference names in its
 italic *Bubble Tea:* line (`idiom.md`, `components.md`, `interaction.md`, `brand.md`,
 `anti-patterns.md`, `cmd-init.md`, `cmd-craft.md`, `cmd-restyle.md`, `medium.md`,
@@ -45,10 +45,13 @@ supports only Bubble Tea today; its design references still read as guidance the
 2. **Load the command's reference** from the table below, plus the domain references it
    names. Load nothing else up front.
 3. **Start from the kit, never from prose.** `kit/` is a compiling Bubble Tea v2 module:
-   `theme/bubbletea/` (engine), `ui/bubbletea/` (components), `cmd/showcase/` (a full
-   reference app with the harness), `themes/` (eight themes: ink, the default, and seven
-   brands). Copy and adapt it. A cold rebuild from descriptions loses half the idiom at
-   once.
+   `theme/bubbletea/` (engine), `ui/bubbletea/` (components), `cmd/skeleton/` (the
+   smallest app on the kit's shape, with the harness), `cmd/showcase/` (a full reference
+   app), `themes/` (eight themes: ink, the default, and seven brands). Import `theme` and
+   `ui` as a dependency, copy only the skeleton as the app (`kit/README.md` § Using it in
+   a project: five lines, nothing to delete after), and read the showcase for a worked
+   example of a pattern: a copied kit is 12,000 lines nobody reviews, and a cold rebuild
+   from descriptions loses half the idiom at once.
 4. **Build the tools** once per project, into the project's own `.tuitools/`, from the
    project root: `go -C <dir holding this file>/tools build -o "$PWD/.tuitools/" ./cmd/...`
    and `go -C <dir holding this file>/capture build -o "$PWD/.tuitools/" ./cmd/tuicap`
@@ -131,10 +134,11 @@ signals, or holes in filled bars.
 **DON'T** centre lists, hard-code 80, or let content push the footer off screen.
 
 ### Components → *Consult `references/components.md`*
-**DO** copy `kit/ui/bubbletea`: Header, Tabs, Section, List, Table, KV, Dialog + Overlay,
+**DO** import `kit/ui/bubbletea`: Header, Tabs, Section, List, Table, KV, Dialog + Overlay,
 Button, Tag, Alert, Toast, Footer/Help, ToolCall, Thinking, Progress, Trace, Sparkline,
-Tree, Empty, TooSmall; for wizards and status, Steps, Summary, Form/Confirm, Dot/Busy,
-Anim, Field, Canvas.
+Tree, Empty, TooSmall; for forms, Input, Select, Confirm (Huh, through `huhform.NewForm`, only
+where the app already has it); for wizards and status, Steps, Summary, Dot/Busy, Anim,
+Field, Canvas.
 **DON'T** leave a bare "No items", focus the destructive button, or let a blurred list
 lose its selection.
 
@@ -154,7 +158,8 @@ strip. A flow belongs to a screen, not the app.
 ### Working with the person → *Consult `references/collaborate.md`*
 **DO** stop at the pick points (the brand read, the move and signature, a splash style, a
 layout two arrangements pass) with two to four rendered options, and end `init` and
-`shape` with a work order that quotes what the person said must stay.
+`shape` with a work order that quotes what the person said must stay and sizes the work
+in files and lines, so what comes back is a change a person can review.
 **DON'T** put a law or a key table to a vote, or describe a layout instead of showing it.
 
 ### Motion → *Consult `references/motion.md`*
@@ -232,7 +237,7 @@ checking in with the user after `shape`. An existing app: `init` → `restyle`.
 | Tool | Does |
 |---|---|
 | `cellshot` | ANSI → PNG/GIF/contact sheet, drawn like a modern terminal; reports tofu, emoji, uneven rows |
-| `tuilint` | `frames`: width, emoji, default palette, off-palette, contrast, boxes, rainbow, levels, raw tabs, ASCII leaks… `code`: len(), blocking, hex, emoji, glyph literals, a bare `theme.Ellipsis`, v1, resize, ticks, Print, keys, a Huh form or spinner on its default theme, no NO_COLOR/profile handling. `spec`: TUI.md's keys (indistinguishable, duplicated, eaten by a text box), ambiguous-width glyphs, a footer that doesn't fit 80 columns |
+| `tuilint` | `frames`: width, emoji, default palette, off-palette, contrast, boxes, rainbow, levels, raw tabs, ASCII leaks, two focus columns in an ASCII frame, a too-small frame not below the others… `code`: len(), blocking, hex, emoji, glyph literals, a bare `theme.Ellipsis`, v1, resize, ticks, Print, keys, a Huh form or spinner on its default theme, no NO_COLOR/profile handling. `spec`: TUI.md's keys (indistinguishable, duplicated, eaten by a text box), ambiguous-width glyphs, a footer that doesn't fit 80 columns, a work order with no `size:` line |
 | `palette` | `derive` a dark+light role set from brand hexes (OKLCH, tinted neutrals, contrast-tuned); `check` a theme |
 | `tuivet` | the `tuilint code` rules as a go vet tool (`tuivet ./...`, or `go vet -vettool=$(which tuivet) ./...`; exit 3 on a finding) |
 | `diversity` | how different are these themes from each other and from the default |
@@ -255,11 +260,13 @@ a `TUI.md`: fix what it reports.
 
 ## The Kit
 
-`kit/` (module `tuikit`): `go test ./...` renders eight themes × dark/light/ASCII × every
+`kit/` (module `github.com/jrschumacher/pearl-tui/skills/pearl/kit`): `go test ./...` renders eight themes × dark/light/ASCII × every
 state × five sizes and asserts the footprint and contrast. `go run ./cmd/showcase
 -theme themes/halyard.json` runs the reference app. Its `-out` flag writes every state
-for `cellshot`. Copy `theme/bubbletea` and `ui/bubbletea` into the project's
-`internal/theme` and `internal/ui` with the README block, which rewrites the imports.
+for `cellshot`. A project imports `theme/bubbletea` and `ui/bubbletea` with the README
+block (`go get`, at the skill's version) and copies `cmd/skeleton` as its own `cmd/<app>`;
+the showcase is the worked example to read (a wizard in `setup.go`, panes in
+`rollout.go`, toasts and the grace window in `app.go`), never to copy.
 
 You can build terminal interfaces people screenshot and share. The libraries are
 capable of it, and Crush proves it. The difference is decisions: make them in the brand

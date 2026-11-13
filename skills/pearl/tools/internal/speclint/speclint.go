@@ -15,7 +15,7 @@ import (
 
 	"golang.org/x/text/width"
 
-	"tuikit/theme/bubbletea"
+	"github.com/jrschumacher/pearl-tui/skills/pearl/kit/theme/bubbletea"
 	"tuitools/internal/cmddoc"
 )
 
@@ -28,7 +28,7 @@ func Usage() string { return cmddoc.Text(docSrc) + "\n" }
 // Severity maps each rule ID to P1 (fails the run) or P2 (warns).
 var Severity = map[string]string{
 	"S-TABLE": "P1", "S-KEYAMBIG": "P1", "S-KEYDUP": "P1",
-	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2", "S-FOOTER": "P2", "S-ACCENT": "P2", "S-SLOTS": "P2", "S-GOLDEN": "P2", "S-REGION": "P2",
+	"S-KEYSHADOW": "P2", "S-GLYPHWIDTH": "P2", "S-FOOTER": "P2", "S-ACCENT": "P2", "S-SLOTS": "P2", "S-GOLDEN": "P2", "S-REGION": "P2", "S-SIZE": "P2",
 }
 
 // Finding is one result, in the shape the other tuilint modes write to --json: Where
@@ -212,6 +212,7 @@ func LintFrames(file, src, frames string) []Finding {
 	s.accentDrift(add)
 	s.brandSlots(add)
 	s.screenBrand(add)
+	s.orderSize(add)
 	if frames != "" {
 		s.goldenFooters(frames, add)
 		s.regionBudgets(frames, add)
@@ -982,6 +983,63 @@ func (s *spec) screenBrand(add func(string, int, string, ...any)) {
 			}
 		default:
 			has = true
+		}
+	}
+	flush()
+}
+
+var (
+	ordersHeading = regexp.MustCompile(`(?i)^(?:\d+[.)]?\s+)?work orders?\s*:?$`)
+	sizeLine      = regexp.MustCompile(`(?i)^(?:[-*+]\s+)?size\s*:\s*(.*)$`)
+	templateOrder = regexp.MustCompile(`^(?:\d+[.)]?\s+)?<`)
+)
+
+// orderSize is S-SIZE: each work order (a heading under `Work orders`) has a `size:` line
+// that says something: the files the step adds or changes, a line count each, and what it
+// won't add. A missing line, an empty value and the template's `<…>` are flagged; a
+// line in a fence or a block still headed `<command>` (the template's own) is not read.
+func (s *spec) orderSize(add func(string, int, string, ...any)) {
+	const how = "Write `size: <files this step adds or changes, ~lines each; what it won't add>`: a person reviews what the step builds, and a step with no size comes back as a change nobody can review (references/collaborate.md § Work Orders Carry The Conversation)"
+	section, start, name, found := 0, -1, "", false // the section's heading level; the open order
+	flush := func() {
+		if start >= 0 && !found {
+			add("S-SIZE", start+1, "%s: no `size:` line. %s", name, how)
+		}
+		start, found = -1, false
+	}
+	fence := ""
+	for i, l := range s.lines {
+		t := strings.TrimSpace(l)
+		if fenceToggle(&fence, t) || fence != "" {
+			continue
+		}
+		if m := headingRe.FindStringSubmatch(t); m != nil {
+			level, text := len(m[1]), clean(m[2])
+			switch {
+			case section > 0 && level <= section:
+				flush()
+				section = 0
+				fallthrough
+			case section == 0:
+				if ordersHeading.MatchString(text) {
+					section = level
+				}
+			default:
+				flush()
+				if !templateOrder.MatchString(text) {
+					start, name = i, text
+				}
+			}
+			continue
+		}
+		if start < 0 {
+			continue
+		}
+		if f := sizeLine.FindStringSubmatch(strings.NewReplacer("**", "", "__", "").Replace(t)); f != nil {
+			found = true
+			if v := strings.TrimSpace(f[1]); v == "" || (strings.Contains(v, "<") && strings.Contains(v, ">")) {
+				add("S-SIZE", i+1, "%s: `%s` is a placeholder or empty. %s", name, t, how)
+			}
 		}
 	}
 	flush()

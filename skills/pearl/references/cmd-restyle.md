@@ -10,9 +10,40 @@ that make the kit's own screens look designed, landed in small steps that each k
 running. A recolour is not a restyle: swapping a wizard's colours and keeping everything
 else leaves the richness missing.
 
-**Keep the libraries that work.** Huh for forms, Bubbles for lists and inputs, Glamour
-for markdown: theme them from the brand theme (`components.md` § Forms And Wizards) and draw them
-inside your own chrome. Rebuilding a working widget costs behaviour you'll then get wrong.
+**Keep the libraries that work.** Huh for the forms the app already has, Bubbles for
+lists and inputs, Glamour for markdown: theme them from the brand theme (`components.md`
+§ Forms And Wizards) and draw them inside your own chrome. Rebuilding a working widget
+costs behaviour you'll then get wrong, and lines somebody has to review. An existing Huh
+form stays on Huh, themed with `huhform.NewForm`: the kit's fields are the default for a new
+form, not a reason to migrate one that works.
+
+## Start From What The App Has
+
+A restyle adds a theme and a harness to an app that works. It does not add a second
+foundation beside the first. Before step 2, write these into the work order's `size:`
+line (`collaborate.md` § Work Orders Carry The Conversation):
+
+- **What exists**, listed: the libraries' own components in use, the app's helpers, its
+  colour mapping, its root model, its tests. Each is reused unless you can name what it
+  can't do. A kit component comes in for a named gap, one line each.
+- **One style mapping.** `huhform.Theme` is the whole mapping of the theme onto Huh. A
+  feature that needs a difference states that difference; it never copies the mapping.
+- **Huh forms stay Huh forms.** Move one to the kit's fields (`ui.NewInput`,
+  `ui.NewSelect`, `ui.NewConfirm`) only when the user asks, or when a Huh gap blocks the
+  design (`bubbletea-architecture.md` § Huh v2: a blurred input beside another field,
+  an error that must stay inside the form's height), and say which in § Decisions.
+  A migration nobody asked for is a rewrite of working input code.
+- **One rule, each delivery its own.** Where the app has a rich UI and a plain one (a
+  line-by-line fallback), a rule both follow (what is valid, when to retry, what a
+  result means) is one function both call. How keys and messages arrive stays separate:
+  no shared wizard engine, no second copy of the draft.
+- **What goes.** When a layout or screen is replaced, list its callers and delete what
+  has none left, with any test that only kept it alive. A branch whose condition is
+  never true is deleted, not kept for later.
+
+**DON'T** wrap a library's widget, read its rendered text, or redraw part of it to match
+the kit: where it falls short of the theme, say so in § Decisions and leave it native
+(`bubbletea-architecture.md` § Huh v2).
 
 0. **Read `TUI.md` first.** If it's missing and the job is one screen, run `init`'s
    short form, saying what you assumed; otherwise suggest `init` and stop: restyling
@@ -28,15 +59,18 @@ inside your own chrome. Rebuilding a working widget costs behaviour you'll then 
    user gave a screen to match, write its terms in TUI.md § Reference now and ask about
    its conflicts with the laws in one message (`verify.md` § Hold It To The Reference):
    from here on it is the target, not an ingredient list.
-2. **Add the harness from the kit.** Copy `theme/bubbletea` and `ui/bubbletea` with the
-   README block (`cmd-craft.md` §1; skip `cmd/showcase`, the app exists), then lift
-   `main.go`'s harness (`render(w, h)`, `setState`, `states`, `overlays`, `scrolls`,
-   `overlayPages`, `unjudgedPages`, `openOverlay`, the `-golden`/`-out` flags) into the
-   app's package and give the app's model the names the harness tests read
-   (`kit/README.md`), then copy `showcase_test.go`, `overlay_test.go`,
-   `behaviour_test.go` and `ansi16_test.go` whole. Written by hand, the harness loses the
-   kit's tests (`TestHelpIsHandled`, footprint, contrast). Fix footprint failures before
-   anything visual.
+2. **Add the harness from the kit.** Import `theme/bubbletea` and `ui/bubbletea` with the
+   README block's `go get` (`cmd-craft.md` §1; skip the `cmd/skeleton` and theme lines
+   when the app and its theme exist; never copy the two packages in), then lift the
+   harness from the skeleton's `main.go` (`kit/cmd/skeleton`, the smallest one to lift
+   from: `setState`, `states`, `overlays`, `scrolls`, `overlayPages`, `unjudgedPages`,
+   `openOverlay`, `frameSize`, `frameName`, the `-golden`/`-out` flags) and its
+   `render(w, h)` shape into the app's package, then copy its `harness_test.go` (about
+   70 lines) and point its `harnessApp`
+   methods at the app's model (`kit/README.md`): its `TestHarness` runs the kit's tests,
+   imported, against the app. Written by hand, the harness loses those tests
+   (`HelpIsHandled`, footprint, contrast). Never copy the kit's test files into the
+   app. Fix footprint failures before anything visual.
 3. **Migrate to v2** if it's on v1 (`bubbletea-architecture.md`): import paths,
    `View() tea.View`, `tea.KeyPressMsg`, the AltScreen/mouse view fields, Lip Gloss
    colours, Bubbles style setters. Use the official upgrade guides for the mechanics. The
