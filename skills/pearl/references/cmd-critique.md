@@ -7,12 +7,12 @@ asked; hand off to `polish`, `harden` or `brand`.
 ## 1. Get Eyes On It
 
 If the app has the harness: `-out frames` for every state (dark, light, ascii) at 80×24
-and 120×40. If it doesn't, that is finding #1. Get frames anyway:
-
-- run it in a pty at a fixed size and capture the screen. A short Go test driving the
-  model's `View()` with `tea.WindowSizeMsg{80, 24}` and key messages, writing
-  `View().Content` to `.ansi`, is usually 20 lines.
-- or render the model's `View()` directly from a test for each state you can reach.
+and 120×40. If it doesn't, that is finding #1. Capture it as it runs with `tuicap`, any
+framework: a tape per flow (the keys that reach each state, a `Snapshot` at each), then
+`tuicap -sizes 80x24,120x40 -tape setup.tape -out capture -- ./bin/app setup`; the
+frames land in `capture/frames/`, with `flow.json` (the keys that reached each state)
+and `sequences.json` (what the app did to the terminal, and whether it left it clean).
+`-profile ansi` and `-profile ascii` capture the downsampled terminals.
 
 Then `cellshot --sheet`, `tuilint frames` and `tuilint code`.
 

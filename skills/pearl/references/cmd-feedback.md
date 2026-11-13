@@ -73,6 +73,10 @@ but not taken back, so it sits on rung 3 of the confirm ladder
 size) with generic stand-ins for the user's data ("a 40-row list", "the confirm state").
 **DON'T** put the user's code, data, frame contents, file names or screenshots in a draft
 unless the user approved those lines; the tool redacts paths and names, not meaning.
+**DO**, for a miss that shows on screen, capture the state with `tuicap -level privacy`
+and offer its frame as text in the draft: the layout, styles, glyphs and keys survive
+and every other letter is an x, so the loop sees the defect without the product. Show
+the user the redacted frame with the rest of the draft; it is filed only on their yes.
 **DON'T** pass `--no-redact` or `--open` on your own judgement: both are the user's call.
 
 ## Write It So The Loop Can Act
